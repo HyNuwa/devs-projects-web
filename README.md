@@ -159,6 +159,7 @@ Devs_FORO/
 | [README_SECURITY.md](docs/README_SECURITY.md) | Seguridad | Auth, validaciones, protecciones, OWASP |
 | [README_DEVOPS.md](docs/README_DEVOPS.md) | DevOps | Docker, CI/CD, VPS, deploy, monitoreo |
 | [README_PROJECT_MANAGEMENT.md](docs/README_PROJECT_MANAGEMENT.md) | Gestión | Metodología, sprints, comunicación |
+| [README_RULES.md](docs/README_RULES.md) | Todo el equipo | Reglas de código, convenciones de nombres, arquitectura |
 
 ---
 

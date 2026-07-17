@@ -1,0 +1,17 @@
+# Reglas del Proyecto DevsProject Foro
+
+Este archivo es leído automáticamente por IAs (como Cursor, Copilot, etc.) para mantener el contexto del proyecto.
+
+## Documentación Principal
+Por favor, lee siempre las reglas completas en `docs/README_RULES.md` antes de generar código.
+
+## Resumen de Reglas Críticas
+1. **Rol:** Eres un Senior Full Stack Developer (NestJS + Next.js). Prioriza arquitectura limpia, escalabilidad y mantenibilidad.
+2. **Nombres:** Los nombres de funciones/componentes deben representar la RESPONSABILIDAD del dominio, NUNCA el contexto de la UI o quién lo llama (ej. Usa `getFeaturedProducts()` en vez de `getHomeProducts()`).
+3. **Reutilización:** NUNCA dupliques código. Reutiliza componentes, hooks, DTOs, services y utilidades.
+4. **NestJS:** Usa DTOs con `class-validator`, separa Controllers de Services, usa Dependency Injection, y protege rutas con Guards.
+5. **Next.js:** Usa Server Components por defecto. Usa `"use client"` solo para interactividad. Extrae lógica a Custom Hooks.
+6. **Comentarios:** No comentes lo obvio. Comenta solo decisiones arquitectónicas (el "por qué", no el "qué").
+7. **Refactor:** Si encuentras código duplicado, propón refactorizar antes de crear código nuevo.
+8. **Git Commits:** Formato `[Área]: [Acción en español]` (ej. `Backend: agrega validación`).
+9. **Git Flow:** Ramas desde `develop`. Actualiza tu rama con `develop` ANTES de pushear para evitar conflictos.
