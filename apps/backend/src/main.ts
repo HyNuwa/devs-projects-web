@@ -1,8 +1,41 @@
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+  const configService = app.get(ConfigService);
+
+  const apiPrefix = configService.get<string>('app.apiPrefix', 'api/v1');
+  app.setGlobalPrefix(apiPrefix);
+
+  app.use(helmet());
+
+  const corsOrigin = configService.get<string>('app.corsOrigin', 'http://localhost:3000');
+  app.enableCors({
+    origin: corsOrigin.split(',').map((o) => o.trim()),
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  });
+
+  const nodeEnv = configService.get<string>('app.nodeEnv', 'development');
+  if (nodeEnv !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('DEVs Project API')
+      .setDescription('API del foro universitario DEVs Project')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, document);
+  }
+
+  const port = configService.get<number>('app.port', 3001);
+  await app.listen(port);
+
+  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`📚 Swagger docs: http://localhost:${port}/docs`);
 }
 bootstrap();
