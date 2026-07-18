@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   Home,
@@ -36,7 +37,9 @@ export const Navbar = () => {
       <div className={styles.container}>
         {/* Logo */}
         <Link href="/" className={styles.logo}>
-          <div className={styles.logoIcon}>🦊</div>
+          <div className={styles.logoIcon}>
+            <Image src="/assets/logo.png" alt="DevsProject Logo" width={32} height={32} />
+          </div>
           <div className={styles.logoText}>
             <span className={styles.logoTitle}>DEVS</span>
             <span className={styles.logoSubtitle}>PROJECT</span>

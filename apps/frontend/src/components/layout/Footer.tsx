@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Globe, Mail, MessageCircle } from 'lucide-react';
 import styles from './Footer.module.css';
@@ -12,7 +13,9 @@ export const Footer = () => {
           {/* Brand & Description */}
           <div className={styles.brandSection}>
             <Link href="/" className={styles.logo}>
-              <div className={styles.logoIcon}>🦊</div>
+              <div className={styles.logoIcon}>
+                <Image src="/assets/logo.png" alt="DevsProject Logo" width={24} height={24} />
+              </div>
               <div className={styles.logoText}>
                 <span className={styles.logoTitle}>DEVS</span>
                 <span className={styles.logoSubtitle}>PROJECT</span>
