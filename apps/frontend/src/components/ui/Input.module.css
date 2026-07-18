@@ -1,0 +1,86 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.label {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  background-color: #F8FAFC;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary-400);
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 3px var(--color-primary-50);
+}
+
+.input:disabled {
+  background-color: #F1F5F9;
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+.hasLeftIcon {
+  padding-left: 2.5rem;
+}
+
+.hasRightIcon {
+  padding-right: 2.5rem;
+}
+
+.hasError {
+  border-color: var(--color-accent-red);
+}
+
+.hasError:focus {
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+}
+
+.iconLeft {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.iconRight {
+  position: absolute;
+  right: 0.75rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+.errorMessage {
+  font-size: 0.8rem;
+  color: var(--color-accent-red);
+  margin-top: 0.2rem;
+}
