@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Outfit, Press_Start_2P } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 
 const inter = Inter({
   variable: '--font-body',
@@ -33,7 +34,8 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${outfit.variable} ${pressStart2P.variable}`}>
       <body>
         <Navbar />
-        <main>{children}</main>
+        <main className="main-content">{children}</main>
+        <Footer />
       </body>
     </html>
   );
