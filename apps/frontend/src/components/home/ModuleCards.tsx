@@ -59,8 +59,8 @@ export const ModuleCards = () => {
                 <Image
                   src={mod.icon}
                   alt={mod.title}
-                  width={64}
-                  height={64}
+                  width={96}
+                  height={96}
                   className={styles.iconImage}
                 />
               </div>
