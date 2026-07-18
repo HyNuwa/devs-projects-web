@@ -28,7 +28,7 @@ export const HeroBanner = () => {
 
           <h1 className={`${styles.title} font-pixel`}>VIAJERO</h1>
 
-          <p className={`${styles.description} font-pixel`}>
+          <p className={styles.description}>
             Tu aventura académica comienza aquí. Comparte conocimiento, ayuda a otros y conviértete
             en leyenda.
           </p>
