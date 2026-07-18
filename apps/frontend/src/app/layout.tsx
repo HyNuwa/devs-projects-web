@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Outfit, Press_Start_2P } from 'next/font/google';
 import './globals.css';
+import { Navbar } from '@/components/layout/Navbar';
 
 const inter = Inter({
   variable: '--font-body',
@@ -30,7 +31,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${inter.variable} ${outfit.variable} ${pressStart2P.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Navbar />
+        <main>{children}</main>
+      </body>
     </html>
   );
 }
