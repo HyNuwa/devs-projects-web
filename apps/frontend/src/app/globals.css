@@ -27,15 +27,6 @@
   --font-pixel: 'Press Start 2P', monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg-primary: #0F1923;
-    --color-bg-secondary: #1A2B3C;
-    --color-text-primary: #F5F9FF;
-    --color-text-secondary: #B8DEF8;
-  }
-}
-
 html {
   height: 100%;
 }
@@ -79,10 +70,4 @@ h6 {
 
 .font-pixel {
   font-family: var(--font-pixel);
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }

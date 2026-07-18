@@ -1,7 +1,7 @@
 .heroSection {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: 85vh;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -253,31 +253,5 @@
   100% {
     opacity: 0.5;
     transform: scale(0.8);
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .overlay {
-    background: linear-gradient(to right, rgba(15, 25, 35, 0.95) 0%, rgba(15, 25, 35, 0.7) 50%, rgba(15, 25, 35, 0.3) 100%);
-  }
-
-  .statsCard {
-    background: rgba(26, 43, 60, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .statsHeader {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .secondaryBtn {
-    background-color: rgba(26, 43, 60, 0.8);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-
-  .secondaryBtn:hover {
-    background-color: rgba(26, 43, 60, 1);
   }
 }

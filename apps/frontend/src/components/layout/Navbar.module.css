@@ -5,7 +5,7 @@
   right: 0;
   z-index: 50;
   width: calc(100% - 2rem);
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(20px);
@@ -267,32 +267,5 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .header {
-    background: rgba(15, 25, 35, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  .searchInput {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .searchInput:focus {
-    background-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
-  }
-
-  .mobileNav {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .mobileAuth {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
   }
 }
