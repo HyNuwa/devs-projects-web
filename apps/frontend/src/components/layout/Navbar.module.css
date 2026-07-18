@@ -23,43 +23,14 @@
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
   text-decoration: none;
   flex-shrink: 0;
 }
 
-.logoIcon {
-  font-size: 2rem;
-  background: var(--color-primary-50);
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  color: var(--color-primary-600);
-}
-
-.logoText {
-  display: flex;
-  flex-direction: column;
-}
-
-.logoTitle {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1.25rem;
-  color: var(--color-primary-700);
-  line-height: 1;
-  letter-spacing: -0.5px;
-}
-
-.logoSubtitle {
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  letter-spacing: 2px;
+.logoImage {
+  object-fit: contain;
+  height: auto;
+  max-height: 48px;
 }
 
 /* Desktop Navigation */

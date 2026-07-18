@@ -37,13 +37,14 @@ export const Navbar = () => {
       <div className={styles.container}>
         {/* Logo */}
         <Link href="/" className={styles.logo}>
-          <div className={styles.logoIcon}>
-            <Image src="/assets/logo.png" alt="DevsProject Logo" width={32} height={32} />
-          </div>
-          <div className={styles.logoText}>
-            <span className={styles.logoTitle}>DEVS</span>
-            <span className={styles.logoSubtitle}>PROJECT</span>
-          </div>
+          <Image
+            src="/assets/logo.png"
+            alt="DevsProject Logo"
+            width={120}
+            height={48}
+            className={styles.logoImage}
+            priority
+          />
         </Link>
 
         {/* Desktop Navigation */}

@@ -13,13 +13,13 @@ export const Footer = () => {
           {/* Brand & Description */}
           <div className={styles.brandSection}>
             <Link href="/" className={styles.logo}>
-              <div className={styles.logoIcon}>
-                <Image src="/assets/logo.png" alt="DevsProject Logo" width={24} height={24} />
-              </div>
-              <div className={styles.logoText}>
-                <span className={styles.logoTitle}>DEVS</span>
-                <span className={styles.logoSubtitle}>PROJECT</span>
-              </div>
+              <Image
+                src="/assets/logo.png"
+                alt="DevsProject Logo"
+                width={120}
+                height={48}
+                className={styles.logoImage}
+              />
             </Link>
             <p className={styles.description}>
               Tu aventura académica comienza aquí. Comparte conocimiento, ayuda a otros y
