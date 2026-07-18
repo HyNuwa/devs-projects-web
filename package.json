@@ -4,11 +4,26 @@
   "private": true,
   "description": "DevsProject Foro - Plataforma universitaria",
   "scripts": {
+    "prepare": "husky",
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:backend": "pnpm --filter backend start:dev",
     "dev": "pnpm dev:frontend & pnpm dev:backend",
     "build:frontend": "pnpm --filter frontend build",
     "build:backend": "pnpm --filter backend build",
     "build": "pnpm build:frontend && pnpm build:backend"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8"
+  },
+  "lint-staged": {
+    "apps/frontend/**/*.{js,jsx,ts,tsx}": [
+      "pnpm --filter frontend exec eslint --fix",
+      "pnpm --filter frontend exec prettier --write"
+    ],
+    "apps/backend/**/*.ts": [
+      "pnpm --filter backend exec eslint --fix",
+      "pnpm --filter backend exec prettier --write"
+    ]
   }
 }
