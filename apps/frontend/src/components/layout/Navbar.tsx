@@ -1,7 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, MessageSquare, BookOpen, Map, Wrench, Trophy, Search, Menu, X } from 'lucide-react';
+import {
+  Home,
+  MessageSquare,
+  GraduationCap,
+  FileText,
+  Wrench,
+  Trophy,
+  Search,
+  Menu,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import styles from './Navbar.module.css';
 
@@ -15,8 +25,8 @@ export const Navbar = () => {
   const navLinks = [
     { name: 'Inicio', href: '/', icon: <Home size={18} /> },
     { name: 'Foro', href: '/foro', icon: <MessageSquare size={18} /> },
-    { name: 'Cursos', href: '/cursos', icon: <BookOpen size={18} /> },
-    { name: 'Guías', href: '/guias', icon: <Map size={18} /> },
+    { name: 'Cursos', href: '/cursos', icon: <GraduationCap size={18} /> },
+    { name: 'Guías', href: '/guias', icon: <FileText size={18} /> },
     { name: 'Herramientas', href: '/herramientas', icon: <Wrench size={18} /> },
     { name: 'Ranking', href: '/ranking', icon: <Trophy size={18} /> },
   ];
