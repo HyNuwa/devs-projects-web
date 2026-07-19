@@ -31,6 +31,12 @@ export class EnvironmentVariables {
 
   @IsString()
   DATABASE_URL: string;
+
+  @IsString()
+  JWT_SECRET: string;
+
+  @IsNumber()
+  JWT_EXPIRATION: number = 900;
 }
 
 export function validate(config: Record<string, unknown>) {

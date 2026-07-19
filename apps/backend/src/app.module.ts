@@ -1,17 +1,22 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
+import { jwtConfig } from './config/jwt.config';
 import { validate } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig],
+      load: [appConfig, jwtConfig],
       validate,
       envFilePath: '.env',
     }),
@@ -26,7 +31,7 @@ import { validate } from './config/env.validation';
           pinoHttp: {
             level: isProduction ? 'info' : 'debug',
             autoLogging: true,
-            customLogLevel: (_req: any, res: any, _err?: any) => {
+            customLogLevel: (_req: any, res: any) => {
               if (res.statusCode >= 500) return 'error';
               if (res.statusCode >= 400) return 'warn';
               return 'info';
@@ -52,8 +57,16 @@ import { validate } from './config/env.validation';
       },
     }),
     PrismaModule,
+    AuthModule,
+    AdminModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

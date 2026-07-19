@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -36,8 +37,12 @@ async function bootstrap() {
   );
 
   app.use(helmet());
+  app.use(cookieParser());
 
-  const corsOrigin = configService.get<string>('app.corsOrigin', 'http://localhost:3000');
+  const corsOrigin = configService.get<string>(
+    'app.corsOrigin',
+    'http://localhost:3000',
+  );
   app.enableCors({
     origin: corsOrigin.split(',').map((o) => o.trim()),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -63,4 +68,7 @@ async function bootstrap() {
   logger.log(`🚀 Server running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs: http://localhost:${port}/docs`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to bootstrap application:', err);
+  process.exit(1);
+});
