@@ -3,6 +3,7 @@ import { Inter, Outfit, Press_Start_2P } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { AuthInitializer } from '@/components/auth/AuthInitializer';
 
 const inter = Inter({
   variable: '--font-body',
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${outfit.variable} ${pressStart2P.variable}`}>
       <body>
+        <AuthInitializer />
         <Navbar />
         <main className="main-content">{children}</main>
         <Footer />
