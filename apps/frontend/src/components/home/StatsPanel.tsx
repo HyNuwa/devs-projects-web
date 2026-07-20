@@ -9,8 +9,8 @@ export const StatsPanel = () => {
           <Image
             src="/assets/cards/estadisticas/estadisticas.png"
             alt="Estadísticas"
-            width={24}
-            height={24}
+            width={36}
+            height={36}
           />
         </div>
         <h3 className={styles.statsTitle}>ESTADÍSTICAS</h3>
@@ -22,8 +22,8 @@ export const StatsPanel = () => {
             <Image
               src="/assets/cards/estadisticas/miembros.png"
               alt="Miembros"
-              width={40}
-              height={40}
+              width={60}
+              height={60}
             />
           </div>
           <div className={styles.statInfo}>
@@ -37,8 +37,8 @@ export const StatsPanel = () => {
             <Image
               src="/assets/cards/estadisticas/materiales.png"
               alt="Materiales"
-              width={40}
-              height={40}
+              width={60}
+              height={60}
             />
           </div>
           <div className={styles.statInfo}>
@@ -52,8 +52,8 @@ export const StatsPanel = () => {
             <Image
               src="/assets/cards/estadisticas/preguntas.png"
               alt="Preguntas"
-              width={40}
-              height={40}
+              width={60}
+              height={60}
             />
           </div>
           <div className={styles.statInfo}>
@@ -67,8 +67,8 @@ export const StatsPanel = () => {
             <Image
               src="/assets/cards/estadisticas/plan_estudio.png"
               alt="Cursos activos"
-              width={40}
-              height={40}
+              width={60}
+              height={60}
             />
           </div>
           <div className={styles.statInfo}>
