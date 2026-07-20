@@ -258,6 +258,25 @@
   padding: 0.8rem;
 }
 
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.userMenu .loginBtn,
+.userMenu .registerBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.registerBtn.logoutBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;

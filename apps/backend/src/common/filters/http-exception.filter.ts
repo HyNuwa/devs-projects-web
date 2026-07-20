@@ -4,31 +4,69 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-@Catch()
-export class AllExceptionsFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
+interface ExceptionResponse {
+  message?: string | string[];
+  error?: string;
+  statusCode?: number;
+}
+
+@Catch(HttpException)
+export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
+  catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const status = exception.getStatus();
+    const exceptionResponse = exception.getResponse();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : 'Internal server error';
-
-    response.status(status).json({
+    const errorBody = {
       statusCode: status,
+      message: this.extractMessage(status, exceptionResponse),
+      error: this.extractError(status, exceptionResponse),
       timestamp: new Date().toISOString(),
       path: request.url,
-      message: typeof message === 'string' ? message : (message as any).message || message,
-    });
+    };
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(
+        `${request.method} ${request.url} ${status}`,
+        exception.stack,
+      );
+    }
+
+    response.status(status).json(errorBody);
+  }
+
+  private extractMessage(
+    status: number,
+    exceptionResponse: string | object,
+  ): string | string[] {
+    if (typeof exceptionResponse === 'string') {
+      return exceptionResponse;
+    }
+    const res = exceptionResponse as ExceptionResponse;
+    if (res.message !== undefined) {
+      return res.message;
+    }
+    return HttpStatus[status] || 'Internal Server Error';
+  }
+
+  private extractError(
+    status: number,
+    exceptionResponse: string | object,
+  ): string {
+    if (typeof exceptionResponse === 'object') {
+      const res = exceptionResponse as ExceptionResponse;
+      if (typeof res.error === 'string') {
+        return res.error;
+      }
+    }
+    return HttpStatus[status] || 'Internal Server Error';
   }
 }

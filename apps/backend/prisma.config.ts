@@ -1,11 +1,13 @@
 import { defineConfig } from '@prisma/config';
 
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  schema: 'prisma/schema.prisma',
   migrations: {
-    path: "prisma/migrations",
+    path: 'prisma/migrations',
   },
   datasource: {
-    url: process.env["DATABASE_URL"] || "postgresql://postgres:postgres@localhost:5432/devs_foro?schema=public",
+    url:
+      process.env['DATABASE_URL'] ||
+      'postgresql://postgres:1234@localhost:5433/devs_project?schema=public',
   },
 });

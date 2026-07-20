@@ -12,15 +12,26 @@ import {
   Search,
   Menu,
   X,
+  User,
+  Shield,
+  LogOut,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 import styles from './Navbar.module.css';
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setIsMenuOpen(false);
   };
 
   const navLinks = [
@@ -72,12 +83,35 @@ export const Navbar = () => {
           </div>
 
           <div className={styles.authButtons}>
-            <Link href="/login" className={styles.loginBtn}>
-              Iniciar sesión
-            </Link>
-            <Link href="/register" className={styles.registerBtn}>
-              Registrarse
-            </Link>
+            {user ? (
+              <>
+                <div className={styles.userMenu}>
+                  <Link href="/perfil" className={styles.loginBtn}>
+                    <User size={18} />
+                    <span>{user.username}</span>
+                  </Link>
+                  {user.role === 'ADMIN' || user.role === 'SUPERADMIN' ? (
+                    <Link href="/admin" className={styles.loginBtn}>
+                      <Shield size={18} />
+                      <span>Admin</span>
+                    </Link>
+                  ) : null}
+                  <button onClick={handleLogout} className={styles.registerBtn}>
+                    <LogOut size={18} />
+                    <span>Salir</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className={styles.loginBtn}>
+                  Iniciar sesión
+                </Link>
+                <Link href="/auth/register" className={styles.registerBtn}>
+                  Registrarse
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -104,16 +138,33 @@ export const Navbar = () => {
               </li>
             ))}
             <li className={styles.mobileAuth}>
-              <Link href="/login" className={styles.loginBtn} onClick={() => setIsMenuOpen(false)}>
-                Iniciar sesión
-              </Link>
-              <Link
-                href="/register"
-                className={styles.registerBtn}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Registrarse
-              </Link>
+              {user ? (
+                <>
+                  <span className={styles.loginBtn} style={{ cursor: 'default' }}>
+                    <User size={18} /> {user.username}
+                  </span>
+                  <button onClick={handleLogout} className={styles.registerBtn}>
+                    Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className={styles.loginBtn}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Iniciar sesión
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className={styles.registerBtn}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Registrarse
+                  </Link>
+                </>
+              )}
             </li>
           </ul>
         </nav>

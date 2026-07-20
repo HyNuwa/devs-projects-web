@@ -16,6 +16,9 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["bcrypt", "prisma", "sharp", "unrs-resolver"]
+  },
   "lint-staged": {
     "apps/frontend/**/*.{js,jsx,ts,tsx}": [
       "pnpm --filter frontend exec eslint --fix",

@@ -4,6 +4,7 @@ import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ToastProvider } from '@/components/ui';
+import { AuthInitializer } from '@/components/auth/AuthInitializer';
 
 const inter = Inter({
   variable: '--font-body',
@@ -35,6 +36,7 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${outfit.variable} ${pressStart2P.variable}`}>
       <body>
         <ToastProvider>
+          <AuthInitializer />
           <Navbar />
           <main className="main-content">{children}</main>
           <Footer />

@@ -71,3 +71,9 @@ h6 {
 .font-pixel {
   font-family: var(--font-pixel);
 }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
