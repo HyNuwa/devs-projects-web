@@ -58,12 +58,15 @@
 .statIconWrapper {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background-color: rgba(33, 150, 243, 0.1);
-  color: var(--color-primary-600);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.statIconWrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .statInfo {
