@@ -1,21 +1,46 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.*
+
+# Build & Output directories
 dist/
 build/
-.env
-.env.*.local
-.DS_Store
-coverage/
+out/
 .next/
+coverage/
+*.tsbuildinfo
 
-# Logs
+# Prisma generated client
+generated/
+src/generated/
+**/generated/prisma/
+
+# Environment variables (ignore all .env files EXCEPT .env.example)
+.env*
+!.env.example
+
+# Logs & Temp files
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.tmp
+*.temp
+*-output.txt
+eslint-*.txt
 
-# IDEs
+# IDEs & System files
 .vscode/
 .idea/
 .fleet/
 .replit/
+.zed/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Service / Tool specific
+.vercel/
+.turbo/
