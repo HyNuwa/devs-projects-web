@@ -1,16 +1,24 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
+// Serialize BigInt as string in JSON responses (Material.fileSize is BigInt)
+(BigInt.prototype as unknown as { toJSON: (this: bigint) => string }).toJSON =
+  function (this: bigint) {
+    return this.toString();
+  };
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
   const configService = app.get(ConfigService);
@@ -38,6 +46,7 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(cookieParser());
+  app.useStaticAssets(join(process.cwd(), 'public'));
 
   const corsOrigin = configService.get<string>(
     'app.corsOrigin',

@@ -5,7 +5,7 @@ import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 interface JwtPayload {
-  sub: number;
+  sub: string;
   email: string;
   role: string;
 }

@@ -73,6 +73,7 @@ model User {
   refreshTokens      RefreshToken[]
   emailVerifications EmailVerification[]
   passwordResets     PasswordResetRequest[]
+  pointTransactions  PointTransaction[]
 
   @@map("users")
 }
@@ -356,6 +357,23 @@ model PasswordResetRequest {
 
   @@index([userId])
   @@map("password_reset_requests")
+}
+
+// ─── POINT TRANSACTIONS ────────────────────────────────────────
+
+model PointTransaction {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  amount      Int
+  reason      String   @db.VarChar(100)
+  referenceId String?  @map("reference_id") @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("point_transactions")
 }
 
 // ─── MODERATION LOG ────────────────────────────────────────────

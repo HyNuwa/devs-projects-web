@@ -3,7 +3,7 @@ import {
   Get,
   Patch,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   UseGuards,
   Body,
 } from '@nestjs/common';
@@ -36,7 +36,7 @@ export class AdminController {
         username: true,
         email: true,
         role: true,
-        name: true,
+        displayName: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -49,7 +49,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Obtener usuario por ID' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  async getUser(@Param('id', ParseIntPipe) id: number) {
+  async getUser(@Param('id', ParseUUIDPipe) id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
@@ -57,7 +57,7 @@ export class AdminController {
         username: true,
         email: true,
         role: true,
-        name: true,
+        displayName: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -74,7 +74,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Cambiar rol de un usuario' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   async updateUserRole(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('role') role: Role,
   ) {
     const user = await this.prisma.user.update({
@@ -85,7 +85,7 @@ export class AdminController {
         username: true,
         email: true,
         role: true,
-        name: true,
+        displayName: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -10,6 +10,7 @@ out/
 .next/
 coverage/
 *.tsbuildinfo
+graphify-out/
 
 # Prisma generated client
 generated/
@@ -19,6 +20,20 @@ src/generated/
 # Environment variables (ignore all .env files EXCEPT .env.example)
 .env*
 !.env.example
+
+# AI agent caches & internal session logs
+.omo/
+.opencode/
+.gemini/
+.claude/
+
+# Uploaded user files (avatars, materials, temp uploads)
+apps/backend/public/uploads/*
+!apps/backend/public/uploads/.gitkeep
+apps/backend/public/uploads/avatars/*
+!apps/backend/public/uploads/avatars/.gitkeep
+apps/backend/public/uploads/materials/*
+!apps/backend/public/uploads/materials/.gitkeep
 
 # Logs & Temp files
 *.log
@@ -40,6 +55,7 @@ eslint-*.txt
 .DS_Store
 Thumbs.db
 Desktop.ini
+nul
 
 # Service / Tool specific
 .vercel/

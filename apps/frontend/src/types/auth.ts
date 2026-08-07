@@ -1,11 +1,14 @@
 export type Role = 'VISITOR' | 'USER' | 'MODERATOR' | 'ADMIN' | 'SUPERADMIN';
 
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
   role: Role;
-  name: string | null;
+  displayName: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
 }

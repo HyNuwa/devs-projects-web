@@ -10,7 +10,7 @@ export enum Role {
 
 export class UserResponseDto {
   @ApiProperty()
-  id: number;
+  id: string;
 
   @ApiProperty()
   username: string;
@@ -22,7 +22,13 @@ export class UserResponseDto {
   role: Role;
 
   @ApiProperty({ nullable: true })
-  name: string | null;
+  displayName: string | null;
+
+  @ApiProperty({ nullable: true })
+  avatarUrl: string | null;
+
+  @ApiProperty()
+  emailVerified: boolean;
 
   @ApiProperty()
   createdAt: Date;
@@ -34,6 +40,9 @@ export class UserResponseDto {
 export class AuthResponseDto {
   @ApiProperty()
   accessToken: string;
+
+  @ApiProperty({ nullable: true })
+  refreshToken: string | null;
 
   @ApiProperty({ type: UserResponseDto })
   user: UserResponseDto;

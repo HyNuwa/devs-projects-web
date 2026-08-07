@@ -7,16 +7,23 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { GuidesModule } from './modules/guides/guides.module';
+import { MailModule } from './modules/mail/mail.module';
+import { MaterialsModule } from './modules/materials/materials.module';
+import { ProfessorsModule } from './modules/professors/professors.module';
+import { RankingModule } from './modules/ranking/ranking.module';
+import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
+import { mailConfig } from './config/mail.config';
 import { validate } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, jwtConfig],
+      load: [appConfig, jwtConfig, mailConfig],
       validate,
       envFilePath: '.env',
     }),
@@ -59,6 +66,12 @@ import { validate } from './config/env.validation';
     PrismaModule,
     AuthModule,
     AdminModule,
+    GuidesModule,
+    MailModule,
+    MaterialsModule,
+    ProfessorsModule,
+    RankingModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

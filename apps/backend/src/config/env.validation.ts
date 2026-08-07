@@ -30,6 +30,9 @@ export class EnvironmentVariables {
   CORS_ORIGIN: string = 'http://localhost:3000';
 
   @IsString()
+  FRONTEND_URL: string = 'http://localhost:3000';
+
+  @IsString()
   DATABASE_URL: string;
 
   @IsString()
@@ -37,6 +40,21 @@ export class EnvironmentVariables {
 
   @IsNumber()
   JWT_EXPIRATION: number = 900;
+
+  @IsString()
+  SMTP_HOST: string = 'localhost';
+
+  @IsNumber()
+  SMTP_PORT: number = 1025;
+
+  @IsString()
+  SMTP_USER: string = '';
+
+  @IsString()
+  SMTP_PASS: string = '';
+
+  @IsString()
+  FROM_EMAIL: string = 'noreply@devsproject.local';
 }
 
 export function validate(config: Record<string, unknown>) {
