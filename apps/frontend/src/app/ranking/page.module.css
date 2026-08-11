@@ -1,0 +1,51 @@
+.page {
+  min-height: calc(100vh - 80px);
+  margin-top: 80px;
+  padding: 2.5rem 1rem 5rem;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(33, 150, 243, 0.08), transparent 42%),
+    radial-gradient(circle at 88% 82%, rgba(255, 215, 0, 0.07), transparent 40%),
+    linear-gradient(180deg, var(--color-bg-primary) 0%, #e8f4fd 100%);
+}
+
+.container {
+  width: calc(100% - 2rem);
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Header */
+.header {
+  text-align: center;
+}
+
+.headerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--color-accent-gold);
+  margin-bottom: 0.75rem;
+}
+
+.headerLabel {
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  color: var(--color-primary-600);
+}
+
+.title {
+  font-size: 1.15rem;
+  color: var(--color-primary-700);
+  letter-spacing: 2px;
+  margin: 0 0 0.75rem;
+  text-shadow: 2px 2px 0 rgba(33, 150, 243, 0.12);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}

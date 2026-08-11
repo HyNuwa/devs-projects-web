@@ -1,0 +1,288 @@
+/* Ficha de personaje RPG: tarjeta oscura, distinta de la tabla blanca de abajo. */
+.card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 1.75rem;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(255, 215, 0, 0.12), transparent 38%),
+    radial-gradient(circle at 92% 88%, rgba(33, 150, 243, 0.18), transparent 42%),
+    linear-gradient(135deg, #16222e 0%, var(--color-bg-dark) 55%, #0d1720 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 10px 30px rgba(15, 25, 35, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #eaf2fb;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-accent-gold), var(--color-primary-500), var(--color-accent-gold));
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cardTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cardIcon {
+  color: var(--color-accent-gold);
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.rankBadge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+}
+
+.rankNumber {
+  font-size: 1.05rem;
+  color: var(--color-accent-gold);
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+.rankTotal {
+  font-size: 0.85rem;
+  color: #b9c6d4;
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 1.5rem 0;
+}
+
+.levelBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.levelLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #8fa3b8;
+}
+
+.levelName {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.levelNum {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-accent-gold);
+}
+
+.pointsBlock {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pointsIcon {
+  color: var(--color-accent-gold);
+}
+
+.pointsValue {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.pointsLabel {
+  font-size: 0.85rem;
+  color: #8fa3b8;
+}
+
+/* Progress */
+.progressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.progressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.progressLabel {
+  font-size: 0.85rem;
+  color: #b9c6d4;
+}
+
+.progressPct {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-accent-gold);
+}
+
+.progressTrack {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-primary-500), var(--color-accent-gold));
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.45);
+  transition: width 0.6s ease;
+}
+
+.nextLevel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #8fa3b8;
+}
+
+.nextLevelName {
+  font-size: 0.68rem;
+  color: var(--color-accent-gold);
+}
+
+/* CTA (no logueado) */
+.ctaCard {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.ctaIcon {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  color: var(--color-accent-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ctaContent {
+  flex: 1;
+  min-width: 200px;
+}
+
+.ctaTitle {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 0.25rem;
+}
+
+.ctaText {
+  font-size: 0.9rem;
+  color: #b9c6d4;
+  margin: 0;
+}
+
+.ctaLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: 10px;
+  background: var(--color-accent-gold);
+  color: #4a3a00;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(255, 215, 0, 0.35);
+  transition: all 0.2s ease;
+}
+
+.ctaLink:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(255, 215, 0, 0.45);
+}
+
+/* States */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
+  color: #b9c6d4;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.errorText {
+  color: #ff8a80;
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--color-accent-gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 1.25rem;
+  }
+
+  .ctaCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
