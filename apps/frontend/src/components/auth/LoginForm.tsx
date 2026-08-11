@@ -77,6 +77,13 @@ export function LoginForm() {
           {errors.password && <span className={styles.fieldError}>{errors.password.message}</span>}
         </div>
 
+        <p className={styles.switch}>
+          ¿Olvidaste tu contraseña?{' '}
+          <a href="/auth/forgot-password" className={styles.link}>
+            Recuperar
+          </a>
+        </p>
+
         <button type="submit" className={styles.submit} disabled={isSubmitting}>
           {isSubmitting ? 'Iniciando sesión...' : 'Iniciar Sesión'}
         </button>

@@ -17,11 +17,13 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import styles from './Navbar.module.css';
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
@@ -33,6 +35,8 @@ export const Navbar = () => {
     await logout();
     setIsMenuOpen(false);
   };
+
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
   const navLinks = [
     { name: 'Inicio', href: '/', icon: <Home size={18} /> },
@@ -65,7 +69,7 @@ export const Navbar = () => {
               <li key={link.name} className={styles.navItem}>
                 <Link
                   href={link.href}
-                  className={`${styles.navLink} ${link.name === 'Inicio' ? styles.active : ''}`}
+                  className={`${styles.navLink} ${isActive(link.href) ? styles.active : ''}`}
                 >
                   {link.icon}
                   <span>{link.name}</span>
@@ -86,7 +90,7 @@ export const Navbar = () => {
             {user ? (
               <>
                 <div className={styles.userMenu}>
-                  <Link href="/perfil" className={styles.loginBtn}>
+                  <Link href="/profile/me" className={styles.loginBtn}>
                     <User size={18} />
                     <span>{user.username}</span>
                   </Link>

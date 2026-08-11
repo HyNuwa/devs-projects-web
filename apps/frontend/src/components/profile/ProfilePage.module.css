@@ -48,6 +48,70 @@
   margin: 0;
 }
 
+/* Email verification banner */
+.verifyBanner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 215, 0, 0.12);
+  border: 2px solid rgba(255, 215, 0, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(255, 215, 0, 0.12);
+}
+
+.verifyIcon {
+  flex-shrink: 0;
+  color: var(--color-accent-gold);
+}
+
+.verifyContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.verifyTitle {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 1.5px;
+  color: #b8860b;
+  margin-bottom: 0.3rem;
+}
+
+.verifyText {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+.verifyLink {
+  flex-shrink: 0;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-primary-600);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.verifyLink:hover {
+  color: var(--color-primary-700);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .verifyBanner {
+    flex-wrap: wrap;
+  }
+
+  .verifyLink {
+    margin-left: 2.25rem;
+  }
+}
+
 /* Grid */
 .grid {
   display: grid;

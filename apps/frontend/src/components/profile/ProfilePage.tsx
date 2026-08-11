@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   AtSign,
   Calendar,
   Camera,
@@ -142,6 +143,22 @@ export function ProfilePage() {
             <h1 className={`${styles.title} font-pixel`}>FICHA DE AVENTURERO</h1>
             <p className={styles.subtitle}>Gestiona tu identidad en DevsProject</p>
           </header>
+
+          {user && user.emailVerified === false && (
+            <div className={styles.verifyBanner} role="status">
+              <AlertTriangle size={20} className={styles.verifyIcon} aria-hidden="true" />
+              <div className={styles.verifyContent}>
+                <span className={`${styles.verifyTitle} font-pixel`}>EMAIL SIN VERIFICAR</span>
+                <p className={styles.verifyText}>
+                  Verificá tu email para desbloquear todas las funciones. Revisá tu bandeja de
+                  entrada.
+                </p>
+              </div>
+              <a href="/auth/login" className={styles.verifyLink}>
+                Ir a login
+              </a>
+            </div>
+          )}
 
           {user && (
             <div className={styles.grid}>
