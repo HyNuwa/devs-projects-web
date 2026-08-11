@@ -12,6 +12,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { MaterialsModule } from './modules/materials/materials.module';
 import { ProfessorsModule } from './modules/professors/professors.module';
 import { RankingModule } from './modules/ranking/ranking.module';
+import { SubjectsModule } from './modules/subjects/subjects.module';
 import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
@@ -71,6 +72,7 @@ import { validate } from './config/env.validation';
     MaterialsModule,
     ProfessorsModule,
     RankingModule,
+    SubjectsModule,
     UsersModule,
   ],
   controllers: [AppController],
