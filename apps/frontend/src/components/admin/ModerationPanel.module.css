@@ -1,0 +1,184 @@
+.page {
+  min-height: calc(100vh - 80px);
+  padding: 2rem 1rem;
+  margin-top: 80px;
+  background: radial-gradient(
+    ellipse at top,
+    rgba(255, 215, 0, 0.06),
+    transparent 60%
+  );
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.headerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-accent-gold);
+  margin-bottom: 0.75rem;
+}
+
+.headerLabel {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  color: var(--color-primary-700);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.stateBox {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 16px;
+}
+
+.stateIcon {
+  color: var(--color-primary-200);
+  margin-bottom: 0.75rem;
+}
+
+.stateText {
+  color: var(--color-text-secondary);
+  margin: 0 0 1rem 0;
+}
+
+.errorText {
+  color: var(--color-accent-red);
+  margin: 0 0 1rem 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  margin: 0 auto 0.5rem;
+  color: var(--color-primary-500);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.backLink {
+  color: var(--color-primary-600);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.item {
+  display: flex;
+  gap: 1rem;
+  padding: 1.1rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 14px;
+}
+
+.itemIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  flex-shrink: 0;
+}
+
+.itemBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemTop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.itemTitle {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+
+.itemType {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  background: var(--color-primary-50);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.itemMeta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.2rem;
+}
+
+.itemDesc {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin: 0.5rem 0 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.rejectGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 260px;
+}
+
+.rejectInput {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-primary-100);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.rejectInput:focus {
+  border-color: var(--color-primary-500);
+}

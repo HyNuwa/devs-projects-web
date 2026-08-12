@@ -18,6 +18,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { Button, Input, useToast } from '@/components/ui';
+import { MySubmissions } from './MySubmissions';
 import styles from './ProfilePage.module.css';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -337,6 +338,8 @@ export function ProfilePage() {
               </section>
             </div>
           )}
+
+          {user && <MySubmissions />}
         </div>
       </div>
     </AuthGuard>

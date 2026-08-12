@@ -23,6 +23,8 @@ export interface MaterialSubject {
   code: string | null;
 }
 
+export type MaterialModerationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface Material {
   id: string;
   title: string;
@@ -36,6 +38,11 @@ export interface Material {
   downloadCount: number;
   avgRating: string; // Decimal serialized as string
   ratingCount: number;
+  moderationStatus: MaterialModerationStatus;
+  moderationReason: string | null;
+  driveFileId: string | null;
+  drivePreviewUrl: string | null;
+  driveDownloadUrl: string | null;
   isApproved: boolean;
   isDeleted: boolean;
   isRemoved: boolean;

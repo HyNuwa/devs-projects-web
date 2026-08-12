@@ -1,0 +1,373 @@
+.page {
+  min-height: calc(100vh - 80px);
+  padding: 2rem 1rem;
+  margin-top: 80px;
+  background: radial-gradient(
+    ellipse at top,
+    rgba(255, 215, 0, 0.06),
+    transparent 60%
+  );
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+}
+
+.backLink:hover {
+  color: var(--color-primary-600);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.headerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-accent-gold);
+  margin-bottom: 0.75rem;
+}
+
+.headerLabel {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  color: var(--color-primary-700);
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  margin: 0 auto 1rem;
+  max-width: 600px;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.metaChip {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-primary-100);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.9rem 0.5rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 14px;
+}
+
+.statIcon {
+  color: var(--color-primary-500);
+}
+
+.statValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-primary-700);
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.professors {
+  margin: 1.5rem 0;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
+  margin: 0 0 0.75rem 0;
+}
+
+.professorList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.professorChip {
+  padding: 0.4rem 0.9rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 999px;
+  color: var(--color-primary-700);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.professorChip:hover {
+  border-color: var(--color-primary-300);
+  background: var(--color-primary-50);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--color-primary-100);
+  margin-bottom: 1.5rem;
+}
+
+.tab {
+  padding: 0.7rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab:hover {
+  color: var(--color-primary-600);
+}
+
+.tabActive {
+  color: var(--color-primary-700);
+  border-bottom-color: var(--color-primary-500);
+}
+
+.tabContent {
+  min-height: 200px;
+}
+
+.tabHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.1rem;
+  background: var(--color-primary-500);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.ctaBtn:hover {
+  background: var(--color-primary-600);
+}
+
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.breakdownChip {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.75rem;
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  border-radius: 999px;
+}
+
+.reviewList,
+.examList,
+.materialList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reviewCard,
+.examCard,
+.materialCard {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.reviewTop,
+.examTop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.reviewAuthor,
+.examAuthor {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+}
+
+.reviewShift,
+.examSession,
+.examFormat {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  background: var(--color-primary-50);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.reviewStars {
+  display: flex;
+  gap: 0.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.starFilled {
+  color: var(--color-accent-gold);
+  fill: var(--color-accent-gold);
+}
+
+.starEmpty {
+  color: var(--color-primary-100);
+}
+
+.reviewCondition {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary-600);
+}
+
+.reviewComment,
+.examComment {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+}
+
+.examYear {
+  font-weight: 700;
+  color: var(--color-primary-700);
+}
+
+.examMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.examAuthor {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.materialCard {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.materialCard:hover {
+  border-color: var(--color-primary-300);
+  transform: translateY(-2px);
+}
+
+.materialIcon {
+  color: var(--color-primary-500);
+  flex-shrink: 0;
+}
+
+.materialTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 0.2rem 0;
+}
+
+.materialMeta {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--color-text-secondary);
+}
+
+.stateText {
+  margin: 0 0 1rem 0;
+}
+
+.skeletonBlock {
+  height: 300px;
+  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, #eef2f7 50%, var(--color-bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 16px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

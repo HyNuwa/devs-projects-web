@@ -119,7 +119,8 @@ export function ProfessorList() {
           </div>
           <h1 className={`${styles.title} font-pixel`}>PROFESORES</h1>
           <p className={styles.subtitle}>
-            Evalúa a tus profesores y ayuda a otros con tu experiencia.
+            Conocé qué profesores dictan cada materia y compartí tu experiencia en el hub de la
+            materia.
           </p>
         </header>
 
@@ -227,7 +228,10 @@ export function ProfessorList() {
 }
 
 function ProfessorCard({ professor }: { professor: Professor }) {
-  const reviewCount = professor._count?.reviews ?? 0;
+  const subjectNames = (professor.subjects ?? [])
+    .map((ps) => ps.subject.name)
+    .slice(0, 2)
+    .join(' · ');
 
   return (
     <Link href={`/profesores/${professor.id}`} className={styles.card}>
@@ -246,12 +250,17 @@ function ProfessorCard({ professor }: { professor: Professor }) {
 
       <div className={styles.cardBody}>
         <h3 className={styles.cardName}>{professor.name}</h3>
-        <div className={styles.reviewCount}>
-          <MessageSquare size={15} />
-          <span>
-            {reviewCount} {reviewCount === 1 ? 'valoración' : 'valoraciones'}
-          </span>
-        </div>
+        {subjectNames ? (
+          <div className={styles.reviewCount}>
+            <GraduationCap size={15} />
+            <span>{subjectNames}</span>
+          </div>
+        ) : (
+          <div className={styles.reviewCount}>
+            <MessageSquare size={15} />
+            <span>Sin materias asignadas</span>
+          </div>
+        )}
       </div>
 
       <div className={styles.cardArrow}>

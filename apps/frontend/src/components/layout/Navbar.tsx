@@ -5,8 +5,7 @@ import Link from 'next/link';
 import {
   Home,
   MessageSquare,
-  GraduationCap,
-  FileText,
+  BookOpen,
   Wrench,
   Trophy,
   Search,
@@ -41,8 +40,7 @@ export const Navbar = () => {
   const navLinks = [
     { name: 'Inicio', href: '/', icon: <Home size={18} /> },
     { name: 'Foro', href: '/foro', icon: <MessageSquare size={18} /> },
-    { name: 'Cursos', href: '/cursos', icon: <GraduationCap size={18} /> },
-    { name: 'Guías', href: '/guias', icon: <FileText size={18} /> },
+    { name: 'Materias', href: '/materias', icon: <BookOpen size={18} /> },
     { name: 'Herramientas', href: '/herramientas', icon: <Wrench size={18} /> },
     { name: 'Ranking', href: '/ranking', icon: <Trophy size={18} /> },
   ];

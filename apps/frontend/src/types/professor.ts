@@ -5,17 +5,6 @@ export interface ProfessorUser {
   avatarUrl: string | null;
 }
 
-export interface ProfessorReview {
-  id: string;
-  userId: string;
-  professorId: string;
-  value: number;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
-  user: ProfessorUser;
-}
-
 export interface ProfessorSubject {
   id: string;
   subjectId: string;
@@ -30,9 +19,5 @@ export interface Professor {
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
-  avgRating?: number | null;
-  reviewCount?: number;
-  _count?: { reviews: number };
   subjects?: ProfessorSubject[];
-  reviews?: ProfessorReview[];
 }

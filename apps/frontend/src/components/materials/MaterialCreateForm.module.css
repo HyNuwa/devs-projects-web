@@ -233,3 +233,121 @@
   flex-wrap: wrap;
   margin-top: 0.5rem;
 }
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stepNum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary-100);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.stepActive .stepNum {
+  background: var(--color-primary-500);
+  color: white;
+}
+
+.stepLabel {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.stepActive .stepLabel {
+  color: var(--color-primary-700);
+}
+
+.stepLine {
+  width: 40px;
+  height: 2px;
+  background: var(--color-primary-100);
+  transition: background 0.2s ease;
+}
+
+.stepLineActive {
+  background: var(--color-primary-500);
+}
+
+.successCard {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-primary-100);
+  border-radius: 16px;
+  max-width: 520px;
+  margin: 2rem auto;
+}
+
+.successIcon {
+  color: var(--color-accent-green);
+  margin-bottom: 1rem;
+}
+
+.successTitle {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  color: var(--color-primary-700);
+  margin: 0 0 0.75rem 0;
+}
+
+.successText {
+  color: var(--color-text-secondary);
+  margin: 0 0 1.25rem 0;
+  line-height: 1.6;
+}
+
+.successBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  background: rgba(255, 152, 0, 0.12);
+  color: var(--color-accent-orange);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.successActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.successBtn {
+  padding: 0.6rem 1.4rem;
+  background: var(--color-primary-500);
+  color: white;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.successLink {
+  color: var(--color-primary-600);
+  text-decoration: none;
+  font-weight: 600;
+}

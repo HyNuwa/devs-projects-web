@@ -5,6 +5,14 @@ import styles from './ModuleCards.module.css';
 
 const modules = [
   {
+    id: 'materias',
+    title: 'MATERIAS',
+    description:
+      'Explorá el plan de estudio, reseñas de cursada y experiencias de final por materia.',
+    icon: '/assets/cards/plan_estudio.png',
+    href: '/materias',
+  },
+  {
     id: 'apuntes',
     title: 'APUNTES & MATERIAL',
     description: 'Comparte apuntes, libros, presentaciones y más recursos útiles.',
@@ -19,32 +27,18 @@ const modules = [
     href: '/foro',
   },
   {
-    id: 'guias',
-    title: 'GUÍAS & CURSOS',
-    description: 'Encuentra guías de estudio, cursos y rutas de aprendizaje completas.',
-    icon: '/assets/cards/guia_cursos.png',
-    href: '/cursos',
-  },
-  {
-    id: 'plan',
-    title: 'PLAN DE ESTUDIO',
-    description: 'Explora planes de estudio por carrera y organiza tu camino académico.',
-    icon: '/assets/cards/plan_estudio.png',
-    href: '/plan-estudio',
-  },
-  {
-    id: 'herramientas',
-    title: 'HERRAMIENTAS',
-    description: 'Descubre herramientas recomendadas por la comunidad académica.',
-    icon: '/assets/cards/herramientas.png',
-    href: '/herramientas',
-  },
-  {
     id: 'profesores',
     title: 'PUNTÚA A TU PROFESOR',
-    description: 'Evalúa a tus profesores y ayuda a otros con tu experiencia.',
+    description: 'Conocé qué profesores dictan cada materia y compartí tu experiencia.',
     icon: '/assets/cards/puntua.png',
     href: '/profesores',
+  },
+  {
+    id: 'ranking',
+    title: 'RANKING',
+    description: 'Sumá puntos por tus aportes y subí de nivel en la comunidad.',
+    icon: '/assets/cards/guia_cursos.png',
+    href: '/ranking',
   },
 ];
 

@@ -64,13 +64,13 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/cursos" className={styles.link}>
-                  Cursos
+                <Link href="/materias" className={styles.link}>
+                  Materias
                 </Link>
               </li>
               <li>
-                <Link href="/guias" className={styles.link}>
-                  Guías
+                <Link href="/materiales" className={styles.link}>
+                  Materiales
                 </Link>
               </li>
               <li>
