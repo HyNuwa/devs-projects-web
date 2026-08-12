@@ -14,6 +14,7 @@ import {
   BadRequestException,
   Res,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -31,9 +32,12 @@ import { MaterialsService } from './materials.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
+import { RejectMaterialDto } from './dto/reject-material.dto';
 import { MaterialsQueryDto } from './dto/materials-query.dto';
 import { MaterialResponseDto } from './dto/material-response.dto';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { Role } from '../auth/dto/auth-response.dto';
 
 const ALLOWED_MATERIAL_TYPES = [
@@ -112,6 +116,25 @@ export class MaterialsController {
     return this.materialsService.findAll(query);
   }
 
+  @Get('mine')
+  @ApiOperation({ summary: 'Mis subidas (autor)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Materiales del usuario autenticado',
+  })
+  async findMine(@Request() req: { user: { id: string } }) {
+    return this.materialsService.findMine(req.user.id);
+  }
+
+  @Get('pending')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Listar materiales pendientes de moderación' })
+  @ApiResponse({ status: 200, description: 'Materiales en revisión' })
+  async findPending() {
+    return this.materialsService.findPending();
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Obtener material por ID' })
@@ -119,6 +142,33 @@ export class MaterialsController {
   @ApiResponse({ status: 404, description: 'Material no encontrado' })
   async findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.materialsService.findById(id);
+  }
+
+  @Post(':id/approve')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Aprobar material (moderador)' })
+  @ApiResponse({ status: 200, type: MaterialResponseDto })
+  @ApiResponse({ status: 404, description: 'Material no encontrado' })
+  async approve(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.materialsService.approve(id, req.user.id);
+  }
+
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Rechazar material (moderador)' })
+  @ApiResponse({ status: 200, type: MaterialResponseDto })
+  @ApiResponse({ status: 404, description: 'Material no encontrado' })
+  async reject(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+    @Body() dto: RejectMaterialDto,
+  ) {
+    return this.materialsService.reject(id, req.user.id, dto);
   }
 
   @Patch(':id')
@@ -153,6 +203,11 @@ export class MaterialsController {
   @ApiResponse({ status: 404, description: 'Material o archivo no encontrado' })
   async download(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
     const material = await this.materialsService.download(id);
+
+    // Si el archivo vive en Google Drive, redirigir a su URL de descarga.
+    if (material.driveDownloadUrl) {
+      return res.redirect(material.driveDownloadUrl);
+    }
 
     const filePath = path.join(
       process.cwd(),

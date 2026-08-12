@@ -24,7 +24,8 @@ async function main() {
   await prisma.material.deleteMany();
   await prisma.guideStep.deleteMany();
   await prisma.guide.deleteMany();
-  await prisma.professorReview.deleteMany();
+  await prisma.examExperience.deleteMany();
+  await prisma.courseReview.deleteMany();
   await prisma.subjectProfessor.deleteMany();
   await prisma.userStudyPlan.deleteMany();
   await prisma.studyPlanSubject.deleteMany();

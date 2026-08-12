@@ -7,7 +7,6 @@ import {
   Param,
   Query,
   Body,
-  Request,
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
@@ -20,7 +19,6 @@ import {
 import { ProfessorsService } from './professors.service';
 import { CreateProfessorDto } from './dto/create-professor.dto';
 import { UpdateProfessorDto } from './dto/update-professor.dto';
-import { CreateReviewDto } from './dto/create-review.dto';
 import { ProfessorsQueryDto } from './dto/professors-query.dto';
 import { ProfessorResponseDto } from './dto/professor-response.dto';
 import { Public } from '../../common/decorators/public.decorator';
@@ -81,29 +79,5 @@ export class ProfessorsController {
   @ApiResponse({ status: 404, description: 'Profesor no encontrado' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.professorsService.remove(id);
-  }
-
-  @Post(':id/evaluate')
-  @ApiOperation({ summary: 'Evaluar a un profesor' })
-  @ApiResponse({ status: 200, type: ProfessorResponseDto })
-  @ApiResponse({ status: 404, description: 'Profesor no encontrado' })
-  evaluate(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: { user: { id: string; role: string } },
-    @Body() dto: CreateReviewDto,
-  ) {
-    return this.professorsService.evaluate(id, req.user.id, dto);
-  }
-
-  @Get(':id/reviews')
-  @Public()
-  @ApiOperation({ summary: 'Obtener valoraciones de un profesor' })
-  @ApiResponse({ status: 200, description: 'Lista paginada de valoraciones' })
-  @ApiResponse({ status: 404, description: 'Profesor no encontrado' })
-  getReviews(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Query() query: ProfessorsQueryDto,
-  ) {
-    return this.professorsService.getReviews(id, query);
   }
 }

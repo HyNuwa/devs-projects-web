@@ -2,14 +2,16 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/index';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MaterialStorageService } from './material-storage.service';
+import { FileStorageService, StagedFile } from './file-storage.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
 import { MaterialsQueryDto } from './dto/materials-query.dto';
+import { RejectMaterialDto } from './dto/reject-material.dto';
 import { Role } from '../auth/dto/auth-response.dto';
 import { PointService } from '../ranking/point.service';
 
@@ -28,7 +30,7 @@ const authorSelect = {
 export class MaterialsService {
   constructor(
     private prisma: PrismaService,
-    private storage: MaterialStorageService,
+    @Inject('FILE_STORAGE') private storage: FileStorageService,
     private pointService: PointService,
   ) {}
 
@@ -37,18 +39,20 @@ export class MaterialsService {
     file: Express.Multer.File,
     userId: string,
   ) {
-    const stored = await this.storage.save(file);
+    const staged: StagedFile = await this.storage.stage(file);
 
     const material = await this.prisma.material.create({
       data: {
         title: dto.title,
         description: dto.description,
-        fileUrl: stored.fileUrl,
-        fileType: stored.fileType,
-        fileSize: BigInt(stored.fileSize),
-        thumbnailUrl: stored.thumbnailUrl,
+        fileUrl: '',
+        fileType: staged.fileType,
+        fileSize: BigInt(staged.fileSize),
+        thumbnailUrl: staged.thumbnailUrl,
         authorId: userId,
         subjectId: dto.subjectId,
+        moderationStatus: 'PENDING',
+        stagedFilePath: staged.stagedPath,
       },
       include: {
         author: authorSelect,
@@ -56,18 +60,7 @@ export class MaterialsService {
       },
     });
 
-    await this.prisma.subject.update({
-      where: { id: dto.subjectId },
-      data: { materialCount: { increment: 1 } },
-    });
-
-    await this.pointService.awardPoints(
-      userId,
-      10,
-      'MATERIAL_CREATED',
-      material.id,
-    );
-
+    // No se otorgan puntos hasta la aprobación.
     return material;
   }
 
@@ -78,6 +71,7 @@ export class MaterialsService {
 
     const where: Prisma.MaterialWhereInput = {
       isDeleted: false,
+      moderationStatus: 'APPROVED',
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
       ...(query.search
         ? { title: { contains: query.search, mode: 'insensitive' } }
@@ -111,7 +105,7 @@ export class MaterialsService {
 
   async findById(id: string) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false },
+      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
       include: {
         author: authorSelect,
         subject: true,
@@ -123,6 +117,126 @@ export class MaterialsService {
     }
 
     return material;
+  }
+
+  async findMine(userId: string) {
+    return this.prisma.material.findMany({
+      where: { authorId: userId, isDeleted: false },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: authorSelect,
+        subject: true,
+      },
+    });
+  }
+
+  async findPending() {
+    return this.prisma.material.findMany({
+      where: { moderationStatus: 'PENDING', isDeleted: false },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        author: authorSelect,
+        subject: true,
+      },
+    });
+  }
+
+  async approve(id: string, moderatorId: string) {
+    const material = await this.prisma.material.findUnique({
+      where: { id },
+    });
+
+    if (!material || material.isDeleted) {
+      throw new NotFoundException('Material no encontrado');
+    }
+
+    if (material.moderationStatus === 'APPROVED') {
+      return this.findById(id);
+    }
+
+    const published = await this.storage.publish(material.stagedFilePath!, {
+      fileType: material.fileType,
+    });
+
+    const updated = await this.prisma.material.update({
+      where: { id },
+      data: {
+        moderationStatus: 'APPROVED',
+        isApproved: true,
+        moderationReason: null,
+        fileUrl: published.fileUrl,
+        driveFileId: published.driveFileId,
+        drivePreviewUrl: published.drivePreviewUrl,
+        driveDownloadUrl: published.driveDownloadUrl,
+        stagedFilePath: null,
+      },
+      include: {
+        author: authorSelect,
+        subject: true,
+      },
+    });
+
+    await this.prisma.subject.update({
+      where: { id: material.subjectId },
+      data: { materialCount: { increment: 1 } },
+    });
+
+    await this.prisma.moderationLog.create({
+      data: {
+        moderatorId,
+        targetMaterialId: id,
+        action: 'APPROVE_MATERIAL',
+      },
+    });
+
+    // Puntos únicamente al aprobar.
+    await this.pointService.awardPoints(
+      material.authorId,
+      10,
+      'MATERIAL_APPROVED',
+      id,
+    );
+
+    return updated;
+  }
+
+  async reject(id: string, moderatorId: string, dto: RejectMaterialDto) {
+    const material = await this.prisma.material.findUnique({
+      where: { id },
+    });
+
+    if (!material || material.isDeleted) {
+      throw new NotFoundException('Material no encontrado');
+    }
+
+    if (material.stagedFilePath) {
+      await this.storage.discard(material.stagedFilePath);
+    }
+
+    const updated = await this.prisma.material.update({
+      where: { id },
+      data: {
+        moderationStatus: 'REJECTED',
+        isApproved: false,
+        moderationReason: dto.reason,
+        stagedFilePath: null,
+      },
+      include: {
+        author: authorSelect,
+        subject: true,
+      },
+    });
+
+    await this.prisma.moderationLog.create({
+      data: {
+        moderatorId,
+        targetMaterialId: id,
+        action: 'REJECT_MATERIAL',
+        reason: dto.reason,
+      },
+    });
+
+    return updated;
   }
 
   async update(id: string, dto: UpdateMaterialDto, userId: string) {
@@ -180,7 +294,7 @@ export class MaterialsService {
 
   async download(id: string) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false },
+      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
     });
 
     if (!material) {
@@ -195,7 +309,7 @@ export class MaterialsService {
 
   async rate(id: string, userId: string, dto: RateMaterialDto) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false },
+      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
     });
 
     if (!material) {

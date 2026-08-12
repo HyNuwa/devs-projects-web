@@ -1,9 +1,26 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  Request,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { SubjectsService } from './subjects.service';
+import { CreateCourseReviewDto } from './dto/create-course-review.dto';
+import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Subjects')
+@ApiBearerAuth()
 @Controller('subjects')
 export class SubjectsController {
   constructor(private subjectsService: SubjectsService) {}
@@ -14,5 +31,75 @@ export class SubjectsController {
   @ApiResponse({ status: 200, description: 'Lista de materias' })
   findAll() {
     return this.subjectsService.findAll();
+  }
+
+  @Public()
+  @Get(':code')
+  @ApiOperation({ summary: 'Obtener hub de una materia por código' })
+  @ApiResponse({
+    status: 200,
+    description: 'Ficha de la materia con estadísticas',
+  })
+  @ApiResponse({ status: 404, description: 'Materia no encontrada' })
+  findByCode(@Param('code') code: string) {
+    return this.subjectsService.findByCode(code);
+  }
+
+  @Public()
+  @Get(':code/reviews')
+  @ApiOperation({ summary: 'Listar reseñas de cursada de una materia' })
+  @ApiResponse({ status: 200, description: 'Reseñas y desglose por condición' })
+  getReviews(@Param('code') code: string) {
+    return this.subjectsService.getReviews(code);
+  }
+
+  @Post(':code/reviews')
+  @ApiOperation({ summary: 'Crear o actualizar mi reseña de cursada' })
+  @ApiResponse({ status: 201, description: 'Reseña creada/actualizada' })
+  createReview(
+    @Param('code') code: string,
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateCourseReviewDto,
+  ) {
+    return this.subjectsService.createReview(code, req.user.id, dto);
+  }
+
+  @Delete('reviews/:id')
+  @ApiOperation({ summary: 'Eliminar mi reseña de cursada' })
+  @ApiResponse({ status: 200, description: 'Reseña eliminada' })
+  deleteReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.subjectsService.deleteReview(id, req.user.id);
+  }
+
+  @Public()
+  @Get(':code/exams')
+  @ApiOperation({ summary: 'Listar experiencias de final de una materia' })
+  @ApiResponse({ status: 200, description: 'Experiencias de final' })
+  getExams(@Param('code') code: string) {
+    return this.subjectsService.getExams(code);
+  }
+
+  @Post(':code/exams')
+  @ApiOperation({ summary: 'Crear una experiencia de final' })
+  @ApiResponse({ status: 201, description: 'Experiencia creada' })
+  createExam(
+    @Param('code') code: string,
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateExamExperienceDto,
+  ) {
+    return this.subjectsService.createExam(code, req.user.id, dto);
+  }
+
+  @Delete('exams/:id')
+  @ApiOperation({ summary: 'Eliminar mi experiencia de final' })
+  @ApiResponse({ status: 200, description: 'Experiencia eliminada' })
+  deleteExam(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.subjectsService.deleteExam(id, req.user.id);
   }
 }

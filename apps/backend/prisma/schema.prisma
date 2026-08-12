@@ -33,12 +33,46 @@ enum ModerationAction {
   UNMUTE_USER
   REMOVE_MATERIAL
   APPROVE_MATERIAL
+  REJECT_MATERIAL
   REMOVE_GUIDE
   APPROVE_GUIDE
-  REMOVE_PROFESSOR_REVIEW
-  APPROVE_PROFESSOR_REVIEW
   PROMOTE_MODERATOR
   DEMOTE_MODERATOR
+}
+
+enum Shift {
+  MANANA
+  TARDE
+  NOCHE
+  NO_INDICO
+}
+
+enum CourseCondition {
+  PROMO
+  REGULAR
+  LIBRE
+  PREFIERO_NO_RESPONDER
+}
+
+enum ExamFormat {
+  ESCRITO
+  ORAL
+  MIXTO
+}
+
+enum ExamSession {
+  DICIEMBRE
+  JULIO
+  MARZO
+  FEBRERO_MARZO
+  ESPECIAL
+  NO_RECUERDO
+}
+
+enum MaterialModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ─── USER ──────────────────────────────────────────────────────
@@ -66,7 +100,8 @@ model User {
   materials          Material[]
   materialRatings    MaterialRating[]
   guides             Guide[]
-  reviews            ProfessorReview[]
+  courseReviews      CourseReview[]
+  examExperiences    ExamExperience[]
   moderationActions  ModerationLog[] @relation("ModeratorAction")
   moderationTargets  ModerationLog[] @relation("ModerationTargetUser")
   badges             UserBadge[]
@@ -137,6 +172,8 @@ model Subject {
   studyPlans StudyPlanSubject[]
   professors SubjectProfessor[]
   materials  Material[]
+  courseReviews CourseReview[]
+  examExperiences ExamExperience[]
 
   @@map("subjects")
 }
@@ -165,8 +202,8 @@ model Professor {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  subjects SubjectProfessor[]
-  reviews  ProfessorReview[]
+  subjects        SubjectProfessor[]
+  examExperiences ExamExperience[]
 
   @@map("professors")
 }
@@ -198,6 +235,12 @@ model Material {
   downloadCount Int      @default(0) @map("download_count")
   avgRating     Decimal  @default(0.00) @map("avg_rating") @db.Decimal(3, 2)
   ratingCount   Int      @default(0) @map("rating_count")
+  moderationStatus MaterialModerationStatus @default(PENDING) @map("moderation_status")
+  moderationReason String? @map("moderation_reason") @db.Text
+  driveFileId      String? @map("drive_file_id") @db.VarChar(200)
+  drivePreviewUrl  String? @map("drive_preview_url") @db.VarChar(500)
+  driveDownloadUrl String? @map("drive_download_url") @db.VarChar(500)
+  stagedFilePath   String? @map("staged_file_path") @db.VarChar(500)
   isApproved    Boolean  @default(false) @map("is_approved")
   isDeleted     Boolean  @default(false) @map("is_deleted")
   isRemoved     Boolean  @default(false) @map("is_removed")
@@ -209,7 +252,7 @@ model Material {
   ratings        MaterialRating[]
   moderationLogs ModerationLog[]
 
-  @@index([subjectId, isApproved, createdAt])
+  @@index([subjectId, moderationStatus, createdAt])
   @@index([authorId])
   @@map("materials")
 }
@@ -266,23 +309,51 @@ model GuideStep {
   @@map("guide_steps")
 }
 
-// ─── PROFESSOR REVIEWS ─────────────────────────────────────────
+// ─── RESEÑAS DE CURSADA Y EXPERIENCIAS DE FINAL ────────────────
 
-model ProfessorReview {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  professorId String   @map("professor_id") @db.Uuid
-  value       Int      @db.SmallInt
-  description String?  @db.VarChar(200)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+model CourseReview {
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  subjectId      String          @map("subject_id") @db.Uuid
+  shift          Shift           @default(NO_INDICO)
+  condition      CourseCondition @default(PREFIERO_NO_RESPONDER)
+  recommendation Int             @db.SmallInt
+  comment        String?         @db.Text
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  professor      Professor       @relation(fields: [professorId], references: [id], onDelete: Cascade)
-  moderationLogs ModerationLog[]
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, professorId])
-  @@map("professor_reviews")
+  @@unique([userId, subjectId, shift])
+  @@index([subjectId])
+  @@map("course_reviews")
+}
+
+model ExamExperience {
+  id                 String     @id @default(uuid()) @db.Uuid
+  userId             String     @map("user_id") @db.Uuid
+  subjectId          String     @map("subject_id") @db.Uuid
+  shift              Shift?     @map("shift")
+  year               Int        @db.SmallInt
+  session            ExamSession @default(NO_RECUERDO)
+  format             ExamFormat
+  professorId        String?    @map("professor_id") @db.Uuid
+  examinerName       String?    @map("examiner_name") @db.VarChar(150)
+  difficultyTheory   Int        @map("difficulty_theory") @db.SmallInt
+  difficultyPractice Int        @map("difficulty_practice") @db.SmallInt
+  comment            String?    @db.Text
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  professor Professor? @relation(fields: [professorId], references: [id], onDelete: SetNull)
+
+  @@index([subjectId])
+  @@index([year])
+  @@index([session])
+  @@map("exam_experiences")
 }
 
 // ─── BADGES ──────────────────────────────────────────────────
@@ -379,27 +450,24 @@ model PointTransaction {
 // ─── MODERATION LOG ────────────────────────────────────────────
 
 model ModerationLog {
-  id                      String           @id @default(uuid()) @db.Uuid
-  moderatorId             String           @map("moderator_id") @db.Uuid
-  targetUserId            String?          @map("target_user_id") @db.Uuid
-  targetMaterialId        String?          @map("target_material_id") @db.Uuid
-  targetGuideId           String?          @map("target_guide_id") @db.Uuid
-  targetProfessorReviewId String?          @map("target_professor_review_id") @db.Uuid
-  action                  ModerationAction
-  reason                  String?          @db.Text
-  expiresAt               DateTime?        @map("expires_at")
-  createdAt               DateTime         @default(now()) @map("created_at")
+  id               String           @id @default(uuid()) @db.Uuid
+  moderatorId      String           @map("moderator_id") @db.Uuid
+  targetUserId     String?          @map("target_user_id") @db.Uuid
+  targetMaterialId String?          @map("target_material_id") @db.Uuid
+  targetGuideId    String?          @map("target_guide_id") @db.Uuid
+  action           ModerationAction
+  reason           String?          @db.Text
+  expiresAt        DateTime?        @map("expires_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
 
-  moderator       User              @relation("ModeratorAction", fields: [moderatorId], references: [id])
-  targetUser      User?             @relation("ModerationTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
-  material        Material?         @relation(fields: [targetMaterialId], references: [id], onDelete: Cascade)
-  guide           Guide?            @relation(fields: [targetGuideId], references: [id], onDelete: Cascade)
-  professorReview ProfessorReview?  @relation(fields: [targetProfessorReviewId], references: [id], onDelete: Cascade)
+  moderator  User      @relation("ModeratorAction", fields: [moderatorId], references: [id])
+  targetUser User?     @relation("ModerationTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  material   Material? @relation(fields: [targetMaterialId], references: [id], onDelete: Cascade)
+  guide      Guide?    @relation(fields: [targetGuideId], references: [id], onDelete: Cascade)
 
   @@index([targetUserId])
   @@index([targetMaterialId])
   @@index([targetGuideId])
-  @@index([targetProfessorReviewId])
   @@index([moderatorId])
   @@index([createdAt])
   @@map("moderation_logs")

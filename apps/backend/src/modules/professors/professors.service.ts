@@ -2,16 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProfessorDto } from './dto/create-professor.dto';
 import { UpdateProfessorDto } from './dto/update-professor.dto';
-import { CreateReviewDto } from './dto/create-review.dto';
 import { ProfessorsQueryDto } from './dto/professors-query.dto';
-import { PointService } from '../ranking/point.service';
 
 @Injectable()
 export class ProfessorsService {
-  constructor(
-    private prisma: PrismaService,
-    private pointService: PointService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async findAll(query: ProfessorsQueryDto) {
     const page = query.page ?? 1;
@@ -28,7 +23,9 @@ export class ProfessorsService {
         skip,
         take: limit,
         orderBy: { name: 'asc' },
-        include: { _count: { select: { reviews: true } } },
+        include: {
+          subjects: { include: { subject: true } },
+        },
       }),
       this.prisma.professor.count({ where }),
     ]);
@@ -51,21 +48,6 @@ export class ProfessorsService {
         subjects: {
           include: { subject: true },
         },
-        reviews: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                avatarUrl: true,
-              },
-            },
-          },
-        },
-        _count: { select: { reviews: true } },
       },
     });
 
@@ -73,15 +55,7 @@ export class ProfessorsService {
       throw new NotFoundException('Profesor no encontrado');
     }
 
-    const avg = await this.prisma.professorReview.aggregate({
-      where: { professorId: id },
-      _avg: { value: true },
-    });
-
-    return {
-      ...professor,
-      avgRating: avg._avg.value,
-    };
+    return professor;
   }
 
   async create(dto: CreateProfessorDto) {
@@ -126,97 +100,5 @@ export class ProfessorsService {
     });
 
     return { message: 'Profesor eliminado correctamente' };
-  }
-
-  async evaluate(id: string, userId: string, dto: CreateReviewDto) {
-    await this.findById(id);
-
-    await this.prisma.professorReview.upsert({
-      where: {
-        userId_professorId: {
-          userId,
-          professorId: id,
-        },
-      },
-      create: {
-        userId,
-        professorId: id,
-        value: dto.value,
-        description: dto.description,
-      },
-      update: {
-        value: dto.value,
-        description: dto.description,
-      },
-    });
-
-    await this.pointService.awardPoints(userId, 5, 'PROFESSOR_EVALUATED', id);
-
-    const avg = await this.prisma.professorReview.aggregate({
-      where: { professorId: id },
-      _avg: { value: true },
-    });
-
-    const professor = await this.prisma.professor.findUnique({
-      where: { id },
-      include: {
-        subjects: {
-          include: { subject: true },
-        },
-        _count: { select: { reviews: true } },
-      },
-    });
-
-    return {
-      ...professor,
-      avgRating: avg._avg.value,
-    };
-  }
-
-  async getReviews(id: string, query: ProfessorsQueryDto) {
-    const professor = await this.prisma.professor.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-
-    if (!professor) {
-      throw new NotFoundException('Profesor no encontrado');
-    }
-
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    const skip = (page - 1) * limit;
-
-    const where = { professorId: id };
-
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.professorReview.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatarUrl: true,
-            },
-          },
-        },
-      }),
-      this.prisma.professorReview.count({ where }),
-    ]);
-
-    return {
-      data,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
   }
 }
