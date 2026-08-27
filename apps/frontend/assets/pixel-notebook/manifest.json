@@ -1,0 +1,452 @@
+{
+  "$schema": "./manifest.schema.json",
+  "version": 1,
+  "recordedAt": "2026-08-25",
+  "policy": {
+    "sourcePacksCommitted": false,
+    "onlyApprovedIndividualAssets": true,
+    "runtimeAssetCatalogDependencies": false,
+    "pixelRepoLicenseReference": "https://pixelrepo.com/licenses",
+    "pixelRepoRule": "An individual asset requires its own source URL, creator, license snapshot, modifications, and visible attribution before adoption.",
+    "glyphyRule": "Glyphy may be used for discovery only; production kaomoji must be reviewed Unicode stored locally."
+  },
+  "assets": [
+    {
+      "id": "hero-home-brasa-kit",
+      "status": "approved",
+      "provider": "Open Design",
+      "creator": "User-directed generated project output",
+      "source": {
+        "projectId": "d65053ff-06c4-452d-b1e0-ebd31b0d570b",
+        "projectName": "devsproject-rpg-design-system",
+        "originalFile": "assets/hero-brasa-kit.png"
+      },
+      "rights": {
+        "basis": "The repository owner supplied the Open Design export and approved the completed prototype artwork for this production change.",
+        "license": "Project-owned generated output",
+        "attributionRequired": false,
+        "attribution": null
+      },
+      "acquiredAt": "2026-08-25",
+      "sourcePath": "assets/pixel-notebook/source/hero-brasa-kit.png",
+      "sourceSha256": "6677f3cd855dc39a30566191087dc21689b80df6e30276400c2cca97ae982a29",
+      "dimensions": {
+        "width": 1672,
+        "height": 941
+      },
+      "modifications": [
+        "Responsive width conversion to AVIF and WebP; no compositional edit"
+      ],
+      "generatedVariants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 360,
+          "bytes": 28117,
+          "sha256": "c65114b85dd379df04ba6562176197c0e6a2bdd35b0ae20731ca76e1ee208009",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-640.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-640.avif"
+        },
+        {
+          "format": "webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 34098,
+          "sha256": "28297bda37022dd6eece9dacedeb6bcff3024866093867253c1c083700d0bb09",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-640.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-640.webp"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 540,
+          "bytes": 49795,
+          "sha256": "fa147bfb126547388f163d053bdfee27da3bfc98115acda728a7858d1bee2b72",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-960.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-960.avif"
+        },
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 540,
+          "bytes": 64162,
+          "sha256": "59e2e01c60414fb9c66526f193eaeeb465bdf1197b6148bd90540120ffd6f1fc",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-960.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-960.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 720,
+          "bytes": 71154,
+          "sha256": "ef5b59c8490816d086630ed00897ac0aee67b3eb27c2809ec88339cca217f593",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-1280.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-1280.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 97810,
+          "sha256": "df0927d50f6b663a04bf5108d5c2a0a9358a531aa8132067d3be4d6f43b229fe",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-1280.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-1280.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1672,
+          "height": 941,
+          "bytes": 97037,
+          "sha256": "5620468ef38680e7de906708e703ce1e01e0515500c328809f4a8ed2fac52b10",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-1672.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-1672.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 138830,
+          "sha256": "1f52ba9984fbe06d4972eede0cce1e26d1d2653766f1859994e7d12aa25afd9b",
+          "path": "public/assets/pixel-notebook/heroes/hero-home-brasa-kit-1672.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-home-brasa-kit-1672.webp"
+        }
+      ],
+      "consumingRoutes": [
+        "/"
+      ]
+    },
+    {
+      "id": "hero-reviews-cobalto-observatory",
+      "status": "approved",
+      "provider": "Open Design",
+      "creator": "User-directed generated project output",
+      "source": {
+        "projectId": "d65053ff-06c4-452d-b1e0-ebd31b0d570b",
+        "projectName": "devsproject-rpg-design-system",
+        "originalFile": "assets/hero-cobalto-observatorio.png"
+      },
+      "rights": {
+        "basis": "The repository owner supplied the Open Design export and approved the completed prototype artwork for this production change.",
+        "license": "Project-owned generated output",
+        "attributionRequired": false,
+        "attribution": null
+      },
+      "acquiredAt": "2026-08-25",
+      "sourcePath": "assets/pixel-notebook/source/hero-cobalto-observatorio.png",
+      "sourceSha256": "d5c07a1b1ff95bbaf7b77598763ab0add4e87b13e2e0c0961436b349b68b8342",
+      "dimensions": {
+        "width": 1672,
+        "height": 941
+      },
+      "modifications": [
+        "Responsive width conversion to AVIF and WebP; no compositional edit"
+      ],
+      "generatedVariants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 360,
+          "bytes": 37137,
+          "sha256": "214d3cc9a64e2bdfc627577fac4c1827704857c6389eb1e555b2186469b2fd92",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-640.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-640.avif"
+        },
+        {
+          "format": "webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 43430,
+          "sha256": "b0c501f2172d58cb4bad0b72cd8430a6939ffc51fb9683859747345e4b2b9beb",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-640.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-640.webp"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 540,
+          "bytes": 67809,
+          "sha256": "55a97ddb20cfc5cfacce33805b5df060548646860126900b21d0f5879b4484a9",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-960.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-960.avif"
+        },
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 540,
+          "bytes": 80698,
+          "sha256": "781d805f83da5b771f4a30194ddedac0d6cb9eb18e154a169b5f843a18eb66e4",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-960.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-960.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 720,
+          "bytes": 94401,
+          "sha256": "94242a128e59cbb0570de9a640485c34c501cfe208961939f48afce4f3514c12",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1280.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1280.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 123304,
+          "sha256": "e997b35cfe5146533d8d6f85256188b75cfe90a80ee0ef4ec7388ce1ba0c8be5",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1280.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1280.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1672,
+          "height": 941,
+          "bytes": 125191,
+          "sha256": "1ca6a8c6ea6bb6961b08d48df72df23303e5f4eca14f70a0bb7cd41dfbd3c30f",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1672.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1672.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 171362,
+          "sha256": "df67bedcd5f0f437197cccd88183c86271c0f4726e1482128480eb28156ccb32",
+          "path": "public/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1672.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1672.webp"
+        }
+      ],
+      "consumingRoutes": [
+        "/resenas"
+      ]
+    },
+    {
+      "id": "hero-materials-oracle",
+      "status": "approved",
+      "provider": "Open Design",
+      "creator": "User-directed generated project output",
+      "source": {
+        "projectId": "d65053ff-06c4-452d-b1e0-ebd31b0d570b",
+        "projectName": "devsproject-rpg-design-system",
+        "originalFile": "assets/hero-oraculo-pixel.png"
+      },
+      "rights": {
+        "basis": "The repository owner supplied the Open Design export and approved the completed prototype artwork for this production change.",
+        "license": "Project-owned generated output",
+        "attributionRequired": false,
+        "attribution": null
+      },
+      "acquiredAt": "2026-08-25",
+      "sourcePath": "assets/pixel-notebook/source/hero-oraculo-pixel.png",
+      "sourceSha256": "e7a9c26d9ed39fbdc5fb5379948fa5602aa40580e5a52ce252bf4435af6a14ad",
+      "dimensions": {
+        "width": 1672,
+        "height": 941
+      },
+      "modifications": [
+        "Responsive width conversion to AVIF and WebP; no compositional edit"
+      ],
+      "generatedVariants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 360,
+          "bytes": 31065,
+          "sha256": "8fb8e4c8348b70c719d4907503e879c8753e684a8a324e72b04f4fc551a6b971",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-640.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-640.avif"
+        },
+        {
+          "format": "webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 36538,
+          "sha256": "9359e7108dd3c65f04af0927ecde0806a19a8c97e540d293fcb7d48bed0b5ab2",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-640.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-640.webp"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 540,
+          "bytes": 54368,
+          "sha256": "74fd7acce825ebe3899863f6a1d3bcbe78283b746b6324019b6fb08065e68a07",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-960.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-960.avif"
+        },
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 540,
+          "bytes": 65412,
+          "sha256": "4e514fc8a41f483036e0cfe11b3f0e92b616bde618f2fbc0c44950658048ff12",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-960.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-960.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 720,
+          "bytes": 75590,
+          "sha256": "0e9d9d29e2b45c0aa0227342a11f14e9b38c0f37192d8c990cf2a12e6dcf5b26",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-1280.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-1280.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 95686,
+          "sha256": "473c517677dca3c985b5ad76a0fe87166159196a408295f303b6b467e3ae4e21",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-1280.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-1280.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1672,
+          "height": 941,
+          "bytes": 101543,
+          "sha256": "1953eccd686648d1ef55fc6ae2a57de294b276c4589baee1943f00bf47d9b732",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-1672.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-1672.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 134118,
+          "sha256": "1c56eda4bbdf94c86851d097eba7a7c5610219ce1cd9b34bcc75de6240f4a271",
+          "path": "public/assets/pixel-notebook/heroes/hero-materials-oracle-1672.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-materials-oracle-1672.webp"
+        }
+      ],
+      "consumingRoutes": [
+        "/materiales"
+      ]
+    },
+    {
+      "id": "hero-finals-cobalto-lighthouse",
+      "status": "approved",
+      "provider": "Open Design",
+      "creator": "User-directed generated project output",
+      "source": {
+        "projectId": "d65053ff-06c4-452d-b1e0-ebd31b0d570b",
+        "projectName": "devsproject-rpg-design-system",
+        "originalFile": "assets/hero-cobalto-faro.png"
+      },
+      "rights": {
+        "basis": "The repository owner supplied the Open Design export and approved the completed prototype artwork for this production change.",
+        "license": "Project-owned generated output",
+        "attributionRequired": false,
+        "attribution": null
+      },
+      "acquiredAt": "2026-08-25",
+      "sourcePath": "assets/pixel-notebook/source/hero-cobalto-faro.png",
+      "sourceSha256": "d153672a72ff21ad86dd8924969ac85438af524d428145c4508ed7250dd1c3ec",
+      "dimensions": {
+        "width": 1672,
+        "height": 941
+      },
+      "modifications": [
+        "Responsive width conversion to AVIF and WebP; no compositional edit"
+      ],
+      "generatedVariants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 360,
+          "bytes": 33747,
+          "sha256": "e1044cf379514f2f36a5fd90708d5f345c1209f141b83cb407231fdb60dda380",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-640.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-640.avif"
+        },
+        {
+          "format": "webp",
+          "width": 640,
+          "height": 360,
+          "bytes": 37768,
+          "sha256": "b74464e526af01bacd2b397d90a9d7debcbf2002774d98db3c68628e359e84e8",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-640.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-640.webp"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 540,
+          "bytes": 61621,
+          "sha256": "09fe76dc849979ef86b0e70f100b7517ef0846f878617a107689c37c88c392b4",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-960.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-960.avif"
+        },
+        {
+          "format": "webp",
+          "width": 960,
+          "height": 540,
+          "bytes": 73900,
+          "sha256": "55cab43144a9d9a735695afe90355416ea2c5d06f61657ef5cbc8be2bccd6e64",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-960.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-960.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 720,
+          "bytes": 88183,
+          "sha256": "97870446640b1a2b0337eefa55d55cccf91bb52bc6658c3f94236cbeef10b786",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1280.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1280.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1280,
+          "height": 720,
+          "bytes": 113398,
+          "sha256": "94cf05e8f2d6d46d8a8d835d80c2c2d038132fb35c4a129bc7c4eb9bf0b328ae",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1280.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1280.webp"
+        },
+        {
+          "format": "avif",
+          "width": 1672,
+          "height": 941,
+          "bytes": 118527,
+          "sha256": "671583444483267d16e1156d482a2d65f801ea1a847f93184baed9906170f759",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1672.avif",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1672.avif"
+        },
+        {
+          "format": "webp",
+          "width": 1672,
+          "height": 941,
+          "bytes": 158954,
+          "sha256": "79f598d445163d9b1992cff97d56c09a4bf4ae467508573deffa455d816deac8",
+          "path": "public/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1672.webp",
+          "publicPath": "/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1672.webp"
+        }
+      ],
+      "consumingRoutes": [
+        "/finales"
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "provider": "Open Design",
+      "files": [
+        "hero-brasa-pixel.png",
+        "hero-brasa-lampara.png",
+        "hero-cobalto-pixel.png"
+      ],
+      "reason": "Alternative prototype candidates with no selected production route; excluding them avoids unused transfer and duplicate art direction."
+    },
+    {
+      "provider": "PixelRepo",
+      "source": "https://pixelrepo.com/collections/free",
+      "reason": "No individual asset has a route-specific need or complete per-asset provenance record yet."
+    },
+    {
+      "provider": "Glyphy",
+      "source": "https://glyphy.io/emoticons",
+      "reason": "Runtime dependency and copied catalog content are out of scope; any future kaomoji will be a reviewed local Unicode allowlist."
+    }
+  ]
+}

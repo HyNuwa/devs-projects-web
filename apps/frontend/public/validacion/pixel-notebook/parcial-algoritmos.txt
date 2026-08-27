@@ -1,0 +1,13 @@
+DEVSPROJECT — ARCHIVO SINTÉTICO DE VALIDACIÓN
+
+Materia: Algoritmos y Estructuras de Datos
+Tipo: Parcial
+Ciclo lectivo: 2025, primer cuatrimestre
+Profesor: Ing. Laura Quiroga
+Turno: Tarde
+
+1. Compará la complejidad temporal de búsqueda lineal y binaria.
+2. Implementá una pila usando una lista simplemente enlazada.
+3. Explicá cuándo una operación tiene costo amortizado.
+
+Este archivo no es material académico real. Fue creado únicamente para validar el recorrido de búsqueda, vista previa y descarga.

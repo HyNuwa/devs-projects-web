@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-26T00:00:00-03:00",
+  "title": "Design System: DevsProject Pixel Notebook",
+  "extensions": {
+    "colorMeta": {
+      "action-cobalt": { "role": "primary", "displayName": "Action Cobalt", "canonical": "#0069aa" },
+      "action-cobalt-deep": { "role": "primary", "displayName": "Deep Cobalt", "canonical": "#00396d" },
+      "canvas-cream": { "role": "neutral", "displayName": "Canvas Cream", "canonical": "#fff7eb" },
+      "paper-peach": { "role": "neutral", "displayName": "Paper Peach", "canonical": "#f9e6cf" },
+      "ink-midnight": { "role": "neutral", "displayName": "Ink Midnight", "canonical": "#1a1932" },
+      "muted-slate": { "role": "neutral", "displayName": "Muted Slate", "canonical": "#657392" },
+      "notebook-line": { "role": "neutral", "displayName": "Notebook Line", "canonical": "#f6ca9f" },
+      "structural-copper": { "role": "neutral", "displayName": "Structural Copper", "canonical": "#bf6f4a" },
+      "emphasis-orange": { "role": "secondary", "displayName": "Emphasis Orange", "canonical": "#ff5000" },
+      "annotation-gold": { "role": "secondary", "displayName": "Annotation Gold", "canonical": "#ffc825" },
+      "materials-violet": { "role": "tertiary", "displayName": "Materials Violet", "canonical": "#7a09fa" },
+      "success-green": { "role": "secondary", "displayName": "Success Green", "canonical": "#33984b" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Editorial Display", "purpose": "Route-defining headlines and major section headings." },
+      "body": { "displayName": "Operational Body", "purpose": "Fast reading, instructions, and community narratives." },
+      "label": { "displayName": "Notebook Label", "purpose": "Compact metadata, status, and provenance." }
+    },
+    "shadows": [
+      { "name": "control-press", "value": "2px 2px 0 var(--pn-ink)", "purpose": "Primary control depth and pressed-state feedback." },
+      { "name": "grouped-field", "value": "4px 4px 0 var(--pn-line)", "purpose": "Binds a search input and action into one task." },
+      { "name": "surface-register", "value": "3px 3px 0 var(--pn-line)", "purpose": "Separates bounded reference surfaces from ruled paper." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.2, 0, 0, 1)", "purpose": "Quick state feedback and one-time orientation transitions." }
+    ],
+    "breakpoints": [
+      { "name": "compact", "value": "520px" },
+      { "name": "stacked", "value": "820px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single dominant action on a view.",
+      "html": "<button class=\"ds-button-primary\">Buscar</button>",
+      "css": ".ds-button-primary{min-height:44px;padding:0 16px;border:1px solid var(--pn-cobalt);border-radius:0;color:var(--pn-canvas);background:var(--pn-cobalt);box-shadow:2px 2px 0 var(--pn-ink);font:700 13px/1.2 var(--pn-font-body);transition:background 150ms var(--pn-ease-out),transform 100ms var(--pn-ease-out),box-shadow 100ms var(--pn-ease-out)}.ds-button-primary:hover{background:var(--pn-cobalt-deep)}.ds-button-primary:focus-visible{outline:3px solid var(--pn-cobalt);outline-offset:3px}.ds-button-primary:active{background:var(--pn-ink);transform:translate(2px,2px);box-shadow:none}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A supporting action that cannot compete with the primary.",
+      "html": "<button class=\"ds-button-secondary\">Ver repositorio</button>",
+      "css": ".ds-button-secondary{min-height:44px;padding:0 16px;border:1px solid var(--pn-cobalt-deep);border-radius:0;color:var(--pn-cobalt-deep);background:var(--pn-canvas);box-shadow:2px 2px 0 var(--pn-line);font:700 13px/1.2 var(--pn-font-body)}.ds-button-secondary:hover{color:var(--pn-canvas);background:var(--pn-cobalt-deep)}.ds-button-secondary:focus-visible{outline:3px solid var(--pn-cobalt);outline-offset:3px}"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "A compact academic filter with persistent selected state.",
+      "html": "<button class=\"ds-chip\" aria-pressed=\"true\">Parciales</button>",
+      "css": ".ds-chip{min-height:36px;padding:0 10px;border:1px solid var(--pn-border);border-radius:0;color:var(--pn-cobalt-deep);background:var(--pn-canvas);font:700 10px/1.2 var(--pn-font-mono)}.ds-chip:hover,.ds-chip[aria-pressed=true]{border-color:var(--pn-cobalt);background:var(--pn-paper)}.ds-chip:focus-visible{outline:3px solid var(--pn-cobalt);outline-offset:3px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "description": "A grouped materia/resource query with a visible task boundary.",
+      "html": "<label class=\"ds-search\"><span>Buscar recursos</span><input placeholder=\"Buscá materia, parcial o apunte\"></label>",
+      "css": ".ds-search{display:grid;gap:5px;max-width:510px;padding:5px;border:1px solid var(--pn-border);background:var(--pn-canvas);box-shadow:4px 4px 0 var(--pn-line);color:var(--pn-ink);font:700 11px/1.4 var(--pn-font-mono)}.ds-search input{min-width:0;min-height:44px;padding:0 12px;border:0;border-radius:0;outline:0;color:var(--pn-ink);background:transparent;font:400 14px/1.5 var(--pn-font-body)}.ds-search:focus-within{outline:3px solid var(--pn-cobalt);outline-offset:3px}"
+    },
+    {
+      "name": "Bounded Surface",
+      "kind": "card",
+      "description": "A comparison or reference surface separated from ruled paper.",
+      "html": "<article class=\"ds-surface\"><h3>Análisis Matemático I</h3><p>Contexto académico y evidencia concreta.</p></article>",
+      "css": ".ds-surface{padding:23px;border:1px solid var(--pn-border);border-radius:0;color:var(--pn-ink);background:var(--pn-surface);box-shadow:3px 3px 0 var(--pn-line);font-family:var(--pn-font-body)}.ds-surface h3{margin:0;font:700 22px/1.08 var(--pn-font-display);letter-spacing:-.015em}.ds-surface p{margin:10px 0 0;max-width:70ch;color:var(--pn-muted);line-height:1.5}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Pixel Notebook",
+    "overview": "The interface feels like a well-used FI-UNJU study notebook whose margin has opened into a precise pixel-art world. Warm ruled paper carries the work; editorial type makes academic decisions legible; cobalt controls keep actions unmistakable. RPG imagery supplies atmosphere and memory, never replacement terminology or game mechanics.",
+    "keyCharacteristics": [
+      "Warm ruled-paper canvas with midnight text and copper structure.",
+      "One dominant cobalt action per view.",
+      "Editorial display hierarchy, plain system body copy, and compact mono labels.",
+      "One-pixel borders, square corners, and crisp print-register depth.",
+      "Pixel art is route identity; academic language remains literal."
+    ],
+    "rules": [
+      { "name": "The One Primary Rule", "body": "Cobalt is the only generic primary action color.", "section": "colors" },
+      { "name": "The State Independence Rule", "body": "Route accents cannot redefine semantic states or trust.", "section": "colors" },
+      { "name": "The Literal Language Rule", "body": "Visual fantasy never replaces academic terminology.", "section": "typography" },
+      { "name": "The Context Before Decoration Rule", "body": "Artwork cannot outrank materia, purpose, or action.", "section": "layout" },
+      { "name": "The Printed Depth Rule", "body": "Crisp offset depth is structural and deliberately scarce.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do preserve the search-first path and one obvious primary action.",
+      "Do show unknown academic metadata honestly as No informado.",
+      "Do record provenance before shipping visual assets."
+    ],
+    "donts": [
+      "Don't use source PNGs as default production candidates.",
+      "Don't let decoration displace academic terminology.",
+      "Don't migrate untouched CSS Modules merely for uniformity."
+    ]
+  }
+}

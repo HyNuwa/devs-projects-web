@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devsproject.local/schemas/pixel-notebook-assets.json",
+  "title": "Pixel Notebook asset manifest",
+  "type": "object",
+  "required": ["version", "recordedAt", "policy", "assets", "excluded"],
+  "properties": {
+    "version": { "const": 1 },
+    "recordedAt": { "type": "string", "format": "date" },
+    "policy": { "type": "object" },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "provider",
+          "creator",
+          "source",
+          "rights",
+          "acquiredAt",
+          "sourcePath",
+          "sourceSha256",
+          "dimensions",
+          "modifications",
+          "generatedVariants",
+          "consumingRoutes"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "status": { "const": "approved" },
+          "provider": { "type": "string", "minLength": 1 },
+          "creator": { "type": "string", "minLength": 1 },
+          "source": {
+            "type": "object",
+            "required": ["projectId", "projectName", "originalFile"]
+          },
+          "rights": {
+            "type": "object",
+            "required": ["basis", "license", "attributionRequired", "attribution"]
+          },
+          "acquiredAt": { "type": "string", "format": "date" },
+          "sourcePath": { "type": "string", "minLength": 1 },
+          "sourceSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "dimensions": {
+            "type": "object",
+            "required": ["width", "height"],
+            "properties": {
+              "width": { "type": "integer", "minimum": 1 },
+              "height": { "type": "integer", "minimum": 1 }
+            }
+          },
+          "modifications": { "type": "array", "items": { "type": "string" } },
+          "generatedVariants": { "type": "array" },
+          "consumingRoutes": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+        }
+      }
+    },
+    "excluded": { "type": "array" }
+  }
+}
