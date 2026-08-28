@@ -2,18 +2,20 @@
 
 ## Objetivo y alcance
 
-Validar si 3–5 estudiantes representativos de FI-UNJU pueden completar el recorrido inicio → resultados → detalle sin ayuda y comprenden qué evidencias ofrece cada material. Esta sesión evalúa arquitectura de información y comportamiento; no evalúa contenido académico real ni fidelidad del backend.
+Validar si participantes representativos de FI-UNJU pueden completar los recorridos inicio → resultados y Materiales → carrera → año → materia → categoría → archivo sin ayuda, y si comprenden las señales comunitarias disponibles. Esta sesión evalúa arquitectura de información y comportamiento; no evalúa contenido académico real ni fidelidad del backend.
+
+Estado: el walkthrough inicial del product owner terminó en `REVISAR` el 2026-08-26. La validación independiente con 3–5 estudiantes está diferida por decisión del owner y no se considera realizada.
 
 - Recorrido: `/validacion/pixel-notebook`
 - Estado de los datos: sintéticos y explícitamente rotulados.
 - Duración estimada: 12–18 minutos por participante.
-Dispositivo: el que la persona usaría normalmente; registrar viewport aproximado.
+- Dispositivo: el que la persona usaría normalmente; registrar viewport aproximado.
 
 ## Preparación del facilitador
 
 1. Abrir el recorrido en su pantalla inicial y restablecer cualquier acción local.
 2. Decir: “Queremos probar el diseño, no evaluarte a vos. Pensá en voz alta. No voy a indicarte dónde hacer clic.”
-3. No explicar `Revisado`, el orden de resultados ni la diferencia entre señales antes de las tareas.
+3. No explicar el orden de resultados, los breadcrumbs ni la diferencia entre estrellas, `Me sirvió` y `Guardar` antes de las tareas.
 4. Si la persona queda bloqueada por 30 segundos, registrar el bloqueo antes de ofrecer una pista neutral. Toda pista convierte la tarea en “con ayuda”.
 5. No usar las preguntas de cierre para corregir respuestas durante el recorrido.
 
@@ -21,7 +23,7 @@ Dispositivo: el que la persona usaría normalmente; registrar viewport aproximad
 
 ### Tarea 1 — Encontrar
 
-“Necesitás preparar Algoritmos y Estructuras de Datos. Encontrá materiales que puedan servirte para el primer parcial.”
+“Necesitás preparar Estructura de Datos. Encontrá materiales que puedan servirte para el primer parcial.”
 
 Éxito sin ayuda: inicia una búsqueda o usa una sugerencia y llega a resultados relevantes. Registrar si distingue sugerencias de materias y recursos.
 
@@ -29,25 +31,25 @@ Dispositivo: el que la persona usaría normalmente; registrar viewport aproximad
 
 “Elegí cuál de los tres resultados abrirías primero. Contame qué información usaste y qué dudas te quedan.”
 
-Éxito sin ayuda: compara al menos tipo, materia y una señal de contexto o confianza; no elige únicamente por estrellas suponiendo que implican verificación.
+Éxito sin ayuda: compara al menos tipo, materia, contexto académico y una señal comunitaria; no interpreta las estrellas como garantía de corrección.
 
-### Tarea 3 — Interpretar confianza
+### Tarea 3 — Recorrer la organización
 
-“En el material que elegiste aparece `Revisado`. Averiguá qué significa y explicámelo con tus palabras. ¿Qué no garantiza?”
+“Entrá por Materiales, elegí Ingeniería Informática, 1.er año y Estructura de Datos. Buscá los parciales y explicame dónde estás usando la ruta de arriba.”
 
-Éxito sin ayuda: abre la divulgación y comprende que se verificaron apertura y credibilidad del contexto declarado, no corrección total. Preguntar después: “¿Es lo mismo que estar publicado, tener estrellas o recibir ‘Me sirvió’?”
+Éxito sin ayuda: recorre carrera, año, materia y categoría; interpreta el breadcrumb y usa la búsqueda propia de la materia sin recibir pistas.
 
 ### Tarea 4 — Inspeccionar y obtener
 
 “Revisá el contenido antes de bajarlo y después descargalo.”
 
-Éxito sin ayuda: usa `Abrir vista previa`, identifica que conserva el contexto, y encuentra `Descargar`. Luego pedir que simule el fallo de vista previa y observe si todavía sabría cómo continuar.
+Éxito sin ayuda: abre el modal desde la lista, identifica que conserva el contexto, encuentra comentarios y `Descargar`, cierra sin perder la lista y puede continuar ante el fallo simulado de vista previa.
 
 ### Tarea 5 — Retener y reaccionar
 
-“Guardá este material para volver más tarde y marcá si te sirvió. Explicá si esas acciones cambian su revisión o su puntuación.”
+“Guardá este material para volver más tarde y marcá si te sirvió. Explicá si esas acciones cambian sus estrellas.”
 
-Éxito sin ayuda: reconoce los cambios de estado `Guardar`/`Guardado` y `Me sirvió`, y entiende que utilidad, guardado, estrellas y revisión son conceptos separados.
+Éxito sin ayuda: reconoce los cambios de estado `Guardar`/`Guardado` y `Me sirvió`, y entiende que utilidad, guardado y estrellas son conceptos separados.
 
 ## Registro por participante
 
@@ -73,7 +75,7 @@ Copiar esta tabla por persona. No guardar nombre completo, correo ni legajo.
 - ¿Qué dato te dio más confianza para elegir?
 - ¿Qué información faltó para decidir?
 - ¿Qué esperabas que ocurriera al abrir la vista previa y al descargar?
-- ¿Qué diferencia ves entre `Revisado`, estrellas y “Me sirvió”?
+- ¿Qué diferencia ves entre estrellas, “Me sirvió” y “Guardar”?
 - Si pudieras cambiar una sola cosa del recorrido, ¿cuál sería?
 
 ## Criterio de la compuerta
@@ -81,8 +83,8 @@ Copiar esta tabla por persona. No guardar nombre completo, correo ni legajo.
 Se considera problema severo cualquier patrón repetido por dos o más participantes que:
 
 - impida encontrar resultados o reconocer la materia como contexto;
-- haga interpretar `Revisado` como garantía de respuestas correctas o como simple aprobación de publicación;
-- haga confundir estrellas o “Me sirvió” con revisión académica;
+- impida completar la jerarquía o usar el breadcrumb para orientarse;
+- haga confundir estrellas o “Me sirvió” con garantía de corrección;
 - impida localizar vista previa, descarga o el fallback tras un fallo;
 - haga que contexto desconocido parezca información negativa o inventada.
 
@@ -98,4 +100,4 @@ Crear `docs/validation/evidence/pixel-notebook-AAAA-MM-DD.md` con:
 - cambios propuestos y su impacto en OpenSpec;
 - decisión explícita `PROCEDER` o `REVISAR`, responsable y fecha.
 
-No marcar OpenSpec 1.6 ni iniciar el grupo 2 hasta que ese archivo exista y la decisión esté asentada.
+No iniciar el grupo 2 hasta que la revisión del prototipo tenga evidencia de navegador y el product owner registre la decisión OpenSpec 1.9 como `PROCEDER` o `REVISAR`.

@@ -61,16 +61,8 @@ A reversible moderator action that hides a reseña de cursada or experiencia de 
 _Avoid_: Report, automatic hiding, publication rejection
 
 **Aprobación para publicación**:
-A moderation outcome confirming that a recurso académico may appear publicly. It does not assert academic correctness or contextual accuracy.
-_Avoid_: Verification, academic review
-
-**Revisión académica**:
-A separate trust assessment confirming that a recurso académico opens correctly and that its declared academic context is credible.
-_Avoid_: Publication approval, guaranteed correctness
-
-**Revisado**:
-The public-facing state of a recurso académico that has completed a revisión académica.
-_Avoid_: Verificado, guaranteed
+A mandatory moderation outcome confirming that a recurso académico may appear publicly. Every upload starts pending; only approved material enters public discovery, preview, comments, and download. Approval does not assert academic correctness or contextual accuracy and is not exposed as a public trust badge.
+_Avoid_: Verification, academic review, Revisado
 
 **Señal de utilidad**:
 A student's indication that a recurso académico helped them, presented in the interface as “Me sirvió.” It reflects usefulness, not academic correctness.

@@ -100,7 +100,7 @@ The palette is full but role-bound: cream and ink own the page, cobalt owns inte
 
 **The One Primary Rule.** Cobalt is the only generic primary action color. Route accents identify sections but never compete for action priority.
 
-**The State Independence Rule.** Route accents cannot redefine success, warning, error, disabled, focus, publication approval, or academic review.
+**The State Independence Rule.** Route accents cannot redefine success, warning, error, disabled, focus, or publication approval.
 
 ## Typography
 
@@ -118,13 +118,13 @@ The palette is full but role-bound: cream and ink own the page, cobalt owns inte
 - **Body** (400, 1rem, 1.5): Instructions and narratives; keep long reading measures near 65–75 characters.
 - **Label** (700, about 0.6875rem, 0.04em): Short metadata, status headings, and compact controls.
 
-**The Literal Language Rule.** Typography may feel like a fantasy notebook, but labels say `Materia`, `Revisado`, `Descargar`, `Reseñas`, and `Finales`—never loot, rarity, quests, or XP.
+**The Literal Language Rule.** Typography may feel like a fantasy notebook, but labels say `Materia`, `Descargar`, `Reseñas`, and `Finales`—never loot, rarity, quests, or XP. Approved public materials do not carry a redundant `Revisado` label.
 
 ## Layout
 
 The canonical wide container is capped at 1180px with 24px desktop gutters. Content groups use tight internal gaps and visibly larger separation between jobs. Search and the primary task lead the first viewport; decorative art may occupy substantial area only when the action and academic promise remain immediately reachable.
 
-At 820px, multi-column structures collapse to one column and navigation becomes compact. At 520px, gutters reduce to 12px and composite search controls stack. Mobile order preserves context before action, trust before preview, and secondary community content last. Core views must survive 200% zoom without two-dimensional page scrolling.
+At 820px, multi-column structures collapse to one column and navigation becomes compact. Grouped suggestions stack before either column becomes cramped; at 520px, gutters reduce to 12px and composite search controls stack. Mobile order preserves academic context before file actions, with comments and secondary community content following the preview. Core views must survive 200% zoom without two-dimensional page scrolling.
 
 **The Context Before Decoration Rule.** Artwork can dominate atmosphere, not reading order. A student must identify the materia, resource purpose, and next action without interpreting the scene.
 
@@ -177,6 +177,14 @@ Square corners and one-pixel borders define the system. Chips are compact rectan
 
 Desktop navigation keeps the four primary destinations `Materias`, `Reseñas`, `Materiales`, and `Finales`, plus `Subir material` and account access. Active state uses text/icon treatment in addition to color. Mobile navigation exposes the same destinations through a keyboard-operable menu with managed focus.
 
+### Breadcrumbs and material hierarchy
+
+Material discovery follows stable `Materiales → Carrera → Año → Materia → Tipo de recurso` routes. Every nested level shows a linked semantic breadcrumb derived from the same route data as the page heading. Materia routes expose their own scoped search; unknown or intentionally bounded prototype levels use an honest empty state rather than fabricated records.
+
+### Resource lists and preview dialog
+
+Materia/category routes use compact, Drive-like file rows with type, academic context, stars, `Me sirvió`, and one clear preview action. Opening a file keeps the underlying list and URL state visible through `archivo=<materialId>` rather than navigating to a standalone detail page. The modal keeps file identity, close, and download reachable; desktop places preview beside comments, while mobile stacks them full-screen. Escape, outside click, focus containment/restoration, reload, and failed-preview fallback are required behavior.
+
 ### Hero Artwork
 
 Only the active route's LCP image may be eager. Use generated AVIF/WebP candidates with explicit dimensions and `sizes`; source PNGs stay outside `public`. Decorative images use empty alternative text, while meaningful artwork receives a concise description.
@@ -187,7 +195,7 @@ Only the active route's LCP image may be eager. Use generated AVIF/WebP candidat
 
 - **Do** preserve the search-first path and one obvious primary action.
 - **Do** show unknown academic metadata honestly as `No informado`.
-- **Do** separate publication approval, academic review, helpfulness, ratings, and recommendation stars.
+- **Do** keep mandatory publication moderation distinct from public helpfulness, ratings, and recommendation stars; expose only approved files without adding a public moderation badge.
 - **Do** use Lucide or authored SVG for functional icons with consistent stroke and sizing.
 - **Do** record source, rights, modifications, generated variants, and consuming routes before shipping visual assets.
 - **Do** provide loading, empty, error, retry, keyboard-focus, reduced-motion, and 200%-zoom behavior.
