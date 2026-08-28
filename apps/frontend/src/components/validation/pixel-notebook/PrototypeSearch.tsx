@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
+import { filterValidationSuggestions } from './data';
 import styles from './PrototypeShell.module.css';
 
 type PrototypeSearchProps = {
@@ -10,21 +11,15 @@ type PrototypeSearchProps = {
   compact?: boolean;
 };
 
-const suggestions = {
-  Materias: [
-    { label: 'Algoritmos y Estructuras de Datos', meta: 'S2-14 · 2.º año' },
-    { label: 'Análisis Matemático II', meta: 'S2-08 · 2.º año' },
-  ],
-  Recursos: [
-    { label: 'Parcial 1 resuelto: complejidad, listas y pilas', meta: 'Parcial · 2025' },
-    { label: 'Guía práctica de listas enlazadas', meta: 'Apunte · 2024' },
-  ],
-};
-
 export function PrototypeSearch({ initialQuery = '', compact = false }: PrototypeSearchProps) {
   const [query, setQuery] = useState(initialQuery);
   const [isFocused, setIsFocused] = useState(false);
   const showSuggestions = !compact && isFocused && query.trim().length > 0;
+  const suggestions = filterValidationSuggestions(query);
+  const suggestionGroups = [
+    { label: 'Materias', id: 'subjects', items: suggestions.subjects },
+    { label: 'Recursos', id: 'resources', items: suggestions.resources },
+  ].filter(({ items }) => items.length > 0);
 
   return (
     <div className={`${styles.searchWrap} ${compact ? styles.searchCompact : ''}`}>
@@ -53,18 +48,27 @@ export function PrototypeSearch({ initialQuery = '', compact = false }: Prototyp
       </form>
 
       {showSuggestions ? (
-        <div className={styles.suggestionPanel} aria-label="Sugerencias de búsqueda">
-          {Object.entries(suggestions).map(([group, items]) => (
-            <section key={group} aria-labelledby={`suggestion-${group}`}>
-              <h2 id={`suggestion-${group}`}>{group}</h2>
+        <div
+          className={styles.suggestionPanel}
+          aria-label="Sugerencias de búsqueda"
+          aria-live="polite"
+        >
+          {suggestionGroups.map(({ label, id, items }) => (
+            <section key={id} aria-labelledby={`suggestion-${id}`}>
+              <h2 id={`suggestion-${id}`}>{label}</h2>
               {items.map((item) => (
-                <Link key={item.label} href="/validacion/pixel-notebook/resultados?q=algoritmos">
+                <Link key={item.label} href={item.href}>
                   <span>{item.label}</span>
                   <small>{item.meta}</small>
                 </Link>
               ))}
             </section>
           ))}
+          {suggestionGroups.length === 0 ? (
+            <p className={styles.suggestionEmpty}>
+              No encontramos coincidencias. Probá con otro nombre o tipo de material.
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

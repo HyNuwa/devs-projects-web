@@ -9,6 +9,7 @@
     "lint": "eslint",
     "verify:design-tokens": "node scripts/verify-pixel-notebook-tokens.mjs",
     "verify:assets": "node scripts/verify-asset-manifest.mjs && node scripts/verify-generated-assets.mjs",
+    "verify:prototype": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pixel-notebook-prototype.mjs",
     "assets:build": "node scripts/build-pixel-notebook-assets.mjs"
   },
   "dependencies": {

@@ -1,23 +1,22 @@
 import Link from 'next/link';
-import { ArrowUpRight, CheckCircle2, Eye, Star, ThumbsUp } from 'lucide-react';
+import { Eye, FileText, Star, ThumbsUp } from 'lucide-react';
 import type { ValidationResource } from './data';
 import styles from './PrototypeShell.module.css';
 
-export function ResourceRow({ resource }: { resource: ValidationResource }) {
+export function ResourceRow({ resource, href }: { resource: ValidationResource; href: string }) {
   return (
     <article className={styles.resourceRow}>
+      <span className={styles.resourceFileIcon} aria-hidden="true">
+        <FileText size={20} />
+      </span>
       <div className={styles.resourceMain}>
         <div className={styles.resourceLabels}>
           <span>{resource.type}</span>
-          {resource.reviewed ? (
-            <span className={styles.reviewedLabel}>
-              <CheckCircle2 aria-hidden="true" size={14} />
-              Revisado
-            </span>
-          ) : null}
         </div>
         <h3>
-          <Link href="/validacion/pixel-notebook/material">{resource.title}</Link>
+          <Link href={href} scroll={false}>
+            {resource.title}
+          </Link>
         </h3>
         <p>{resource.subject}</p>
         <dl className={styles.rowContext}>
@@ -47,18 +46,10 @@ export function ResourceRow({ resource }: { resource: ValidationResource }) {
         </span>
       </div>
 
-      <details className={styles.rowPreview}>
-        <summary>
-          <Eye aria-hidden="true" size={17} />
-          Vista previa
-        </summary>
-        <div>
-          <p>{resource.preview}</p>
-          <Link href="/validacion/pixel-notebook/material">
-            Abrir detalle <ArrowUpRight aria-hidden="true" size={15} />
-          </Link>
-        </div>
-      </details>
+      <Link className={styles.rowPreviewAction} href={href} scroll={false}>
+        <Eye aria-hidden="true" size={17} />
+        Abrir vista previa
+      </Link>
     </article>
   );
 }

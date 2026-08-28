@@ -21,9 +21,9 @@ export function PrototypeShell({ children }: { children: ReactNode }) {
         </Link>
 
         <nav className={styles.primaryNav} aria-label="Navegación del prototipo">
-          <Link href="/validacion/pixel-notebook/resultados?q=materias">Materias</Link>
+          <Link href="/validacion/pixel-notebook/materiales">Materias</Link>
           <span aria-disabled="true">Reseñas</span>
-          <Link href="/validacion/pixel-notebook/resultados?q=materiales">Materiales</Link>
+          <Link href="/validacion/pixel-notebook/materiales">Materiales</Link>
           <span aria-disabled="true">Finales</span>
         </nav>
 
