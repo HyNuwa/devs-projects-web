@@ -38,7 +38,7 @@
 ## 4. Discovery and community read models
 
 - [x] 4.1 Add the backend `DiscoveryModule` and bounded grouped suggestion endpoint; verify every returned item matches the accent-insensitive current query, materias precede resources, and no-result queries return an explicit empty group state.
-- [ ] 4.2 Add a bounded approved-only academic hierarchy read model for careers → curriculum years → materias → resource categories/files, reusing equivalent existing curriculum endpoints where available; verify counts, stable identifiers, empty levels, and direct-level access without N+1 queries.
+- [x] 4.2 Add a bounded approved-only academic hierarchy read model for careers → curriculum years → materias → resource categories/files, reusing equivalent existing curriculum endpoints where available; verify counts, stable identifiers, empty levels, and direct-level access without N+1 queries.
 - [ ] 4.3 Extend paged material queries with resource type, materia, ciclo lectivo, professor, scoped/global query, page, and supported sort validation; verify materia-scoped search cannot return another materia and every filter works alone and in representative combinations.
 - [ ] 4.4 Implement parameterized database ranking for exact/prefix/contains relevance, context completeness, recency, helpfulness, and stable id tie-breaking; verify integration fixtures produce the documented deterministic order across pages while star aggregates remain presentation-only evidence.
 - [ ] 4.5 Implement paged course-review discovery with recent/star ordering, materia/year/professor/difficulty/cursada filters, canonical materia links, public anonymity projection, and visible-only average/count; verify URL-query fixtures count every legitimate visible record and exclude removed entries.

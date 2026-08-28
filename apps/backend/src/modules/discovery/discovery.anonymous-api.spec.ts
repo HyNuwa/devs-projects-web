@@ -34,6 +34,21 @@ describe('Discovery anonymous API contract', () => {
       subjects: [],
       materials: [],
     });
+    Object.assign(discoveryService, {
+      getCareers: jest.fn().mockResolvedValue({ careers: [], hasMore: false }),
+      getCurriculumYears: jest
+        .fn()
+        .mockResolvedValue({ career: {}, years: [], hasMore: false }),
+      getSubjects: jest
+        .fn()
+        .mockResolvedValue({ subjects: [], hasMore: false }),
+      getResourceCategories: jest
+        .fn()
+        .mockResolvedValue({ subject: {}, categories: [] }),
+      getMaterialFiles: jest
+        .fn()
+        .mockResolvedValue({ files: [], hasMore: false }),
+    });
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [PassportModule],
@@ -78,5 +93,27 @@ describe('Discovery anonymous API contract', () => {
     '/discovery/suggestions?q=algebra&limit=11',
   ])('rechaza la consulta inválida %s', async (path) => {
     await request(app.getHttpServer()).get(path).expect(400);
+  });
+
+  it.each([
+    '/discovery/hierarchy/careers',
+    '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories',
+    '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories/APUNTE/materials',
+  ])(
+    'permite lectura jerárquica directa sin autenticación: %s',
+    async (path) => {
+      await request(app.getHttpServer()).get(path).expect(200);
+    },
+  );
+
+  it('valida los límites y categorías de la jerarquía', async () => {
+    await request(app.getHttpServer())
+      .get('/discovery/hierarchy/careers?limit=0')
+      .expect(400);
+    await request(app.getHttpServer())
+      .get(
+        '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories/VIDEO/materials',
+      )
+      .expect(400);
   });
 });
