@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Param,
@@ -34,7 +35,16 @@ import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
 import { RejectMaterialDto } from './dto/reject-material.dto';
 import { MaterialsQueryDto } from './dto/materials-query.dto';
-import { MaterialResponseDto } from './dto/material-response.dto';
+import {
+  MaterialHelpfulnessStateDto,
+  MaterialResponseDto,
+  MaterialViewerStateDto,
+  SavedMaterialStateDto,
+} from './dto/material-response.dto';
+import {
+  SetMaterialHelpfulnessDto,
+  SetSavedMaterialDto,
+} from './dto/set-material-viewer-state.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -70,7 +80,27 @@ export class MaterialsController {
         title: { type: 'string' },
         description: { type: 'string' },
         subjectId: { type: 'string' },
+        resourceType: {
+          type: 'string',
+          enum: [
+            'PARCIAL',
+            'FINAL',
+            'APUNTE',
+            'RESUMEN',
+            'TRABAJO_PRACTICO',
+            'GUIA_EJERCICIOS',
+            'OTRO',
+          ],
+        },
+        academicYear: { type: 'integer', nullable: true },
+        professorId: { type: 'string', format: 'uuid', nullable: true },
+        shift: {
+          type: 'string',
+          enum: ['MANANA', 'TARDE', 'NOCHE', 'NO_INDICO'],
+          nullable: true,
+        },
       },
+      required: ['file', 'title', 'subjectId', 'resourceType'],
     },
   })
   @ApiResponse({ status: 201, type: MaterialResponseDto })
@@ -234,6 +264,38 @@ export class MaterialsController {
     @Request() req: { user: { id: string; role: string } },
   ) {
     return this.materialsService.rate(id, req.user.id, dto);
+  }
+
+  @Get(':id/viewer-state')
+  @ApiOperation({ summary: 'Obtener mi estado de interacción con el material' })
+  @ApiResponse({ status: 200, type: MaterialViewerStateDto })
+  async getViewerState(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.materialsService.getViewerState(id, req.user.id);
+  }
+
+  @Put(':id/helpfulness')
+  @ApiOperation({ summary: 'Establecer mi estado Me sirvió' })
+  @ApiResponse({ status: 200, type: MaterialHelpfulnessStateDto })
+  async setHelpfulness(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetMaterialHelpfulnessDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.materialsService.setHelpfulness(id, req.user.id, dto.isHelpful);
+  }
+
+  @Put(':id/saved')
+  @ApiOperation({ summary: 'Establecer mi estado de material guardado' })
+  @ApiResponse({ status: 200, type: SavedMaterialStateDto })
+  async setSaved(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetSavedMaterialDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.materialsService.setSaved(id, req.user.id, dto.isSaved);
   }
 
   @Get(':id/ratings')

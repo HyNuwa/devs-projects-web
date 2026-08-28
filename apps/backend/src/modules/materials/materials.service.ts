@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
+  ConflictException,
   Inject,
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/index';
@@ -14,6 +16,11 @@ import { MaterialsQueryDto } from './dto/materials-query.dto';
 import { RejectMaterialDto } from './dto/reject-material.dto';
 import { Role } from '../auth/dto/auth-response.dto';
 import { PointService } from '../ranking/point.service';
+import { normalizeSearchKey } from '../../common/search/search-key';
+import {
+  MaterialPreviewCapability,
+  MaterialPreviewFallbackReason,
+} from './dto/material-response.dto';
 
 const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
@@ -26,6 +33,126 @@ const authorSelect = {
   },
 } as const;
 
+const moderationEvidenceSelect = {
+  select: {
+    id: true,
+    action: true,
+    reason: true,
+    createdAt: true,
+  },
+} as const;
+
+const publicMaterialSelect = {
+  id: true,
+  title: true,
+  description: true,
+  fileUrl: true,
+  fileType: true,
+  fileSize: true,
+  thumbnailUrl: true,
+  authorId: true,
+  subjectId: true,
+  resourceType: true,
+  academicYear: true,
+  professorId: true,
+  shift: true,
+  downloadCount: true,
+  avgRating: true,
+  ratingCount: true,
+  drivePreviewUrl: true,
+  driveDownloadUrl: true,
+  createdAt: true,
+  updatedAt: true,
+  author: authorSelect,
+  subject: {
+    select: { id: true, name: true, code: true },
+  },
+  professor: {
+    select: { id: true, name: true },
+  },
+  _count: {
+    select: {
+      helpfulness: true,
+      ratings: { where: { comment: { not: null } } },
+    },
+  },
+} satisfies Prisma.MaterialSelect;
+
+type PublicMaterialRecord = Prisma.MaterialGetPayload<{
+  select: typeof publicMaterialSelect;
+}>;
+
+function getPreviewCapability(
+  fileType: string,
+  previewUrl: string | null,
+): MaterialPreviewCapability {
+  if (!previewUrl) {
+    return MaterialPreviewCapability.UNAVAILABLE;
+  }
+
+  const normalized = fileType.toLowerCase().replace(/^image\//, '');
+  if (normalized === 'pdf' || normalized === 'application/pdf') {
+    return MaterialPreviewCapability.PDF;
+  }
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(normalized)) {
+    return MaterialPreviewCapability.IMAGE;
+  }
+  return MaterialPreviewCapability.UNSUPPORTED;
+}
+
+function toPublicMaterial(material: PublicMaterialRecord) {
+  const previewCandidate = material.drivePreviewUrl || material.fileUrl || null;
+  const capability = getPreviewCapability(material.fileType, previewCandidate);
+  const previewUrl =
+    capability === MaterialPreviewCapability.PDF ||
+    capability === MaterialPreviewCapability.IMAGE
+      ? previewCandidate
+      : null;
+  const average = material.avgRating.toString();
+  const downloadUrl = material.driveDownloadUrl ?? material.fileUrl;
+  const fallbackReason =
+    capability === MaterialPreviewCapability.UNSUPPORTED
+      ? MaterialPreviewFallbackReason.UNSUPPORTED
+      : capability === MaterialPreviewCapability.UNAVAILABLE
+        ? MaterialPreviewFallbackReason.UNAVAILABLE
+        : MaterialPreviewFallbackReason.PREVIEW_FAILED;
+
+  return {
+    id: material.id,
+    title: material.title,
+    description: material.description,
+    fileUrl: material.fileUrl,
+    fileType: material.fileType,
+    fileSize: material.fileSize.toString(),
+    thumbnailUrl: material.thumbnailUrl,
+    authorId: material.authorId,
+    subjectId: material.subjectId,
+    resourceType: material.resourceType,
+    academicYear: material.academicYear,
+    professorId: material.professorId,
+    shift: material.shift,
+    downloadCount: material.downloadCount,
+    avgRating: average,
+    ratingCount: material.ratingCount,
+    helpfulCount: material._count.helpfulness,
+    commentCount: material._count.ratings,
+    starSummary: { average, count: material.ratingCount },
+    commentSummary: { count: material._count.ratings },
+    preview: {
+      capability,
+      url: previewUrl,
+      canPreview: previewUrl !== null,
+      downloadUrl,
+      fallback: { reason: fallbackReason, downloadUrl },
+    },
+    createdAt: material.createdAt,
+    updatedAt: material.updatedAt,
+    author: material.author,
+    subject: material.subject,
+    professor: material.professor,
+  };
+}
+
 @Injectable()
 export class MaterialsService {
   constructor(
@@ -34,16 +161,47 @@ export class MaterialsService {
     private pointService: PointService,
   ) {}
 
+  private async assertAcademicContext(
+    subjectId: string,
+    professorId?: string | null,
+  ) {
+    const subject = await this.prisma.subject.findUnique({
+      where: { id: subjectId },
+      select: { id: true },
+    });
+
+    if (!subject) {
+      throw new NotFoundException('Materia no encontrada');
+    }
+
+    if (!professorId) {
+      return;
+    }
+
+    const association = await this.prisma.subjectProfessor.findUnique({
+      where: { subjectId_professorId: { subjectId, professorId } },
+      select: { id: true },
+    });
+
+    if (!association) {
+      throw new BadRequestException(
+        'El profesor indicado no está asociado a la materia',
+      );
+    }
+  }
+
   async create(
     dto: CreateMaterialDto,
     file: Express.Multer.File,
     userId: string,
   ) {
+    await this.assertAcademicContext(dto.subjectId, dto.professorId);
     const staged: StagedFile = await this.storage.stage(file);
 
     const material = await this.prisma.material.create({
       data: {
         title: dto.title,
+        searchKey: normalizeSearchKey(dto.title),
         description: dto.description,
         fileUrl: '',
         fileType: staged.fileType,
@@ -51,6 +209,10 @@ export class MaterialsService {
         thumbnailUrl: staged.thumbnailUrl,
         authorId: userId,
         subjectId: dto.subjectId,
+        resourceType: dto.resourceType,
+        academicYear: dto.academicYear,
+        professorId: dto.professorId,
+        shift: dto.shift,
         moderationStatus: 'PENDING',
         stagedFilePath: staged.stagedPath,
       },
@@ -84,16 +246,13 @@ export class MaterialsService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          author: authorSelect,
-          subject: true,
-        },
+        select: publicMaterialSelect,
       }),
       this.prisma.material.count({ where }),
     ]);
 
     return {
-      data,
+      data: data.map(toPublicMaterial),
       meta: {
         page,
         limit,
@@ -106,17 +265,14 @@ export class MaterialsService {
   async findById(id: string) {
     const material = await this.prisma.material.findFirst({
       where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
-      include: {
-        author: authorSelect,
-        subject: true,
-      },
+      select: publicMaterialSelect,
     });
 
     if (!material) {
       throw new NotFoundException('Material no encontrado');
     }
 
-    return material;
+    return toPublicMaterial(material);
   }
 
   async findMine(userId: string) {
@@ -126,6 +282,7 @@ export class MaterialsService {
       include: {
         author: authorSelect,
         subject: true,
+        moderationLogs: moderationEvidenceSelect,
       },
     });
   }
@@ -137,6 +294,7 @@ export class MaterialsService {
       include: {
         author: authorSelect,
         subject: true,
+        moderationLogs: moderationEvidenceSelect,
       },
     });
   }
@@ -154,7 +312,19 @@ export class MaterialsService {
       return this.findById(id);
     }
 
-    const published = await this.storage.publish(material.stagedFilePath!, {
+    if (material.moderationStatus !== 'PENDING') {
+      throw new ConflictException(
+        'Solo los materiales pendientes pueden aprobarse',
+      );
+    }
+
+    if (!material.stagedFilePath) {
+      throw new ConflictException(
+        'El material pendiente no conserva un archivo para publicar',
+      );
+    }
+
+    const published = await this.storage.publish(material.stagedFilePath, {
       fileType: material.fileType,
     });
 
@@ -209,6 +379,16 @@ export class MaterialsService {
       throw new NotFoundException('Material no encontrado');
     }
 
+    if (material.moderationStatus === 'REJECTED') {
+      return material;
+    }
+
+    if (material.moderationStatus !== 'PENDING') {
+      throw new ConflictException(
+        'Solo los materiales pendientes pueden rechazarse',
+      );
+    }
+
     if (material.stagedFilePath) {
       await this.storage.discard(material.stagedFilePath);
     }
@@ -254,14 +434,32 @@ export class MaterialsService {
       );
     }
 
+    const nextSubjectId = dto.subjectId ?? material.subjectId;
+    const nextProfessorId =
+      dto.professorId === undefined ? material.professorId : dto.professorId;
+    await this.assertAcademicContext(nextSubjectId, nextProfessorId);
+
     return this.prisma.material.update({
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.title !== undefined
+          ? { searchKey: normalizeSearchKey(dto.title) }
+          : {}),
         ...(dto.description !== undefined
           ? { description: dto.description }
           : {}),
         ...(dto.subjectId !== undefined ? { subjectId: dto.subjectId } : {}),
+        ...(dto.resourceType !== undefined
+          ? { resourceType: dto.resourceType }
+          : {}),
+        ...(dto.academicYear !== undefined
+          ? { academicYear: dto.academicYear }
+          : {}),
+        ...(dto.professorId !== undefined
+          ? { professorId: dto.professorId }
+          : {}),
+        ...(dto.shift !== undefined ? { shift: dto.shift } : {}),
       },
       include: {
         author: authorSelect,
@@ -349,7 +547,98 @@ export class MaterialsService {
     });
   }
 
+  async setHelpfulness(id: string, userId: string, isHelpful: boolean) {
+    return this.prisma.$transaction(async (transaction) => {
+      const material = await transaction.material.findFirst({
+        where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+        select: { id: true },
+      });
+
+      if (!material) {
+        throw new NotFoundException('Material no encontrado');
+      }
+
+      if (isHelpful) {
+        await transaction.materialHelpfulness.upsert({
+          where: { userId_materialId: { userId, materialId: id } },
+          create: { userId, materialId: id },
+          update: {},
+        });
+      } else {
+        await transaction.materialHelpfulness.deleteMany({
+          where: { userId, materialId: id },
+        });
+      }
+
+      const helpfulCount = await transaction.materialHelpfulness.count({
+        where: { materialId: id },
+      });
+
+      return { isHelpful, helpfulCount };
+    });
+  }
+
+  async setSaved(id: string, userId: string, isSaved: boolean) {
+    return this.prisma.$transaction(async (transaction) => {
+      const material = await transaction.material.findFirst({
+        where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+        select: { id: true },
+      });
+
+      if (!material) {
+        throw new NotFoundException('Material no encontrado');
+      }
+
+      if (isSaved) {
+        await transaction.savedMaterial.upsert({
+          where: { userId_materialId: { userId, materialId: id } },
+          create: { userId, materialId: id },
+          update: {},
+        });
+      } else {
+        await transaction.savedMaterial.deleteMany({
+          where: { userId, materialId: id },
+        });
+      }
+
+      return { isSaved };
+    });
+  }
+
+  async getViewerState(id: string, userId: string) {
+    const material = await this.prisma.material.findFirst({
+      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+      select: { id: true },
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material no encontrado');
+    }
+
+    const [helpfulness, saved] = await Promise.all([
+      this.prisma.materialHelpfulness.findUnique({
+        where: { userId_materialId: { userId, materialId: id } },
+        select: { id: true },
+      }),
+      this.prisma.savedMaterial.findUnique({
+        where: { userId_materialId: { userId, materialId: id } },
+        select: { id: true },
+      }),
+    ]);
+
+    return { isHelpful: Boolean(helpfulness), isSaved: Boolean(saved) };
+  }
+
   async getRatings(id: string, query: { page?: number; limit?: number }) {
+    const material = await this.prisma.material.findFirst({
+      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+      select: { id: true },
+    });
+
+    if (!material) {
+      throw new NotFoundException('Material no encontrado');
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;

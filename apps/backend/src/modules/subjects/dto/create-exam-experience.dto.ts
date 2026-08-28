@@ -1,5 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
+  IsDate,
   IsEnum,
   IsInt,
   IsOptional,
@@ -8,60 +11,98 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
+  Validate,
 } from 'class-validator';
 import {
-  Shift,
+  CommunityDifficulty,
   ExamFormat,
+  ExamOutcome,
   ExamSession,
-} from '../../../generated/prisma/index';
+  Shift,
+} from '../../../generated/prisma';
+import {
+  MAX_ACADEMIC_YEAR,
+  MIN_ACADEMIC_YEAR,
+} from '../../../common/validation/academic-year';
+import {
+  GradeRequiresExplicitOutcomeConstraint,
+  SingleProfessorReferenceConstraint,
+} from './community-write.validators';
 
 export class CreateExamExperienceDto {
-  @ApiPropertyOptional({ enum: Shift })
-  @IsOptional()
-  @IsEnum(Shift)
-  shift?: Shift;
-
-  @ApiProperty({ example: 2026 })
+  @ApiProperty({
+    example: 2026,
+    minimum: MIN_ACADEMIC_YEAR,
+    maximum: MAX_ACADEMIC_YEAR,
+  })
+  @Type(() => Number)
   @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   year: number;
 
-  @ApiPropertyOptional({ enum: ExamSession, default: ExamSession.NO_RECUERDO })
-  @IsOptional()
+  @ApiProperty({ enum: ExamSession })
   @IsEnum(ExamSession)
-  session?: ExamSession;
+  session: ExamSession;
 
   @ApiProperty({ enum: ExamFormat })
   @IsEnum(ExamFormat)
   format: ExamFormat;
 
-  @ApiPropertyOptional({ description: 'ID de profesor registrado (opcional)' })
+  @ApiPropertyOptional({ type: String, format: 'date' })
   @IsOptional()
-  @IsUUID()
+  @Type(() => Date)
+  @IsDate()
+  examDate?: Date;
+
+  @ApiPropertyOptional({ enum: Shift })
+  @IsOptional()
+  @IsEnum(Shift)
+  shift?: Shift;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID('4')
+  @Validate(SingleProfessorReferenceConstraint)
   professorId?: string;
 
-  @ApiPropertyOptional({ description: 'Nombre del docente que tomó el final' })
+  @ApiPropertyOptional({ maxLength: 150 })
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @MinLength(2)
   @MaxLength(150)
   examinerName?: string;
 
-  @ApiProperty({ minimum: 1, maximum: 5 })
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  difficultyTheory: number;
-
-  @ApiProperty({ minimum: 1, maximum: 5 })
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  difficultyPractice: number;
-
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: CommunityDifficulty })
   @IsOptional()
+  @IsEnum(CommunityDifficulty)
+  difficulty?: CommunityDifficulty;
+
+  @ApiPropertyOptional({ enum: ExamOutcome })
+  @IsOptional()
+  @IsEnum(ExamOutcome)
+  outcome?: ExamOutcome;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  @Validate(GradeRequiresExplicitOutcomeConstraint)
+  grade?: number;
+
+  @ApiProperty({ minLength: 30, maxLength: 4000 })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @MaxLength(2000)
-  comment?: string;
+  @MinLength(30)
+  @MaxLength(4000)
+  comment: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }

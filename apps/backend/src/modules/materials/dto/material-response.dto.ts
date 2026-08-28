@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { MaterialResourceType, Shift } from '../../../generated/prisma';
 
 export class MaterialAuthorDto {
   @ApiProperty()
@@ -23,6 +24,86 @@ export class MaterialSubjectDto {
 
   @ApiPropertyOptional({ nullable: true })
   code: string | null;
+}
+
+export class MaterialProfessorDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+}
+
+export enum MaterialPreviewCapability {
+  PDF = 'PDF',
+  IMAGE = 'IMAGE',
+  UNSUPPORTED = 'UNSUPPORTED',
+  UNAVAILABLE = 'UNAVAILABLE',
+}
+
+export enum MaterialPreviewFallbackReason {
+  PREVIEW_FAILED = 'PREVIEW_FAILED',
+  UNSUPPORTED = 'UNSUPPORTED',
+  UNAVAILABLE = 'UNAVAILABLE',
+}
+
+export class MaterialPreviewFallbackDto {
+  @ApiProperty({ enum: MaterialPreviewFallbackReason })
+  reason: MaterialPreviewFallbackReason;
+
+  @ApiProperty()
+  downloadUrl: string;
+}
+
+export class MaterialPreviewDto {
+  @ApiProperty({ enum: MaterialPreviewCapability })
+  capability: MaterialPreviewCapability;
+
+  @ApiPropertyOptional({ nullable: true })
+  url: string | null;
+
+  @ApiProperty()
+  canPreview: boolean;
+
+  @ApiProperty()
+  downloadUrl: string;
+
+  @ApiProperty({ type: MaterialPreviewFallbackDto })
+  fallback: MaterialPreviewFallbackDto;
+}
+
+export class MaterialStarSummaryDto {
+  @ApiProperty({ description: 'Promedio de estrellas serializado' })
+  average: string;
+
+  @ApiProperty()
+  count: number;
+}
+
+export class MaterialCommentSummaryDto {
+  @ApiProperty()
+  count: number;
+}
+
+export class MaterialViewerStateDto {
+  @ApiProperty()
+  isHelpful: boolean;
+
+  @ApiProperty()
+  isSaved: boolean;
+}
+
+export class MaterialHelpfulnessStateDto {
+  @ApiProperty()
+  isHelpful: boolean;
+
+  @ApiProperty()
+  helpfulCount: number;
+}
+
+export class SavedMaterialStateDto {
+  @ApiProperty()
+  isSaved: boolean;
 }
 
 export class MaterialResponseDto {
@@ -55,6 +136,18 @@ export class MaterialResponseDto {
   @ApiProperty()
   subjectId: string;
 
+  @ApiProperty({ enum: MaterialResourceType })
+  resourceType: MaterialResourceType;
+
+  @ApiPropertyOptional({ nullable: true })
+  academicYear: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  professorId: string | null;
+
+  @ApiPropertyOptional({ enum: Shift, nullable: true })
+  shift: Shift | null;
+
   @ApiProperty()
   downloadCount: number;
 
@@ -65,13 +158,19 @@ export class MaterialResponseDto {
   ratingCount: number;
 
   @ApiProperty()
-  isApproved: boolean;
+  helpfulCount: number;
 
   @ApiProperty()
-  isDeleted: boolean;
+  commentCount: number;
 
-  @ApiProperty()
-  isRemoved: boolean;
+  @ApiProperty({ type: MaterialStarSummaryDto })
+  starSummary: MaterialStarSummaryDto;
+
+  @ApiProperty({ type: MaterialCommentSummaryDto })
+  commentSummary: MaterialCommentSummaryDto;
+
+  @ApiProperty({ type: MaterialPreviewDto })
+  preview: MaterialPreviewDto;
 
   @ApiProperty()
   createdAt: Date;
@@ -84,4 +183,7 @@ export class MaterialResponseDto {
 
   @ApiProperty({ type: MaterialSubjectDto })
   subject: MaterialSubjectDto;
+
+  @ApiPropertyOptional({ type: MaterialProfessorDto, nullable: true })
+  professor: MaterialProfessorDto | null;
 }

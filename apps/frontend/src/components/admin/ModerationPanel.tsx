@@ -6,14 +6,14 @@ import { CheckCircle2, FileText, Loader2, ShieldCheck, Sparkles, XCircle } from 
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
 import { useAuthStore } from '@/stores/authStore';
-import { Material } from '@/types/material';
+import { ModeratedMaterial } from '@/types/material';
 import { Button, useToast } from '@/components/ui';
 import styles from './ModerationPanel.module.css';
 
 export function ModerationPanel() {
   const user = useAuthStore((state) => state.user);
   const { addToast } = useToast();
-  const [pending, setPending] = useState<Material[]>([]);
+  const [pending, setPending] = useState<ModeratedMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function ModerationPanel() {
     setError(null);
     try {
       const res = await api.get('/materials/pending');
-      setPending(getData<Material[]>(res));
+      setPending(getData<ModeratedMaterial[]>(res));
     } catch (err) {
       setError(getApiError(err));
     } finally {
@@ -40,7 +40,7 @@ export function ModerationPanel() {
     (async () => {
       try {
         const res = await api.get('/materials/pending');
-        if (!cancelled) setPending(getData<Material[]>(res));
+        if (!cancelled) setPending(getData<ModeratedMaterial[]>(res));
       } catch (err) {
         if (!cancelled) setError(getApiError(err));
       } finally {

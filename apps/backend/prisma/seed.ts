@@ -2,6 +2,7 @@ import { PrismaClient, Role } from '../src/generated/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as bcrypt from 'bcrypt';
+import { normalizeSearchKey } from '../src/common/search/search-key';
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -450,6 +451,7 @@ async function main() {
       data: {
         code: s.code,
         name: s.name,
+        searchKey: normalizeSearchKey(s.name, s.code),
       },
     });
     subjects[s.code] = subject.id;

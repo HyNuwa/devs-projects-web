@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Clock, CheckCircle2, XCircle, FileText, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
-import { Material } from '@/types/material';
+import { ModeratedMaterial } from '@/types/material';
 import styles from './MySubmissions.module.css';
 
 const STATUS_META: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
@@ -27,7 +27,7 @@ const STATUS_META: Record<string, { label: string; icon: React.ReactNode; classN
 };
 
 export function MySubmissions() {
-  const [materials, setMaterials] = useState<Material[]>([]);
+  const [materials, setMaterials] = useState<ModeratedMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +36,7 @@ export function MySubmissions() {
     (async () => {
       try {
         const res = await api.get('/materials/mine');
-        if (!cancelled) setMaterials(getData<Material[]>(res));
+        if (!cancelled) setMaterials(getData<ModeratedMaterial[]>(res));
       } catch (err) {
         if (!cancelled) setError(getApiError(err));
       } finally {

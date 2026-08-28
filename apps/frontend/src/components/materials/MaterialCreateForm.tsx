@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { CheckCircle2, Clock, FileUp, Sparkles, Upload, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
-import { Material } from '@/types/material';
 import { Subject } from '@/types/subject';
 import { Button, Input, useToast } from '@/components/ui';
 import styles from './MaterialCreateForm.module.css';
@@ -107,7 +106,7 @@ export function MaterialCreateForm() {
       const res = await api.post('/materials', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      getData<Material>(res);
+      getData<unknown>(res);
       setSubmitted(true);
       addToast('Material enviado a revisión', 'success');
     } catch (err) {

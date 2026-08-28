@@ -17,7 +17,11 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:migration:material-context": "tsx prisma/migration-tests/material-context.migration-test.ts",
+    "test:migration:community-evidence": "tsx prisma/migration-tests/community-evidence.migration-test.ts",
+    "test:migration:community-moderation": "tsx prisma/migration-tests/community-moderation.migration-test.ts",
+    "backfill:search-keys": "tsx prisma/backfills/run-search-key-backfill.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -30,6 +34,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.6",
+    "@nestjs/throttler": "6.5.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcrypt": "^6.0.0",

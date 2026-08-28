@@ -2,11 +2,13 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Param,
   Body,
   Request,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +20,7 @@ import { SubjectsService } from './subjects.service';
 import { CreateCourseReviewDto } from './dto/create-course-review.dto';
 import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { Public } from '../../common/decorators/public.decorator';
+import { CommunityWriteThrottlerGuard } from '../../common/guards/community-write-throttler.guard';
 
 @ApiTags('Subjects')
 @ApiBearerAuth()
@@ -54,14 +57,27 @@ export class SubjectsController {
   }
 
   @Post(':code/reviews')
-  @ApiOperation({ summary: 'Crear o actualizar mi reseña de cursada' })
-  @ApiResponse({ status: 201, description: 'Reseña creada/actualizada' })
+  @UseGuards(CommunityWriteThrottlerGuard)
+  @ApiOperation({ summary: 'Crear una reseña de cursada independiente' })
+  @ApiResponse({ status: 201, description: 'Reseña creada' })
   createReview(
     @Param('code') code: string,
     @Request() req: { user: { id: string } },
     @Body() dto: CreateCourseReviewDto,
   ) {
     return this.subjectsService.createReview(code, req.user.id, dto);
+  }
+
+  @Put('reviews/:id')
+  @UseGuards(CommunityWriteThrottlerGuard)
+  @ApiOperation({ summary: 'Editar mi reseña de cursada' })
+  @ApiResponse({ status: 200, description: 'Reseña actualizada' })
+  updateReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateCourseReviewDto,
+  ) {
+    return this.subjectsService.updateReview(id, req.user.id, dto);
   }
 
   @Delete('reviews/:id')
@@ -83,6 +99,7 @@ export class SubjectsController {
   }
 
   @Post(':code/exams')
+  @UseGuards(CommunityWriteThrottlerGuard)
   @ApiOperation({ summary: 'Crear una experiencia de final' })
   @ApiResponse({ status: 201, description: 'Experiencia creada' })
   createExam(
@@ -91,6 +108,18 @@ export class SubjectsController {
     @Body() dto: CreateExamExperienceDto,
   ) {
     return this.subjectsService.createExam(code, req.user.id, dto);
+  }
+
+  @Put('exams/:id')
+  @UseGuards(CommunityWriteThrottlerGuard)
+  @ApiOperation({ summary: 'Editar mi experiencia de final' })
+  @ApiResponse({ status: 200, description: 'Experiencia actualizada' })
+  updateExam(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateExamExperienceDto,
+  ) {
+    return this.subjectsService.updateExam(id, req.user.id, dto);
   }
 
   @Delete('exams/:id')

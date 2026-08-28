@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PointService } from '../ranking/point.service';
@@ -23,14 +28,29 @@ describe('MaterialsService', () => {
       findMany: jest.fn(),
       count: jest.fn(),
     },
+    materialHelpfulness: {
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
+      count: jest.fn(),
+      findUnique: jest.fn(),
+    },
+    savedMaterial: {
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
+      findUnique: jest.fn(),
+    },
     subject: {
+      findUnique: jest.fn(),
       update: jest.fn(),
+    },
+    subjectProfessor: {
+      findUnique: jest.fn(),
     },
     moderationLog: {
       create: jest.fn(),
     },
     $executeRaw: jest.fn(),
-    $transaction: jest.fn((ops: unknown[]) => Promise.all(ops)),
+    $transaction: jest.fn(),
   };
 
   const storage = {
@@ -50,8 +70,48 @@ describe('MaterialsService', () => {
     buffer: Buffer.from('contenido de prueba'),
   } as Express.Multer.File;
 
+  const publicMaterialRecord = {
+    id: 'mat-1',
+    title: 'Árboles y grafos',
+    description: null,
+    fileUrl: '/materials/arboles.pdf',
+    fileType: 'pdf',
+    fileSize: BigInt(1024),
+    thumbnailUrl: null,
+    authorId: 'user-1',
+    subjectId: 'sub-1',
+    resourceType: 'PARCIAL',
+    academicYear: 2026,
+    professorId: null,
+    shift: 'TARDE',
+    downloadCount: 3,
+    avgRating: { toString: () => '4.50' },
+    ratingCount: 2,
+    drivePreviewUrl: '/preview/arboles.pdf',
+    driveDownloadUrl: '/download/arboles.pdf',
+    createdAt: new Date('2026-08-28T00:00:00.000Z'),
+    updatedAt: new Date('2026-08-28T00:00:00.000Z'),
+    author: {
+      id: 'user-1',
+      username: 'estudiante',
+      displayName: null,
+      avatarUrl: null,
+    },
+    subject: { id: 'sub-1', name: 'Estructura de Datos', code: 'ED-01' },
+    professor: null,
+    _count: { helpfulness: 5, ratings: 1 },
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+    prisma.subject.findUnique.mockResolvedValue({ id: 'sub-1' });
+    prisma.subjectProfessor.findUnique.mockResolvedValue({ id: 'link-1' });
+    prisma.$transaction.mockImplementation(
+      (operation: unknown[] | ((transaction: typeof prisma) => unknown)) =>
+        typeof operation === 'function'
+          ? operation(prisma)
+          : Promise.all(operation),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -75,7 +135,11 @@ describe('MaterialsService', () => {
       });
       prisma.material.create.mockResolvedValue({ id: 'mat-1' });
 
-      const dto = { title: 'Apuntes de Cálculo', subjectId: 'sub-1' };
+      const dto = {
+        title: 'Apuntes de Cálculo',
+        subjectId: 'sub-1',
+        resourceType: 'APUNTE' as const,
+      };
       const result = await service.create(dto, mockFile, 'user-1');
 
       expect(storage.stage).toHaveBeenCalledWith(mockFile);
@@ -83,10 +147,12 @@ describe('MaterialsService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             title: 'Apuntes de Cálculo',
+            searchKey: 'apuntes de calculo',
             fileType: 'pdf',
             fileSize: BigInt(1024),
             authorId: 'user-1',
             subjectId: 'sub-1',
+            resourceType: 'APUNTE',
             moderationStatus: 'PENDING',
             stagedFilePath: '/tmp/staging/abc.pdf',
           }),
@@ -96,11 +162,30 @@ describe('MaterialsService', () => {
       expect(pointService.awardPoints).not.toHaveBeenCalled();
       expect(result).toEqual({ id: 'mat-1' });
     });
+
+    it('rechaza un profesor que no pertenece a la materia antes del staging', async () => {
+      prisma.subjectProfessor.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.create(
+          {
+            title: 'Apuntes de Cálculo',
+            subjectId: 'sub-1',
+            resourceType: 'APUNTE',
+            professorId: 'prof-1',
+          },
+          mockFile,
+          'user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(storage.stage).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAll', () => {
     it('solo devuelve materiales aprobados y no eliminados', async () => {
-      prisma.material.findMany.mockResolvedValue([{ id: 'mat-1' }]);
+      prisma.material.findMany.mockResolvedValue([publicMaterialRecord]);
       prisma.material.count.mockResolvedValue(1);
 
       const result = await service.findAll({ page: 1, limit: 10 });
@@ -114,6 +199,17 @@ describe('MaterialsService', () => {
         }),
       );
       expect(result.meta.total).toBe(1);
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({
+          id: 'mat-1',
+          helpfulCount: 5,
+          commentCount: 1,
+          preview: expect.objectContaining({ capability: 'PDF' }),
+        }),
+      );
+      expect(result.data[0]).not.toHaveProperty('moderationStatus');
+      expect(result.data[0]).not.toHaveProperty('moderationReason');
+      expect(result.data[0]).not.toHaveProperty('isApproved');
     });
   });
 
@@ -163,6 +259,21 @@ describe('MaterialsService', () => {
       );
       expect(result).toEqual({ id: 'mat-1' });
     });
+
+    it('rechaza la transición REJECTED → APPROVED', async () => {
+      prisma.material.findUnique.mockResolvedValue({
+        id: 'mat-1',
+        moderationStatus: 'REJECTED',
+        isDeleted: false,
+        stagedFilePath: null,
+      });
+
+      await expect(service.approve('mat-1', 'mod-1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(storage.publish).not.toHaveBeenCalled();
+      expect(prisma.moderationLog.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('reject', () => {
@@ -195,6 +306,39 @@ describe('MaterialsService', () => {
       expect(pointService.awardPoints).not.toHaveBeenCalled();
       expect(result).toEqual({ id: 'mat-1' });
     });
+
+    it('rechaza la transición APPROVED → REJECTED', async () => {
+      prisma.material.findUnique.mockResolvedValue({
+        id: 'mat-1',
+        moderationStatus: 'APPROVED',
+        isDeleted: false,
+      });
+
+      await expect(
+        service.reject('mat-1', 'mod-1', { reason: 'Fuera de contexto' }),
+      ).rejects.toThrow(ConflictException);
+      expect(storage.discard).not.toHaveBeenCalled();
+      expect(prisma.moderationLog.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('moderation evidence', () => {
+    it('incluye evidencia de moderación en la vista del contributor', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+
+      await service.findMine('user-1');
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { authorId: 'user-1', isDeleted: false },
+          include: expect.objectContaining({
+            moderationLogs: expect.objectContaining({
+              select: expect.objectContaining({ action: true, reason: true }),
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   describe('findById', () => {
@@ -205,9 +349,265 @@ describe('MaterialsService', () => {
         NotFoundException,
       );
     });
+
+    it('proyecta un material aprobado sin evidencia interna de moderación', async () => {
+      prisma.material.findFirst.mockResolvedValue({
+        ...publicMaterialRecord,
+        moderationStatus: 'APPROVED',
+        moderationReason: 'dato que no debe salir',
+      });
+
+      const result = await service.findById('mat-1');
+
+      expect(result).not.toHaveProperty('moderationStatus');
+      expect(result).not.toHaveProperty('moderationReason');
+      expect(prisma.material.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'mat-1',
+            isDeleted: false,
+            moderationStatus: 'APPROVED',
+          },
+        }),
+      );
+    });
+
+    it.each([
+      {
+        label: 'PDF compatible',
+        record: {},
+        expected: {
+          capability: 'PDF',
+          canPreview: true,
+          url: '/preview/arboles.pdf',
+          downloadUrl: '/download/arboles.pdf',
+          fallback: {
+            reason: 'PREVIEW_FAILED',
+            downloadUrl: '/download/arboles.pdf',
+          },
+        },
+      },
+      {
+        label: 'imagen compatible',
+        record: {
+          fileType: 'image/png',
+          drivePreviewUrl: '/preview/arboles.png',
+          driveDownloadUrl: '/download/arboles.png',
+        },
+        expected: {
+          capability: 'IMAGE',
+          canPreview: true,
+          url: '/preview/arboles.png',
+          downloadUrl: '/download/arboles.png',
+          fallback: {
+            reason: 'PREVIEW_FAILED',
+            downloadUrl: '/download/arboles.png',
+          },
+        },
+      },
+      {
+        label: 'formato no compatible',
+        record: {
+          fileType: 'docx',
+          drivePreviewUrl: '/preview/arboles.docx',
+          driveDownloadUrl: '/download/arboles.docx',
+        },
+        expected: {
+          capability: 'UNSUPPORTED',
+          canPreview: false,
+          url: null,
+          downloadUrl: '/download/arboles.docx',
+          fallback: {
+            reason: 'UNSUPPORTED',
+            downloadUrl: '/download/arboles.docx',
+          },
+        },
+      },
+      {
+        label: 'vista previa no disponible',
+        record: {
+          fileUrl: '',
+          drivePreviewUrl: null,
+          driveDownloadUrl: '/download/arboles.pdf',
+        },
+        expected: {
+          capability: 'UNAVAILABLE',
+          canPreview: false,
+          url: null,
+          downloadUrl: '/download/arboles.pdf',
+          fallback: {
+            reason: 'UNAVAILABLE',
+            downloadUrl: '/download/arboles.pdf',
+          },
+        },
+      },
+    ])(
+      'expone el contrato de vista previa para $label',
+      async ({ record, expected }) => {
+        prisma.material.findFirst.mockResolvedValue({
+          ...publicMaterialRecord,
+          ...record,
+        });
+
+        const result = await service.findById('mat-1');
+
+        expect(result.preview).toEqual(expected);
+      },
+    );
+  });
+
+  describe('getRatings', () => {
+    it('no expone comentarios de un material no aprobado', async () => {
+      prisma.material.findFirst.mockResolvedValue(null);
+
+      await expect(service.getRatings('mat-1', {})).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(prisma.materialRating.findMany).not.toHaveBeenCalled();
+    });
+
+    it('permite comentarios sólo después de comprobar visibilidad pública', async () => {
+      prisma.material.findFirst.mockResolvedValue({ id: 'mat-1' });
+      prisma.materialRating.findMany.mockResolvedValue([]);
+      prisma.materialRating.count.mockResolvedValue(0);
+
+      const result = await service.getRatings('mat-1', {});
+
+      expect(result.meta.total).toBe(0);
+      expect(prisma.material.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'mat-1',
+          isDeleted: false,
+          moderationStatus: 'APPROVED',
+        },
+        select: { id: true },
+      });
+    });
+  });
+
+  describe('viewer interactions', () => {
+    it('establece Me sirvió de forma idempotente y mantiene el agregado exacto', async () => {
+      const helpfulUsers = new Set<string>();
+      prisma.material.findFirst.mockResolvedValue({ id: 'mat-1' });
+      prisma.materialHelpfulness.upsert.mockImplementation(
+        ({ create }: { create: { userId: string } }) => {
+          helpfulUsers.add(create.userId);
+          return Promise.resolve({ id: 'helpful-1' });
+        },
+      );
+      prisma.materialHelpfulness.deleteMany.mockImplementation(
+        ({ where }: { where: { userId: string } }) => {
+          const removed = helpfulUsers.delete(where.userId);
+          return Promise.resolve({ count: removed ? 1 : 0 });
+        },
+      );
+      prisma.materialHelpfulness.count.mockImplementation(() =>
+        Promise.resolve(helpfulUsers.size),
+      );
+
+      await expect(
+        service.setHelpfulness('mat-1', 'user-1', true),
+      ).resolves.toEqual({ isHelpful: true, helpfulCount: 1 });
+      await expect(
+        service.setHelpfulness('mat-1', 'user-1', true),
+      ).resolves.toEqual({ isHelpful: true, helpfulCount: 1 });
+      await expect(
+        service.setHelpfulness('mat-1', 'user-1', false),
+      ).resolves.toEqual({ isHelpful: false, helpfulCount: 0 });
+      await expect(
+        service.setHelpfulness('mat-1', 'user-1', false),
+      ).resolves.toEqual({ isHelpful: false, helpfulCount: 0 });
+
+      expect(prisma.material.update).not.toHaveBeenCalled();
+      expect(pointService.awardPoints).not.toHaveBeenCalled();
+    });
+
+    it('establece Guardar de forma idempotente sin alterar señales públicas', async () => {
+      const savedUsers = new Set<string>();
+      prisma.material.findFirst.mockResolvedValue({ id: 'mat-1' });
+      prisma.savedMaterial.upsert.mockImplementation(
+        ({ create }: { create: { userId: string } }) => {
+          savedUsers.add(create.userId);
+          return Promise.resolve({ id: 'saved-1' });
+        },
+      );
+      prisma.savedMaterial.deleteMany.mockImplementation(
+        ({ where }: { where: { userId: string } }) => {
+          const removed = savedUsers.delete(where.userId);
+          return Promise.resolve({ count: removed ? 1 : 0 });
+        },
+      );
+
+      await expect(service.setSaved('mat-1', 'user-1', true)).resolves.toEqual({
+        isSaved: true,
+      });
+      await expect(service.setSaved('mat-1', 'user-1', true)).resolves.toEqual({
+        isSaved: true,
+      });
+      await expect(service.setSaved('mat-1', 'user-1', false)).resolves.toEqual(
+        {
+          isSaved: false,
+        },
+      );
+      await expect(service.setSaved('mat-1', 'user-1', false)).resolves.toEqual(
+        {
+          isSaved: false,
+        },
+      );
+
+      expect(savedUsers.size).toBe(0);
+      expect(prisma.material.update).not.toHaveBeenCalled();
+      expect(prisma.materialHelpfulness.upsert).not.toHaveBeenCalled();
+    });
+
+    it('devuelve ambos estados del viewer para un material aprobado', async () => {
+      prisma.material.findFirst.mockResolvedValue({ id: 'mat-1' });
+      prisma.materialHelpfulness.findUnique.mockResolvedValue({ id: 'help-1' });
+      prisma.savedMaterial.findUnique.mockResolvedValue(null);
+
+      await expect(service.getViewerState('mat-1', 'user-1')).resolves.toEqual({
+        isHelpful: true,
+        isSaved: false,
+      });
+    });
+
+    it('rechaza interacciones sobre materiales no públicos', async () => {
+      prisma.material.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.setHelpfulness('mat-1', 'user-1', true),
+      ).rejects.toThrow(NotFoundException);
+      await expect(service.setSaved('mat-1', 'user-1', true)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
   describe('update', () => {
+    it('actualiza la clave normalizada cuando cambia el título', async () => {
+      prisma.material.findUnique.mockResolvedValue({
+        id: 'mat-1',
+        authorId: 'user-1',
+        isDeleted: false,
+      });
+      prisma.material.update.mockResolvedValue({ id: 'mat-1' });
+
+      await service.update(
+        'mat-1',
+        { title: '  Árboles   BÚSQUEDA ' },
+        'user-1',
+      );
+
+      expect(prisma.material.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: '  Árboles   BÚSQUEDA ',
+            searchKey: 'arboles busqueda',
+          }),
+        }),
+      );
+    });
+
     it('lanza ForbiddenException si no es el autor', async () => {
       prisma.material.findUnique.mockResolvedValue({
         id: 'mat-1',

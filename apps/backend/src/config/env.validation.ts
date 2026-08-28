@@ -41,6 +41,18 @@ export class EnvironmentVariables {
   @IsNumber()
   JWT_EXPIRATION: number = 900;
 
+  @IsNumber()
+  @Min(1)
+  COMMUNITY_WRITE_RATE_LIMIT: number = 6;
+
+  @IsNumber()
+  @Min(1000)
+  COMMUNITY_WRITE_RATE_TTL_MS: number = 60000;
+
+  @IsNumber()
+  @Min(1)
+  COMMUNITY_DUPLICATE_WINDOW_DAYS: number = 180;
+
   @IsString()
   SMTP_HOST: string = 'localhost';
 
