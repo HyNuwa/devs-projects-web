@@ -9,6 +9,8 @@ import { MaterialsService } from './materials.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PointService } from '../ranking/point.service';
 import { Role } from '../auth/dto/auth-response.dto';
+import { MaterialSort } from './dto/materials-query.dto';
+import { MaterialResourceType } from '../../generated/prisma';
 
 describe('MaterialsService', () => {
   let service: MaterialsService;
@@ -210,6 +212,91 @@ describe('MaterialsService', () => {
       expect(result.data[0]).not.toHaveProperty('moderationStatus');
       expect(result.data[0]).not.toHaveProperty('moderationReason');
       expect(result.data[0]).not.toHaveProperty('isApproved');
+    });
+
+    it('aplica cada filtro público y mantiene la materia como alcance obligatorio', async () => {
+      prisma.material.findMany.mockResolvedValue([publicMaterialRecord]);
+      prisma.material.count.mockResolvedValue(1);
+
+      await service.findAll({
+        subjectId: 'sub-1',
+        resourceType: 'PARCIAL',
+        academicYear: 2026,
+        professorId: 'prof-1',
+        search: '  Árboles  ',
+        sort: MaterialSort.RELEVANCE,
+      });
+
+      expect(prisma.material.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            moderationStatus: 'APPROVED',
+            subjectId: 'sub-1',
+            resourceType: 'PARCIAL',
+            academicYear: 2026,
+            professorId: 'prof-1',
+            searchKey: { contains: 'arboles' },
+          },
+          orderBy: [{ searchKey: 'asc' }, { id: 'asc' }],
+        }),
+      );
+    });
+
+    const materialFilterCases: Array<
+      [Parameters<MaterialsService['findAll']>[0], Record<string, unknown>]
+    > = [
+      [
+        { resourceType: MaterialResourceType.APUNTE },
+        { resourceType: MaterialResourceType.APUNTE },
+      ],
+      [{ academicYear: 2025 }, { academicYear: 2025 }],
+      [{ professorId: 'prof-1' }, { professorId: 'prof-1' }],
+      [
+        { subjectId: 'sub-1', search: 'grafos', sort: MaterialSort.RECENT },
+        {
+          subjectId: 'sub-1',
+          searchKey: { contains: 'grafos' },
+        },
+      ],
+    ];
+
+    it.each(materialFilterCases)(
+      'admite filtros aislados y combinados: %j',
+      async (query, expected) => {
+        prisma.material.findMany.mockResolvedValue([]);
+        prisma.material.count.mockResolvedValue(0);
+
+        await service.findAll(query);
+
+        expect(prisma.material.findMany).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining(expected),
+          }),
+        );
+      },
+    );
+
+    it('pagina con orden reciente explícito y no devuelve otra materia', async () => {
+      prisma.material.findMany.mockResolvedValue([]);
+      prisma.material.count.mockResolvedValue(0);
+
+      await service.findAll({
+        subjectId: 'sub-1',
+        search: 'apuntes',
+        sort: MaterialSort.RECENT,
+        page: 3,
+        limit: 5,
+      });
+
+      expect(prisma.material.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ subjectId: 'sub-1' }),
+          skip: 10,
+          take: 5,
+          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        }),
+      );
     });
   });
 

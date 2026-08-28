@@ -12,7 +12,7 @@ import { FileStorageService, StagedFile } from './file-storage.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
-import { MaterialsQueryDto } from './dto/materials-query.dto';
+import { MaterialSort, MaterialsQueryDto } from './dto/materials-query.dto';
 import { RejectMaterialDto } from './dto/reject-material.dto';
 import { Role } from '../auth/dto/auth-response.dto';
 import { PointService } from '../ranking/point.service';
@@ -230,22 +230,30 @@ export class MaterialsService {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
+    const searchKey = query.search
+      ? normalizeSearchKey(query.search)
+      : undefined;
 
     const where: Prisma.MaterialWhereInput = {
       isDeleted: false,
       moderationStatus: 'APPROVED',
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
-      ...(query.search
-        ? { title: { contains: query.search, mode: 'insensitive' } }
-        : {}),
+      ...(searchKey ? { searchKey: { contains: searchKey } } : {}),
+      ...(query.resourceType ? { resourceType: query.resourceType } : {}),
+      ...(query.academicYear ? { academicYear: query.academicYear } : {}),
+      ...(query.professorId ? { professorId: query.professorId } : {}),
     };
+    const orderBy: Prisma.MaterialOrderByWithRelationInput[] =
+      query.sort === MaterialSort.RECENT || !searchKey
+        ? [{ createdAt: 'desc' }, { id: 'asc' }]
+        : [{ searchKey: 'asc' }, { id: 'asc' }];
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.material.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         select: publicMaterialSelect,
       }),
       this.prisma.material.count({ where }),
