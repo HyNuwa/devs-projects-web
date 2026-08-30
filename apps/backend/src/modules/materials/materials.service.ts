@@ -12,7 +12,7 @@ import { FileStorageService, StagedFile } from './file-storage.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
-import { MaterialSort, MaterialsQueryDto } from './dto/materials-query.dto';
+import { MaterialsQueryDto } from './dto/materials-query.dto';
 import { RejectMaterialDto } from './dto/reject-material.dto';
 import { Role } from '../auth/dto/auth-response.dto';
 import { PointService } from '../ranking/point.service';
@@ -21,6 +21,10 @@ import {
   MaterialPreviewCapability,
   MaterialPreviewFallbackReason,
 } from './dto/material-response.dto';
+import {
+  buildMaterialRankingQuery,
+  RankedMaterialId,
+} from './material-ranking.query';
 
 const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
@@ -229,7 +233,7 @@ export class MaterialsService {
   async findAll(query: MaterialsQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
     const searchKey = query.search
       ? normalizeSearchKey(query.search)
       : undefined;
@@ -243,21 +247,47 @@ export class MaterialsService {
       ...(query.academicYear ? { academicYear: query.academicYear } : {}),
       ...(query.professorId ? { professorId: query.professorId } : {}),
     };
-    const orderBy: Prisma.MaterialOrderByWithRelationInput[] =
-      query.sort === MaterialSort.RECENT || !searchKey
-        ? [{ createdAt: 'desc' }, { id: 'asc' }]
-        : [{ searchKey: 'asc' }, { id: 'asc' }];
 
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.material.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        select: publicMaterialSelect,
-      }),
-      this.prisma.material.count({ where }),
-    ]);
+    const { data, total } = await this.prisma.$transaction(
+      async (transaction) => {
+        const [rankedRows, total] = await Promise.all([
+          transaction.$queryRaw<RankedMaterialId[]>(
+            buildMaterialRankingQuery({
+              academicYear: query.academicYear,
+              limit,
+              offset,
+              professorId: query.professorId,
+              resourceType: query.resourceType,
+              searchKey,
+              sort: query.sort,
+              subjectId: query.subjectId,
+            }),
+          ),
+          transaction.material.count({ where }),
+        ]);
+        const materialIds = rankedRows.map(({ id }) => id);
+
+        if (materialIds.length === 0) {
+          return { data: [], total };
+        }
+
+        const materials = await transaction.material.findMany({
+          where: { ...where, id: { in: materialIds } },
+          select: publicMaterialSelect,
+        });
+        const materialById = new Map(
+          materials.map((material) => [material.id, material]),
+        );
+
+        return {
+          data: materialIds.flatMap((id) => {
+            const material = materialById.get(id);
+            return material ? [material] : [];
+          }),
+          total,
+        };
+      },
+    );
 
     return {
       data: data.map(toPublicMaterial),

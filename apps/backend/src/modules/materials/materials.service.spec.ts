@@ -52,6 +52,7 @@ describe('MaterialsService', () => {
       create: jest.fn(),
     },
     $executeRaw: jest.fn(),
+    $queryRaw: jest.fn(),
     $transaction: jest.fn(),
   };
 
@@ -108,6 +109,7 @@ describe('MaterialsService', () => {
     jest.clearAllMocks();
     prisma.subject.findUnique.mockResolvedValue({ id: 'sub-1' });
     prisma.subjectProfessor.findUnique.mockResolvedValue({ id: 'link-1' });
+    prisma.$queryRaw.mockResolvedValue([{ id: 'mat-1' }]);
     prisma.$transaction.mockImplementation(
       (operation: unknown[] | ((transaction: typeof prisma) => unknown)) =>
         typeof operation === 'function'
@@ -197,6 +199,7 @@ describe('MaterialsService', () => {
           where: expect.objectContaining({
             isDeleted: false,
             moderationStatus: 'APPROVED',
+            id: { in: ['mat-1'] },
           }),
         }),
       );
@@ -229,7 +232,7 @@ describe('MaterialsService', () => {
 
       expect(prisma.material.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
+          where: expect.objectContaining({
             isDeleted: false,
             moderationStatus: 'APPROVED',
             subjectId: 'sub-1',
@@ -237,8 +240,8 @@ describe('MaterialsService', () => {
             academicYear: 2026,
             professorId: 'prof-1',
             searchKey: { contains: 'arboles' },
-          },
-          orderBy: [{ searchKey: 'asc' }, { id: 'asc' }],
+            id: { in: ['mat-1'] },
+          }),
         }),
       );
     });
@@ -271,7 +274,10 @@ describe('MaterialsService', () => {
 
         expect(prisma.material.findMany).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            where: expect.objectContaining(expected),
+            where: expect.objectContaining({
+              ...expected,
+              id: { in: ['mat-1'] },
+            }),
           }),
         );
       },
@@ -291,12 +297,80 @@ describe('MaterialsService', () => {
 
       expect(prisma.material.findMany).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ subjectId: 'sub-1' }),
-          skip: 10,
-          take: 5,
-          orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+          where: expect.objectContaining({
+            subjectId: 'sub-1',
+            id: { in: ['mat-1'] },
+          }),
         }),
       );
+      const rankingQuery = prisma.$queryRaw.mock.calls[0][0] as {
+        text: string;
+        values: unknown[];
+      };
+      expect(rankingQuery.text).toContain(
+        'ORDER BY m.created_at DESC, m.id ASC',
+      );
+      expect(rankingQuery.values).toEqual(expect.arrayContaining([10, 5]));
+    });
+
+    it('preserva el orden determinista de la base entre páginas y no ordena por estrellas', async () => {
+      const firstPageIds = ['mat-2', 'mat-1'];
+      const secondPageIds = ['mat-4', 'mat-3'];
+      const records = new Map(
+        [
+          {
+            ...publicMaterialRecord,
+            id: 'mat-1',
+            avgRating: { toString: () => '1.00' },
+            ratingCount: 1,
+          },
+          {
+            ...publicMaterialRecord,
+            id: 'mat-2',
+            avgRating: { toString: () => '5.00' },
+            ratingCount: 99,
+          },
+          { ...publicMaterialRecord, id: 'mat-3' },
+          { ...publicMaterialRecord, id: 'mat-4' },
+        ].map((record) => [record.id, record]),
+      );
+      prisma.$queryRaw
+        .mockResolvedValueOnce(firstPageIds.map((id) => ({ id })))
+        .mockResolvedValueOnce(secondPageIds.map((id) => ({ id })));
+      prisma.material.count.mockResolvedValue(4);
+      prisma.material.findMany.mockImplementation(({ where }) => {
+        const ids = (where.id.in as string[]).toReversed();
+        return Promise.resolve(ids.map((id) => records.get(id)));
+      });
+
+      const firstPage = await service.findAll({
+        search: 'arboles',
+        page: 1,
+        limit: 2,
+      });
+      const secondPage = await service.findAll({
+        search: 'arboles',
+        page: 2,
+        limit: 2,
+      });
+
+      expect(firstPage.data.map((material) => material.id)).toEqual(
+        firstPageIds,
+      );
+      expect(secondPage.data.map((material) => material.id)).toEqual(
+        secondPageIds,
+      );
+      expect(firstPage.meta).toEqual({
+        page: 1,
+        limit: 2,
+        total: 4,
+        totalPages: 2,
+      });
+      const rankingQuery = prisma.$queryRaw.mock.calls[0][0] as {
+        text: string;
+      };
+      expect(rankingQuery.text).not.toContain('avg_rating');
+      expect(rankingQuery.text).not.toContain('rating_count');
     });
   });
 
