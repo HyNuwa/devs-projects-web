@@ -30,6 +30,7 @@ describe('Discovery anonymous API contract', () => {
   const discoveryService = {
     getSuggestions: jest.fn(),
     getCourseReviews: jest.fn(),
+    getExamExperiences: jest.fn(),
   };
 
   beforeAll(async () => {
@@ -54,6 +55,10 @@ describe('Discovery anonymous API contract', () => {
       getCourseReviews: jest.fn().mockResolvedValue({
         data: [],
         aggregate: { averageRecommendation: null, reviewCount: 0 },
+        meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+      }),
+      getExamExperiences: jest.fn().mockResolvedValue({
+        data: [],
         meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
       }),
     });
@@ -105,6 +110,7 @@ describe('Discovery anonymous API contract', () => {
 
   it.each([
     '/discovery/course-reviews?subjectId=30000000-0000-4000-8000-000000000001&academicYear=2026&sort=STARS_DESC&page=2&limit=5',
+    '/discovery/exam-experiences?year=2026&session=JULIO&format=ORAL&outcome=APROBADO&page=2&limit=5',
     '/discovery/hierarchy/careers',
     '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories',
     '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories/APUNTE/materials',
@@ -131,6 +137,19 @@ describe('Discovery anonymous API contract', () => {
         limit: 5,
       }),
     );
+  });
+
+  it('restaura filtros de finales y rechaza cualquier orden por nota', async () => {
+    await request(app.getHttpServer())
+      .get('/discovery/exam-experiences?year=2026&session=JULIO&limit=5')
+      .expect(200);
+
+    expect(discoveryService.getExamExperiences).toHaveBeenCalledWith(
+      expect.objectContaining({ year: 2026, session: 'JULIO', limit: 5 }),
+    );
+    await request(app.getHttpServer())
+      .get('/discovery/exam-experiences?sort=GRADE_DESC')
+      .expect(400);
   });
 
   it('valida los límites y categorías de la jerarquía', async () => {

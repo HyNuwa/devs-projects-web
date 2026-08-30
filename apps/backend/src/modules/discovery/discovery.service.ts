@@ -23,6 +23,12 @@ import {
   DiscoveryCourseReviewSort,
   MAX_DISCOVERY_COURSE_REVIEW_EXCERPT_LENGTH,
 } from './dto/discovery-course-reviews.dto';
+import {
+  DEFAULT_DISCOVERY_EXAM_EXPERIENCE_LIMIT,
+  DiscoveryExamExperienceListDto,
+  DiscoveryExamExperiencesQueryDto,
+  MAX_DISCOVERY_EXAM_EXPERIENCE_EXCERPT_LENGTH,
+} from './dto/discovery-exam-experiences.dto';
 
 const subjectSuggestionSelect = {
   id: true,
@@ -87,6 +93,29 @@ const publicCourseReviewWhere = {
   isRemoved: false,
 } satisfies Prisma.CourseReviewWhereInput;
 
+const publicExamExperienceSelect = {
+  id: true,
+  year: true,
+  session: true,
+  format: true,
+  examDate: true,
+  shift: true,
+  examinerName: true,
+  difficulty: true,
+  outcome: true,
+  comment: true,
+  isAnonymous: true,
+  createdAt: true,
+  updatedAt: true,
+  subject: { select: { id: true, code: true, name: true } },
+  professor: { select: { id: true, name: true } },
+  user: { select: { username: true } },
+} satisfies Prisma.ExamExperienceSelect;
+
+const publicExamExperienceWhere = {
+  isRemoved: false,
+} satisfies Prisma.ExamExperienceWhereInput;
+
 @Injectable()
 export class DiscoveryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -133,6 +162,25 @@ export class DiscoveryService {
     }
 
     return `${comment.slice(0, MAX_DISCOVERY_COURSE_REVIEW_EXCERPT_LENGTH)}…`;
+  }
+
+  private getExamExperienceOrderBy(): Prisma.ExamExperienceOrderByWithRelationInput[] {
+    return [
+      { examDate: { sort: 'desc', nulls: 'last' } },
+      { createdAt: 'desc' },
+      { id: 'asc' },
+    ];
+  }
+
+  private truncateExamExperienceExcerpt(comment: string | null): string | null {
+    if (
+      !comment ||
+      comment.length <= MAX_DISCOVERY_EXAM_EXPERIENCE_EXCERPT_LENGTH
+    ) {
+      return comment;
+    }
+
+    return `${comment.slice(0, MAX_DISCOVERY_EXAM_EXPERIENCE_EXCERPT_LENGTH)}…`;
   }
 
   async getSuggestions(
@@ -237,6 +285,67 @@ export class DiscoveryService {
         total,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  async getExamExperiences(
+    query: DiscoveryExamExperiencesQueryDto,
+  ): Promise<DiscoveryExamExperienceListDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? DEFAULT_DISCOVERY_EXAM_EXPERIENCE_LIMIT;
+    const where: Prisma.ExamExperienceWhereInput = {
+      ...publicExamExperienceWhere,
+      ...(query.subjectId ? { subjectId: query.subjectId } : {}),
+      ...(query.year ? { year: query.year } : {}),
+      ...(query.session ? { session: query.session } : {}),
+      ...(query.professorId ? { professorId: query.professorId } : {}),
+      ...(query.format ? { format: query.format } : {}),
+      ...(query.outcome ? { outcome: query.outcome } : {}),
+    };
+    const [experiences, total] = await this.prisma.$transaction([
+      this.prisma.examExperience.findMany({
+        where,
+        orderBy: this.getExamExperienceOrderBy(),
+        skip: (page - 1) * limit,
+        take: limit,
+        select: publicExamExperienceSelect,
+      }),
+      this.prisma.examExperience.count({ where }),
+    ]);
+
+    return {
+      data: experiences.map((experience) => {
+        const excerpt = this.truncateExamExperienceExcerpt(experience.comment);
+        return {
+          id: experience.id,
+          subject: {
+            ...experience.subject,
+            href: `/materias/${experience.subject.code ?? experience.subject.id}`,
+          },
+          author: {
+            username: experience.isAnonymous
+              ? 'Anónimo'
+              : experience.user.username,
+          },
+          year: experience.year,
+          session: experience.session,
+          format: experience.format,
+          ...(experience.examDate ? { examDate: experience.examDate } : {}),
+          ...(experience.shift ? { shift: experience.shift } : {}),
+          ...(experience.professor ? { professor: experience.professor } : {}),
+          ...(experience.examinerName
+            ? { examinerName: experience.examinerName }
+            : {}),
+          ...(experience.difficulty
+            ? { difficulty: experience.difficulty }
+            : {}),
+          ...(experience.outcome ? { outcome: experience.outcome } : {}),
+          ...(excerpt ? { excerpt } : {}),
+          createdAt: experience.createdAt,
+          updatedAt: experience.updatedAt,
+        };
+      }),
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 

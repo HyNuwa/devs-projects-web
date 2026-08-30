@@ -11,6 +11,11 @@ import {
   MAX_ACADEMIC_YEAR,
   MIN_ACADEMIC_YEAR,
 } from '../../../common/validation/academic-year';
+import {
+  DiscoveryPaginationDto,
+  DiscoveryPublicAuthorDto,
+  DiscoverySubjectLinkDto,
+} from './discovery-public.dto';
 
 export const DEFAULT_DISCOVERY_COURSE_REVIEW_LIMIT = 10;
 export const MAX_DISCOVERY_COURSE_REVIEW_LIMIT = 100;
@@ -83,23 +88,6 @@ export class DiscoveryCourseReviewsQueryDto {
   limit?: number;
 }
 
-export class DiscoveryCourseReviewSubjectDto {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiPropertyOptional({ nullable: true })
-  code: string | null;
-
-  @ApiProperty({
-    description: 'Ruta canónica al hub público de la materia.',
-    example: '/materias/S2-14',
-  })
-  href: string;
-}
-
 export class DiscoveryCourseReviewProfessorDto {
   @ApiProperty()
   id: string;
@@ -108,20 +96,15 @@ export class DiscoveryCourseReviewProfessorDto {
   name: string;
 }
 
-export class DiscoveryCourseReviewAuthorDto {
-  @ApiProperty({ example: 'luciana-g' })
-  username: string;
-}
-
 export class DiscoveryCourseReviewDto {
   @ApiProperty()
   id: string;
 
-  @ApiProperty({ type: DiscoveryCourseReviewSubjectDto })
-  subject: DiscoveryCourseReviewSubjectDto;
+  @ApiProperty({ type: DiscoverySubjectLinkDto })
+  subject: DiscoverySubjectLinkDto;
 
-  @ApiProperty({ type: DiscoveryCourseReviewAuthorDto })
-  author: DiscoveryCourseReviewAuthorDto;
+  @ApiProperty({ type: DiscoveryPublicAuthorDto })
+  author: DiscoveryPublicAuthorDto;
 
   @ApiProperty()
   academicYear: number | null;
@@ -173,20 +156,6 @@ export class DiscoveryCourseReviewAggregateDto {
 
   @ApiProperty({ example: 18 })
   reviewCount: number;
-}
-
-export class DiscoveryPaginationDto {
-  @ApiProperty()
-  page: number;
-
-  @ApiProperty()
-  limit: number;
-
-  @ApiProperty()
-  total: number;
-
-  @ApiProperty()
-  totalPages: number;
 }
 
 export class DiscoveryCourseReviewListDto {

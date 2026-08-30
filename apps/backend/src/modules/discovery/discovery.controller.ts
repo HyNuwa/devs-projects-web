@@ -24,6 +24,10 @@ import {
   DiscoveryCourseReviewListDto,
   DiscoveryCourseReviewsQueryDto,
 } from './dto/discovery-course-reviews.dto';
+import {
+  DiscoveryExamExperienceListDto,
+  DiscoveryExamExperiencesQueryDto,
+} from './dto/discovery-exam-experiences.dto';
 import { DiscoveryService } from './discovery.service';
 
 @ApiTags('Discovery')
@@ -51,6 +55,15 @@ export class DiscoveryController {
   @ApiResponse({ status: 400, description: 'Consulta de reseñas inválida' })
   getCourseReviews(@Query() query: DiscoveryCourseReviewsQueryDto) {
     return this.discoveryService.getCourseReviews(query);
+  }
+
+  @Get('exam-experiences')
+  @Public()
+  @ApiOperation({ summary: 'Descubrir experiencias de final públicas' })
+  @ApiResponse({ status: 200, type: DiscoveryExamExperienceListDto })
+  @ApiResponse({ status: 400, description: 'Consulta de finales inválida' })
+  getExamExperiences(@Query() query: DiscoveryExamExperiencesQueryDto) {
+    return this.discoveryService.getExamExperiences(query);
   }
 
   @Get('hierarchy/careers')
