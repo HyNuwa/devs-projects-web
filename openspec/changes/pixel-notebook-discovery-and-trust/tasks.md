@@ -48,7 +48,7 @@
 
 ## 5. Pixel Notebook React primitives and shared shell
 
-- [ ] 5.1 Configure Tailwind for the Next.js workspace and initialize shadcn/ui against the existing aliases and semantic CSS variables; verify dependency installation, config resolution, and a production frontend build succeed.
+- [x] 5.1 Configure Tailwind for the Next.js workspace and initialize shadcn/ui against the existing aliases and semantic CSS variables; verify dependency installation, config resolution, and a production frontend build succeed.
 - [ ] 5.2 Audit Tailwind Preflight against current global styles and CSS Modules, document every compatibility override, and verify representative untouched legacy routes have no unintended typography, spacing, control, or border regression.
 - [ ] 5.3 Import the canonical tokens once through frontend globals and map Tailwind/shadcn roles to them; verify touched raw color/shadow values use semantic variables and the frontend build has one active token source.
 - [ ] 5.4 Add or migrate source-owned React Button, Input, form field, chip, disclosure, and loading/empty/error primitives; use Radix-backed Dialog, Sheet, Select, Popover, Tabs, Tooltip, and menus only where behavior requires them, and verify component/accessibility tests cover variants, focus, labels, and semantic DOM.

@@ -1,27 +1,29 @@
+@import 'tailwindcss';
+
 :root {
   /* Colores principales - tema RPG azul */
-  --color-primary-50: #E8F4FD;
-  --color-primary-100: #B8DEF8;
-  --color-primary-200: #88C8F3;
-  --color-primary-500: #2196F3;
-  --color-primary-600: #1976D2;
-  --color-primary-700: #1565C0;
-  --color-primary-900: #0D47A1;
+  --color-primary-50: #e8f4fd;
+  --color-primary-100: #b8def8;
+  --color-primary-200: #88c8f3;
+  --color-primary-500: #2196f3;
+  --color-primary-600: #1976d2;
+  --color-primary-700: #1565c0;
+  --color-primary-900: #0d47a1;
 
   /* Acentos */
-  --color-accent-gold: #FFD700;
-  --color-accent-silver: #C0C7D1;
-  --color-accent-bronze: #CD7F32;
-  --color-accent-green: #4CAF50;
-  --color-accent-orange: #FF9800;
-  --color-accent-red: #F44336;
+  --color-accent-gold: #ffd700;
+  --color-accent-silver: #c0c7d1;
+  --color-accent-bronze: #cd7f32;
+  --color-accent-green: #4caf50;
+  --color-accent-orange: #ff9800;
+  --color-accent-red: #f44336;
 
   /* Neutrales */
-  --color-bg-primary: #F5F9FF;
-  --color-bg-secondary: #FFFFFF;
-  --color-bg-dark: #0F1923;
-  --color-text-primary: #1A2B3C;
-  --color-text-secondary: #64748B;
+  --color-bg-primary: #f5f9ff;
+  --color-bg-secondary: #ffffff;
+  --color-bg-dark: #0f1923;
+  --color-text-primary: #1a2b3c;
+  --color-text-secondary: #64748b;
 
   /* Tipografía */
   --font-heading: 'Outfit', sans-serif;
