@@ -16,6 +16,13 @@ import {
   DiscoveryResourceCategoryListDto,
   DiscoverySubjectListDto,
 } from './dto/discovery-hierarchy.dto';
+import {
+  DEFAULT_DISCOVERY_COURSE_REVIEW_LIMIT,
+  DiscoveryCourseReviewListDto,
+  DiscoveryCourseReviewsQueryDto,
+  DiscoveryCourseReviewSort,
+  MAX_DISCOVERY_COURSE_REVIEW_EXCERPT_LENGTH,
+} from './dto/discovery-course-reviews.dto';
 
 const subjectSuggestionSelect = {
   id: true,
@@ -43,6 +50,43 @@ const publicMaterialWhere = {
   moderationStatus: 'APPROVED',
 } satisfies Prisma.MaterialWhereInput;
 
+const publicCourseReviewSelect = {
+  id: true,
+  academicYear: true,
+  shift: true,
+  condition: true,
+  attempt: true,
+  difficulty: true,
+  recommendation: true,
+  professorName: true,
+  comment: true,
+  isAnonymous: true,
+  createdAt: true,
+  updatedAt: true,
+  subject: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+    },
+  },
+  professor: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  user: {
+    select: {
+      username: true,
+    },
+  },
+} satisfies Prisma.CourseReviewSelect;
+
+const publicCourseReviewWhere = {
+  isRemoved: false,
+} satisfies Prisma.CourseReviewWhereInput;
+
 @Injectable()
 export class DiscoveryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -56,6 +100,39 @@ export class DiscoveryService {
       items: items.slice(0, limit),
       hasMore: items.length > limit,
     };
+  }
+
+  private getCourseReviewOrderBy(
+    sort: DiscoveryCourseReviewSort | undefined,
+  ): Prisma.CourseReviewOrderByWithRelationInput[] {
+    switch (sort) {
+      case DiscoveryCourseReviewSort.STARS_ASC:
+        return [
+          { recommendation: 'asc' },
+          { createdAt: 'desc' },
+          { id: 'asc' },
+        ];
+      case DiscoveryCourseReviewSort.STARS_DESC:
+        return [
+          { recommendation: 'desc' },
+          { createdAt: 'desc' },
+          { id: 'asc' },
+        ];
+      case DiscoveryCourseReviewSort.RECENT:
+      default:
+        return [{ createdAt: 'desc' }, { id: 'asc' }];
+    }
+  }
+
+  private truncateCourseReviewExcerpt(comment: string | null): string | null {
+    if (
+      !comment ||
+      comment.length <= MAX_DISCOVERY_COURSE_REVIEW_EXCERPT_LENGTH
+    ) {
+      return comment;
+    }
+
+    return `${comment.slice(0, MAX_DISCOVERY_COURSE_REVIEW_EXCERPT_LENGTH)}…`;
   }
 
   async getSuggestions(
@@ -96,6 +173,70 @@ export class DiscoveryService {
           kind: 'MATERIAL' as const,
           ...material,
         })),
+    };
+  }
+
+  async getCourseReviews(
+    query: DiscoveryCourseReviewsQueryDto,
+  ): Promise<DiscoveryCourseReviewListDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? DEFAULT_DISCOVERY_COURSE_REVIEW_LIMIT;
+    const where: Prisma.CourseReviewWhereInput = {
+      ...publicCourseReviewWhere,
+      ...(query.subjectId ? { subjectId: query.subjectId } : {}),
+      ...(query.academicYear ? { academicYear: query.academicYear } : {}),
+      ...(query.professorId ? { professorId: query.professorId } : {}),
+      ...(query.difficulty ? { difficulty: query.difficulty } : {}),
+      ...(query.attempt ? { attempt: query.attempt } : {}),
+    };
+    const [reviews, total, aggregate] = await this.prisma.$transaction([
+      this.prisma.courseReview.findMany({
+        where,
+        orderBy: this.getCourseReviewOrderBy(query.sort),
+        skip: (page - 1) * limit,
+        take: limit,
+        select: publicCourseReviewSelect,
+      }),
+      this.prisma.courseReview.count({ where }),
+      this.prisma.courseReview.aggregate({
+        where,
+        _avg: { recommendation: true },
+        _count: true,
+      }),
+    ]);
+
+    return {
+      data: reviews.map((review) => ({
+        id: review.id,
+        subject: {
+          ...review.subject,
+          href: `/materias/${review.subject.code ?? review.subject.id}`,
+        },
+        author: {
+          username: review.isAnonymous ? 'Anónimo' : review.user.username,
+        },
+        academicYear: review.academicYear,
+        shift: review.shift,
+        condition: review.condition,
+        attempt: review.attempt,
+        difficulty: review.difficulty,
+        recommendation: review.recommendation,
+        professor: review.professor,
+        professorName: review.professorName,
+        excerpt: this.truncateCourseReviewExcerpt(review.comment),
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt,
+      })),
+      aggregate: {
+        averageRecommendation: aggregate._avg.recommendation,
+        reviewCount: aggregate._count,
+      },
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 

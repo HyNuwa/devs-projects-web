@@ -20,6 +20,10 @@ import {
 } from './dto/discovery-hierarchy.dto';
 import { DiscoverySuggestionsQueryDto } from './dto/discovery-suggestions-query.dto';
 import { DiscoverySuggestionsResponseDto } from './dto/discovery-suggestions-response.dto';
+import {
+  DiscoveryCourseReviewListDto,
+  DiscoveryCourseReviewsQueryDto,
+} from './dto/discovery-course-reviews.dto';
 import { DiscoveryService } from './discovery.service';
 
 @ApiTags('Discovery')
@@ -36,6 +40,17 @@ export class DiscoveryController {
   @ApiResponse({ status: 400, description: 'Consulta de sugerencias inválida' })
   getSuggestions(@Query() query: DiscoverySuggestionsQueryDto) {
     return this.discoveryService.getSuggestions(query);
+  }
+
+  @Get('course-reviews')
+  @Public()
+  @ApiOperation({
+    summary: 'Descubrir reseñas de cursada públicas con filtros y orden',
+  })
+  @ApiResponse({ status: 200, type: DiscoveryCourseReviewListDto })
+  @ApiResponse({ status: 400, description: 'Consulta de reseñas inválida' })
+  getCourseReviews(@Query() query: DiscoveryCourseReviewsQueryDto) {
+    return this.discoveryService.getCourseReviews(query);
   }
 
   @Get('hierarchy/careers')

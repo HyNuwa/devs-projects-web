@@ -27,7 +27,10 @@ class TestJwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 describe('Discovery anonymous API contract', () => {
   let app: INestApplication<App>;
 
-  const discoveryService = { getSuggestions: jest.fn() };
+  const discoveryService = {
+    getSuggestions: jest.fn(),
+    getCourseReviews: jest.fn(),
+  };
 
   beforeAll(async () => {
     discoveryService.getSuggestions.mockResolvedValue({
@@ -48,6 +51,11 @@ describe('Discovery anonymous API contract', () => {
       getMaterialFiles: jest
         .fn()
         .mockResolvedValue({ files: [], hasMore: false }),
+      getCourseReviews: jest.fn().mockResolvedValue({
+        data: [],
+        aggregate: { averageRecommendation: null, reviewCount: 0 },
+        meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+      }),
     });
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -96,6 +104,7 @@ describe('Discovery anonymous API contract', () => {
   });
 
   it.each([
+    '/discovery/course-reviews?subjectId=30000000-0000-4000-8000-000000000001&academicYear=2026&sort=STARS_DESC&page=2&limit=5',
     '/discovery/hierarchy/careers',
     '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories',
     '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories/APUNTE/materials',
@@ -106,7 +115,28 @@ describe('Discovery anonymous API contract', () => {
     },
   );
 
+  it('restaura filtros de reseñas desde la URL sin requerir autenticación', async () => {
+    await request(app.getHttpServer())
+      .get(
+        '/discovery/course-reviews?subjectId=30000000-0000-4000-8000-000000000001&academicYear=2026&sort=STARS_DESC&page=2&limit=5',
+      )
+      .expect(200);
+
+    expect(discoveryService.getCourseReviews).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subjectId: '30000000-0000-4000-8000-000000000001',
+        academicYear: 2026,
+        sort: 'STARS_DESC',
+        page: 2,
+        limit: 5,
+      }),
+    );
+  });
+
   it('valida los límites y categorías de la jerarquía', async () => {
+    await request(app.getHttpServer())
+      .get('/discovery/course-reviews?sort=POPULAR')
+      .expect(400);
     await request(app.getHttpServer())
       .get('/discovery/hierarchy/careers?limit=0')
       .expect(400);
