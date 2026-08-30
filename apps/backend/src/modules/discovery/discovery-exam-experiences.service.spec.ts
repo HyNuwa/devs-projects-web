@@ -5,7 +5,11 @@ import { DiscoveryService } from './discovery.service';
 describe('DiscoveryService exam-experience discovery', () => {
   let service: DiscoveryService;
   const prisma = {
-    examExperience: { findMany: jest.fn(), count: jest.fn() },
+    examExperience: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      count: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
   const experience = {
@@ -98,5 +102,24 @@ describe('DiscoveryService exam-experience discovery', () => {
     expect(
       prisma.examExperience.findMany.mock.calls[0][0].select,
     ).not.toHaveProperty('grade');
+  });
+
+  it('expone el detalle visible sin nota ni identidad privada', async () => {
+    prisma.examExperience.findFirst.mockResolvedValue({
+      ...experience,
+      isAnonymous: true,
+    });
+    const result = await service.getExamExperienceDetail('exam-1');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        author: { username: 'Anónimo' },
+        comment: experience.comment,
+      }),
+    );
+    expect(result).not.toHaveProperty('grade');
+    expect(prisma.examExperience.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'exam-1', isRemoved: false } }),
+    );
   });
 });

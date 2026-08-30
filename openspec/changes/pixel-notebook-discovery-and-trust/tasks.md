@@ -43,7 +43,7 @@
 - [x] 4.4 Implement parameterized database ranking for exact/prefix/contains relevance, context completeness, recency, helpfulness, and stable id tie-breaking; verify integration fixtures produce the documented deterministic order across pages while star aggregates remain presentation-only evidence.
 - [x] 4.5 Implement paged course-review discovery with recent/star ordering, materia/year/professor/difficulty/cursada filters, canonical materia links, public anonymity projection, and visible-only average/count; verify URL-query fixtures count every legitimate visible record and exclude removed entries.
 - [x] 4.6 Implement paged final-experience discovery with exam-date/publication-date fallback ordering and materia/year/period/professor/format/outcome filters; verify stable pagination, anonymous projection, no grade sort, no all-subject fan-out, and omission of unknown optional facts.
-- [ ] 4.7 Implement public review/final detail projections for shareable identifiers and owner/moderator variants for removed or anonymous records; verify not-found, removed, owner, moderator, and ordinary-public authorization scenarios.
+- [x] 4.7 Implement public review/final detail projections for shareable identifiers and owner/moderator variants for removed or anonymous records; verify not-found, removed, owner, moderator, and ordinary-public authorization scenarios.
 - [ ] 4.8 Add query-count or repository-level integration coverage for discovery projections; verify representative hierarchy, result, review, final, aggregate, and detail requests do not introduce N+1 lookups.
 
 ## 5. Pixel Notebook React primitives and shared shell

@@ -57,6 +57,12 @@ export class DiscoveryController {
     return this.discoveryService.getCourseReviews(query);
   }
 
+  @Get('course-reviews/:id')
+  @Public()
+  getCourseReviewDetail(@Param('id', ParseUUIDPipe) id: string) {
+    return this.discoveryService.getCourseReviewDetail(id);
+  }
+
   @Get('exam-experiences')
   @Public()
   @ApiOperation({ summary: 'Descubrir experiencias de final públicas' })
@@ -64,6 +70,12 @@ export class DiscoveryController {
   @ApiResponse({ status: 400, description: 'Consulta de finales inválida' })
   getExamExperiences(@Query() query: DiscoveryExamExperiencesQueryDto) {
     return this.discoveryService.getExamExperiences(query);
+  }
+
+  @Get('exam-experiences/:id')
+  @Public()
+  getExamExperienceDetail(@Param('id', ParseUUIDPipe) id: string) {
+    return this.discoveryService.getExamExperienceDetail(id);
   }
 
   @Get('hierarchy/careers')

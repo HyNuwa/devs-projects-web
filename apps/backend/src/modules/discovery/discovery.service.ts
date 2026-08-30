@@ -116,6 +116,16 @@ const publicExamExperienceWhere = {
   isRemoved: false,
 } satisfies Prisma.ExamExperienceWhereInput;
 
+const publicCourseReviewDetailSelect = {
+  ...publicCourseReviewSelect,
+  isRemoved: true,
+} satisfies Prisma.CourseReviewSelect;
+
+const publicExamExperienceDetailSelect = {
+  ...publicExamExperienceSelect,
+  isRemoved: true,
+} satisfies Prisma.ExamExperienceSelect;
+
 @Injectable()
 export class DiscoveryService {
   constructor(private readonly prisma: PrismaService) {}
@@ -288,6 +298,38 @@ export class DiscoveryService {
     };
   }
 
+  async getCourseReviewDetail(id: string) {
+    const review = await this.prisma.courseReview.findFirst({
+      where: { id, ...publicCourseReviewWhere },
+      select: publicCourseReviewDetailSelect,
+    });
+    if (!review) {
+      throw new NotFoundException('Reseña no encontrada');
+    }
+
+    return {
+      id: review.id,
+      subject: {
+        ...review.subject,
+        href: `/materias/${review.subject.code ?? review.subject.id}`,
+      },
+      author: {
+        username: review.isAnonymous ? 'Anónimo' : review.user.username,
+      },
+      academicYear: review.academicYear,
+      shift: review.shift,
+      condition: review.condition,
+      attempt: review.attempt,
+      difficulty: review.difficulty,
+      recommendation: review.recommendation,
+      professor: review.professor,
+      professorName: review.professorName,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+    };
+  }
+
   async getExamExperiences(
     query: DiscoveryExamExperiencesQueryDto,
   ): Promise<DiscoveryExamExperienceListDto> {
@@ -346,6 +388,41 @@ export class DiscoveryService {
         };
       }),
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async getExamExperienceDetail(id: string) {
+    const experience = await this.prisma.examExperience.findFirst({
+      where: { id, ...publicExamExperienceWhere },
+      select: publicExamExperienceDetailSelect,
+    });
+    if (!experience) {
+      throw new NotFoundException('Experiencia de final no encontrada');
+    }
+
+    return {
+      id: experience.id,
+      subject: {
+        ...experience.subject,
+        href: `/materias/${experience.subject.code ?? experience.subject.id}`,
+      },
+      author: {
+        username: experience.isAnonymous ? 'Anónimo' : experience.user.username,
+      },
+      year: experience.year,
+      session: experience.session,
+      format: experience.format,
+      ...(experience.examDate ? { examDate: experience.examDate } : {}),
+      ...(experience.shift ? { shift: experience.shift } : {}),
+      ...(experience.professor ? { professor: experience.professor } : {}),
+      ...(experience.examinerName
+        ? { examinerName: experience.examinerName }
+        : {}),
+      ...(experience.difficulty ? { difficulty: experience.difficulty } : {}),
+      ...(experience.outcome ? { outcome: experience.outcome } : {}),
+      comment: experience.comment,
+      createdAt: experience.createdAt,
+      updatedAt: experience.updatedAt,
     };
   }
 

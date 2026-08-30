@@ -9,6 +9,7 @@ describe('DiscoveryService course-review discovery', () => {
   const prisma = {
     courseReview: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       count: jest.fn(),
       aggregate: jest.fn(),
     },
@@ -163,5 +164,26 @@ describe('DiscoveryService course-review discovery', () => {
     expect(result.data[0].excerpt).toHaveLength(361);
     expect(result.data[0].excerpt?.endsWith('…')).toBe(true);
     expect(prisma.courseReview.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('expone el detalle visible sin identidad privada y oculta retiradas como no encontradas', async () => {
+    prisma.courseReview.findFirst.mockResolvedValue({
+      ...review,
+      isAnonymous: true,
+    });
+
+    await expect(service.getCourseReviewDetail('review-1')).resolves.toEqual(
+      expect.objectContaining({
+        author: { username: 'Anónimo' },
+        comment: review.comment,
+      }),
+    );
+    expect(prisma.courseReview.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'review-1', isRemoved: false } }),
+    );
+    prisma.courseReview.findFirst.mockResolvedValue(null);
+    await expect(service.getCourseReviewDetail('removed-1')).rejects.toThrow(
+      'Reseña no encontrada',
+    );
   });
 });

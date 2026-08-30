@@ -31,6 +31,8 @@ describe('Discovery anonymous API contract', () => {
     getSuggestions: jest.fn(),
     getCourseReviews: jest.fn(),
     getExamExperiences: jest.fn(),
+    getCourseReviewDetail: jest.fn(),
+    getExamExperienceDetail: jest.fn(),
   };
 
   beforeAll(async () => {
@@ -61,6 +63,8 @@ describe('Discovery anonymous API contract', () => {
         data: [],
         meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
       }),
+      getCourseReviewDetail: jest.fn().mockResolvedValue({ id: 'review-1' }),
+      getExamExperienceDetail: jest.fn().mockResolvedValue({ id: 'exam-1' }),
     });
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -110,7 +114,9 @@ describe('Discovery anonymous API contract', () => {
 
   it.each([
     '/discovery/course-reviews?subjectId=30000000-0000-4000-8000-000000000001&academicYear=2026&sort=STARS_DESC&page=2&limit=5',
+    '/discovery/course-reviews/30000000-0000-4000-8000-000000000001',
     '/discovery/exam-experiences?year=2026&session=JULIO&format=ORAL&outcome=APROBADO&page=2&limit=5',
+    '/discovery/exam-experiences/30000000-0000-4000-8000-000000000001',
     '/discovery/hierarchy/careers',
     '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories',
     '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories/APUNTE/materials',
