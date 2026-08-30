@@ -1,6 +1,69 @@
 @import 'tailwindcss';
+@import '../styles/pixel-notebook-tokens.css';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--ui-font-sans);
+  --font-serif: var(--ui-font-serif);
+  --font-mono: var(--ui-font-mono);
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --shadow-control: var(--elevation-control);
+  --shadow-field: var(--elevation-field);
+  --shadow-surface: var(--elevation-surface);
+}
 
 :root {
+  /* Pixel Notebook semantic roles consumed by Tailwind and source-owned shadcn components. */
+  --background: var(--pn-canvas);
+  --foreground: var(--pn-ink);
+  --card: var(--pn-surface);
+  --card-foreground: var(--pn-ink);
+  --popover: var(--pn-canvas);
+  --popover-foreground: var(--pn-ink);
+  --primary: var(--pn-cobalt);
+  --primary-foreground: var(--pn-canvas);
+  --secondary: var(--pn-paper);
+  --secondary-foreground: var(--pn-cobalt-deep);
+  --muted: var(--pn-paper);
+  --muted-foreground: var(--pn-muted);
+  --accent: var(--pn-gold);
+  --accent-foreground: var(--pn-ink);
+  --destructive: var(--pn-orange);
+  --destructive-foreground: var(--pn-ink);
+  --success: var(--pn-green);
+  --border: var(--pn-border);
+  --input: var(--pn-border);
+  --ring: var(--pn-cobalt);
+  --radius: 0px;
+  --ui-font-sans: var(--pn-font-body);
+  --ui-font-serif: var(--pn-font-display);
+  --ui-font-mono: var(--pn-font-mono);
+  --elevation-control: 2px 2px 0 var(--pn-ink);
+  --elevation-field: 4px 4px 0 var(--pn-line);
+  --elevation-surface: 3px 3px 0 var(--pn-line);
+
   /* Colores principales - tema RPG azul */
   --color-primary-50: #e8f4fd;
   --color-primary-100: #b8def8;

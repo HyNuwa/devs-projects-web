@@ -102,6 +102,14 @@ The palette is full but role-bound: cream and ink own the page, cobalt owns inte
 
 **The State Independence Rule.** Route accents cannot redefine success, warning, error, disabled, focus, or publication approval.
 
+## Token Source & Tailwind/shadcn Roles
+
+`src/styles/pixel-notebook-tokens.css` is the sole canonical declaration source. It is imported exactly once by `src/app/globals.css`; routes and components consume its `--pn-*` roles rather than redeclaring palette values.
+
+`globals.css` maps the canonical roles into the shadcn/Tailwind semantic contract: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `success`, `border`, `input`, and `ring`. It also maps the three approved crisp elevations to `shadow-control`, `shadow-field`, and `shadow-surface`; new CSS should consume these semantic variables instead of retyping color or shadow literals.
+
+Tailwind exposes those roles with `@theme inline`, so utilities such as `bg-primary`, `text-muted-foreground`, `ring-ring`, `font-serif`, and `shadow-control` remain tied to the same canonical source. The system stays light-only and square by mapping every Tailwind radius role to `--radius: 0px`.
+
 ## Typography
 
 - **Display Font:** Iowan Old Style with Charter, Georgia, and serif fallbacks

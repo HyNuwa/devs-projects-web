@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import '@/styles/pixel-notebook-tokens.css';
 import { PrototypeShell } from '@/components/validation/pixel-notebook/PrototypeShell';
 
 export const metadata: Metadata = {

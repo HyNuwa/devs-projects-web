@@ -1961,7 +1961,7 @@
 .resourceDialog :is(a, button):focus-visible,
 .hierarchyPage :is(a, button, input):focus-visible,
 .resultsPage :is(a, button, input):focus-visible {
-  outline: 2px solid var(--pn-cyan);
+  outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
 
