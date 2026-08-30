@@ -217,6 +217,28 @@ describe('MaterialsService', () => {
       expect(result.data[0]).not.toHaveProperty('isApproved');
     });
 
+    it('mantiene un presupuesto fijo de consultas para una página de resultados', async () => {
+      prisma.$queryRaw.mockResolvedValue([
+        { id: 'mat-3' },
+        { id: 'mat-2' },
+        { id: 'mat-1' },
+      ]);
+      prisma.material.count.mockResolvedValue(3);
+      prisma.material.findMany.mockResolvedValue([
+        { ...publicMaterialRecord, id: 'mat-1' },
+        { ...publicMaterialRecord, id: 'mat-2' },
+        { ...publicMaterialRecord, id: 'mat-3' },
+      ]);
+
+      await service.findAll({ page: 1, limit: 3 });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.material.count).toHaveBeenCalledTimes(1);
+      expect(prisma.material.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.material.findFirst).not.toHaveBeenCalled();
+    });
+
     it('aplica cada filtro público y mantiene la materia como alcance obligatorio', async () => {
       prisma.material.findMany.mockResolvedValue([publicMaterialRecord]);
       prisma.material.count.mockResolvedValue(1);

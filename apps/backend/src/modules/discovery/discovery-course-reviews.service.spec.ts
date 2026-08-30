@@ -166,6 +166,27 @@ describe('DiscoveryService course-review discovery', () => {
     expect(prisma.courseReview.findMany).toHaveBeenCalledTimes(1);
   });
 
+  it('mantiene un presupuesto fijo para la página, el total y el agregado', async () => {
+    prisma.courseReview.findMany.mockResolvedValue([
+      review,
+      { ...review, id: 'review-2' },
+      { ...review, id: 'review-3' },
+    ]);
+    prisma.courseReview.count.mockResolvedValue(3);
+    prisma.courseReview.aggregate.mockResolvedValue({
+      _avg: { recommendation: 4 },
+      _count: 3,
+    });
+
+    await service.getCourseReviews({ limit: 3 });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.courseReview.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.courseReview.count).toHaveBeenCalledTimes(1);
+    expect(prisma.courseReview.aggregate).toHaveBeenCalledTimes(1);
+    expect(prisma.courseReview.findFirst).not.toHaveBeenCalled();
+  });
+
   it('expone el detalle visible sin identidad privada y oculta retiradas como no encontradas', async () => {
     prisma.courseReview.findFirst.mockResolvedValue({
       ...review,
@@ -181,6 +202,7 @@ describe('DiscoveryService course-review discovery', () => {
     expect(prisma.courseReview.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'review-1', isRemoved: false } }),
     );
+    expect(prisma.courseReview.findFirst).toHaveBeenCalledTimes(1);
     prisma.courseReview.findFirst.mockResolvedValue(null);
     await expect(service.getCourseReviewDetail('removed-1')).rejects.toThrow(
       'Reseña no encontrada',

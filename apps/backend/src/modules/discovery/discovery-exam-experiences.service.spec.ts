@@ -104,6 +104,22 @@ describe('DiscoveryService exam-experience discovery', () => {
     ).not.toHaveProperty('grade');
   });
 
+  it('mantiene un presupuesto fijo para una página de múltiples finales', async () => {
+    prisma.examExperience.findMany.mockResolvedValue([
+      experience,
+      { ...experience, id: 'exam-2' },
+      { ...experience, id: 'exam-3' },
+    ]);
+    prisma.examExperience.count.mockResolvedValue(3);
+
+    await service.getExamExperiences({ limit: 3 });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.examExperience.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.examExperience.count).toHaveBeenCalledTimes(1);
+    expect(prisma.examExperience.findFirst).not.toHaveBeenCalled();
+  });
+
   it('expone el detalle visible sin nota ni identidad privada', async () => {
     prisma.examExperience.findFirst.mockResolvedValue({
       ...experience,
@@ -121,5 +137,7 @@ describe('DiscoveryService exam-experience discovery', () => {
     expect(prisma.examExperience.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'exam-1', isRemoved: false } }),
     );
+    expect(prisma.examExperience.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.examExperience.findMany).not.toHaveBeenCalled();
   });
 });

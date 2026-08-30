@@ -93,6 +93,7 @@ describe('DiscoveryService hierarchy read model', () => {
       },
     ]);
     expect(result.hasMore).toBe(true);
+    expect(prisma.career.findUnique).toHaveBeenCalledTimes(1);
     expect(prisma.studyPlanSubject.groupBy).toHaveBeenCalledTimes(1);
     expect(prisma.studyPlan.findMany).toHaveBeenCalledTimes(1);
   });
@@ -171,6 +172,8 @@ describe('DiscoveryService hierarchy read model', () => {
         }),
       }),
     );
+    expect(prisma.studyPlan.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.studyPlanSubject.findMany).toHaveBeenCalledTimes(1);
   });
 
   it('devuelve categorías y archivos aprobados sin consultas por fila', async () => {
@@ -226,6 +229,8 @@ describe('DiscoveryService hierarchy read model', () => {
         }),
       }),
     );
+    expect(prisma.subject.findUnique).toHaveBeenCalledTimes(2);
+    expect(prisma.material.groupBy).toHaveBeenCalledTimes(1);
     expect(prisma.material.findMany).toHaveBeenCalledTimes(1);
   });
 
