@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BookOpenText, FileCheck2, FileText, NotebookPen } from 'lucide-react';
+import { Kaomoji } from '@/components/ui/shadcn/kaomoji';
 import { HeroArtwork } from '@/components/validation/pixel-notebook/HeroArtwork';
 import { PrototypeSearch } from '@/components/validation/pixel-notebook/PrototypeSearch';
 import styles from '@/components/validation/pixel-notebook/PrototypeShell.module.css';
@@ -43,9 +44,7 @@ export default function PixelNotebookValidationHomePage() {
       </section>
 
       <aside className={styles.validationNote} aria-label="Alcance del prototipo">
-        <span className={styles.kaomoji} aria-hidden="true">
-          (•̀ᴗ•́)و
-        </span>
+        <Kaomoji className={styles.kaomoji} id="encouragement" />
         <div>
           <strong>Recorrido de prueba</strong>
           <p>

@@ -16,4 +16,5 @@ export {
 } from './filter-sheet';
 export { Field, FieldDescription, FieldError, FieldLabel } from './field';
 export { Input, type InputProps } from './input';
+export { Kaomoji, type KaomojiProps } from './kaomoji';
 export { EmptyState, ErrorState, LoadingState } from './state';

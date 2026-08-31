@@ -56,7 +56,7 @@
 - [x] 5.6 Implement the mobile filter Sheet with focus trap, Escape handling, labelled controls, and focus restoration; verify keyboard interaction tests cover open, apply, clear, and close flows.
 - [x] 5.7 Rebuild the shared shell with Materias, Reseñas, Materiales, Finales, `Subir material`, and account actions while keeping forum/ranking outside primary navigation; verify desktop/mobile route and active-state checks pass.
 - [x] 5.8 Add global focus-visible, 200% zoom, non-color status, and reduced-motion rules; verify a fixture journey remains operable with keyboard-only and reduced-motion settings.
-- [ ] 5.9 Add the local typed kaomoji allowlist with accessible decorative behavior and no runtime Glyphy request; verify network inspection and component tests show only local Unicode content.
+- [x] 5.9 Add the local typed kaomoji allowlist with accessible decorative behavior and no runtime Glyphy request; verify network inspection and component tests show only local Unicode content.
 
 ## 6. Homepage and comparison search
 
