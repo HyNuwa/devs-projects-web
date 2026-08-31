@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 type MaterialesHierarchyRouteProps = {
   params: Promise<{ segments: string[] }>;
-  searchParams: Promise<{ q?: string | string[] }>;
+  searchParams: Promise<{ archivo?: string | string[]; q?: string | string[] }>;
 };
 
 export default async function MaterialesHierarchyRoute({
@@ -18,6 +18,11 @@ export default async function MaterialesHierarchyRoute({
 }: MaterialesHierarchyRouteProps) {
   const [{ segments }, queryParams] = await Promise.all([params, searchParams]);
   const query = Array.isArray(queryParams.q) ? queryParams.q[0] : (queryParams.q ?? '');
+  const selectedFileId = Array.isArray(queryParams.archivo)
+    ? queryParams.archivo[0]
+    : (queryParams.archivo ?? undefined);
 
-  return <MaterialHierarchyPage query={query} segments={segments} />;
+  return (
+    <MaterialHierarchyPage query={query} selectedFileId={selectedFileId} segments={segments} />
+  );
 }

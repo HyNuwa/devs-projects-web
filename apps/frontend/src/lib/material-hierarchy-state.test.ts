@@ -65,5 +65,8 @@ describe('material hierarchy route state', () => {
     expect(toMaterialHierarchyHref(route, ' listas enlazadas ')).toBe(
       `/materiales/carreras/${careerId}/planes/${studyPlanId}/anios/2/materias/${subjectId}?q=listas%20enlazadas`,
     );
+    expect(toMaterialHierarchyHref(route, 'listas enlazadas', 'material-1')).toBe(
+      `/materiales/carreras/${careerId}/planes/${studyPlanId}/anios/2/materias/${subjectId}?q=listas%20enlazadas&archivo=material-1`,
+    );
   });
 });

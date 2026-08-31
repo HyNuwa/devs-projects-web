@@ -344,10 +344,16 @@ function ResourceFileList({
   files,
   hasMore,
   materialRows,
+  query,
+  route,
+  selectedFileId,
 }: {
   files?: DiscoveryHierarchyFile[];
   hasMore?: boolean;
   materialRows?: Material[];
+  query: string;
+  route: NestedMaterialHierarchyRoute;
+  selectedFileId?: string;
 }) {
   const rows = materialRows
     ? materialRows.map((material) => ({
@@ -363,12 +369,39 @@ function ResourceFileList({
     return null;
   }
 
+  const selectedFile = selectedFileId ? rows.find((file) => file.id === selectedFileId) : undefined;
+
   return (
     <>
+      {selectedFile ? (
+        <section
+          aria-live="polite"
+          className="mt-7 flex flex-wrap items-center justify-between gap-3 border border-primary bg-secondary p-4"
+        >
+          <p className="text-sm text-foreground">
+            <span className="font-mono text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-primary">
+              Archivo seleccionado
+            </span>
+            <span className="mt-1 block font-bold">{selectedFile.title}</span>
+          </p>
+          <Button asChild size="sm" variant="outline">
+            <Link href={toMaterialHierarchyHref(route, query)} scroll={false}>
+              Cerrar selección
+            </Link>
+          </Button>
+        </section>
+      ) : null}
       <ul className="mt-7 grid gap-3">
         {rows.map((file) => (
           <li key={file.id}>
-            <article className="flex min-h-20 items-center gap-4 border border-border bg-card p-4 shadow-surface">
+            <Link
+              aria-label={`Abrir ${file.title}`}
+              className={`flex min-h-20 items-center gap-4 border p-4 shadow-surface outline-none transition-colors hover:bg-secondary focus-visible:bg-secondary ${
+                selectedFileId === file.id ? 'border-primary bg-secondary' : 'border-border bg-card'
+              }`}
+              href={toMaterialHierarchyHref(route, query, file.id)}
+              scroll={false}
+            >
               <span
                 aria-hidden="true"
                 className="grid size-10 place-items-center border border-border bg-background text-primary"
@@ -386,7 +419,7 @@ function ResourceFileList({
                   new Date(file.createdAt),
                 )}
               </span>
-            </article>
+            </Link>
           </li>
         ))}
       </ul>
@@ -402,10 +435,12 @@ function ResourceFileList({
 function ReadyHierarchy({
   query,
   route,
+  selectedFileId,
   view,
 }: {
   query: string;
   route: Exclude<MaterialHierarchyRoute, { kind: 'invalid' }>;
+  selectedFileId?: string;
   view: HierarchyView;
 }) {
   if (view.kind === 'careers') {
@@ -594,7 +629,13 @@ function ReadyHierarchy({
           {resourceTypeLabels[view.resourceType]}
         </h2>
         <ScopedSearch query={query} route={scopedRoute} subjectName={view.subject.name} />
-        <ResourceFileList files={view.files} hasMore={view.hasMore} />
+        <ResourceFileList
+          files={view.files}
+          hasMore={view.hasMore}
+          query={query}
+          route={scopedRoute}
+          selectedFileId={selectedFileId}
+        />
         {view.files.length === 0 ? (
           <EmptyState
             className="mt-9"
@@ -621,7 +662,12 @@ function ReadyHierarchy({
             <Link href={toMaterialHierarchyHref(scopedRoute)}>Borrar búsqueda</Link>
           </Button>
         </div>
-        <ResourceFileList materialRows={view.results.data} />
+        <ResourceFileList
+          materialRows={view.results.data}
+          query={query}
+          route={scopedRoute}
+          selectedFileId={selectedFileId}
+        />
         {view.results.data.length === 0 ? (
           <EmptyState
             className="mt-7"
@@ -637,9 +683,11 @@ function ReadyHierarchy({
 function MaterialHierarchyContent({
   query,
   route,
+  selectedFileId,
 }: {
   query: string;
   route: MaterialHierarchyRoute;
+  selectedFileId?: string;
 }) {
   const [requestState, setRequestState] = useState<RequestState>({ status: 'loading' });
   const [retryKey, setRetryKey] = useState(0);
@@ -695,18 +743,38 @@ function MaterialHierarchyContent({
     );
   }
 
-  return <ReadyHierarchy query={query} route={route} view={requestState.view} />;
+  return (
+    <ReadyHierarchy
+      query={query}
+      route={route}
+      selectedFileId={selectedFileId}
+      view={requestState.view}
+    />
+  );
 }
 
-export function MaterialHierarchyPage({ query, segments }: { query: string; segments: string[] }) {
+export function MaterialHierarchyPage({
+  query,
+  selectedFileId,
+  segments,
+}: {
+  query: string;
+  selectedFileId?: string;
+  segments: string[];
+}) {
   const route = useMemo(() => parseMaterialHierarchyRoute(segments), [segments]);
   const normalizedQuery = query.trim().slice(0, 120);
-  const routeKey = `${segments.join('/')}:${normalizedQuery}`;
+  const routeKey = `${segments.join('/')}:${normalizedQuery}:${selectedFileId ?? ''}`;
 
   return (
     <main className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
       <div className="mx-auto max-w-[1180px] px-5 py-10 sm:px-10 sm:py-14">
-        <MaterialHierarchyContent key={routeKey} query={normalizedQuery} route={route} />
+        <MaterialHierarchyContent
+          key={routeKey}
+          query={normalizedQuery}
+          route={route}
+          selectedFileId={selectedFileId}
+        />
       </div>
     </main>
   );

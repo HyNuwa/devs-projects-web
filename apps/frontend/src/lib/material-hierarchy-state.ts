@@ -127,9 +127,16 @@ export function materialHierarchyPath(
 export function toMaterialHierarchyHref(
   route: Exclude<MaterialHierarchyRoute, { kind: 'invalid' }>,
   query = '',
+  selectedFileId?: string,
 ): string {
   const path = materialHierarchyPath(route);
   const normalizedQuery = query.trim().slice(0, 120);
+  const normalizedFileId = selectedFileId?.trim();
+  const params: string[] = [];
 
-  return normalizedQuery ? `${path}?q=${encodeURIComponent(normalizedQuery)}` : path;
+  if (normalizedQuery) params.push(`q=${encodeURIComponent(normalizedQuery)}`);
+  if (normalizedFileId) params.push(`archivo=${encodeURIComponent(normalizedFileId)}`);
+
+  const search = params.join('&');
+  return search ? `${path}?${search}` : path;
 }

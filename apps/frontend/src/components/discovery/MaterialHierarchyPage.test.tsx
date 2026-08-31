@@ -144,6 +144,7 @@ describe('MaterialHierarchyPage', () => {
     render(
       <MaterialHierarchyPage
         query=""
+        selectedFileId="material-2"
         segments={[
           'carreras',
           careerId,
@@ -158,8 +159,17 @@ describe('MaterialHierarchyPage', () => {
       />,
     );
 
-    expect(await screen.findByText('Parcial 1')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Abrir Parcial 1' })).toBeInTheDocument();
     expect(getHierarchyFiles).toHaveBeenCalledWith(subjectId, 'PARCIAL');
+    expect(screen.getByText('Archivo seleccionado')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Abrir Parcial 1' })).toHaveAttribute(
+      'href',
+      `/materiales/carreras/${careerId}/planes/${studyPlanId}/anios/2/materias/${subjectId}/PARCIAL?archivo=material-2`,
+    );
+    expect(screen.getByRole('link', { name: 'Cerrar selección' })).toHaveAttribute(
+      'href',
+      `/materiales/carreras/${careerId}/planes/${studyPlanId}/anios/2/materias/${subjectId}/PARCIAL`,
+    );
     expect(screen.getByRole('navigation', { name: 'Ruta de navegación' })).toHaveTextContent(
       'Parciales',
     );

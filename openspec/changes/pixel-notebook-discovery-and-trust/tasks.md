@@ -71,7 +71,7 @@
 
 ## 7. Resource list and context-preserving preview
 
-- [ ] 7.1 Build compact Drive-like resource lists inside materia/category routes and encode the selected file as `archivo=<materialId>` without losing query, filter, breadcrumb, or scroll context; verify row activation, reload, sharing, browser history, and close behavior.
+- [x] 7.1 Build compact Drive-like resource lists inside materia/category routes and encode the selected file as `archivo=<materialId>` without losing query, filter, breadcrumb, or scroll context; verify row activation, reload, sharing, browser history, and close behavior.
 - [ ] 7.2 Build the source-owned Radix Dialog preview composition with visible file identity/actions, large desktop preview plus right-hand comments/community panel, and full-screen or stacked mobile layout; verify focus trap, Escape/outside close, background inertness, accessible naming, and focus restoration.
 - [ ] 7.3 Implement image/PDF preview renderers with allowlisted embed behavior and an explicit unsupported/failed fallback; verify metadata, comments, actions, and download remain available when preview fails.
 - [ ] 7.4 Wire `Me sirvió` and `Guardar` to viewer state and idempotent mutations; verify optimistic or loading feedback reconciles with server state and anonymous sign-in preserves a same-origin return path.
