@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { api } from '@/lib/api';
 import { getData } from '@/lib/apiHelpers';
-import type { GroupedDiscoverySuggestions } from '@/types/discovery';
+import type { DiscoveryCourseReviewList, GroupedDiscoverySuggestions } from '@/types/discovery';
 import type { Material, MaterialResourceType, Paginated } from '@/types/material';
 
 export const materialResourceTypes = [
@@ -15,6 +15,14 @@ export const materialResourceTypes = [
 ] as const satisfies readonly MaterialResourceType[];
 
 export const materialDiscoverySorts = ['RELEVANCE', 'RECENT'] as const;
+export const courseReviewDiscoverySorts = ['RECENT', 'STARS_ASC', 'STARS_DESC'] as const;
+export const communityDifficulties = ['MUY_BAJA', 'BAJA', 'MEDIA', 'ALTA', 'MUY_ALTA'] as const;
+export const courseAttempts = [
+  'PRIMERA_CURSADA',
+  'PRIMERA_RECURSADA',
+  'SEGUNDA_O_MAS_RECURSADAS',
+  'PREFIERO_NO_RESPONDER',
+] as const;
 
 const minimumAcademicYear = 1900;
 const maximumAcademicYear = new Date().getUTCFullYear() + 1;
@@ -47,8 +55,22 @@ export const materialDiscoveryQuerySchema = z
   })
   .strict();
 
+export const courseReviewDiscoveryQuerySchema = z
+  .object({
+    subjectId: z.string().uuid().optional(),
+    academicYear: z.number().int().min(minimumAcademicYear).max(maximumAcademicYear).optional(),
+    professorId: z.string().uuid().optional(),
+    difficulty: z.enum(communityDifficulties).optional(),
+    attempt: z.enum(courseAttempts).optional(),
+    sort: z.enum(courseReviewDiscoverySorts).optional(),
+    page: z.number().int().min(1).optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+  })
+  .strict();
+
 export type GroupedSuggestionsQuery = z.input<typeof groupedSuggestionsQuerySchema>;
 export type MaterialDiscoveryQuery = z.input<typeof materialDiscoveryQuerySchema>;
+export type CourseReviewDiscoveryQuery = z.input<typeof courseReviewDiscoveryQuerySchema>;
 
 function toSearchParams(
   entries: ReadonlyArray<readonly [string, string | number | undefined]>,
@@ -88,6 +110,23 @@ export function serializeMaterialDiscoveryQuery(input: MaterialDiscoveryQuery): 
   ]);
 }
 
+export function serializeCourseReviewDiscoveryQuery(
+  input: CourseReviewDiscoveryQuery,
+): URLSearchParams {
+  const query = courseReviewDiscoveryQuerySchema.parse(input);
+
+  return toSearchParams([
+    ['subjectId', query.subjectId],
+    ['academicYear', query.academicYear],
+    ['professorId', query.professorId],
+    ['difficulty', query.difficulty],
+    ['attempt', query.attempt],
+    ['sort', query.sort],
+    ['page', query.page],
+    ['limit', query.limit],
+  ]);
+}
+
 export async function getGroupedSuggestions(
   query: GroupedSuggestionsQuery,
 ): Promise<GroupedDiscoverySuggestions> {
@@ -103,6 +142,16 @@ export async function getMaterialDiscovery(
 ): Promise<Paginated<Material>> {
   const response = await api.get<Paginated<Material>>('/materials', {
     params: serializeMaterialDiscoveryQuery(query),
+  });
+
+  return getData(response);
+}
+
+export async function getCourseReviewDiscovery(
+  query: CourseReviewDiscoveryQuery,
+): Promise<DiscoveryCourseReviewList> {
+  const response = await api.get<DiscoveryCourseReviewList>('/discovery/course-reviews', {
+    params: serializeCourseReviewDiscoveryQuery(query),
   });
 
   return getData(response);

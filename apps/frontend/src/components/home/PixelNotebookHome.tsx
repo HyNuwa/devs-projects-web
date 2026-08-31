@@ -113,7 +113,7 @@ export function PixelNotebookHome() {
               </em>
               .
             </h1>
-            <p className="mt-6 max-w-[54ch] font-serif text-lg leading-relaxed text-muted-foreground sm:text-xl">
+            <p className="mt-6 max-w-[54ch] font-serif text-lg leading-relaxed text-secondary-foreground sm:text-xl">
               Reuní parciales, apuntes y experiencias para preparar una materia con una ruta clara.
             </p>
 
@@ -261,7 +261,7 @@ export function PixelNotebookHome() {
               ))}
             </nav>
 
-            <p className="mt-5 flex items-center gap-2 font-sans text-sm text-muted-foreground">
+            <p className="mt-5 flex items-center gap-2 font-sans text-sm text-secondary-foreground">
               <Kaomoji className="text-base text-primary" id="encouragement" />
               Encontrá tu punto de partida y seguí desde ahí.
             </p>

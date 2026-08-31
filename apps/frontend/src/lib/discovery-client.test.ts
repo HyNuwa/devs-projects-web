@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { api } from '@/lib/api';
 import {
+  getCourseReviewDiscovery,
   getGroupedSuggestions,
   getMaterialDiscovery,
+  serializeCourseReviewDiscoveryQuery,
   serializeGroupedSuggestionsQuery,
   serializeMaterialDiscoveryQuery,
 } from './discovery-client';
@@ -53,6 +55,23 @@ describe('discovery client', () => {
     ]);
   });
 
+  it('serializes the supported course-review discovery parameters', () => {
+    const params = serializeCourseReviewDiscoveryQuery({
+      subjectId,
+      academicYear: 2026,
+      professorId,
+      difficulty: 'ALTA',
+      attempt: 'PRIMERA_RECURSADA',
+      sort: 'STARS_DESC',
+      page: 3,
+      limit: 12,
+    });
+
+    expect(params.toString()).toBe(
+      `subjectId=${subjectId}&academicYear=2026&professorId=${professorId}&difficulty=ALTA&attempt=PRIMERA_RECURSADA&sort=STARS_DESC&page=3&limit=12`,
+    );
+  });
+
   it('rejects unsupported keys and values before a request is sent', () => {
     expect(() =>
       serializeMaterialDiscoveryQuery({
@@ -79,6 +98,13 @@ describe('discovery client', () => {
           data: [],
           meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
         },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          data: [],
+          aggregate: { averageRecommendation: null, reviewCount: 0 },
+          meta: { page: 1, limit: 2, total: 0, totalPages: 0 },
+        },
       });
 
     await expect(getGroupedSuggestions({ q: 'álgebra' })).resolves.toEqual({
@@ -88,6 +114,7 @@ describe('discovery client', () => {
     await expect(getMaterialDiscovery({ search: 'álgebra' })).resolves.toMatchObject({
       data: [],
     });
+    await expect(getCourseReviewDiscovery({ limit: 2 })).resolves.toMatchObject({ data: [] });
 
     expect(get).toHaveBeenNthCalledWith(
       1,
@@ -108,6 +135,16 @@ describe('discovery client', () => {
     );
     expect((get.mock.calls[1]?.[1] as { params: URLSearchParams }).params.toString()).toBe(
       'search=%C3%A1lgebra',
+    );
+    expect(get).toHaveBeenNthCalledWith(
+      3,
+      '/discovery/course-reviews',
+      expect.objectContaining({
+        params: expect.objectContaining({ toString: expect.any(Function) }),
+      }),
+    );
+    expect((get.mock.calls[2]?.[1] as { params: URLSearchParams }).params.toString()).toBe(
+      'limit=2',
     );
   });
 });
