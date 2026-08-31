@@ -66,7 +66,7 @@
 - [x] 6.4 Implement `/buscar` with URL-backed query/filter/page/sort state and compact resource rows; when one materia strongly matches, promote its identity/metadata to the page heading and omit the generic hero plus duplicate materia card, while retaining an all-materias escape. Verify refresh, sharing, and browser back/forward preserve state.
 - [x] 6.5 Implement comparison rows with resource type, materia, optional context, helpful count, star aggregate, and open-preview action; verify missing values render `No informado`, no `Revisado` badge appears, and stars remain compact comparison evidence.
 - [x] 6.6 Implement desktop and mobile filter controls with visible active chips and clear actions; verify equivalent filter behavior and keyboard access at representative viewport sizes.
-- [ ] 6.7 Implement loading, partial-context, no-match, filtered-empty, API-error, and retry states for suggestions/results; verify query and filter state survive every failure path.
+- [x] 6.7 Implement loading, partial-context, no-match, filtered-empty, API-error, and retry states for suggestions/results; verify query and filter state survive every failure path.
 - [ ] 6.8 Implement `/materiales` hierarchy routes for career → year → materia → resource category/file list with breadcrumbs and materia-scoped search; verify stable URLs, empty states, scope isolation, deep links, and mobile navigation.
 
 ## 7. Resource list and context-preserving preview

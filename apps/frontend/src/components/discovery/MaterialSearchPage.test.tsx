@@ -185,4 +185,70 @@ describe('MaterialSearchPage', () => {
     });
     expect(await screen.findByText('Apunte de álgebra')).toBeInTheDocument();
   });
+
+  it('keeps resource results available when the optional subject suggestions fail', async () => {
+    navigation.searchParams = new URLSearchParams('q=grafos&resourceType=FINAL');
+    vi.mocked(getGroupedSuggestions).mockRejectedValueOnce(new Error('suggestions unavailable'));
+    vi.mocked(getMaterialDiscovery).mockResolvedValueOnce(materialPage([material()]));
+
+    render(<MaterialSearchPage />);
+
+    expect(await screen.findByText('Contexto parcial')).toBeInTheDocument();
+    expect(screen.getByText('Parcial resuelto de complejidad')).toBeInTheDocument();
+    expect(getMaterialDiscovery).toHaveBeenCalledWith({
+      search: 'grafos',
+      resourceType: 'FINAL',
+      sort: 'RELEVANCE',
+      page: 1,
+      limit: 10,
+    });
+    expect(screen.getByRole('searchbox')).toHaveValue('grafos');
+    expect(screen.getByRole('button', { name: 'Quitar filtro Tipo: Final' })).toBeInTheDocument();
+  });
+
+  it('distinguishes no matches from an empty filtered result and keeps the query when filters clear', async () => {
+    navigation.searchParams = new URLSearchParams('q=sin-resultados');
+    vi.mocked(getGroupedSuggestions).mockResolvedValueOnce(suggestions());
+    vi.mocked(getMaterialDiscovery).mockResolvedValueOnce(materialPage([]));
+
+    const view = render(<MaterialSearchPage />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'No encontramos coincidencias' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toHaveValue('sin-resultados');
+
+    navigation.searchParams = new URLSearchParams('q=sin-resultados&resourceType=FINAL');
+    vi.mocked(getGroupedSuggestions).mockResolvedValueOnce(suggestions());
+    vi.mocked(getMaterialDiscovery).mockResolvedValueOnce(materialPage([]));
+    view.rerender(<MaterialSearchPage />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'No hay resultados con estos filtros' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar todos los filtros' }));
+    expect(navigation.push).toHaveBeenLastCalledWith('/buscar?q=sin-resultados');
+  });
+
+  it('retries a failed resource request without replacing the URL-backed state', async () => {
+    navigation.searchParams = new URLSearchParams('q=grafos&academicYear=2026');
+    vi.mocked(getGroupedSuggestions).mockResolvedValue(suggestions());
+    vi.mocked(getMaterialDiscovery)
+      .mockRejectedValueOnce(new Error('materials unavailable'))
+      .mockResolvedValueOnce(materialPage([material({ title: 'Apunte de grafos' })]));
+
+    render(<MaterialSearchPage />);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toHaveValue('grafos');
+    expect(
+      screen.getByRole('button', { name: 'Quitar filtro Ciclo lectivo: 2026' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect(await screen.findByText('Apunte de grafos')).toBeInTheDocument();
+    expect(getMaterialDiscovery).toHaveBeenCalledTimes(2);
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
 });

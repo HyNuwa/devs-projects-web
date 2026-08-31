@@ -5,18 +5,18 @@ import { cn } from './utils';
 type StatePanelProps = React.ComponentProps<'section'> & {
   action?: React.ReactNode;
   description?: React.ReactNode;
+  heading: React.ReactNode;
   icon: React.ReactNode;
   status: 'empty' | 'error' | 'loading';
-  title: React.ReactNode;
 };
 
 function StatePanel({
   action,
   className,
   description,
+  heading,
   icon,
   status,
-  title,
   ...props
 }: StatePanelProps) {
   return (
@@ -33,7 +33,7 @@ function StatePanel({
         {icon}
       </span>
       <div className="grid gap-1">
-        <h2 className="font-serif text-xl font-bold text-card-foreground">{title}</h2>
+        <h2 className="font-serif text-xl font-bold text-card-foreground">{heading}</h2>
         {description ? (
           <p className="font-sans text-sm text-muted-foreground">{description}</p>
         ) : null}
@@ -43,9 +43,11 @@ function StatePanel({
   );
 }
 
-type PublicStateProps = Omit<StatePanelProps, 'children' | 'icon' | 'status' | 'title'>;
+type PublicStateProps = Omit<StatePanelProps, 'children' | 'heading' | 'icon' | 'status'> & {
+  heading?: React.ReactNode;
+};
 
-export function LoadingState({ className, ...props }: PublicStateProps) {
+export function LoadingState({ className, heading = 'Cargando', ...props }: PublicStateProps) {
   return (
     <StatePanel
       aria-live="polite"
@@ -53,25 +55,33 @@ export function LoadingState({ className, ...props }: PublicStateProps) {
       icon={<LoaderCircle className="size-6 animate-spin text-primary" />}
       role="status"
       status="loading"
-      title="Cargando"
+      heading={heading}
       {...props}
     />
   );
 }
 
-export function EmptyState({ className, ...props }: PublicStateProps) {
+export function EmptyState({
+  className,
+  heading = 'Todavía no hay resultados',
+  ...props
+}: PublicStateProps) {
   return (
     <StatePanel
       className={className}
       icon={<Inbox className="size-6 text-primary" />}
       status="empty"
-      title="Todavía no hay resultados"
+      heading={heading}
       {...props}
     />
   );
 }
 
-export function ErrorState({ className, ...props }: PublicStateProps) {
+export function ErrorState({
+  className,
+  heading = 'No pudimos cargar esto',
+  ...props
+}: PublicStateProps) {
   return (
     <StatePanel
       aria-live="assertive"
@@ -79,7 +89,7 @@ export function ErrorState({ className, ...props }: PublicStateProps) {
       icon={<CircleAlert className="size-6 text-destructive" />}
       role="alert"
       status="error"
-      title="No pudimos cargar esto"
+      heading={heading}
       {...props}
     />
   );

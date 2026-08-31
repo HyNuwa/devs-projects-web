@@ -46,6 +46,7 @@ type SearchRequestState =
   | {
       status: 'ready';
       suggestions: GroupedDiscoverySuggestions;
+      suggestionsStatus: 'ready' | 'error';
       strongSubject: DiscoverySubjectSuggestion | null;
       results: Paginated<Material>;
     }
@@ -239,12 +240,57 @@ function ratingEvidence(material: Material) {
   };
 }
 
+function hasActiveFilters(state: MaterialSearchState): boolean {
+  return Boolean(state.resourceType || state.subjectId || state.academicYear || state.professorId);
+}
+
+function PartialContextNotice({
+  filterOptionsUnavailable,
+  onRetryFilterOptions,
+  onRetrySearch,
+  suggestionsUnavailable,
+}: {
+  filterOptionsUnavailable: boolean;
+  onRetryFilterOptions: () => void;
+  onRetrySearch: () => void;
+  suggestionsUnavailable: boolean;
+}) {
+  if (!filterOptionsUnavailable && !suggestionsUnavailable) {
+    return null;
+  }
+
+  return (
+    <section
+      aria-live="polite"
+      className="mt-8 flex flex-col gap-3 border border-border bg-secondary/55 p-5 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <h2 className="font-serif text-xl font-bold text-foreground">Contexto parcial</h2>
+        <p className="mt-1 text-sm text-secondary-foreground">
+          {suggestionsUnavailable
+            ? 'No pudimos cargar las coincidencias de materias. Los recursos publicados siguen disponibles.'
+            : 'No pudimos cargar algunas opciones de filtro. Tu consulta y filtros actuales se conservaron.'}
+        </p>
+      </div>
+      <Button
+        onClick={suggestionsUnavailable ? onRetrySearch : onRetryFilterOptions}
+        size="sm"
+        variant="outline"
+      >
+        Reintentar
+      </Button>
+    </section>
+  );
+}
+
 function SearchContent({ state }: { state: MaterialSearchState }) {
   const router = useRouter();
   const [queryInput, setQueryInput] = useState(state.q);
   const [requestState, setRequestState] = useState<SearchRequestState>({ status: 'loading' });
   const [draftFilters, setDraftFilters] = useState<FilterDraft>(() => filterDraftFrom(state));
   const [filterOptions, setFilterOptions] = useState<FilterOptionsState>({ status: 'loading' });
+  const [searchRetryKey, setSearchRetryKey] = useState(0);
+  const [filterOptionsRetryKey, setFilterOptionsRetryKey] = useState(0);
 
   useEffect(() => {
     let current = true;
@@ -266,22 +312,39 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
     return () => {
       current = false;
     };
-  }, []);
+  }, [filterOptionsRetryKey]);
 
   useEffect(() => {
     let isCurrentRequest = true;
 
     async function loadSearch() {
+      let suggestions: GroupedDiscoverySuggestions = { subjects: [], materials: [] };
+      let suggestionsStatus: 'ready' | 'error' = 'ready';
+
+      if (state.q) {
+        try {
+          suggestions = await getGroupedSuggestions({ q: state.q, limit: 10 });
+        } catch {
+          suggestionsStatus = 'error';
+        }
+      }
+
+      const strongSubject =
+        suggestionsStatus === 'ready' && state.scope !== 'all'
+          ? findExactSubjectMatch(state.q, suggestions)
+          : null;
+
       try {
-        const suggestions = state.q
-          ? await getGroupedSuggestions({ q: state.q, limit: 10 })
-          : { subjects: [], materials: [] };
-        const strongSubject =
-          state.scope === 'all' ? null : findExactSubjectMatch(state.q, suggestions);
         const results = await getMaterialDiscovery(materialQueryFor(state, strongSubject));
 
         if (isCurrentRequest) {
-          setRequestState({ status: 'ready', suggestions, strongSubject, results });
+          setRequestState({
+            status: 'ready',
+            suggestions,
+            suggestionsStatus,
+            strongSubject,
+            results,
+          });
         }
       } catch {
         if (isCurrentRequest) {
@@ -295,7 +358,7 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
     return () => {
       isCurrentRequest = false;
     };
-  }, [state]);
+  }, [state, searchRetryKey]);
 
   const updateSearch = (nextState: MaterialSearchState) => {
     router.push(toMaterialSearchHref(nextState));
@@ -304,6 +367,14 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
   const clearDraftFilters = () => setDraftFilters({});
   const clearFilter = (key: keyof FilterDraft) =>
     updateSearch({ ...state, [key]: undefined, page: 1 });
+  const retrySearch = () => {
+    setRequestState({ status: 'loading' });
+    setSearchRetryKey((value) => value + 1);
+  };
+  const retryFilterOptions = () => {
+    setFilterOptions({ status: 'loading' });
+    setFilterOptionsRetryKey((value) => value + 1);
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -327,6 +398,7 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
 
   const resultTotal = requestState.status === 'ready' ? requestState.results.meta.total : null;
   const strongSubject = requestState.status === 'ready' ? requestState.strongSubject : null;
+  const filtersAreActive = hasActiveFilters(state);
 
   return (
     <main className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
@@ -425,11 +497,9 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
           </div>
         </div>
 
-        <section aria-labelledby="material-filters" className="mt-6">
+        <section aria-label="Filtros de materiales" className="mt-6">
           <div className="flex items-center justify-between gap-4 lg:hidden">
-            <h2 id="material-filters" className="font-serif text-2xl font-bold text-foreground">
-              Filtros
-            </h2>
+            <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
             <FilterSheet
               onApply={applyFilters}
               onClear={clearDraftFilters}
@@ -448,9 +518,7 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
           </div>
           <div className="hidden border-y border-line py-5 lg:block">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 id="material-filters" className="font-serif text-2xl font-bold text-foreground">
-                Filtros
-              </h2>
+              <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
               <div className="flex gap-2">
                 <Button onClick={clearDraftFilters} size="sm" variant="outline">
                   Limpiar
@@ -467,7 +535,7 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
               options={filterOptions}
             />
           </div>
-          {state.resourceType || state.subjectId || state.academicYear || state.professorId ? (
+          {filtersAreActive ? (
             <div aria-label="Filtros activos" className="mt-4 flex flex-wrap gap-2">
               {state.resourceType ? (
                 <Button
@@ -539,12 +607,21 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
         {requestState.status === 'error' ? (
           <ErrorState
             action={
-              <Button onClick={() => updateSearch({ ...state })} variant="outline">
+              <Button onClick={retrySearch} variant="outline">
                 Reintentar
               </Button>
             }
             className="mt-8"
             description="Conservamos tu búsqueda y filtros para que puedas intentarlo de nuevo."
+          />
+        ) : null}
+
+        {requestState.status === 'ready' ? (
+          <PartialContextNotice
+            filterOptionsUnavailable={filterOptions.status === 'error'}
+            onRetryFilterOptions={retryFilterOptions}
+            onRetrySearch={retrySearch}
+            suggestionsUnavailable={requestState.suggestionsStatus === 'error'}
           />
         ) : null}
 
@@ -694,10 +771,38 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
         {requestState.status === 'ready' && requestState.results.data.length === 0 ? (
           <EmptyState
             className="mt-8"
+            heading={
+              filtersAreActive
+                ? 'No hay resultados con estos filtros'
+                : state.q
+                  ? 'No encontramos coincidencias'
+                  : 'Todavía no hay recursos públicos'
+            }
             description={
-              state.q
-                ? 'No encontramos recursos públicos para esta búsqueda.'
-                : 'Todavía no hay recursos públicos para mostrar.'
+              filtersAreActive
+                ? 'Probá quitar uno o más filtros para ampliar los resultados.'
+                : state.q
+                  ? 'No encontramos recursos públicos para esta búsqueda.'
+                  : 'Todavía no hay recursos públicos para mostrar.'
+            }
+            action={
+              filtersAreActive ? (
+                <Button
+                  onClick={() =>
+                    updateSearch({
+                      ...state,
+                      subjectId: undefined,
+                      resourceType: undefined,
+                      academicYear: undefined,
+                      professorId: undefined,
+                      page: 1,
+                    })
+                  }
+                  variant="outline"
+                >
+                  Quitar todos los filtros
+                </Button>
+              ) : undefined
             }
           />
         ) : null}
