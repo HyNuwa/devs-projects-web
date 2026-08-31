@@ -133,6 +133,32 @@ describe('MaterialSearchPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders compact comparison evidence without a public moderation badge', async () => {
+    navigation.searchParams = new URLSearchParams('q=estructuras');
+    vi.mocked(getGroupedSuggestions).mockResolvedValue(suggestions());
+    vi.mocked(getMaterialDiscovery).mockResolvedValue(materialPage([material()]));
+
+    render(<MaterialSearchPage />);
+
+    expect(await screen.findByText('Parcial resuelto de complejidad')).toBeInTheDocument();
+    expect(screen.getByText('Parcial')).toBeInTheDocument();
+    expect(screen.getByText('Álgebra I')).toBeInTheDocument();
+    expect(screen.getByText('Ciclo lectivo')).toBeInTheDocument();
+    expect(screen.getByText('2026')).toBeInTheDocument();
+    expect(screen.getByText('Profesor')).toBeInTheDocument();
+    expect(screen.getByText('Turno')).toBeInTheDocument();
+    expect(screen.getAllByText('No informado')).toHaveLength(2);
+    expect(screen.getByText('12 dijeron “Me sirvió”')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('4,5 de 5 estrellas a partir de 2 valoraciones'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Vista previa' })).toHaveAttribute(
+      'href',
+      '/materiales?archivo=material-1',
+    );
+    expect(screen.queryByText(/revisado/i)).not.toBeInTheDocument();
+  });
+
   it('updates sorting in the URL and reloads results when browser state changes', async () => {
     navigation.searchParams = new URLSearchParams('q=grafos&resourceType=FINAL&page=2');
     vi.mocked(getGroupedSuggestions).mockResolvedValue(suggestions());

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight, BookOpenText, FileText, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpenText, Eye, Search, Star, ThumbsUp } from 'lucide-react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/shadcn/button';
@@ -28,6 +28,13 @@ const resourceTypeLabels: Record<MaterialResourceType, string> = {
   GUIA_EJERCICIOS: 'Guía de ejercicios',
   OTRO: 'Otro recurso',
 };
+
+const shiftLabels = {
+  MANANA: 'Mañana',
+  TARDE: 'Tarde',
+  NOCHE: 'Noche',
+  NO_INDICO: 'No informado',
+} as const;
 
 type SearchRequestState =
   | { status: 'loading' }
@@ -86,6 +93,29 @@ function materialQueryFor(
     sort: state.sort,
     page: state.page,
     limit: pageSize,
+  };
+}
+
+function academicContextValue(value: string | number | null): string | number {
+  return value ?? 'No informado';
+}
+
+function ratingEvidence(material: Material) {
+  const count = material.starSummary.count;
+  const average = Number(material.starSummary.average);
+
+  if (!count || !Number.isFinite(average)) {
+    return { accessibleName: 'Sin valoraciones todavía', visibleText: 'Sin valoraciones' };
+  }
+
+  const formattedAverage = new Intl.NumberFormat('es-AR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(average);
+
+  return {
+    accessibleName: `${formattedAverage} de 5 estrellas a partir de ${count} valoraciones`,
+    visibleText: `${formattedAverage} ★ · ${count}`,
   };
 }
 
@@ -148,24 +178,22 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
   });
 
   const resultTotal = requestState.status === 'ready' ? requestState.results.meta.total : null;
-  const isStrongSubject = requestState.status === 'ready' && requestState.strongSubject !== null;
+  const strongSubject = requestState.status === 'ready' ? requestState.strongSubject : null;
 
   return (
     <main className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
       <div className="border-b border-border bg-secondary/55">
         <div className="mx-auto max-w-[1180px] px-5 py-11 sm:px-10 sm:py-14">
-          {isStrongSubject ? (
+          {strongSubject ? (
             <div className="max-w-4xl">
               <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
                 Materia
               </p>
               <h1 className="mt-3 font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-6xl">
-                {requestState.strongSubject.name}
+                {strongSubject.name}
               </h1>
               <p className="mt-4 text-base leading-relaxed text-secondary-foreground sm:text-lg">
-                {requestState.strongSubject.code
-                  ? `Código ${requestState.strongSubject.code} · `
-                  : ''}
+                {strongSubject.code ? `Código ${strongSubject.code} · ` : ''}
                 Recursos publicados para esta materia.
               </p>
               <Link
@@ -276,7 +304,7 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
         ) : null}
 
         {requestState.status === 'ready' &&
-        !isStrongSubject &&
+        !strongSubject &&
         requestState.suggestions.subjects.length > 0 ? (
           <section aria-labelledby="matching-subjects" className="mt-10">
             <div className="flex items-center gap-3">
@@ -331,11 +359,54 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
                     <p className="mt-2 text-sm text-secondary-foreground">
                       {material.subject.name}
                     </p>
+                    <dl className="mt-5 grid border-l border-t border-line sm:grid-cols-3">
+                      <div className="border-b border-r border-line px-3 py-3">
+                        <dt className="font-mono text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-primary">
+                          Ciclo lectivo
+                        </dt>
+                        <dd className="mt-1 text-sm font-bold text-foreground">
+                          {academicContextValue(material.academicYear)}
+                        </dd>
+                      </div>
+                      <div className="border-b border-r border-line px-3 py-3">
+                        <dt className="font-mono text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-primary">
+                          Profesor
+                        </dt>
+                        <dd className="mt-1 text-sm font-bold text-foreground">
+                          {academicContextValue(material.professor?.name ?? null)}
+                        </dd>
+                      </div>
+                      <div className="border-b border-r border-line px-3 py-3">
+                        <dt className="font-mono text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-primary">
+                          Turno
+                        </dt>
+                        <dd className="mt-1 text-sm font-bold text-foreground">
+                          {material.shift ? shiftLabels[material.shift] : 'No informado'}
+                        </dd>
+                      </div>
+                    </dl>
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-secondary-foreground">
+                      <span className="inline-flex items-center gap-2">
+                        <ThumbsUp
+                          aria-hidden="true"
+                          className="size-4 text-primary"
+                          strokeWidth={1.8}
+                        />
+                        {material.helpfulCount} dijeron “Me sirvió”
+                      </span>
+                      <span
+                        aria-label={ratingEvidence(material).accessibleName}
+                        className="inline-flex items-center gap-1 font-mono font-bold text-primary"
+                      >
+                        <Star aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                        {ratingEvidence(material).visibleText}
+                      </span>
+                    </div>
                   </div>
                   <Button asChild size="sm" variant="outline">
                     <Link href={`/materiales?archivo=${encodeURIComponent(material.id)}`}>
-                      <FileText aria-hidden="true" className="size-4" strokeWidth={1.8} />
-                      Abrir recurso
+                      <Eye aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                      Vista previa
                     </Link>
                   </Button>
                 </article>
