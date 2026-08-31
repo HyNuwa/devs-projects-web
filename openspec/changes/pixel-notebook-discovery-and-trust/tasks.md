@@ -53,7 +53,7 @@
 - [x] 5.3 Import the canonical tokens once through frontend globals and map Tailwind/shadcn roles to them; verify touched raw color/shadow values use semantic variables and the frontend build has one active token source.
 - [x] 5.4 Add or migrate source-owned React Button, Input, form field, chip, disclosure, and loading/empty/error primitives; use Radix-backed Dialog, Sheet, Select, Popover, Tabs, Tooltip, and menus only where behavior requires them, and verify component/accessibility tests cover variants, focus, labels, and semantic DOM.
 - [x] 5.5 Add a semantic responsive Breadcrumb React primitive with linked ancestors, `aria-current`, compact overflow handling, and route-derived labels; verify keyboard, narrow viewport, and 200% zoom behavior.
-- [ ] 5.6 Implement the mobile filter Sheet with focus trap, Escape handling, labelled controls, and focus restoration; verify keyboard interaction tests cover open, apply, clear, and close flows.
+- [x] 5.6 Implement the mobile filter Sheet with focus trap, Escape handling, labelled controls, and focus restoration; verify keyboard interaction tests cover open, apply, clear, and close flows.
 - [ ] 5.7 Rebuild the shared shell with Materias, Reseñas, Materiales, Finales, `Subir material`, and account actions while keeping forum/ranking outside primary navigation; verify desktop/mobile route and active-state checks pass.
 - [ ] 5.8 Add global focus-visible, 200% zoom, non-color status, and reduced-motion rules; verify a fixture journey remains operable with keyboard-only and reduced-motion settings.
 - [ ] 5.9 Add the local typed kaomoji allowlist with accessible decorative behavior and no runtime Glyphy request; verify network inspection and component tests show only local Unicode content.
