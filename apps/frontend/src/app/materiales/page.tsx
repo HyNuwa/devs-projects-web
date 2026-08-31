@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { MaterialList } from '@/components/materials/MaterialList';
+
+import { MaterialHierarchyPage } from '@/components/discovery/MaterialHierarchyPage';
 
 export const metadata: Metadata = {
-  title: 'Apuntes & Material - DevsProject',
-  description: 'Explora y descarga apuntes, libros y presentaciones compartidos por la comunidad',
+  title: 'Materiales - DevsProject',
+  description: 'Explorá recursos por carrera, año, materia y tipo de archivo.',
 };
 
 export default function MaterialesPage() {
-  return <MaterialList />;
+  return <MaterialHierarchyPage query="" segments={[]} />;
 }
