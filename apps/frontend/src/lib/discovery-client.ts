@@ -147,6 +147,13 @@ export async function getMaterialDiscovery(
   return getData(response);
 }
 
+/** Reads the approved public projection used by the in-list preview dialog. */
+export async function getPublicMaterial(id: string): Promise<Material> {
+  const response = await api.get<Material>(`/materials/${encodeURIComponent(id)}`);
+
+  return getData(response);
+}
+
 export async function getCourseReviewDiscovery(
   query: CourseReviewDiscoveryQuery,
 ): Promise<DiscoveryCourseReviewList> {

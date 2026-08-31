@@ -1,9 +1,13 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MaterialPreviewDialog } from './MaterialPreviewDialog';
+import { getPublicMaterial } from '@/lib/discovery-client';
+import type { Material } from '@/types/material';
+import { MaterialPreviewDialog, resolveAllowedPreviewUrl } from './MaterialPreviewDialog';
+
+vi.mock('@/lib/discovery-client', () => ({ getPublicMaterial: vi.fn() }));
 
 const file = {
   id: 'material-2',
@@ -12,6 +16,47 @@ const file = {
   academicYear: 2026,
   createdAt: '2026-08-30T12:00:00.000Z',
 };
+
+function material(overrides: Partial<Material> = {}): Material {
+  return {
+    id: file.id,
+    title: file.title,
+    description: null,
+    fileUrl: '/uploads/materials/parcial-1.pdf',
+    fileType: file.fileType,
+    fileSize: '1024',
+    thumbnailUrl: null,
+    authorId: 'author-1',
+    subjectId: 'subject-1',
+    resourceType: 'PARCIAL',
+    academicYear: 2026,
+    professorId: null,
+    shift: null,
+    downloadCount: 0,
+    avgRating: '0',
+    ratingCount: 0,
+    helpfulCount: 0,
+    commentCount: 0,
+    starSummary: { average: '0', count: 0 },
+    commentSummary: { count: 0 },
+    preview: {
+      capability: 'PDF',
+      url: 'https://drive.google.com/file/d/material-2/preview',
+      canPreview: true,
+      downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+      fallback: {
+        reason: 'PREVIEW_FAILED',
+        downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+      },
+    },
+    createdAt: file.createdAt,
+    updatedAt: file.createdAt,
+    author: { id: 'author-1', username: 'estudiante', displayName: null, avatarUrl: null },
+    subject: { id: 'subject-1', name: 'Estructuras de Datos', code: 'ED-01' },
+    professor: null,
+    ...overrides,
+  };
+}
 
 function DialogFixture({ onRequestClose = vi.fn() }: { onRequestClose?: () => void }) {
   const [open, setOpen] = useState(true);
@@ -37,6 +82,11 @@ function DialogFixture({ onRequestClose = vi.fn() }: { onRequestClose?: () => vo
 }
 
 describe('MaterialPreviewDialog', () => {
+  beforeEach(() => {
+    vi.mocked(getPublicMaterial).mockReset();
+    vi.mocked(getPublicMaterial).mockResolvedValue(material());
+  });
+
   it('keeps the list inert, moves focus into the dialog, and restores it after Escape', async () => {
     const user = userEvent.setup();
     const onRequestClose = vi.fn();
@@ -80,5 +130,73 @@ describe('MaterialPreviewDialog', () => {
 
     expect(onRequestClose).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('renders an allowlisted PDF preview and preserves context/actions when it fails', async () => {
+    render(<DialogFixture />);
+
+    const preview = await screen.findByTitle('Vista previa del archivo Parcial 1');
+    expect(preview).toHaveAttribute('src', 'https://drive.google.com/file/d/material-2/preview');
+    expect(preview).toHaveAttribute(
+      'sandbox',
+      'allow-forms allow-popups allow-same-origin allow-scripts',
+    );
+
+    fireEvent.error(preview);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'La vista previa no cargó' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'No pudimos cargar la vista previa' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Descargar' })).toHaveLength(2);
+    expect(screen.getByText(/Estructuras de Datos · APPLICATION\/PDF · 2026/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Comunidad' })).toBeInTheDocument();
+  });
+
+  it('renders allowlisted images and rejects arbitrary preview origins', async () => {
+    vi.mocked(getPublicMaterial).mockResolvedValueOnce(
+      material({
+        preview: {
+          capability: 'IMAGE',
+          url: '/uploads/materials/parcial-1.png',
+          canPreview: true,
+          downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+          fallback: {
+            reason: 'PREVIEW_FAILED',
+            downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+          },
+        },
+      }),
+    );
+    render(<DialogFixture />);
+
+    expect(await screen.findByRole('img', { name: 'Vista previa de Parcial 1' })).toHaveAttribute(
+      'src',
+      'http://localhost:3001/uploads/materials/parcial-1.png',
+    );
+    expect(resolveAllowedPreviewUrl('https://untrusted.example/preview.pdf')).toBeNull();
+  });
+
+  it('explains unsupported formats while preserving download access', async () => {
+    vi.mocked(getPublicMaterial).mockResolvedValueOnce(
+      material({
+        preview: {
+          capability: 'UNSUPPORTED',
+          url: null,
+          canPreview: false,
+          downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+          fallback: {
+            reason: 'UNSUPPORTED',
+            downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+          },
+        },
+      }),
+    );
+    render(<DialogFixture />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Vista previa no compatible' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Descargar' })).toHaveLength(2);
   });
 });

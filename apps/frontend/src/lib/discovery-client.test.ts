@@ -4,6 +4,7 @@ import {
   getCourseReviewDiscovery,
   getGroupedSuggestions,
   getMaterialDiscovery,
+  getPublicMaterial,
   serializeCourseReviewDiscoveryQuery,
   serializeGroupedSuggestionsQuery,
   serializeMaterialDiscoveryQuery,
@@ -105,6 +106,9 @@ describe('discovery client', () => {
           aggregate: { averageRecommendation: null, reviewCount: 0 },
           meta: { page: 1, limit: 2, total: 0, totalPages: 0 },
         },
+      })
+      .mockResolvedValueOnce({
+        data: { id: subjectId },
       });
 
     await expect(getGroupedSuggestions({ q: 'álgebra' })).resolves.toEqual({
@@ -115,6 +119,7 @@ describe('discovery client', () => {
       data: [],
     });
     await expect(getCourseReviewDiscovery({ limit: 2 })).resolves.toMatchObject({ data: [] });
+    await expect(getPublicMaterial(subjectId)).resolves.toEqual({ id: subjectId });
 
     expect(get).toHaveBeenNthCalledWith(
       1,
@@ -146,5 +151,6 @@ describe('discovery client', () => {
     expect((get.mock.calls[2]?.[1] as { params: URLSearchParams }).params.toString()).toBe(
       'limit=2',
     );
+    expect(get).toHaveBeenNthCalledWith(4, `/materials/${subjectId}`);
   });
 });
