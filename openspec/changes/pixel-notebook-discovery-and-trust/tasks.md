@@ -61,7 +61,7 @@
 ## 6. Homepage and comparison search
 
 - [x] 6.1 Add typed frontend clients for grouped suggestions and filtered material discovery; verify request serialization preserves supported URL parameters and rejects unsupported values.
-- [ ] 6.2 Build the Pixel Notebook homepage hero with dominant search, truly query-matched grouped suggestions, assessment shortcuts, and optional daily kaomoji; verify search remains the first meaningful task and the suggestion panel stacks before text becomes cramped on desktop or mobile.
+- [x] 6.2 Build the Pixel Notebook homepage hero with dominant search, truly query-matched grouped suggestions, assessment shortcuts, and optional daily kaomoji; verify search remains the first meaningful task and the suggestion panel stacks before text becomes cramped on desktop or mobile.
 - [ ] 6.3 Add supporting homepage sections in the approved order using real API data or explicitly labelled bounded empty states; verify no synthetic platform-scale claim is rendered.
 - [ ] 6.4 Implement `/buscar` with URL-backed query/filter/page/sort state and compact resource rows; when one materia strongly matches, promote its identity/metadata to the page heading and omit the generic hero plus duplicate materia card, while retaining an all-materias escape. Verify refresh, sharing, and browser back/forward preserve state.
 - [ ] 6.5 Implement comparison rows with resource type, materia, optional context, helpful count, star aggregate, and open-preview action; verify missing values render `No informado`, no `Revisado` badge appears, and stars remain compact comparison evidence.
