@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/shadcn/button';
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/shadcn/breadcrumb';
 import { Input } from '@/components/ui/shadcn/input';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn/state';
+import { MaterialPreviewDialog } from './MaterialPreviewDialog';
 import {
   getHierarchyCareers,
   getHierarchyCategories,
@@ -347,6 +348,7 @@ function ResourceFileList({
   query,
   route,
   selectedFileId,
+  subjectName,
 }: {
   files?: DiscoveryHierarchyFile[];
   hasMore?: boolean;
@@ -354,7 +356,9 @@ function ResourceFileList({
   query: string;
   route: NestedMaterialHierarchyRoute;
   selectedFileId?: string;
+  subjectName: string;
 }) {
+  const router = useRouter();
   const rows = materialRows
     ? materialRows.map((material) => ({
         id: material.id,
@@ -371,25 +375,20 @@ function ResourceFileList({
 
   const selectedFile = selectedFileId ? rows.find((file) => file.id === selectedFileId) : undefined;
 
+  const focusTargetId = (fileId: string) => `material-file-${fileId}`;
+
   return (
     <>
       {selectedFile ? (
-        <section
-          aria-live="polite"
-          className="mt-7 flex flex-wrap items-center justify-between gap-3 border border-primary bg-secondary p-4"
-        >
-          <p className="text-sm text-foreground">
-            <span className="font-mono text-[0.65rem] font-extrabold uppercase tracking-[0.08em] text-primary">
-              Archivo seleccionado
-            </span>
-            <span className="mt-1 block font-bold">{selectedFile.title}</span>
-          </p>
-          <Button asChild size="sm" variant="outline">
-            <Link href={toMaterialHierarchyHref(route, query)} scroll={false}>
-              Cerrar selección
-            </Link>
-          </Button>
-        </section>
+        <MaterialPreviewDialog
+          file={selectedFile}
+          focusTargetId={focusTargetId(selectedFile.id)}
+          onRequestClose={() =>
+            router.replace(toMaterialHierarchyHref(route, query), { scroll: false })
+          }
+          open
+          subjectName={subjectName}
+        />
       ) : null}
       <ul className="mt-7 grid gap-3">
         {rows.map((file) => (
@@ -400,6 +399,7 @@ function ResourceFileList({
                 selectedFileId === file.id ? 'border-primary bg-secondary' : 'border-border bg-card'
               }`}
               href={toMaterialHierarchyHref(route, query, file.id)}
+              id={focusTargetId(file.id)}
               scroll={false}
             >
               <span
@@ -635,6 +635,7 @@ function ReadyHierarchy({
           query={query}
           route={scopedRoute}
           selectedFileId={selectedFileId}
+          subjectName={view.subject.name}
         />
         {view.files.length === 0 ? (
           <EmptyState
@@ -667,6 +668,7 @@ function ReadyHierarchy({
           query={query}
           route={scopedRoute}
           selectedFileId={selectedFileId}
+          subjectName={view.subject.name}
         />
         {view.results.data.length === 0 ? (
           <EmptyState

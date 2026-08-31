@@ -9,10 +9,10 @@ import {
 import { getMaterialDiscovery } from '@/lib/discovery-client';
 import { MaterialHierarchyPage } from './MaterialHierarchyPage';
 
-const navigation = vi.hoisted(() => ({ push: vi.fn() }));
+const navigation = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: navigation.push }),
+  useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
 }));
 
 vi.mock('@/lib/discovery-hierarchy-client', () => ({
@@ -56,6 +56,7 @@ afterEach(cleanup);
 describe('MaterialHierarchyPage', () => {
   beforeEach(() => {
     navigation.push.mockReset();
+    navigation.replace.mockReset();
     vi.mocked(getHierarchyCareers).mockReset();
     vi.mocked(getHierarchyFiles).mockReset();
     vi.mocked(getHierarchySubjects).mockReset();
@@ -159,19 +160,16 @@ describe('MaterialHierarchyPage', () => {
       />,
     );
 
-    expect(await screen.findByRole('link', { name: 'Abrir Parcial 1' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' }),
+    ).toBeInTheDocument();
     expect(getHierarchyFiles).toHaveBeenCalledWith(subjectId, 'PARCIAL');
-    expect(screen.getByText('Archivo seleccionado')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Abrir Parcial 1' })).toHaveAttribute(
+    expect(document.getElementById('material-file-material-2')).toHaveAttribute(
       'href',
       `/materiales/carreras/${careerId}/planes/${studyPlanId}/anios/2/materias/${subjectId}/PARCIAL?archivo=material-2`,
     );
-    expect(screen.getByRole('link', { name: 'Cerrar selección' })).toHaveAttribute(
-      'href',
-      `/materiales/carreras/${careerId}/planes/${studyPlanId}/anios/2/materias/${subjectId}/PARCIAL`,
-    );
-    expect(screen.getByRole('navigation', { name: 'Ruta de navegación' })).toHaveTextContent(
-      'Parciales',
-    );
+    expect(
+      screen.getByRole('navigation', { name: 'Ruta de navegación', hidden: true }),
+    ).toHaveTextContent('Parciales');
   });
 });
