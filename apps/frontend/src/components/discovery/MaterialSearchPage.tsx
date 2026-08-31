@@ -6,8 +6,11 @@ import { ArrowLeft, ArrowRight, BookOpenText, Eye, Search, Star, ThumbsUp } from
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/shadcn/button';
+import { FilterSheet, FilterSheetFieldSet } from '@/components/ui/shadcn/filter-sheet';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn/state';
 import { Input } from '@/components/ui/shadcn/input';
+import { api } from '@/lib/api';
+import { getData } from '@/lib/apiHelpers';
 import { getGroupedSuggestions, getMaterialDiscovery } from '@/lib/discovery-client';
 import {
   parseMaterialSearchState,
@@ -16,6 +19,8 @@ import {
 } from '@/lib/material-search-state';
 import type { DiscoverySubjectSuggestion, GroupedDiscoverySuggestions } from '@/types/discovery';
 import type { Material, MaterialResourceType, Paginated } from '@/types/material';
+import type { Professor } from '@/types/professor';
+import type { Subject } from '@/types/subject';
 
 const pageSize = 10;
 
@@ -45,6 +50,121 @@ type SearchRequestState =
       results: Paginated<Material>;
     }
   | { status: 'error' };
+
+type FilterOptionsState =
+  | { status: 'loading' }
+  | { status: 'ready'; subjects: Subject[]; professors: Professor[] }
+  | { status: 'error' };
+
+type FilterDraft = Pick<
+  MaterialSearchState,
+  'subjectId' | 'resourceType' | 'academicYear' | 'professorId'
+>;
+
+const filterControlClassName =
+  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none shadow-field focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+
+function filterDraftFrom(state: MaterialSearchState): FilterDraft {
+  return {
+    subjectId: state.subjectId,
+    resourceType: state.resourceType,
+    academicYear: state.academicYear,
+    professorId: state.professorId,
+  };
+}
+
+function FilterFields({
+  draft,
+  idPrefix,
+  onChange,
+  options,
+}: {
+  draft: FilterDraft;
+  idPrefix: string;
+  onChange: (next: FilterDraft) => void;
+  options: FilterOptionsState;
+}) {
+  const subjects = options.status === 'ready' ? options.subjects : [];
+  const professors = options.status === 'ready' ? options.professors : [];
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <label className="grid gap-2 text-sm font-bold text-foreground" htmlFor={`${idPrefix}-type`}>
+        Tipo de recurso
+        <select
+          className={filterControlClassName}
+          id={`${idPrefix}-type`}
+          onChange={(event) =>
+            onChange({
+              ...draft,
+              resourceType: (event.target.value || undefined) as MaterialResourceType | undefined,
+            })
+          }
+          value={draft.resourceType ?? ''}
+        >
+          <option value="">Todos los tipos</option>
+          {Object.entries(resourceTypeLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label
+        className="grid gap-2 text-sm font-bold text-foreground"
+        htmlFor={`${idPrefix}-subject`}
+      >
+        Materia
+        <select
+          className={filterControlClassName}
+          id={`${idPrefix}-subject`}
+          onChange={(event) => onChange({ ...draft, subjectId: event.target.value || undefined })}
+          value={draft.subjectId ?? ''}
+        >
+          <option value="">Todas las materias</option>
+          {subjects.map((subject) => (
+            <option key={subject.id} value={subject.id}>
+              {subject.name}
+              {subject.code ? ` · ${subject.code}` : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="grid gap-2 text-sm font-bold text-foreground" htmlFor={`${idPrefix}-year`}>
+        Ciclo lectivo
+        <Input
+          id={`${idPrefix}-year`}
+          min="1900"
+          onChange={(event) => {
+            const value = event.target.value === '' ? undefined : Number(event.target.value);
+            onChange({ ...draft, academicYear: Number.isInteger(value) ? value : undefined });
+          }}
+          placeholder="Ej. 2026"
+          type="number"
+          value={draft.academicYear ?? ''}
+        />
+      </label>
+      <label
+        className="grid gap-2 text-sm font-bold text-foreground"
+        htmlFor={`${idPrefix}-professor`}
+      >
+        Profesor
+        <select
+          className={filterControlClassName}
+          id={`${idPrefix}-professor`}
+          onChange={(event) => onChange({ ...draft, professorId: event.target.value || undefined })}
+          value={draft.professorId ?? ''}
+        >
+          <option value="">Todos los profesores</option>
+          {professors.map((professor) => (
+            <option key={professor.id} value={professor.id}>
+              {professor.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
 
 function normalizeComparableText(value: string): string {
   return value
@@ -123,6 +243,30 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
   const router = useRouter();
   const [queryInput, setQueryInput] = useState(state.q);
   const [requestState, setRequestState] = useState<SearchRequestState>({ status: 'loading' });
+  const [draftFilters, setDraftFilters] = useState<FilterDraft>(() => filterDraftFrom(state));
+  const [filterOptions, setFilterOptions] = useState<FilterOptionsState>({ status: 'loading' });
+
+  useEffect(() => {
+    let current = true;
+    void Promise.all([
+      api.get<Subject[]>('/subjects'),
+      api.get<Paginated<Professor>>('/professors', { params: { page: 1, limit: 100 } }),
+    ])
+      .then(([subjects, professors]) => {
+        if (current)
+          setFilterOptions({
+            status: 'ready',
+            subjects: getData(subjects),
+            professors: getData(professors).data,
+          });
+      })
+      .catch(() => {
+        if (current) setFilterOptions({ status: 'error' });
+      });
+    return () => {
+      current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isCurrentRequest = true;
@@ -156,6 +300,10 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
   const updateSearch = (nextState: MaterialSearchState) => {
     router.push(toMaterialSearchHref(nextState));
   };
+  const applyFilters = () => updateSearch({ ...state, ...draftFilters, page: 1 });
+  const clearDraftFilters = () => setDraftFilters({});
+  const clearFilter = (key: keyof FilterDraft) =>
+    updateSearch({ ...state, [key]: undefined, page: 1 });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -277,12 +425,109 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
           </div>
         </div>
 
-        {state.resourceType || state.academicYear || state.professorId ? (
-          <p className="mt-4 text-sm text-secondary-foreground">
-            Los filtros incluidos en este enlace están activos. Podrás modificarlos desde los
-            controles de filtros.
-          </p>
-        ) : null}
+        <section aria-labelledby="material-filters" className="mt-6">
+          <div className="flex items-center justify-between gap-4 lg:hidden">
+            <h2 id="material-filters" className="font-serif text-2xl font-bold text-foreground">
+              Filtros
+            </h2>
+            <FilterSheet
+              onApply={applyFilters}
+              onClear={clearDraftFilters}
+              title="Filtrar materiales"
+              trigger={<Button variant="outline">Filtros</Button>}
+            >
+              <FilterSheetFieldSet legend="Refiná los resultados">
+                <FilterFields
+                  draft={draftFilters}
+                  idPrefix="mobile-filter"
+                  onChange={setDraftFilters}
+                  options={filterOptions}
+                />
+              </FilterSheetFieldSet>
+            </FilterSheet>
+          </div>
+          <div className="hidden border-y border-line py-5 lg:block">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 id="material-filters" className="font-serif text-2xl font-bold text-foreground">
+                Filtros
+              </h2>
+              <div className="flex gap-2">
+                <Button onClick={clearDraftFilters} size="sm" variant="outline">
+                  Limpiar
+                </Button>
+                <Button onClick={applyFilters} size="sm">
+                  Aplicar filtros
+                </Button>
+              </div>
+            </div>
+            <FilterFields
+              draft={draftFilters}
+              idPrefix="desktop-filter"
+              onChange={setDraftFilters}
+              options={filterOptions}
+            />
+          </div>
+          {state.resourceType || state.subjectId || state.academicYear || state.professorId ? (
+            <div aria-label="Filtros activos" className="mt-4 flex flex-wrap gap-2">
+              {state.resourceType ? (
+                <Button
+                  aria-label={`Quitar filtro Tipo: ${resourceTypeLabels[state.resourceType]}`}
+                  onClick={() => clearFilter('resourceType')}
+                  size="sm"
+                  variant="outline"
+                >
+                  Tipo: {resourceTypeLabels[state.resourceType]} ×
+                </Button>
+              ) : null}
+              {state.subjectId ? (
+                <Button
+                  aria-label="Quitar filtro Materia"
+                  onClick={() => clearFilter('subjectId')}
+                  size="sm"
+                  variant="outline"
+                >
+                  Materia ×
+                </Button>
+              ) : null}
+              {state.academicYear ? (
+                <Button
+                  aria-label={`Quitar filtro Ciclo lectivo: ${state.academicYear}`}
+                  onClick={() => clearFilter('academicYear')}
+                  size="sm"
+                  variant="outline"
+                >
+                  Ciclo: {state.academicYear} ×
+                </Button>
+              ) : null}
+              {state.professorId ? (
+                <Button
+                  aria-label="Quitar filtro Profesor"
+                  onClick={() => clearFilter('professorId')}
+                  size="sm"
+                  variant="outline"
+                >
+                  Profesor ×
+                </Button>
+              ) : null}
+              <Button
+                onClick={() =>
+                  updateSearch({
+                    ...state,
+                    subjectId: undefined,
+                    resourceType: undefined,
+                    academicYear: undefined,
+                    professorId: undefined,
+                    page: 1,
+                  })
+                }
+                size="sm"
+                variant="ghost"
+              >
+                Quitar todos
+              </Button>
+            </div>
+          ) : null}
+        </section>
 
         {requestState.status === 'loading' ? (
           <LoadingState

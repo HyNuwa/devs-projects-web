@@ -126,11 +126,7 @@ describe('MaterialSearchPage', () => {
       page: 2,
       limit: 10,
     });
-    expect(
-      screen.getByText(
-        'Los filtros incluidos en este enlace están activos. Podrás modificarlos desde los controles de filtros.',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quitar filtro Tipo: Final' })).toBeInTheDocument();
   });
 
   it('renders compact comparison evidence without a public moderation badge', async () => {
@@ -141,12 +137,12 @@ describe('MaterialSearchPage', () => {
     render(<MaterialSearchPage />);
 
     expect(await screen.findByText('Parcial resuelto de complejidad')).toBeInTheDocument();
-    expect(screen.getByText('Parcial')).toBeInTheDocument();
-    expect(screen.getByText('Álgebra I')).toBeInTheDocument();
-    expect(screen.getByText('Ciclo lectivo')).toBeInTheDocument();
+    expect(screen.getAllByText('Parcial').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Álgebra I').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Ciclo lectivo').length).toBeGreaterThan(0);
     expect(screen.getByText('2026')).toBeInTheDocument();
-    expect(screen.getByText('Profesor')).toBeInTheDocument();
-    expect(screen.getByText('Turno')).toBeInTheDocument();
+    expect(screen.getAllByText('Profesor').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Turno').length).toBeGreaterThan(0);
     expect(screen.getAllByText('No informado')).toHaveLength(2);
     expect(screen.getByText('12 dijeron “Me sirvió”')).toBeInTheDocument();
     expect(
