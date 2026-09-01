@@ -88,7 +88,7 @@
 - [x] 8.6 Implement `/finales` with pagination, URL-backed approved filters, deterministic date fallback ordering, Pixel Notebook night entrance, and canonical materia links; verify no grade sort plus filtered, empty, error, retry, and mobile states.
 - [x] 8.7 Implement `/resenas/[id]` and `/finales/[id]` with full narratives, known facts, materia links, share/report actions, and bounded unavailable states; verify direct navigation, sharing, anonymous identity, not-found, removed, and responsive behavior.
 - [x] 8.8 Add owner edit/permanent-delete controls and report UI plus the minimum moderator remove/restore view required by the contract; verify ownership, confirmation, categorized reasons, no automatic hiding, owner-visible removal evidence, and moderator-only anonymous identity.
-- [ ] 8.9 Migrate the materia index and hub to shared tokens, cards, forms, and source records without duplicating community entries; verify aggregate/detail/hub consistency and existing material-hub behavior.
+- [x] 8.9 Migrate the materia index and hub to shared tokens, cards, forms, and source records without duplicating community entries; verify aggregate/detail/hub consistency and existing material-hub behavior.
 - [ ] 8.10 Verify the review/final structure uses Pixel Notebook primitives rather than the fifth reference image's visual styling through screenshot comparison against the approved design sources.
 
 ## 9. Integrated verification and handoff

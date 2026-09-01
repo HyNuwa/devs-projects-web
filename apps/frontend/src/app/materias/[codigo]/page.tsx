@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 
 export default async function MateriaPage({ params }: { params: Promise<{ codigo: string }> }) {
   const { codigo } = await params;
-  return <SubjectHub code={codigo} />;
+  return <SubjectHub code={codigo} key={codigo} />;
 }
