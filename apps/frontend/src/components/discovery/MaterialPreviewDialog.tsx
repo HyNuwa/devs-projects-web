@@ -6,6 +6,7 @@ import {
   Download,
   FileText,
   MessageSquare,
+  Pencil,
   Star,
   ThumbsUp,
   TriangleAlert,
@@ -19,6 +20,7 @@ import { api } from '@/lib/api';
 import { loginHrefForCurrentLocation } from '@/lib/auth-return-path';
 import { getMaterialRatings } from '@/lib/material-community-client';
 import { getPublicMaterial } from '@/lib/discovery-client';
+import { getMaterialManagementCapabilities } from '@/lib/material-management';
 import {
   getMaterialViewerState,
   setMaterialHelpfulness,
@@ -427,6 +429,10 @@ export function MaterialPreviewDialog({
     currentMaterialState.status === 'ready'
       ? currentMaterialState.material.commentSummary.count
       : null;
+  const management = getMaterialManagementCapabilities(
+    currentMaterialState.status === 'ready' ? currentMaterialState.material : null,
+    user,
+  );
 
   return (
     <Dialog.Root
@@ -627,6 +633,21 @@ export function MaterialPreviewDialog({
                   </ol>
                 )}
               </div>
+              {management.canManage ? (
+                <div className="mt-6 border-t border-border pt-4">
+                  <h3 className="font-semibold text-foreground">Administración</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-secondary-foreground">
+                    Las acciones de edición y eliminación se mantienen fuera de las acciones de
+                    estudio.
+                  </p>
+                  <Button asChild className="mt-3" size="sm" variant="ghost">
+                    <a href={`/materiales/${encodeURIComponent(file.id)}`}>
+                      <Pencil aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                      Gestionar material
+                    </a>
+                  </Button>
+                </div>
+              ) : null}
             </aside>
           </div>
 

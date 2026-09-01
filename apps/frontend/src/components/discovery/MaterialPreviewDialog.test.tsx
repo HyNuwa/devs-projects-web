@@ -350,4 +350,33 @@ describe('MaterialPreviewDialog', () => {
       await screen.findByText('Todavía no hay comentarios sobre este archivo.'),
     ).toBeInTheDocument();
   });
+
+  it.each([
+    { id: 'author-1', role: 'USER' as const },
+    { id: 'moderator-1', role: 'MODERATOR' as const },
+  ])('keeps management outside student actions for an authorized viewer', async ({ id, role }) => {
+    useAuthStore.setState({
+      isLoading: false,
+      user: { ...signedInUser, id, role },
+    });
+    vi.mocked(getMaterialViewerState).mockResolvedValue({ isHelpful: false, isSaved: false });
+    render(<DialogFixture />);
+
+    expect(await screen.findByRole('heading', { name: 'Administración' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Gestionar material' })).toHaveAttribute(
+      'href',
+      `/materiales/${file.id}`,
+    );
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+  });
+
+  it('does not expose management controls to another student', async () => {
+    useAuthStore.setState({ isLoading: false, user: signedInUser });
+    vi.mocked(getMaterialViewerState).mockResolvedValue({ isHelpful: false, isSaved: false });
+    render(<DialogFixture />);
+
+    await screen.findByTitle('Vista previa del archivo Parcial 1');
+    expect(screen.queryByRole('heading', { name: 'Administración' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Gestionar material' })).not.toBeInTheDocument();
+  });
 });

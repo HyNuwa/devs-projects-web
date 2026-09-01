@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
+import { getMaterialManagementCapabilities } from '@/lib/material-management';
 import { Material, MaterialRating, Paginated } from '@/types/material';
 import { Subject } from '@/types/subject';
 import { useAuthStore } from '@/stores/authStore';
@@ -31,7 +32,6 @@ import { Button, Input, Modal, useToast } from '@/components/ui';
 import styles from './MaterialDetail.module.css';
 
 const RATINGS_LIMIT = 10;
-const MODERATOR_ROLES = ['ADMIN', 'MODERATOR', 'SUPERADMIN'];
 
 const ratingSchema = z.object({
   rating: z.number().int().min(1, 'Selecciona una puntuación').max(5),
@@ -300,8 +300,7 @@ export function MaterialDetail() {
     }
   };
 
-  const canManage =
-    material && user && (material.authorId === user.id || MODERATOR_ROLES.includes(user.role));
+  const management = getMaterialManagementCapabilities(material, user);
 
   const downloadUrl = `${api.defaults.baseURL ?? ''}/materials/${id}/download`;
 
@@ -410,25 +409,25 @@ export function MaterialDetail() {
                   Descargar
                 </Button>
               </a>
-              {canManage && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    leftIcon={<Pencil size={18} />}
-                    onClick={() => setIsEditOpen(true)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="lg"
-                    leftIcon={<Trash2 size={18} />}
-                    onClick={() => setIsDeleteOpen(true)}
-                  >
-                    Eliminar
-                  </Button>
-                </>
+              {management.canEdit && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  leftIcon={<Pencil size={18} />}
+                  onClick={() => setIsEditOpen(true)}
+                >
+                  Editar
+                </Button>
+              )}
+              {management.canDelete && (
+                <Button
+                  variant="danger"
+                  size="lg"
+                  leftIcon={<Trash2 size={18} />}
+                  onClick={() => setIsDeleteOpen(true)}
+                >
+                  Eliminar
+                </Button>
               )}
             </div>
           </div>
@@ -531,38 +530,42 @@ export function MaterialDetail() {
       </div>
 
       {/* Edit modal */}
-      <EditMaterialModal
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        material={material}
-        subjects={subjects}
-        onSaved={fetchMaterial}
-      />
+      {management.canEdit && (
+        <EditMaterialModal
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          material={material}
+          subjects={subjects}
+          onSaved={fetchMaterial}
+        />
+      )}
 
       {/* Delete confirm modal */}
-      <Modal
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        title="Eliminar material"
-        size="sm"
-      >
-        <p className={styles.deleteText}>
-          ¿Seguro que quieres eliminar este material? Esta acción no se puede deshacer.
-        </p>
-        <div className={styles.editActions}>
-          <Button
-            variant="danger"
-            isLoading={isDeleting}
-            leftIcon={<Trash2 size={16} />}
-            onClick={handleDelete}
-          >
-            Eliminar
-          </Button>
-          <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>
-            Cancelar
-          </Button>
-        </div>
-      </Modal>
+      {management.canDelete && (
+        <Modal
+          isOpen={isDeleteOpen}
+          onClose={() => setIsDeleteOpen(false)}
+          title="Eliminar material"
+          size="sm"
+        >
+          <p className={styles.deleteText}>
+            ¿Seguro que quieres eliminar este material? Esta acción no se puede deshacer.
+          </p>
+          <div className={styles.editActions}>
+            <Button
+              variant="danger"
+              isLoading={isDeleting}
+              leftIcon={<Trash2 size={16} />}
+              onClick={handleDelete}
+            >
+              Eliminar
+            </Button>
+            <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
