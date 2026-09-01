@@ -1,11 +1,13 @@
 import type { MaterialResourceType, MaterialShift } from '@/types/material';
-import type { CourseCondition, ExamFormat, ExamSession, Shift } from '@/types/subject';
-
-export type CourseAttempt =
-  'PRIMERA_CURSADA' | 'PRIMERA_RECURSADA' | 'SEGUNDA_O_MAS_RECURSADAS' | 'PREFIERO_NO_RESPONDER';
-
-export type CommunityDifficulty = 'MUY_BAJA' | 'BAJA' | 'MEDIA' | 'ALTA' | 'MUY_ALTA';
-export type ExamOutcome = 'APROBADO' | 'DESAPROBADO' | 'PREFIERO_NO_DECIR';
+import type {
+  CommunityDifficulty,
+  CourseAttempt,
+  CourseCondition,
+  ExamFormat,
+  ExamOutcome,
+  ExamSession,
+  Shift,
+} from '@/types/subject';
 
 type LabelValue = string | null | undefined;
 

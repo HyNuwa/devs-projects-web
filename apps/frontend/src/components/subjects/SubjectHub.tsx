@@ -12,14 +12,13 @@ import {
   FileText,
   MessageSquare,
 } from 'lucide-react';
+import {
+  CourseReviewSummaryCard,
+  FinalExperienceSummaryCard,
+} from '@/components/community/CommunitySummaryCards';
 import { api } from '@/lib/api';
 import { getData, getApiError } from '@/lib/apiHelpers';
-import {
-  courseConditionLabel,
-  examFormatLabel,
-  examPeriodLabel,
-  shiftLabel,
-} from '@/lib/presentation-labels';
+import { courseConditionLabel } from '@/lib/presentation-labels';
 import {
   SubjectHub as SubjectHubType,
   CourseReviewResponse,
@@ -215,27 +214,23 @@ export const SubjectHub = ({ code }: { code: string }) => {
               ) : (
                 <div className={styles.reviewList}>
                   {reviews?.reviews.map((r) => (
-                    <div key={r.id} className={styles.reviewCard}>
-                      <div className={styles.reviewTop}>
-                        <span className={styles.reviewAuthor}>
-                          {r.user?.displayName || r.user?.username || 'Anónimo'}
-                        </span>
-                        <span className={styles.reviewShift}>{shiftLabel(r.shift)}</span>
-                      </div>
-                      <div className={styles.reviewStars}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            size={16}
-                            className={i < r.recommendation ? styles.starFilled : styles.starEmpty}
-                          />
-                        ))}
-                      </div>
-                      <span className={styles.reviewCondition}>
-                        {courseConditionLabel(r.condition)}
-                      </span>
-                      {r.comment && <p className={styles.reviewComment}>{r.comment}</p>}
-                    </div>
+                    <CourseReviewSummaryCard
+                      key={r.id}
+                      summary={{
+                        academicYear: r.academicYear,
+                        attempt: r.attempt,
+                        author: r.user,
+                        condition: r.condition,
+                        createdAt: r.createdAt,
+                        difficulty: r.difficulty,
+                        excerpt: r.comment,
+                        id: r.id,
+                        professorName: r.professorName,
+                        recommendation: r.recommendation,
+                        shift: r.shift,
+                        updatedAt: r.updatedAt,
+                      }}
+                    />
                   ))}
                 </div>
               )}
@@ -260,23 +255,28 @@ export const SubjectHub = ({ code }: { code: string }) => {
               ) : (
                 <div className={styles.examList}>
                   {exams.map((e) => (
-                    <div key={e.id} className={styles.examCard}>
-                      <div className={styles.examTop}>
-                        <span className={styles.examYear}>{e.year}</span>
-                        <span className={styles.examSession}>{examPeriodLabel(e.session)}</span>
-                        <span className={styles.examFormat}>{examFormatLabel(e.format)}</span>
-                      </div>
-                      <div className={styles.examMeta}>
-                        <span>Teórico: {e.difficultyTheory}/5</span>
-                        <span>Práctico: {e.difficultyPractice}/5</span>
-                        {e.professor && <span>Tomó: {e.professor.name}</span>}
-                        {e.examinerName && <span>Tomó: {e.examinerName}</span>}
-                      </div>
-                      {e.comment && <p className={styles.examComment}>{e.comment}</p>}
-                      <span className={styles.examAuthor}>
-                        {e.user?.displayName || e.user?.username || 'Anónimo'}
-                      </span>
-                    </div>
+                    <FinalExperienceSummaryCard
+                      key={e.id}
+                      summary={{
+                        author: e.user,
+                        createdAt: e.createdAt,
+                        difficulty: e.difficulty,
+                        difficultyPractice: e.difficultyPractice,
+                        difficultyTheory: e.difficultyTheory,
+                        examDate: e.examDate,
+                        examinerName: e.examinerName,
+                        excerpt: e.comment,
+                        format: e.format,
+                        grade: e.grade,
+                        id: e.id,
+                        outcome: e.outcome,
+                        professorName: e.professor?.name,
+                        session: e.session,
+                        shift: e.shift,
+                        updatedAt: e.updatedAt,
+                        year: e.year,
+                      }}
+                    />
                   ))}
                 </div>
               )}

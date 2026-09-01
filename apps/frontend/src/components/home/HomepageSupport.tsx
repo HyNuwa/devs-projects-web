@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpenText, FileText, MessageCircle, Upload } from 'lucide-react';
 
+import { CourseReviewSummaryCard } from '@/components/community/CommunitySummaryCards';
 import { getCourseReviewDiscovery, getMaterialDiscovery } from '@/lib/discovery-client';
 import { resourceTypeLabel } from '@/lib/presentation-labels';
 import type { DiscoveryCourseReview, DiscoverySubjectLink } from '@/types/discovery';
@@ -84,36 +85,26 @@ function SectionFailure({ description }: { description: string }) {
 
 function ReviewRows({ reviews }: { reviews: DiscoveryCourseReview[] }) {
   return (
-    <div className="border-t border-line">
+    <div className="grid gap-4">
       {reviews.map((review) => (
-        <article className="border-b border-line py-5" key={review.id}>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2">
-            <Link
-              className="font-serif text-2xl font-bold leading-tight text-foreground underline decoration-primary/35 underline-offset-4 outline-none transition-colors hover:text-primary focus-visible:text-primary"
-              href={review.subject.href}
-            >
-              {review.subject.name}
-            </Link>
-            <span
-              aria-label={`${review.recommendation} de 5 estrellas`}
-              className="font-mono text-sm font-bold text-primary"
-            >
-              {review.recommendation} ★
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-secondary-foreground">
-            {review.author.username}
-            {review.academicYear ? ` · ${review.academicYear}` : ''}
-            {review.professor?.name || review.professorName
-              ? ` · ${review.professor?.name ?? review.professorName}`
-              : ''}
-          </p>
-          {review.excerpt ? (
-            <p className="mt-4 line-clamp-3 max-w-[68ch] font-serif text-lg leading-relaxed text-foreground">
-              {review.excerpt}
-            </p>
-          ) : null}
-        </article>
+        <CourseReviewSummaryCard
+          key={review.id}
+          summary={{
+            academicYear: review.academicYear,
+            attempt: review.attempt,
+            author: review.author,
+            condition: review.condition,
+            createdAt: review.createdAt,
+            difficulty: review.difficulty,
+            excerpt: review.excerpt,
+            id: review.id,
+            professorName: review.professor?.name ?? review.professorName,
+            recommendation: review.recommendation,
+            shift: review.shift,
+            subject: review.subject,
+            updatedAt: review.updatedAt,
+          }}
+        />
       ))}
     </div>
   );
