@@ -131,9 +131,9 @@ describe('ReviewForm', () => {
         difficulty: 'MEDIA',
         isAnonymous: true,
         professorId: 'professor-1',
-        professorName: undefined,
+        professorName: null,
         recommendation: 4,
-        shift: undefined,
+        shift: null,
       });
     });
     expect(navigation.push).toHaveBeenCalledWith('/materias/ED-01');

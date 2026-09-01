@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, LoaderCircle, Sparkles, Star, X } from 'lucide-react';
 import { z } from 'zod';
 
+import { ChoiceLabel } from '@/components/community/CommunityFormPrimitives';
 import {
   Button,
   Field,
@@ -171,28 +172,6 @@ function reviewNeedsCompletion(review: CourseReview) {
   );
 }
 
-function ChoiceLabel({
-  checked,
-  children,
-  className,
-}: {
-  checked?: boolean;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={`inline-flex min-h-10 items-center justify-center border px-3 py-2 text-center font-sans text-sm font-bold transition-colors ${
-        checked
-          ? 'border-primary bg-primary text-primary-foreground shadow-control'
-          : 'border-border bg-background text-foreground hover:bg-secondary'
-      } ${className ?? ''}`}
-    >
-      {children}
-    </span>
-  );
-}
-
 function DuplicateConfirmation({
   isSubmitting,
   onConfirm,
@@ -286,6 +265,7 @@ export function ReviewForm() {
 
   const recommendation = useWatch({ control, name: 'recommendation' });
   const professorMode = useWatch({ control, name: 'professorMode' });
+  const shift = useWatch({ control, name: 'shift' });
   const commentValue = useWatch({ control, name: 'comment' });
   const comment = typeof commentValue === 'string' ? commentValue : '';
 
@@ -355,12 +335,12 @@ export function ReviewForm() {
       attempt: values.attempt,
       comment: values.comment.trim(),
       condition: values.condition,
-      difficulty: values.difficulty || undefined,
+      difficulty: values.difficulty || null,
       isAnonymous: values.isAnonymous,
-      professorId: values.professorMode === 'catalog' ? values.professorId : undefined,
-      professorName: values.professorMode === 'manual' ? values.professorName.trim() : undefined,
+      professorId: values.professorMode === 'catalog' ? values.professorId : null,
+      professorName: values.professorMode === 'manual' ? values.professorName.trim() : null,
       recommendation: values.recommendation,
-      shift: values.shift || undefined,
+      shift: values.shift || null,
       ...(confirmedDuplicate ? { confirmProbableDuplicate: true } : {}),
     };
 
@@ -622,10 +602,17 @@ export function ReviewForm() {
           <Field>
             <FieldLabel>Franja horaria</FieldLabel>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {SHIFTS.map((shift) => (
-                <label className="cursor-pointer" key={shift}>
-                  <input className="sr-only" type="radio" value={shift} {...register('shift')} />
-                  <ChoiceLabel>{shiftLabels[shift]}</ChoiceLabel>
+              {SHIFTS.map((shiftOption) => (
+                <label className="cursor-pointer" key={shiftOption}>
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    value={shiftOption}
+                    {...register('shift')}
+                  />
+                  <ChoiceLabel checked={shift === shiftOption}>
+                    {shiftLabels[shiftOption]}
+                  </ChoiceLabel>
                 </label>
               ))}
             </div>

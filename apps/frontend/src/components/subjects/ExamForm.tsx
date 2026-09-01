@@ -1,292 +1,704 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowLeft, Check, GraduationCap, LoaderCircle } from 'lucide-react';
 import { z } from 'zod';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+
+import { ChoiceLabel } from '@/components/community/CommunityFormPrimitives';
+import {
+  Button,
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  Input,
+} from '@/components/ui/shadcn';
+import { loginHrefForReturnPath } from '@/lib/auth-return-path';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
-import { examFormatLabels, examPeriodLabels, shiftLabels } from '@/lib/presentation-labels';
+import {
+  communityDifficultyLabels,
+  examFormatLabels,
+  examOutcomeLabels,
+  examPeriodLabels,
+  shiftLabels,
+} from '@/lib/presentation-labels';
 import { useAuthStore } from '@/stores/authStore';
-import { Button, useToast } from '@/components/ui';
-import { Shift, ExamFormat, ExamSession } from '@/types/subject';
-import { Professor } from '@/types/professor';
-import styles from './ExamForm.module.css';
+import type {
+  CommunityDifficulty,
+  ExamExperience,
+  ExamFormat,
+  ExamOutcome,
+  ExamSession,
+  Shift,
+  SubjectHub,
+} from '@/types/subject';
 
-const examSchema = z.object({
-  year: z.number().int().min(2000, 'Año inválido').max(2100, 'Año inválido'),
-  session: z.enum(['DICIEMBRE', 'JULIO', 'MARZO', 'FEBRERO_MARZO', 'ESPECIAL', 'NO_RECUERDO']),
-  format: z.enum(['ESCRITO', 'ORAL', 'MIXTO']),
-  shift: z.enum(['MANANA', 'TARDE', 'NOCHE', 'NO_INDICO']).optional(),
-  professorId: z.string().optional(),
-  difficultyTheory: z.number().int().min(1).max(5),
-  difficultyPractice: z.number().int().min(1).max(5),
-  comment: z.string().max(2000, 'Máximo 2000 caracteres').optional(),
-});
+const MIN_ACADEMIC_YEAR = 1900;
+const MAX_ACADEMIC_YEAR = new Date().getUTCFullYear() + 1;
+const SESSIONS = [
+  'DICIEMBRE',
+  'JULIO',
+  'MARZO',
+  'FEBRERO_MARZO',
+  'ESPECIAL',
+  'NO_RECUERDO',
+] as const satisfies readonly ExamSession[];
+const FORMATS = ['ESCRITO', 'ORAL', 'MIXTO'] as const satisfies readonly ExamFormat[];
+const SHIFTS = ['MANANA', 'TARDE', 'NOCHE', 'NO_INDICO'] as const satisfies readonly Shift[];
+const DIFFICULTIES = [
+  'MUY_BAJA',
+  'BAJA',
+  'MEDIA',
+  'ALTA',
+  'MUY_ALTA',
+] as const satisfies readonly CommunityDifficulty[];
+const OUTCOMES = [
+  'APROBADO',
+  'DESAPROBADO',
+  'PREFIERO_NO_DECIR',
+] as const satisfies readonly ExamOutcome[];
 
-type ExamFormValues = z.infer<typeof examSchema>;
+const examSchema = z
+  .object({
+    comment: z
+      .string()
+      .trim()
+      .min(30, 'Contá al menos 30 caracteres para que la experiencia sea útil.')
+      .max(4000, 'El comentario no puede superar los 4.000 caracteres.'),
+    difficulty: z.enum(DIFFICULTIES).or(z.literal('')),
+    examDate: z
+      .string()
+      .refine(
+        (value) => value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value),
+        'Ingresá una fecha válida.',
+      ),
+    examinerName: z.string().trim(),
+    format: z.enum(FORMATS, { error: 'Elegí el formato del final.' }),
+    grade: z.union([
+      z.literal(''),
+      z.coerce
+        .number()
+        .int('La nota debe ser un entero.')
+        .min(0, 'La nota debe ser entre 0 y 10.')
+        .max(10, 'La nota debe ser entre 0 y 10.'),
+    ]),
+    isAnonymous: z.boolean(),
+    outcome: z.enum(OUTCOMES).or(z.literal('')),
+    professorId: z.string(),
+    professorMode: z.enum(['none', 'catalog', 'manual']),
+    session: z.enum(SESSIONS, { error: 'Elegí el período de final.' }),
+    shift: z.enum(SHIFTS).or(z.literal('')),
+    year: z.coerce
+      .number()
+      .int('El año debe ser un número entero.')
+      .min(MIN_ACADEMIC_YEAR, `Ingresá un año desde ${MIN_ACADEMIC_YEAR}.`)
+      .max(MAX_ACADEMIC_YEAR, `Ingresá un año hasta ${MAX_ACADEMIC_YEAR}.`),
+  })
+  .superRefine((values, context) => {
+    if (values.professorMode === 'catalog' && !values.professorId) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Elegí un profesor del catálogo o cambiá a nombre manual.',
+        path: ['professorId'],
+      });
+    }
 
-const SESSION_OPTIONS: { value: ExamSession; label: string }[] = [
-  { value: 'DICIEMBRE', label: examPeriodLabels.DICIEMBRE },
-  { value: 'JULIO', label: examPeriodLabels.JULIO },
-  { value: 'MARZO', label: examPeriodLabels.MARZO },
-  { value: 'FEBRERO_MARZO', label: examPeriodLabels.FEBRERO_MARZO },
-  { value: 'ESPECIAL', label: examPeriodLabels.ESPECIAL },
-  { value: 'NO_RECUERDO', label: examPeriodLabels.NO_RECUERDO },
-];
+    if (values.professorMode === 'manual') {
+      if (values.examinerName.length < 2) {
+        context.addIssue({
+          code: 'custom',
+          message: 'El nombre manual debe tener al menos 2 caracteres.',
+          path: ['examinerName'],
+        });
+      }
+      if (values.examinerName.length > 150) {
+        context.addIssue({
+          code: 'custom',
+          message: 'El nombre manual no puede superar 150 caracteres.',
+          path: ['examinerName'],
+        });
+      }
+    }
 
-const FORMAT_OPTIONS: { value: ExamFormat; label: string }[] = [
-  { value: 'ESCRITO', label: examFormatLabels.ESCRITO },
-  { value: 'ORAL', label: examFormatLabels.ORAL },
-  { value: 'MIXTO', label: examFormatLabels.MIXTO },
-];
+    if (values.grade !== '' && values.outcome !== 'APROBADO' && values.outcome !== 'DESAPROBADO') {
+      context.addIssue({
+        code: 'custom',
+        message: 'Para publicar una nota, indicá si aprobaste o desaprobaste.',
+        path: ['grade'],
+      });
+    }
+  });
 
-const SHIFT_OPTIONS: { value: Shift; label: string }[] = [
-  { value: 'MANANA', label: shiftLabels.MANANA },
-  { value: 'TARDE', label: shiftLabels.TARDE },
-  { value: 'NOCHE', label: shiftLabels.NOCHE },
-  { value: 'NO_INDICO', label: shiftLabels.NO_INDICO },
-];
+type ExamFormInput = z.input<typeof examSchema>;
+type ExamFormValues = z.output<typeof examSchema>;
+
+type EditState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'not-found' }
+  | { status: 'forbidden' }
+  | { exam: ExamExperience; status: 'ready' };
+
+type LoadedEditState =
+  | { id: string; status: 'not-found' }
+  | { id: string; status: 'forbidden' }
+  | { exam: ExamExperience; id: string; status: 'ready' };
+
+function toFormValues(exam: ExamExperience): Partial<ExamFormInput> {
+  const professorMode = exam.professorId ? 'catalog' : exam.examinerName ? 'manual' : 'none';
+
+  return {
+    comment: exam.comment ?? '',
+    difficulty:
+      typeof exam.difficulty === 'string'
+        ? (DIFFICULTIES.find((value) => value === exam.difficulty) ?? '')
+        : '',
+    examDate: exam.examDate?.slice(0, 10) ?? '',
+    examinerName: exam.examinerName ?? '',
+    format: FORMATS.find((value) => value === exam.format),
+    grade: exam.grade === null || exam.grade === undefined ? '' : String(exam.grade),
+    isAnonymous: exam.isAnonymous ?? false,
+    outcome: OUTCOMES.find((value) => value === exam.outcome) ?? '',
+    professorId: exam.professorId ?? '',
+    professorMode,
+    session: SESSIONS.find((value) => value === exam.session),
+    shift: SHIFTS.find((value) => value === exam.shift) ?? '',
+    year: String(exam.year),
+  };
+}
+
+function examNeedsCompletion(exam: ExamExperience) {
+  return (
+    !exam.year ||
+    !exam.session ||
+    !exam.format ||
+    !exam.comment ||
+    typeof exam.difficultyTheory === 'number' ||
+    typeof exam.difficultyPractice === 'number'
+  );
+}
 
 export function ExamForm() {
   const params = useParams<{ codigo: string }>();
-  const code = params.codigo;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const code = params.codigo;
+  const rawSearch = searchParams.toString();
+  const editId = searchParams.get('editar');
   const user = useAuthStore((state) => state.user);
-  const { addToast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [professors, setProfessors] = useState<Professor[]>([]);
+  const isAuthLoading = useAuthStore((state) => state.isLoading);
+  const [loadedEditState, setLoadedEditState] = useState<LoadedEditState | null>(null);
+  const [professors, setProfessors] = useState<Array<{ id: string; name: string }>>([]);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
-    register,
+    control,
+    formState: { errors, isSubmitting },
     handleSubmit,
-    formState: { errors },
-  } = useForm<ExamFormValues>({
-    resolver: zodResolver(examSchema),
+    register,
+    reset,
+    setValue,
+  } = useForm<ExamFormInput, unknown, ExamFormValues>({
     defaultValues: {
-      year: new Date().getFullYear(),
-      session: 'NO_RECUERDO',
-      format: 'ESCRITO',
-      shift: 'NO_INDICO',
-      difficultyTheory: 3,
-      difficultyPractice: 3,
       comment: '',
+      difficulty: '',
+      examDate: '',
+      examinerName: '',
+      format: undefined,
+      grade: '',
+      isAnonymous: false,
+      outcome: '',
+      professorId: '',
+      professorMode: 'none',
+      session: undefined,
+      shift: '',
+      year: undefined,
     },
+    mode: 'onBlur',
+    resolver: zodResolver(examSchema),
   });
 
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .get('/professors', { params: { page: 1, limit: 100 } })
-      .then((res) => {
-        const paginated = getData<{ data: Professor[] }>(res);
-        if (!cancelled) setProfessors(paginated.data);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const commentValue = useWatch({ control, name: 'comment' });
+  const comment = typeof commentValue === 'string' ? commentValue : '';
+  const format = useWatch({ control, name: 'format' });
+  const professorMode = useWatch({ control, name: 'professorMode' });
+  const shift = useWatch({ control, name: 'shift' });
+  const returnPath = useMemo(
+    () => `/materias/${code}/final${rawSearch ? `?${rawSearch}` : ''}`,
+    [code, rawSearch],
+  );
+  const editState: EditState = !editId
+    ? { status: 'idle' }
+    : loadedEditState?.id === editId
+      ? loadedEditState
+      : { status: 'loading' };
 
-  const onSubmit = async (values: ExamFormValues) => {
-    setIsSubmitting(true);
-    try {
-      await api.post(`/subjects/${code}/exams`, {
-        year: values.year,
-        session: values.session,
-        format: values.format,
-        shift: values.shift,
-        professorId: values.professorId || undefined,
-        difficultyTheory: values.difficultyTheory,
-        difficultyPractice: values.difficultyPractice,
-        comment: values.comment?.trim() || undefined,
+  useEffect(() => {
+    let isCurrentRequest = true;
+
+    void api
+      .get(`/subjects/${code}`)
+      .then((response) => {
+        if (!isCurrentRequest) return;
+        const subject = getData<SubjectHub>(response);
+        setProfessors(subject.professors.map(({ professor }) => professor));
+      })
+      .catch(() => {
+        if (isCurrentRequest) setProfessors([]);
       });
-      addToast('¡Gracias por compartir tu experiencia!', 'success');
+
+    if (!editId) {
+      return () => {
+        isCurrentRequest = false;
+      };
+    }
+
+    void api
+      .get(`/subjects/${code}/exams`)
+      .then((response) => {
+        if (!isCurrentRequest) return;
+
+        const exams = getData<ExamExperience[]>(response);
+        const exam = exams.find(({ id }) => id === editId);
+        if (!exam) {
+          setLoadedEditState({ id: editId, status: 'not-found' });
+          return;
+        }
+        if (exam.user?.id && exam.user.id !== user?.id) {
+          setLoadedEditState({ id: editId, status: 'forbidden' });
+          return;
+        }
+
+        reset(toFormValues(exam));
+        setLoadedEditState({ exam, id: editId, status: 'ready' });
+      })
+      .catch(() => {
+        if (isCurrentRequest) setLoadedEditState({ id: editId, status: 'not-found' });
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [code, editId, reset, user?.id]);
+
+  const submit = async (values: ExamFormValues) => {
+    setServerError(null);
+    const payload = {
+      comment: values.comment.trim(),
+      difficulty: values.difficulty || null,
+      examDate: values.examDate || null,
+      examinerName: values.professorMode === 'manual' ? values.examinerName.trim() : null,
+      format: values.format,
+      grade: values.grade === '' ? null : values.grade,
+      isAnonymous: values.isAnonymous,
+      outcome: values.outcome || null,
+      professorId: values.professorMode === 'catalog' ? values.professorId : null,
+      session: values.session,
+      shift: values.shift || null,
+      year: values.year,
+    };
+
+    try {
+      if (editId) {
+        await api.put(`/subjects/exams/${editId}`, payload);
+      } else {
+        await api.post(`/subjects/${code}/exams`, payload);
+      }
       router.push(`/materias/${code}`);
-    } catch (err) {
-      addToast(getApiError(err), 'error');
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      setServerError(getApiError(error));
     }
   };
 
-  if (!user) {
+  if (isAuthLoading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.container}>
-          <div className={styles.stateBox}>
-            <p className={styles.stateText}>
-              Iniciá sesión para compartir tu experiencia de final.
-            </p>
-            <Link href="/auth/login" className={styles.loginBtn}>
-              Iniciar sesión
-            </Link>
-          </div>
-        </div>
-      </div>
+      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+        <p aria-live="polite" className="font-sans text-sm text-muted-foreground">
+          Cargando tu sesión…
+        </p>
+      </main>
     );
   }
 
-  return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        <Link href={`/materias/${code}`} className={styles.backLink}>
-          <ArrowLeft size={16} /> Volver a la materia
-        </Link>
-
-        <header className={styles.header}>
-          <div className={styles.headerBadge}>
-            <Sparkles size={16} />
-            <span className={`${styles.headerLabel} font-pixel`}>FINAL</span>
-            <Sparkles size={16} />
-          </div>
-          <h1 className={styles.title}>Contá tu experiencia de final</h1>
-          <p className={styles.subtitle}>
-            Ayudá a otros a saber cómo es la mesa antes de presentarse.
+  if (!user) {
+    return (
+      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
+          <h1 className="font-serif text-3xl font-bold text-foreground">
+            Iniciá sesión para compartir un final
+          </h1>
+          <p className="font-sans leading-relaxed text-muted-foreground">
+            Publicar una experiencia requiere una cuenta, pero no una verificación adicional.
           </p>
-        </header>
+          <Button asChild className="justify-self-center">
+            <Link href={loginHrefForReturnPath(returnPath)}>Iniciar sesión</Link>
+          </Button>
+        </section>
+      </main>
+    );
+  }
 
-        <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="year" className={styles.fieldLabel}>
-                Año
-              </label>
-              <input
+  if (editState.status === 'loading') {
+    return (
+      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+        <p aria-live="polite" className="font-sans text-sm text-muted-foreground">
+          Cargando la experiencia…
+        </p>
+      </main>
+    );
+  }
+
+  if (editState.status === 'not-found' || editState.status === 'forbidden') {
+    const message =
+      editState.status === 'forbidden'
+        ? 'No podés editar una experiencia de otra persona.'
+        : 'No encontramos la experiencia que querés editar.';
+
+    return (
+      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
+          <h1 className="font-serif text-3xl font-bold text-foreground">Edición no disponible</h1>
+          <p className="font-sans leading-relaxed text-muted-foreground">{message}</p>
+          <Button asChild className="justify-self-center" variant="outline">
+            <Link href={`/materias/${code}`}>Volver a la materia</Link>
+          </Button>
+        </section>
+      </main>
+    );
+  }
+
+  const isEditing = editState.status === 'ready';
+  const hasLegacyFields = isEditing && examNeedsCompletion(editState.exam);
+  const professorModeRegistration = register('professorMode');
+
+  return (
+    <main className="mx-auto max-w-[52rem] px-5 py-10 sm:px-8 sm:py-14">
+      <Link
+        className="inline-flex min-h-11 items-center gap-2 font-sans text-sm font-bold text-primary underline decoration-primary/35 underline-offset-4"
+        href={`/materias/${code}`}
+      >
+        <ArrowLeft aria-hidden="true" className="size-4" />
+        Volver a la materia
+      </Link>
+
+      <header className="mt-9 border-b border-border pb-8">
+        <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
+          Experiencia de final
+        </p>
+        <h1 className="mt-3 max-w-[15ch] font-serif text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
+          {isEditing ? 'Actualizá tu mesa.' : 'Contá tu intento de final.'}
+        </h1>
+        <p className="mt-5 max-w-[64ch] font-sans leading-relaxed text-muted-foreground">
+          Cada envío representa un intento independiente. Compartí lo que recuerdes sin convertir la
+          preparación, los temas o los consejos en campos obligatorios.
+        </p>
+      </header>
+
+      {hasLegacyFields ? (
+        <aside className="mt-7 border border-primary bg-secondary p-4 font-sans text-sm leading-relaxed text-secondary-foreground">
+          Esta experiencia contiene datos heredados. Completá los obligatorios y, si recordás una
+          dificultad general, elegila explícitamente: las escalas históricas no se convierten solas.
+        </aside>
+      ) : null}
+
+      <form
+        className="mt-8 grid gap-8"
+        noValidate
+        onSubmit={handleSubmit((values) => submit(values))}
+      >
+        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+          <div className="flex items-center gap-3">
+            <GraduationCap aria-hidden="true" className="size-5 text-primary" strokeWidth={1.6} />
+            <h2 className="font-serif text-2xl font-bold text-foreground">Datos del final</h2>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="year">Año</FieldLabel>
+              <Input
+                aria-describedby={errors.year ? 'year-error' : undefined}
+                aria-invalid={Boolean(errors.year)}
                 id="year"
+                inputMode="numeric"
+                max={MAX_ACADEMIC_YEAR}
+                min={MIN_ACADEMIC_YEAR}
+                placeholder="Ej.: 2026"
                 type="number"
-                className={styles.input}
-                {...register('year', { valueAsNumber: true })}
+                {...register('year')}
               />
-              {errors.year && <span className={styles.fieldError}>{errors.year.message}</span>}
-            </div>
+              <FieldError id="year-error">{errors.year?.message}</FieldError>
+            </Field>
 
-            <div className={styles.field}>
-              <label htmlFor="session" className={styles.fieldLabel}>
-                Mesa
-              </label>
-              <select id="session" className={styles.select} {...register('session')}>
-                {SESSION_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+            <Field>
+              <FieldLabel htmlFor="session">Período de final</FieldLabel>
+              <select
+                aria-invalid={Boolean(errors.session)}
+                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+                id="session"
+                {...register('session')}
+              >
+                <option value="">Elegí un período</option>
+                {SESSIONS.map((session) => (
+                  <option key={session} value={session}>
+                    {examPeriodLabels[session]}
                   </option>
                 ))}
               </select>
-            </div>
+              <FieldError id="session-error">{errors.session?.message}</FieldError>
+            </Field>
           </div>
 
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>Formato</span>
-            <div className={styles.chipGroup}>
-              {FORMAT_OPTIONS.map((opt) => (
-                <label key={opt.value} className={styles.chip}>
+          <fieldset
+            className="grid gap-2"
+            aria-describedby={errors.format ? 'format-error' : undefined}
+          >
+            <legend className="font-sans text-sm font-bold text-foreground">Formato</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {FORMATS.map((formatOption) => (
+                <label className="cursor-pointer" key={formatOption}>
                   <input
+                    aria-label={examFormatLabels[formatOption]}
+                    className="sr-only"
                     type="radio"
-                    value={opt.value}
+                    value={formatOption}
                     {...register('format')}
-                    className={styles.radio}
                   />
-                  <span>{opt.label}</span>
+                  <ChoiceLabel checked={format === formatOption}>
+                    {examFormatLabels[formatOption]}
+                  </ChoiceLabel>
                 </label>
               ))}
             </div>
-          </div>
+            <FieldError id="format-error">{errors.format?.message}</FieldError>
+          </fieldset>
+        </section>
 
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>Turno (opcional)</span>
-            <div className={styles.chipGroup}>
-              {SHIFT_OPTIONS.map((opt) => (
-                <label key={opt.value} className={styles.chip}>
-                  <input
-                    type="radio"
-                    value={opt.value}
-                    {...register('shift')}
-                    className={styles.radio}
-                  />
-                  <span>{opt.label}</span>
-                </label>
-              ))}
+        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+          <div>
+            <h2 className="font-serif text-2xl font-bold text-foreground">Tu relato</h2>
+            <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
+              Incluí temas, preparación y consejos dentro de una sola experiencia, solo si ayudan a
+              entender el contexto.
+            </p>
+          </div>
+          <Field>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <FieldLabel htmlFor="comment">Experiencia</FieldLabel>
+              <span className="font-mono text-xs text-muted-foreground">
+                {comment.length}/4.000
+              </span>
             </div>
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="professorId" className={styles.fieldLabel}>
-              Profesor que tomó el final <span className={styles.optional}>(opcional)</span>
-            </label>
-            <select id="professorId" className={styles.select} {...register('professorId')}>
-              <option value="">No indicar</option>
-              {professors.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="difficultyTheory" className={styles.fieldLabel}>
-                Dificultad teórica (1-5)
-              </label>
-              <input
-                id="difficultyTheory"
-                type="number"
-                min={1}
-                max={5}
-                className={styles.input}
-                {...register('difficultyTheory', { valueAsNumber: true })}
-              />
-              {errors.difficultyTheory && (
-                <span className={styles.fieldError}>{errors.difficultyTheory.message}</span>
-              )}
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="difficultyPractice" className={styles.fieldLabel}>
-                Dificultad práctica (1-5)
-              </label>
-              <input
-                id="difficultyPractice"
-                type="number"
-                min={1}
-                max={5}
-                className={styles.input}
-                {...register('difficultyPractice', { valueAsNumber: true })}
-              />
-              {errors.difficultyPractice && (
-                <span className={styles.fieldError}>{errors.difficultyPractice.message}</span>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="comment" className={styles.fieldLabel}>
-              Comentario <span className={styles.optional}>(opcional)</span>
-            </label>
             <textarea
+              aria-describedby={errors.comment ? 'comment-error' : undefined}
+              aria-invalid={Boolean(errors.comment)}
+              className="min-h-44 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm leading-relaxed text-foreground outline-none shadow-field placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
               id="comment"
-              className={styles.textarea}
-              placeholder="Contá cómo fue: qué tomaron, si fue difícil el teórico o el práctico..."
-              rows={5}
-              maxLength={2000}
+              maxLength={4000}
+              placeholder="Contá cómo fue el intento, qué recordás de la mesa y qué contexto te parece útil."
               {...register('comment')}
             />
-            {errors.comment && <span className={styles.fieldError}>{errors.comment.message}</span>}
+            <FieldDescription>Entre 30 y 4.000 caracteres.</FieldDescription>
+            <FieldError id="comment-error">{errors.comment?.message}</FieldError>
+          </Field>
+        </section>
+
+        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+          <div>
+            <h2 className="font-serif text-2xl font-bold text-foreground">Contexto opcional</h2>
+            <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
+              Omití cualquier dato que no recuerdes; no se infiere ni se completa después.
+            </p>
           </div>
 
-          <div className={styles.actions}>
-            <Button type="submit" variant="primary" isLoading={isSubmitting}>
-              Publicar experiencia
-            </Button>
-            <Link href={`/materias/${code}`} className={styles.cancelLink}>
-              Cancelar
-            </Link>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="examDate">Fecha exacta</FieldLabel>
+              <Input id="examDate" type="date" {...register('examDate')} />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="difficulty">Dificultad general</FieldLabel>
+              <select
+                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                id="difficulty"
+                {...register('difficulty')}
+              >
+                <option value="">No la indico</option>
+                {DIFFICULTIES.map((difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {communityDifficultyLabels[difficulty]}
+                  </option>
+                ))}
+              </select>
+            </Field>
           </div>
-        </form>
-      </div>
-    </div>
+
+          <Field>
+            <FieldLabel>Franja horaria</FieldLabel>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {SHIFTS.map((shiftOption) => (
+                <label className="cursor-pointer" key={shiftOption}>
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    value={shiftOption}
+                    {...register('shift')}
+                  />
+                  <ChoiceLabel checked={shift === shiftOption}>
+                    {shiftLabels[shiftOption]}
+                  </ChoiceLabel>
+                </label>
+              ))}
+            </div>
+          </Field>
+
+          <fieldset
+            className="grid gap-3"
+            aria-describedby={
+              errors.professorId || errors.examinerName ? 'examiner-error' : undefined
+            }
+          >
+            <legend className="font-sans text-sm font-bold text-foreground">
+              Profesor o examinador
+            </legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                ['none', 'No lo indico'],
+                ['catalog', 'Del catálogo'],
+                ['manual', 'Nombre manual'],
+              ].map(([mode, label]) => (
+                <label className="cursor-pointer" key={mode}>
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    value={mode}
+                    {...professorModeRegistration}
+                    onChange={(event) => {
+                      professorModeRegistration.onChange(event);
+                      setValue('professorId', '');
+                      setValue('examinerName', '');
+                    }}
+                  />
+                  <ChoiceLabel checked={professorMode === mode}>{label}</ChoiceLabel>
+                </label>
+              ))}
+            </div>
+            {professorMode === 'catalog' ? (
+              <>
+                <label className="sr-only" htmlFor="professorId">
+                  Profesor del catálogo
+                </label>
+                <select
+                  aria-invalid={Boolean(errors.professorId)}
+                  className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+                  id="professorId"
+                  {...register('professorId')}
+                >
+                  <option value="">Elegí un profesor</option>
+                  {professors.map((professor) => (
+                    <option key={professor.id} value={professor.id}>
+                      {professor.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
+            {professorMode === 'manual' ? (
+              <Input
+                aria-invalid={Boolean(errors.examinerName)}
+                aria-label="Nombre manual del examinador"
+                placeholder="Ej.: Ing. Laura Quiroga"
+                {...register('examinerName')}
+              />
+            ) : null}
+            <FieldError id="examiner-error">
+              {errors.professorId?.message ?? errors.examinerName?.message}
+            </FieldError>
+          </fieldset>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="outcome">Resultado</FieldLabel>
+              <select
+                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                id="outcome"
+                {...register('outcome')}
+              >
+                <option value="">No lo indico</option>
+                {OUTCOMES.map((outcome) => (
+                  <option key={outcome} value={outcome}>
+                    {examOutcomeLabels[outcome]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="grade">Nota</FieldLabel>
+              <Input
+                aria-describedby={errors.grade ? 'grade-error' : undefined}
+                aria-invalid={Boolean(errors.grade)}
+                id="grade"
+                inputMode="numeric"
+                max={10}
+                min={0}
+                placeholder="0 a 10"
+                type="number"
+                {...register('grade')}
+              />
+              <FieldDescription>Solo con “Aprobado” o “Desaprobado”.</FieldDescription>
+              <FieldError id="grade-error">{errors.grade?.message}</FieldError>
+            </Field>
+          </div>
+
+          <label className="flex cursor-pointer items-start gap-3 border border-border bg-secondary p-4 text-sm text-secondary-foreground">
+            <input
+              className="mt-1 size-4 accent-[var(--primary)]"
+              type="checkbox"
+              {...register('isAnonymous')}
+            />
+            <span>
+              <span className="block font-bold text-foreground">Publicar como Anónimo</span>
+              <span className="mt-1 block leading-relaxed">
+                La experiencia no mostrará tu nombre, avatar ni un alias permanente. La cuenta sigue
+                siendo responsable de la publicación.
+              </span>
+            </span>
+          </label>
+        </section>
+
+        {serverError ? (
+          <p
+            aria-live="assertive"
+            className="border border-destructive bg-destructive/10 p-4 font-sans text-sm font-bold text-destructive"
+            role="alert"
+          >
+            {serverError}
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+          <Link
+            className="font-sans text-sm font-bold text-muted-foreground underline underline-offset-4"
+            href={`/materias/${code}`}
+          >
+            Cancelar
+          </Link>
+          <Button disabled={isSubmitting} type="submit">
+            {isSubmitting ? (
+              <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+            ) : (
+              <Check aria-hidden="true" className="size-4" />
+            )}
+            {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Publicar experiencia'}
+          </Button>
+        </div>
+      </form>
+    </main>
   );
 }
