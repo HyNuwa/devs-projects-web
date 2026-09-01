@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { api } from '@/lib/api';
 import {
   getCourseReviewDiscovery,
+  getExamExperienceDiscovery,
   getGroupedSuggestions,
   getMaterialDiscovery,
   getPublicMaterial,
   serializeCourseReviewDiscoveryQuery,
+  serializeExamExperienceDiscoveryQuery,
   serializeGroupedSuggestionsQuery,
   serializeMaterialDiscoveryQuery,
 } from './discovery-client';
@@ -73,6 +75,24 @@ describe('discovery client', () => {
     );
   });
 
+  it('serializes final-experience filters without accepting a grade sort', () => {
+    const params = serializeExamExperienceDiscoveryQuery({
+      subjectId,
+      year: 2026,
+      session: 'JULIO',
+      professorId,
+      format: 'ORAL',
+      outcome: 'APROBADO',
+      page: 3,
+      limit: 12,
+    });
+
+    expect(params.toString()).toBe(
+      `subjectId=${subjectId}&year=2026&session=JULIO&professorId=${professorId}&format=ORAL&outcome=APROBADO&page=3&limit=12`,
+    );
+    expect(() => serializeExamExperienceDiscoveryQuery({ sort: 'GRADE_DESC' } as never)).toThrow();
+  });
+
   it('rejects unsupported keys and values before a request is sent', () => {
     expect(() =>
       serializeMaterialDiscoveryQuery({
@@ -108,6 +128,12 @@ describe('discovery client', () => {
         },
       })
       .mockResolvedValueOnce({
+        data: {
+          data: [],
+          meta: { page: 1, limit: 2, total: 0, totalPages: 0 },
+        },
+      })
+      .mockResolvedValueOnce({
         data: { id: subjectId },
       });
 
@@ -119,6 +145,7 @@ describe('discovery client', () => {
       data: [],
     });
     await expect(getCourseReviewDiscovery({ limit: 2 })).resolves.toMatchObject({ data: [] });
+    await expect(getExamExperienceDiscovery({ limit: 2 })).resolves.toMatchObject({ data: [] });
     await expect(getPublicMaterial(subjectId)).resolves.toEqual({ id: subjectId });
 
     expect(get).toHaveBeenNthCalledWith(
@@ -151,6 +178,16 @@ describe('discovery client', () => {
     expect((get.mock.calls[2]?.[1] as { params: URLSearchParams }).params.toString()).toBe(
       'limit=2',
     );
-    expect(get).toHaveBeenNthCalledWith(4, `/materials/${subjectId}`);
+    expect(get).toHaveBeenNthCalledWith(
+      4,
+      '/discovery/exam-experiences',
+      expect.objectContaining({
+        params: expect.objectContaining({ toString: expect.any(Function) }),
+      }),
+    );
+    expect((get.mock.calls[3]?.[1] as { params: URLSearchParams }).params.toString()).toBe(
+      'limit=2',
+    );
+    expect(get).toHaveBeenNthCalledWith(5, `/materials/${subjectId}`);
   });
 });

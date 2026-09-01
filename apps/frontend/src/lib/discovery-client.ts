@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { api } from '@/lib/api';
 import { getData } from '@/lib/apiHelpers';
-import type { DiscoveryCourseReviewList, GroupedDiscoverySuggestions } from '@/types/discovery';
+import type {
+  DiscoveryCourseReviewList,
+  DiscoveryExamExperienceList,
+  GroupedDiscoverySuggestions,
+} from '@/types/discovery';
 import type { Material, MaterialResourceType, Paginated } from '@/types/material';
 
 export const materialResourceTypes = [
@@ -23,6 +27,16 @@ export const courseAttempts = [
   'SEGUNDA_O_MAS_RECURSADAS',
   'PREFIERO_NO_RESPONDER',
 ] as const;
+export const examSessions = [
+  'DICIEMBRE',
+  'JULIO',
+  'MARZO',
+  'FEBRERO_MARZO',
+  'ESPECIAL',
+  'NO_RECUERDO',
+] as const;
+export const examFormats = ['ESCRITO', 'ORAL', 'MIXTO'] as const;
+export const examOutcomes = ['APROBADO', 'DESAPROBADO', 'PREFIERO_NO_DECIR'] as const;
 
 const minimumAcademicYear = 1900;
 const maximumAcademicYear = new Date().getUTCFullYear() + 1;
@@ -68,9 +82,23 @@ export const courseReviewDiscoveryQuerySchema = z
   })
   .strict();
 
+export const examExperienceDiscoveryQuerySchema = z
+  .object({
+    subjectId: z.string().uuid().optional(),
+    year: z.number().int().min(minimumAcademicYear).max(maximumAcademicYear).optional(),
+    session: z.enum(examSessions).optional(),
+    professorId: z.string().uuid().optional(),
+    format: z.enum(examFormats).optional(),
+    outcome: z.enum(examOutcomes).optional(),
+    page: z.number().int().min(1).optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+  })
+  .strict();
+
 export type GroupedSuggestionsQuery = z.input<typeof groupedSuggestionsQuerySchema>;
 export type MaterialDiscoveryQuery = z.input<typeof materialDiscoveryQuerySchema>;
 export type CourseReviewDiscoveryQuery = z.input<typeof courseReviewDiscoveryQuerySchema>;
+export type ExamExperienceDiscoveryQuery = z.input<typeof examExperienceDiscoveryQuerySchema>;
 
 function toSearchParams(
   entries: ReadonlyArray<readonly [string, string | number | undefined]>,
@@ -127,6 +155,23 @@ export function serializeCourseReviewDiscoveryQuery(
   ]);
 }
 
+export function serializeExamExperienceDiscoveryQuery(
+  input: ExamExperienceDiscoveryQuery,
+): URLSearchParams {
+  const query = examExperienceDiscoveryQuerySchema.parse(input);
+
+  return toSearchParams([
+    ['subjectId', query.subjectId],
+    ['year', query.year],
+    ['session', query.session],
+    ['professorId', query.professorId],
+    ['format', query.format],
+    ['outcome', query.outcome],
+    ['page', query.page],
+    ['limit', query.limit],
+  ]);
+}
+
 export async function getGroupedSuggestions(
   query: GroupedSuggestionsQuery,
 ): Promise<GroupedDiscoverySuggestions> {
@@ -159,6 +204,16 @@ export async function getCourseReviewDiscovery(
 ): Promise<DiscoveryCourseReviewList> {
   const response = await api.get<DiscoveryCourseReviewList>('/discovery/course-reviews', {
     params: serializeCourseReviewDiscoveryQuery(query),
+  });
+
+  return getData(response);
+}
+
+export async function getExamExperienceDiscovery(
+  query: ExamExperienceDiscoveryQuery,
+): Promise<DiscoveryExamExperienceList> {
+  const response = await api.get<DiscoveryExamExperienceList>('/discovery/exam-experiences', {
+    params: serializeExamExperienceDiscoveryQuery(query),
   });
 
   return getData(response);

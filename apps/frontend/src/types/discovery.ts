@@ -71,3 +71,31 @@ export interface DiscoveryCourseReviewList {
     totalPages: number;
   };
 }
+
+export interface DiscoveryExamExperience {
+  id: string;
+  subject: DiscoverySubjectLink;
+  author: DiscoveryPublicAuthor;
+  year: number;
+  session: 'DICIEMBRE' | 'JULIO' | 'MARZO' | 'FEBRERO_MARZO' | 'ESPECIAL' | 'NO_RECUERDO';
+  format: 'ESCRITO' | 'ORAL' | 'MIXTO';
+  examDate?: string;
+  shift?: 'MANANA' | 'TARDE' | 'NOCHE' | 'NO_INDICO';
+  professor?: { id: string; name: string };
+  examinerName?: string;
+  difficulty?: 'MUY_BAJA' | 'BAJA' | 'MEDIA' | 'ALTA' | 'MUY_ALTA';
+  outcome?: 'APROBADO' | 'DESAPROBADO' | 'PREFIERO_NO_DECIR';
+  excerpt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiscoveryExamExperienceList {
+  data: DiscoveryExamExperience[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
