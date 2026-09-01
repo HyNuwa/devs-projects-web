@@ -75,7 +75,7 @@
 - [x] 7.2 Build the source-owned Radix Dialog preview composition with visible file identity/actions, large desktop preview plus right-hand comments/community panel, and full-screen or stacked mobile layout; verify focus trap, Escape/outside close, background inertness, accessible naming, and focus restoration.
 - [x] 7.3 Implement image/PDF preview renderers with allowlisted embed behavior and an explicit unsupported/failed fallback; verify metadata, comments, actions, and download remain available when preview fails.
 - [x] 7.4 Wire `Me sirvió` and `Guardar` to viewer state and idempotent mutations; verify optimistic or loading feedback reconciles with server state and anonymous sign-in preserves a same-origin return path.
-- [ ] 7.5 Integrate ratings and comments into the preview dialog's community panel while preserving existing behavior; verify stars, counts, comment states, and `Me sirvió` remain visually distinct from publication moderation.
+- [x] 7.5 Integrate ratings and comments into the preview dialog's community panel while preserving existing behavior; verify stars, counts, comment states, and `Me sirvió` remain visually distinct from publication moderation.
 - [ ] 7.6 Preserve owner/moderator edit and delete controls outside the student's primary modal actions; verify existing authorization and destructive-confirmation tests still pass.
 
 ## 8. Materias, course reviews, and finals

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getPublicMaterial } from '@/lib/discovery-client';
+import { getMaterialRatings } from '@/lib/material-community-client';
 import {
   getMaterialViewerState,
   setMaterialHelpfulness,
@@ -11,7 +12,7 @@ import {
 } from '@/lib/material-viewer-client';
 import { useAuthStore } from '@/stores/authStore';
 import type { User } from '@/types/auth';
-import type { Material } from '@/types/material';
+import type { Material, MaterialRating, Paginated } from '@/types/material';
 import { MaterialPreviewDialog, resolveAllowedPreviewUrl } from './MaterialPreviewDialog';
 
 const navigation = vi.hoisted(() => ({ push: vi.fn() }));
@@ -20,6 +21,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => navigation,
 }));
 vi.mock('@/lib/discovery-client', () => ({ getPublicMaterial: vi.fn() }));
+vi.mock('@/lib/material-community-client', () => ({ getMaterialRatings: vi.fn() }));
 vi.mock('@/lib/material-viewer-client', () => ({
   getMaterialViewerState: vi.fn(),
   setMaterialHelpfulness: vi.fn(),
@@ -88,6 +90,16 @@ function material(overrides: Partial<Material> = {}): Material {
   };
 }
 
+function communityRatings(
+  overrides: Partial<Paginated<MaterialRating>> = {},
+): Paginated<MaterialRating> {
+  return {
+    data: [],
+    meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+    ...overrides,
+  };
+}
+
 function DialogFixture({ onRequestClose = vi.fn() }: { onRequestClose?: () => void }) {
   const [open, setOpen] = useState(true);
   const close = () => {
@@ -119,6 +131,8 @@ describe('MaterialPreviewDialog', () => {
   beforeEach(() => {
     vi.mocked(getPublicMaterial).mockReset();
     vi.mocked(getPublicMaterial).mockResolvedValue(material());
+    vi.mocked(getMaterialRatings).mockReset();
+    vi.mocked(getMaterialRatings).mockResolvedValue(communityRatings());
     vi.mocked(getMaterialViewerState).mockReset();
     vi.mocked(setMaterialHelpfulness).mockReset();
     vi.mocked(setMaterialSaved).mockReset();
@@ -280,5 +294,60 @@ describe('MaterialPreviewDialog', () => {
       'aria-pressed',
       'true',
     );
+  });
+
+  it('shows stars and community comments without presenting them as moderation', async () => {
+    vi.mocked(getPublicMaterial).mockResolvedValueOnce(
+      material({
+        commentSummary: { count: 1 },
+        starSummary: { average: '4.5', count: 2 },
+      }),
+    );
+    vi.mocked(getMaterialRatings).mockResolvedValueOnce(
+      communityRatings({
+        data: [
+          {
+            id: 'rating-1',
+            userId: 'student-1',
+            materialId: file.id,
+            rating: 5,
+            comment: 'La explicación de pilas me resultó muy clara.',
+            createdAt: '2026-08-29T12:00:00.000Z',
+            user: {
+              id: 'student-1',
+              username: 'luciana',
+              displayName: 'Luciana G.',
+              avatarUrl: null,
+            },
+          },
+        ],
+        meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      }),
+    );
+    render(<DialogFixture />);
+
+    expect(
+      await screen.findByLabelText('4,5 de 5 estrellas según 2 valoraciones'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Comentarios (1)' })).toBeInTheDocument();
+    expect(screen.getByText('Luciana G.')).toBeInTheDocument();
+    expect(screen.getByText('La explicación de pilas me resultó muy clara.')).toBeInTheDocument();
+    expect(screen.getByText(/no una verificación académica/i)).toBeInTheDocument();
+  });
+
+  it('keeps an explicit retry and empty state for comments', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getMaterialRatings)
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(communityRatings());
+    render(<DialogFixture />);
+
+    expect(await screen.findByText('No pudimos cargar los comentarios.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reintentar comentarios' }));
+
+    await waitFor(() => expect(getMaterialRatings).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByText('Todavía no hay comentarios sobre este archivo.'),
+    ).toBeInTheDocument();
   });
 });

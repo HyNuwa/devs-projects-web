@@ -6,6 +6,7 @@ import {
   Download,
   FileText,
   MessageSquare,
+  Star,
   ThumbsUp,
   TriangleAlert,
   X,
@@ -16,6 +17,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/shadcn/button';
 import { api } from '@/lib/api';
 import { loginHrefForCurrentLocation } from '@/lib/auth-return-path';
+import { getMaterialRatings } from '@/lib/material-community-client';
 import { getPublicMaterial } from '@/lib/discovery-client';
 import {
   getMaterialViewerState,
@@ -23,7 +25,7 @@ import {
   setMaterialSaved,
 } from '@/lib/material-viewer-client';
 import { useAuthStore } from '@/stores/authStore';
-import type { Material, MaterialViewerState } from '@/types/material';
+import type { Material, MaterialRating, MaterialViewerState, Paginated } from '@/types/material';
 
 export type MaterialPreviewDialogFile = {
   academicYear: number | null;
@@ -53,7 +55,13 @@ type ViewerState =
 
 type PendingAction = 'helpfulness' | 'saved' | null;
 
+type CommunityState =
+  | { materialId: string; status: 'loading' }
+  | { materialId: string; status: 'error' }
+  | { materialId: string; ratings: Paginated<MaterialRating>; status: 'ready' };
+
 const thirdPartyPreviewOrigins = new Set(['https://drive.google.com', 'https://docs.google.com']);
+const communityRatingsLimit = 10;
 
 function apiOrigin(): string {
   return new URL(api.defaults.baseURL ?? '/', window.location.origin).origin;
@@ -98,6 +106,40 @@ function PreviewFallback({
           Reintentar vista previa
         </Button>
       ) : null}
+    </div>
+  );
+}
+
+function CommunityRatingSummary({ average, count }: { average: string; count: number }) {
+  const parsedAverage = Number(average);
+  const hasRatings = count > 0 && Number.isFinite(parsedAverage);
+
+  if (!hasRatings) {
+    return <p className="text-sm text-secondary-foreground">Todavía no hay valoraciones.</p>;
+  }
+
+  const roundedAverage = Math.round(parsedAverage);
+  const label = `${parsedAverage.toLocaleString('es-AR', { maximumFractionDigits: 1 })} de 5 estrellas según ${count} ${count === 1 ? 'valoración' : 'valoraciones'}`;
+
+  return (
+    <div
+      aria-label={label}
+      className="flex flex-wrap items-center gap-2 text-sm text-secondary-foreground"
+    >
+      <span aria-hidden="true" className="flex gap-0.5 text-primary">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <Star
+            className="size-4"
+            fill={value <= roundedAverage ? 'currentColor' : 'none'}
+            key={value}
+            strokeWidth={1.8}
+          />
+        ))}
+      </span>
+      <span>
+        {parsedAverage.toLocaleString('es-AR', { maximumFractionDigits: 1 })} · {count}{' '}
+        {count === 1 ? 'valoración' : 'valoraciones'}
+      </span>
     </div>
   );
 }
@@ -223,11 +265,16 @@ export function MaterialPreviewDialog({
     materialId: file.id,
     status: 'loading',
   });
+  const [communityState, setCommunityState] = useState<CommunityState>({
+    materialId: file.id,
+    status: 'loading',
+  });
   const [failedPreviewId, setFailedPreviewId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [viewerError, setViewerError] = useState<{ materialId: string; message: string } | null>(
     null,
   );
+  const [communityRequest, setCommunityRequest] = useState(0);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -268,6 +315,25 @@ export function MaterialPreviewDialog({
     };
   }, [file.id, open, user]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    getMaterialRatings(file.id, { limit: communityRatingsLimit, page: 1 }).then(
+      (ratings) => {
+        if (!cancelled) setCommunityState({ materialId: file.id, ratings, status: 'ready' });
+      },
+      () => {
+        if (!cancelled) setCommunityState({ materialId: file.id, status: 'error' });
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [communityRequest, file.id, open]);
+
   const currentMaterialState =
     materialState.status === 'ready' && materialState.material.id !== file.id
       ? { status: 'loading' as const }
@@ -277,6 +343,10 @@ export function MaterialPreviewDialog({
   const currentViewerState =
     viewerState.materialId === file.id
       ? viewerState
+      : { materialId: file.id, status: 'loading' as const };
+  const currentCommunityState =
+    communityState.materialId === file.id
+      ? communityState
       : { materialId: file.id, status: 'loading' as const };
   const viewer = currentViewerState.status === 'ready' ? currentViewerState.viewer : null;
   const viewerIsLoading = Boolean(user) && currentViewerState.status === 'loading';
@@ -353,6 +423,10 @@ export function MaterialPreviewDialog({
 
   const helpfulCount =
     currentMaterialState.status === 'ready' ? currentMaterialState.material.helpfulCount : 0;
+  const commentCount =
+    currentMaterialState.status === 'ready'
+      ? currentMaterialState.material.commentSummary.count
+      : null;
 
   return (
     <Dialog.Root
@@ -447,10 +521,20 @@ export function MaterialPreviewDialog({
                   Comunidad
                 </h2>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-secondary-foreground">
-                Las valoraciones y los comentarios de este material aparecen en este panel sin
-                perder la vista previa.
-              </p>
+              <div className="mt-4 space-y-3 border-b border-border pb-4">
+                <h3 className="font-semibold text-foreground">Valoraciones</h3>
+                {currentMaterialState.status === 'ready' ? (
+                  <CommunityRatingSummary
+                    average={currentMaterialState.material.starSummary.average}
+                    count={currentMaterialState.material.starSummary.count}
+                  />
+                ) : (
+                  <p className="text-sm text-secondary-foreground">Cargando valoraciones…</p>
+                )}
+                <p className="text-xs leading-relaxed text-secondary-foreground">
+                  Las estrellas reflejan opiniones de estudiantes y no una verificación académica.
+                </p>
+              </div>
               <div className="mt-6 grid gap-3 border-y border-border py-4">
                 <Button
                   aria-pressed={viewer?.isSaved ?? false}
@@ -493,6 +577,56 @@ export function MaterialPreviewDialog({
                             ? '1 persona indicó que le sirvió.'
                             : `${helpfulCount} personas indicaron que les sirvió.`}
               </p>
+              <div className="mt-6 border-t border-border pt-4">
+                <h3 className="font-semibold text-foreground">
+                  {commentCount === null ? 'Comentarios' : `Comentarios (${commentCount})`}
+                </h3>
+                {currentCommunityState.status === 'loading' ? (
+                  <p className="mt-3 text-sm text-secondary-foreground">Cargando comentarios…</p>
+                ) : currentCommunityState.status === 'error' ? (
+                  <div className="mt-3 space-y-3 text-sm text-secondary-foreground">
+                    <p>No pudimos cargar los comentarios.</p>
+                    <Button
+                      onClick={() => setCommunityRequest((value) => value + 1)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Reintentar comentarios
+                    </Button>
+                  </div>
+                ) : currentCommunityState.ratings.data.length === 0 ? (
+                  <p className="mt-3 text-sm text-secondary-foreground">
+                    Todavía no hay comentarios sobre este archivo.
+                  </p>
+                ) : (
+                  <ol className="mt-3 space-y-4" aria-label="Comentarios de estudiantes">
+                    {currentCommunityState.ratings.data.map((rating) => (
+                      <li className="border-l-2 border-primary/40 pl-3" key={rating.id}>
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-secondary-foreground">
+                          <strong className="text-foreground">
+                            {rating.user.displayName || rating.user.username}
+                          </strong>
+                          <time dateTime={rating.createdAt}>
+                            {new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(
+                              new Date(rating.createdAt),
+                            )}
+                          </time>
+                        </div>
+                        <CommunityRatingSummary average={String(rating.rating)} count={1} />
+                        {rating.comment ? (
+                          <p className="mt-2 text-sm leading-relaxed text-secondary-foreground">
+                            {rating.comment}
+                          </p>
+                        ) : (
+                          <p className="mt-2 text-xs text-secondary-foreground">
+                            Dejó una valoración sin comentario.
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
             </aside>
           </div>
 
