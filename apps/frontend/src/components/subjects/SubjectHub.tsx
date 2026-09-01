@@ -15,6 +15,12 @@ import {
 import { api } from '@/lib/api';
 import { getData, getApiError } from '@/lib/apiHelpers';
 import {
+  courseConditionLabel,
+  examFormatLabel,
+  examPeriodLabel,
+  shiftLabel,
+} from '@/lib/presentation-labels';
+import {
   SubjectHub as SubjectHubType,
   CourseReviewResponse,
   ExamExperience,
@@ -23,35 +29,6 @@ import { Material } from '@/types/material';
 import styles from './SubjectHub.module.css';
 
 type Tab = 'resenas' | 'finales' | 'materiales';
-
-const SHIFT_LABEL: Record<string, string> = {
-  MANANA: 'Mañana',
-  TARDE: 'Tarde',
-  NOCHE: 'Noche',
-  NO_INDICO: 'No indico',
-};
-
-const CONDITION_LABEL: Record<string, string> = {
-  PROMO: 'Promocionó',
-  REGULAR: 'Regular',
-  LIBRE: 'Libre',
-  PREFIERO_NO_RESPONDER: 'Prefiero no responder',
-};
-
-const SESSION_LABEL: Record<string, string> = {
-  DICIEMBRE: 'Diciembre',
-  JULIO: 'Julio',
-  MARZO: 'Marzo',
-  FEBRERO_MARZO: 'Febrero-Marzo',
-  ESPECIAL: 'Mesa especial',
-  NO_RECUERDO: 'No recuerdo',
-};
-
-const FORMAT_LABEL: Record<string, string> = {
-  ESCRITO: 'Escrito',
-  ORAL: 'Oral',
-  MIXTO: 'Mixto',
-};
 
 export const SubjectHub = ({ code }: { code: string }) => {
   const [subject, setSubject] = useState<SubjectHubType | null>(null);
@@ -223,7 +200,7 @@ export const SubjectHub = ({ code }: { code: string }) => {
                 <div className={styles.breakdown}>
                   {reviews.conditionBreakdown.map((b) => (
                     <span key={b.condition} className={styles.breakdownChip}>
-                      {CONDITION_LABEL[b.condition]}: {b._count}
+                      {courseConditionLabel(b.condition)}: {b._count}
                     </span>
                   ))}
                 </div>
@@ -243,7 +220,7 @@ export const SubjectHub = ({ code }: { code: string }) => {
                         <span className={styles.reviewAuthor}>
                           {r.user?.displayName || r.user?.username || 'Anónimo'}
                         </span>
-                        <span className={styles.reviewShift}>{SHIFT_LABEL[r.shift]}</span>
+                        <span className={styles.reviewShift}>{shiftLabel(r.shift)}</span>
                       </div>
                       <div className={styles.reviewStars}>
                         {Array.from({ length: 5 }).map((_, i) => (
@@ -254,7 +231,9 @@ export const SubjectHub = ({ code }: { code: string }) => {
                           />
                         ))}
                       </div>
-                      <span className={styles.reviewCondition}>{CONDITION_LABEL[r.condition]}</span>
+                      <span className={styles.reviewCondition}>
+                        {courseConditionLabel(r.condition)}
+                      </span>
                       {r.comment && <p className={styles.reviewComment}>{r.comment}</p>}
                     </div>
                   ))}
@@ -284,8 +263,8 @@ export const SubjectHub = ({ code }: { code: string }) => {
                     <div key={e.id} className={styles.examCard}>
                       <div className={styles.examTop}>
                         <span className={styles.examYear}>{e.year}</span>
-                        <span className={styles.examSession}>{SESSION_LABEL[e.session]}</span>
-                        <span className={styles.examFormat}>{FORMAT_LABEL[e.format]}</span>
+                        <span className={styles.examSession}>{examPeriodLabel(e.session)}</span>
+                        <span className={styles.examFormat}>{examFormatLabel(e.format)}</span>
                       </div>
                       <div className={styles.examMeta}>
                         <span>Teórico: {e.difficultyTheory}/5</span>

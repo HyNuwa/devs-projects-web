@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/shadcn/input';
 import { api } from '@/lib/api';
 import { getData } from '@/lib/apiHelpers';
 import { getGroupedSuggestions, getMaterialDiscovery } from '@/lib/discovery-client';
+import { resourceTypeLabel, resourceTypeOptions, shiftLabel } from '@/lib/presentation-labels';
 import {
   parseMaterialSearchState,
   toMaterialSearchHref,
@@ -23,23 +24,6 @@ import type { Professor } from '@/types/professor';
 import type { Subject } from '@/types/subject';
 
 const pageSize = 10;
-
-const resourceTypeLabels: Record<MaterialResourceType, string> = {
-  PARCIAL: 'Parcial',
-  FINAL: 'Final',
-  APUNTE: 'Apunte',
-  RESUMEN: 'Resumen',
-  TRABAJO_PRACTICO: 'Trabajo práctico',
-  GUIA_EJERCICIOS: 'Guía de ejercicios',
-  OTRO: 'Otro recurso',
-};
-
-const shiftLabels = {
-  MANANA: 'Mañana',
-  TARDE: 'Tarde',
-  NOCHE: 'Noche',
-  NO_INDICO: 'No informado',
-} as const;
 
 type SearchRequestState =
   | { status: 'loading' }
@@ -103,7 +87,7 @@ function FilterFields({
           value={draft.resourceType ?? ''}
         >
           <option value="">Todos los tipos</option>
-          {Object.entries(resourceTypeLabels).map(([value, label]) => (
+          {resourceTypeOptions.map(({ label, value }) => (
             <option key={value} value={value}>
               {label}
             </option>
@@ -539,12 +523,12 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
             <div aria-label="Filtros activos" className="mt-4 flex flex-wrap gap-2">
               {state.resourceType ? (
                 <Button
-                  aria-label={`Quitar filtro Tipo: ${resourceTypeLabels[state.resourceType]}`}
+                  aria-label={`Quitar filtro Tipo: ${resourceTypeLabel(state.resourceType)}`}
                   onClick={() => clearFilter('resourceType')}
                   size="sm"
                   variant="outline"
                 >
-                  Tipo: {resourceTypeLabels[state.resourceType]} ×
+                  Tipo: {resourceTypeLabel(state.resourceType)} ×
                 </Button>
               ) : null}
               {state.subjectId ? (
@@ -673,7 +657,7 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
                 >
                   <div className="min-w-0">
                     <span className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
-                      {resourceTypeLabels[material.resourceType]}
+                      {resourceTypeLabel(material.resourceType)}
                     </span>
                     <h3 className="mt-2 font-serif text-2xl font-bold leading-tight text-foreground">
                       {material.title}
@@ -703,7 +687,7 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
                           Turno
                         </dt>
                         <dd className="mt-1 text-sm font-bold text-foreground">
-                          {material.shift ? shiftLabels[material.shift] : 'No informado'}
+                          {shiftLabel(material.shift)}
                         </dd>
                       </div>
                     </dl>

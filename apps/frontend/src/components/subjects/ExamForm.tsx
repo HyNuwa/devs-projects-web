@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
+import { examFormatLabels, examPeriodLabels, shiftLabels } from '@/lib/presentation-labels';
 import { useAuthStore } from '@/stores/authStore';
 import { Button, useToast } from '@/components/ui';
 import { Shift, ExamFormat, ExamSession } from '@/types/subject';
@@ -29,25 +30,25 @@ const examSchema = z.object({
 type ExamFormValues = z.infer<typeof examSchema>;
 
 const SESSION_OPTIONS: { value: ExamSession; label: string }[] = [
-  { value: 'DICIEMBRE', label: 'Diciembre' },
-  { value: 'JULIO', label: 'Julio' },
-  { value: 'MARZO', label: 'Marzo' },
-  { value: 'FEBRERO_MARZO', label: 'Febrero-Marzo' },
-  { value: 'ESPECIAL', label: 'Mesa especial' },
-  { value: 'NO_RECUERDO', label: 'No recuerdo' },
+  { value: 'DICIEMBRE', label: examPeriodLabels.DICIEMBRE },
+  { value: 'JULIO', label: examPeriodLabels.JULIO },
+  { value: 'MARZO', label: examPeriodLabels.MARZO },
+  { value: 'FEBRERO_MARZO', label: examPeriodLabels.FEBRERO_MARZO },
+  { value: 'ESPECIAL', label: examPeriodLabels.ESPECIAL },
+  { value: 'NO_RECUERDO', label: examPeriodLabels.NO_RECUERDO },
 ];
 
 const FORMAT_OPTIONS: { value: ExamFormat; label: string }[] = [
-  { value: 'ESCRITO', label: 'Escrito' },
-  { value: 'ORAL', label: 'Oral' },
-  { value: 'MIXTO', label: 'Mixto' },
+  { value: 'ESCRITO', label: examFormatLabels.ESCRITO },
+  { value: 'ORAL', label: examFormatLabels.ORAL },
+  { value: 'MIXTO', label: examFormatLabels.MIXTO },
 ];
 
 const SHIFT_OPTIONS: { value: Shift; label: string }[] = [
-  { value: 'MANANA', label: 'Mañana' },
-  { value: 'TARDE', label: 'Tarde' },
-  { value: 'NOCHE', label: 'Noche' },
-  { value: 'NO_INDICO', label: 'No indico' },
+  { value: 'MANANA', label: shiftLabels.MANANA },
+  { value: 'TARDE', label: shiftLabels.TARDE },
+  { value: 'NOCHE', label: shiftLabels.NOCHE },
+  { value: 'NO_INDICO', label: shiftLabels.NO_INDICO },
 ];
 
 export function ExamForm() {

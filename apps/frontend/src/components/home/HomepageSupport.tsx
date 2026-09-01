@@ -5,8 +5,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpenText, FileText, MessageCircle, Upload } from 'lucide-react';
 
 import { getCourseReviewDiscovery, getMaterialDiscovery } from '@/lib/discovery-client';
+import { resourceTypeLabel } from '@/lib/presentation-labels';
 import type { DiscoveryCourseReview, DiscoverySubjectLink } from '@/types/discovery';
-import type { Material, MaterialResourceType } from '@/types/material';
+import type { Material } from '@/types/material';
 
 type SupportBlock<T> = { status: 'ready'; data: T } | { status: 'error' };
 
@@ -18,16 +19,6 @@ type HomepageSupportState =
       finalMaterials: SupportBlock<Material[]>;
       reviews: SupportBlock<DiscoveryCourseReview[]>;
     };
-
-const resourceTypeLabels: Record<MaterialResourceType, string> = {
-  PARCIAL: 'Parcial',
-  FINAL: 'Final',
-  APUNTE: 'Apunte',
-  RESUMEN: 'Resumen',
-  TRABAJO_PRACTICO: 'Trabajo práctico',
-  GUIA_EJERCICIOS: 'Guía de ejercicios',
-  OTRO: 'Otro recurso',
-};
 
 function toBlockState<T>(result: PromiseSettledResult<T>): SupportBlock<T> {
   if (result.status === 'fulfilled') {
@@ -75,7 +66,7 @@ function ResourceRows({ materials }: { materials: Material[] }) {
           </span>
           <span className="flex items-center gap-2 px-1 font-mono text-[0.68rem] font-bold uppercase tracking-[0.06em] text-primary sm:px-3">
             <FileText aria-hidden="true" className="size-4" strokeWidth={1.8} />
-            {resourceTypeLabels[material.resourceType]}
+            {resourceTypeLabel(material.resourceType)}
           </span>
         </Link>
       ))}

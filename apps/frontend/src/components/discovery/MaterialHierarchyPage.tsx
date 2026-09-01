@@ -18,6 +18,7 @@ import {
   getHierarchyYears,
 } from '@/lib/discovery-hierarchy-client';
 import { getMaterialDiscovery } from '@/lib/discovery-client';
+import { resourceTypeLabel } from '@/lib/presentation-labels';
 import {
   materialHierarchyPath,
   parseMaterialHierarchyRoute,
@@ -35,16 +36,6 @@ import type {
 } from '@/types/discovery-hierarchy';
 
 const pageSize = 50;
-
-const resourceTypeLabels: Record<MaterialResourceType, string> = {
-  PARCIAL: 'Parciales',
-  FINAL: 'Finales',
-  APUNTE: 'Apuntes',
-  RESUMEN: 'Resúmenes',
-  TRABAJO_PRACTICO: 'Trabajos prácticos',
-  GUIA_EJERCICIOS: 'Guías de ejercicios',
-  OTRO: 'Otros recursos',
-};
 
 type NestedMaterialHierarchyRoute = Exclude<
   MaterialHierarchyRoute,
@@ -221,7 +212,7 @@ function BreadcrumbTrail({
     }
 
     if (view.kind === 'files' || (view.kind === 'search' && view.resourceType)) {
-      items.push({ label: resourceTypeLabels[view.resourceType!] });
+      items.push({ label: resourceTypeLabel(view.resourceType, 'plural') });
     }
   }
 
@@ -604,7 +595,7 @@ function ReadyHierarchy({
                   icon={<FolderOpen className="size-5" strokeWidth={1.8} />}
                   key={category.id}
                   meta={compactCount(category.materialCount, 'archivo', 'archivos')}
-                  title={resourceTypeLabels[category.resourceType]}
+                  title={resourceTypeLabel(category.resourceType, 'plural')}
                 />
               ))}
             </ul>
@@ -626,7 +617,7 @@ function ReadyHierarchy({
         <BreadcrumbTrail route={route} view={view} />
         <ScopeIdentity context={view.context} subject={view.subject} />
         <h2 className="mt-7 font-serif text-2xl font-bold text-foreground">
-          {resourceTypeLabels[view.resourceType]}
+          {resourceTypeLabel(view.resourceType, 'plural')}
         </h2>
         <ScopedSearch query={query} route={scopedRoute} subjectName={view.subject.name} />
         <ResourceFileList

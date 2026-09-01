@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { ArrowLeft, Sparkles, Star } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getApiError } from '@/lib/apiHelpers';
+import { courseConditionLabels, shiftLabels } from '@/lib/presentation-labels';
 import { useAuthStore } from '@/stores/authStore';
 import { Button, useToast } from '@/components/ui';
 import { Shift, CourseCondition } from '@/types/subject';
@@ -24,17 +25,17 @@ const reviewSchema = z.object({
 type ReviewFormValues = z.infer<typeof reviewSchema>;
 
 const SHIFT_OPTIONS: { value: Shift; label: string }[] = [
-  { value: 'MANANA', label: 'Mañana' },
-  { value: 'TARDE', label: 'Tarde' },
-  { value: 'NOCHE', label: 'Noche' },
-  { value: 'NO_INDICO', label: 'No indico' },
+  { value: 'MANANA', label: shiftLabels.MANANA },
+  { value: 'TARDE', label: shiftLabels.TARDE },
+  { value: 'NOCHE', label: shiftLabels.NOCHE },
+  { value: 'NO_INDICO', label: shiftLabels.NO_INDICO },
 ];
 
 const CONDITION_OPTIONS: { value: CourseCondition; label: string }[] = [
-  { value: 'PROMO', label: 'Promocioné' },
-  { value: 'REGULAR', label: 'Quedé regular' },
-  { value: 'LIBRE', label: 'Quedé libre' },
-  { value: 'PREFIERO_NO_RESPONDER', label: 'Prefiero no responder' },
+  { value: 'PROMO', label: courseConditionLabels.PROMO },
+  { value: 'REGULAR', label: courseConditionLabels.REGULAR },
+  { value: 'LIBRE', label: courseConditionLabels.LIBRE },
+  { value: 'PREFIERO_NO_RESPONDER', label: courseConditionLabels.PREFIERO_NO_RESPONDER },
 ];
 
 export function ReviewForm() {
