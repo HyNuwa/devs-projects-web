@@ -136,7 +136,11 @@ function SummaryShell({
   );
 }
 
-function FactList({ facts }: { facts: Array<[label: string, value: string | null | undefined]> }) {
+export function CommunityFactList({
+  facts,
+}: {
+  facts: Array<[label: string, value: string | null | undefined]>;
+}) {
   const knownFacts = facts.filter(([, value]) => value);
 
   if (knownFacts.length === 0) {
@@ -157,7 +161,7 @@ function FactList({ facts }: { facts: Array<[label: string, value: string | null
   );
 }
 
-function StarRecommendation({ value }: { value: number }) {
+export function StarRecommendation({ value }: { value: number }) {
   const safeValue = Math.max(0, Math.min(5, Math.round(value)));
 
   return (
@@ -192,7 +196,7 @@ export function CourseReviewSummaryCard({
           <Link href={`/resenas/${summary.id}`}>Leer más</Link>
         </Button>
       </div>
-      <FactList
+      <CommunityFactList
         facts={[
           ['Año de cursada', summary.academicYear ? `Cursada ${summary.academicYear}` : null],
           ['Resultado', summary.condition ? courseConditionLabel(summary.condition) : null],
@@ -226,7 +230,7 @@ export function FinalExperienceSummaryCard({
           <Link href={`/finales/${summary.id}`}>Leer más</Link>
         </Button>
       </div>
-      <FactList
+      <CommunityFactList
         facts={[
           ['Año de final', summary.year ? `Final ${summary.year}` : null],
           ['Período', summary.session ? examPeriodLabel(summary.session) : null],

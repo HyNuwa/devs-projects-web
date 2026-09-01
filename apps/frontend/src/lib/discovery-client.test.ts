@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { api } from '@/lib/api';
 import {
+  getCourseReviewDetail,
   getCourseReviewDiscovery,
+  getExamExperienceDetail,
   getExamExperienceDiscovery,
   getGroupedSuggestions,
   getMaterialDiscovery,
@@ -135,6 +137,12 @@ describe('discovery client', () => {
       })
       .mockResolvedValueOnce({
         data: { id: subjectId },
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'review-1', comment: 'Relato completo' },
+      })
+      .mockResolvedValueOnce({
+        data: { id: 'exam-1', comment: 'Relato completo' },
       });
 
     await expect(getGroupedSuggestions({ q: 'álgebra' })).resolves.toEqual({
@@ -147,6 +155,8 @@ describe('discovery client', () => {
     await expect(getCourseReviewDiscovery({ limit: 2 })).resolves.toMatchObject({ data: [] });
     await expect(getExamExperienceDiscovery({ limit: 2 })).resolves.toMatchObject({ data: [] });
     await expect(getPublicMaterial(subjectId)).resolves.toEqual({ id: subjectId });
+    await expect(getCourseReviewDetail('review-1')).resolves.toMatchObject({ id: 'review-1' });
+    await expect(getExamExperienceDetail('exam-1')).resolves.toMatchObject({ id: 'exam-1' });
 
     expect(get).toHaveBeenNthCalledWith(
       1,
@@ -189,5 +199,7 @@ describe('discovery client', () => {
       'limit=2',
     );
     expect(get).toHaveBeenNthCalledWith(5, `/materials/${subjectId}`);
+    expect(get).toHaveBeenNthCalledWith(6, '/discovery/course-reviews/review-1');
+    expect(get).toHaveBeenNthCalledWith(7, '/discovery/exam-experiences/exam-1');
   });
 });

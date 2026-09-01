@@ -2,7 +2,9 @@ import { z } from 'zod';
 import { api } from '@/lib/api';
 import { getData } from '@/lib/apiHelpers';
 import type {
+  DiscoveryCourseReviewDetail,
   DiscoveryCourseReviewList,
+  DiscoveryExamExperienceDetail,
   DiscoveryExamExperienceList,
   GroupedDiscoverySuggestions,
 } from '@/types/discovery';
@@ -209,12 +211,30 @@ export async function getCourseReviewDiscovery(
   return getData(response);
 }
 
+/** Reads only the public detail projection; private ownership stays server-side. */
+export async function getCourseReviewDetail(id: string): Promise<DiscoveryCourseReviewDetail> {
+  const response = await api.get<DiscoveryCourseReviewDetail>(
+    `/discovery/course-reviews/${encodeURIComponent(id)}`,
+  );
+
+  return getData(response);
+}
+
 export async function getExamExperienceDiscovery(
   query: ExamExperienceDiscoveryQuery,
 ): Promise<DiscoveryExamExperienceList> {
   const response = await api.get<DiscoveryExamExperienceList>('/discovery/exam-experiences', {
     params: serializeExamExperienceDiscoveryQuery(query),
   });
+
+  return getData(response);
+}
+
+/** Reads only the public detail projection; final grades are intentionally omitted. */
+export async function getExamExperienceDetail(id: string): Promise<DiscoveryExamExperienceDetail> {
+  const response = await api.get<DiscoveryExamExperienceDetail>(
+    `/discovery/exam-experiences/${encodeURIComponent(id)}`,
+  );
 
   return getData(response);
 }

@@ -72,6 +72,11 @@ export interface DiscoveryCourseReviewList {
   };
 }
 
+/** Full public projection for a shareable course-review detail route. */
+export interface DiscoveryCourseReviewDetail extends Omit<DiscoveryCourseReview, 'excerpt'> {
+  comment: string | null;
+}
+
 export interface DiscoveryExamExperience {
   id: string;
   subject: DiscoverySubjectLink;
@@ -98,4 +103,9 @@ export interface DiscoveryExamExperienceList {
     total: number;
     totalPages: number;
   };
+}
+
+/** Full public projection for a shareable final-experience detail route. */
+export interface DiscoveryExamExperienceDetail extends Omit<DiscoveryExamExperience, 'excerpt'> {
+  comment: string | null;
 }
