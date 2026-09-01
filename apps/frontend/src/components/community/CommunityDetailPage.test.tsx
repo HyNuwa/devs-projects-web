@@ -8,22 +8,31 @@ import {
   ExamExperienceDetailRoute,
 } from './CommunityDetailPage';
 import { getCourseReviewDetail, getExamExperienceDetail } from '@/lib/discovery-client';
+import { getCommunityManagement } from '@/lib/community-management-client';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import type { User } from '@/types/auth';
 import type { DiscoveryCourseReviewDetail, DiscoveryExamExperienceDetail } from '@/types/discovery';
 
-const navigation = vi.hoisted(() => ({ params: { id: 'review-1' } }));
+const navigation = vi.hoisted(() => ({
+  params: { id: 'review-1' },
+  replace: vi.fn(),
+}));
 const navigatorShare = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('next/navigation', () => ({
   useParams: () => navigation.params,
+  useRouter: () => ({ replace: navigation.replace }),
 }));
 
 vi.mock('@/lib/api', () => ({ api: { post: vi.fn() } }));
 vi.mock('@/lib/discovery-client', () => ({
   getCourseReviewDetail: vi.fn(),
   getExamExperienceDetail: vi.fn(),
+}));
+vi.mock('@/lib/community-management-client', () => ({
+  getCommunityManagement: vi.fn(),
+  deleteCommunityEntry: vi.fn(),
 }));
 
 const signedInUser: User = {
@@ -97,9 +106,12 @@ function experience(
 describe('CommunityDetailPage', () => {
   beforeEach(() => {
     navigation.params = { id: 'review-1' };
+    navigation.replace.mockReset();
     vi.mocked(api.post).mockReset();
     vi.mocked(getCourseReviewDetail).mockReset();
     vi.mocked(getExamExperienceDetail).mockReset();
+    vi.mocked(getCommunityManagement).mockReset();
+    vi.mocked(getCommunityManagement).mockRejectedValue({ response: { status: 403 } });
     vi.mocked(getCourseReviewDetail).mockResolvedValue(review());
     vi.mocked(getExamExperienceDetail).mockResolvedValue(experience());
     useAuthStore.setState({ isLoading: false, user: null });

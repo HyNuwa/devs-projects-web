@@ -20,6 +20,7 @@ import {
   formatCommunityDate,
   StarRecommendation,
 } from '@/components/community/CommunitySummaryCards';
+import { CommunityEntryManagement } from '@/components/community/CommunityEntryManagement';
 import { Button, Chip, Field, FieldError, FieldLabel } from '@/components/ui/shadcn';
 import { cn } from '@/components/ui/shadcn/utils';
 import {
@@ -335,7 +336,7 @@ function DetailActions({
   );
 }
 
-function UnavailableDetail({ kind }: { kind: CommunityDetailKind }) {
+function UnavailableDetail({ id, kind }: { id: string; kind: CommunityDetailKind }) {
   const listPath = kind === 'course-review' ? '/resenas' : '/finales';
   const listLabel = kind === 'course-review' ? 'Ver reseñas' : 'Ver experiencias de final';
 
@@ -355,6 +356,7 @@ function UnavailableDetail({ kind }: { kind: CommunityDetailKind }) {
           </Link>
         </Button>
       </div>
+      <CommunityEntryManagement id={id} kind={kind} />
     </section>
   );
 }
@@ -450,6 +452,7 @@ function CommunityDetailContent({
       </article>
 
       <DetailActions id={id} kind={kind} title={title} />
+      <CommunityEntryManagement id={id} kind={kind} subjectHref={detail.subject.href} />
     </section>
   );
 }
@@ -501,7 +504,9 @@ export function CommunityDetailPage({
     );
   }
 
-  if (state.status === 'unavailable') return <UnavailableDetail kind={kind} />;
+  if (state.status === 'unavailable') {
+    return <UnavailableDetail id={id ?? 'missing-entry'} kind={kind} />;
+  }
 
   if (state.status === 'error') {
     return (

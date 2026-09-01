@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+
+import { CommunityModerationPanel } from '@/components/admin/CommunityModerationPanel';
 import { ModerationPanel } from '@/components/admin/ModerationPanel';
 
 export const metadata: Metadata = {
@@ -7,5 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return <ModerationPanel />;
+  return (
+    <div className="grid gap-8">
+      <ModerationPanel />
+      <CommunityModerationPanel />
+    </div>
+  );
 }
