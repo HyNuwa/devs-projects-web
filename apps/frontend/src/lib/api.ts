@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { loginHrefForCurrentLocation } from '@/lib/auth-return-path';
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1',
   withCredentials: true,
@@ -11,8 +13,14 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      window.location.href = '/auth/login';
+    const requestPath = typeof error.config?.url === 'string' ? error.config.url : '';
+    if (
+      error.response?.status === 401 &&
+      typeof window !== 'undefined' &&
+      window.location.pathname !== '/auth/login' &&
+      !requestPath.startsWith('/auth/')
+    ) {
+      window.location.href = loginHrefForCurrentLocation();
     }
     return Promise.reject(error);
   },

@@ -1,13 +1,29 @@
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';
-import { Download, FileText, MessageSquare, TriangleAlert, X } from 'lucide-react';
+import {
+  Bookmark,
+  Download,
+  FileText,
+  MessageSquare,
+  ThumbsUp,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/shadcn/button';
 import { api } from '@/lib/api';
+import { loginHrefForCurrentLocation } from '@/lib/auth-return-path';
 import { getPublicMaterial } from '@/lib/discovery-client';
-import type { Material } from '@/types/material';
+import {
+  getMaterialViewerState,
+  setMaterialHelpfulness,
+  setMaterialSaved,
+} from '@/lib/material-viewer-client';
+import { useAuthStore } from '@/stores/authStore';
+import type { Material, MaterialViewerState } from '@/types/material';
 
 export type MaterialPreviewDialogFile = {
   academicYear: number | null;
@@ -29,6 +45,13 @@ type MaterialState =
   | { status: 'loading' }
   | { material: Material; status: 'ready' }
   | { materialId: string; status: 'error' };
+
+type ViewerState =
+  | { materialId: string; status: 'loading' }
+  | { materialId: string; status: 'error' }
+  | { materialId: string; status: 'ready'; viewer: MaterialViewerState };
+
+type PendingAction = 'helpfulness' | 'saved' | null;
 
 const thirdPartyPreviewOrigins = new Set(['https://drive.google.com', 'https://docs.google.com']);
 
@@ -192,8 +215,19 @@ export function MaterialPreviewDialog({
   open,
   subjectName,
 }: MaterialPreviewDialogProps) {
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const isAuthLoading = useAuthStore((state) => state.isLoading);
   const [materialState, setMaterialState] = useState<MaterialState>({ status: 'loading' });
+  const [viewerState, setViewerState] = useState<ViewerState>({
+    materialId: file.id,
+    status: 'loading',
+  });
   const [failedPreviewId, setFailedPreviewId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [viewerError, setViewerError] = useState<{ materialId: string; message: string } | null>(
+    null,
+  );
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -215,13 +249,42 @@ export function MaterialPreviewDialog({
     };
   }, [file.id, open]);
 
+  useEffect(() => {
+    if (!open || !user) return;
+
+    let cancelled = false;
+
+    getMaterialViewerState(file.id).then(
+      (viewer) => {
+        if (!cancelled) setViewerState({ materialId: file.id, status: 'ready', viewer });
+      },
+      () => {
+        if (!cancelled) setViewerState({ materialId: file.id, status: 'error' });
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [file.id, open, user]);
+
   const currentMaterialState =
     materialState.status === 'ready' && materialState.material.id !== file.id
       ? { status: 'loading' as const }
       : materialState.status === 'error' && materialState.materialId !== file.id
         ? { status: 'loading' as const }
         : materialState;
+  const currentViewerState =
+    viewerState.materialId === file.id
+      ? viewerState
+      : { materialId: file.id, status: 'loading' as const };
+  const viewer = currentViewerState.status === 'ready' ? currentViewerState.viewer : null;
+  const viewerIsLoading = Boolean(user) && currentViewerState.status === 'loading';
+  const isViewerError = currentViewerState.status === 'error';
   const previewFailed = failedPreviewId === file.id;
+  const actionIsPending = pendingAction !== null;
+  const actionIsDisabled = isAuthLoading || (Boolean(user) && (!viewer || actionIsPending));
+  const contextualViewerError = viewerError?.materialId === file.id ? viewerError.message : null;
 
   const defaultDownloadHref = `${api.defaults.baseURL ?? ''}/materials/${encodeURIComponent(file.id)}/download`;
   const downloadHref =
@@ -231,6 +294,65 @@ export function MaterialPreviewDialog({
   const uploadedAt = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(
     new Date(file.createdAt),
   );
+
+  const requestSignIn = () => {
+    router.push(loginHrefForCurrentLocation());
+  };
+
+  const updateSaved = async () => {
+    if (!user) {
+      requestSignIn();
+      return;
+    }
+    if (!viewer || actionIsPending) return;
+
+    setPendingAction('saved');
+    setViewerError(null);
+    try {
+      const nextViewer = await setMaterialSaved(file.id, !viewer.isSaved);
+      setViewerState({ materialId: file.id, status: 'ready', viewer: nextViewer });
+    } catch {
+      setViewerError({
+        materialId: file.id,
+        message: 'No pudimos actualizar tus guardados. Intentá nuevamente.',
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const updateHelpfulness = async () => {
+    if (!user) {
+      requestSignIn();
+      return;
+    }
+    if (!viewer || actionIsPending) return;
+
+    setPendingAction('helpfulness');
+    setViewerError(null);
+    try {
+      const nextViewer = await setMaterialHelpfulness(file.id, !viewer.isHelpful);
+      setViewerState({ materialId: file.id, status: 'ready', viewer: nextViewer });
+      setMaterialState((current) => {
+        if (current.status !== 'ready' || current.material.id !== file.id) return current;
+
+        return {
+          material: { ...current.material, helpfulCount: nextViewer.helpfulCount },
+          status: 'ready',
+        };
+      });
+    } catch {
+      setViewerError({
+        materialId: file.id,
+        message: 'No pudimos actualizar la señal de utilidad. Intentá nuevamente.',
+      });
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const helpfulCount =
+    currentMaterialState.status === 'ready' ? currentMaterialState.material.helpfulCount : 0;
 
   return (
     <Dialog.Root
@@ -328,6 +450,48 @@ export function MaterialPreviewDialog({
               <p className="mt-4 text-sm leading-relaxed text-secondary-foreground">
                 Las valoraciones y los comentarios de este material aparecen en este panel sin
                 perder la vista previa.
+              </p>
+              <div className="mt-6 grid gap-3 border-y border-border py-4">
+                <Button
+                  aria-pressed={viewer?.isSaved ?? false}
+                  disabled={actionIsDisabled}
+                  onClick={updateSaved}
+                  variant={viewer?.isSaved ? 'secondary' : 'outline'}
+                >
+                  <Bookmark aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                  {pendingAction === 'saved'
+                    ? 'Guardando…'
+                    : viewer?.isSaved
+                      ? 'Guardado'
+                      : 'Guardar'}
+                </Button>
+                <Button
+                  aria-pressed={viewer?.isHelpful ?? false}
+                  disabled={actionIsDisabled}
+                  onClick={updateHelpfulness}
+                  variant={viewer?.isHelpful ? 'secondary' : 'outline'}
+                >
+                  <ThumbsUp aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                  {pendingAction === 'helpfulness' ? 'Actualizando…' : 'Me sirvió'}
+                </Button>
+              </div>
+              <p
+                aria-live="polite"
+                className="mt-3 text-xs leading-relaxed text-secondary-foreground"
+              >
+                {contextualViewerError
+                  ? contextualViewerError
+                  : isAuthLoading
+                    ? 'Comprobando tu sesión…'
+                    : !user
+                      ? 'Iniciá sesión para guardar este material o indicar que te sirvió.'
+                      : viewerIsLoading
+                        ? 'Cargando tu actividad en este material…'
+                        : isViewerError
+                          ? 'No pudimos cargar tu actividad. Podés volver a abrir esta vista.'
+                          : helpfulCount === 1
+                            ? '1 persona indicó que le sirvió.'
+                            : `${helpfulCount} personas indicaron que les sirvió.`}
               </p>
             </aside>
           </div>

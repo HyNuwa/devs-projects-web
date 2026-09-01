@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { safeReturnPath } from '@/lib/auth-return-path';
 import { useAuthStore } from '@/stores/authStore';
 import styles from './LoginForm.module.css';
 
@@ -17,6 +18,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const login = useAuthStore((state) => state.login);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -32,7 +34,7 @@ export function LoginForm() {
     setServerError(null);
     try {
       await login(data);
-      router.push('/');
+      router.push(safeReturnPath(searchParams.get('redirect')));
     } catch (err: unknown) {
       const message =
         err && typeof err === 'object' && 'response' in err

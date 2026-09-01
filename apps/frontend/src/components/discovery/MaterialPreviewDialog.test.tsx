@@ -1,13 +1,30 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getPublicMaterial } from '@/lib/discovery-client';
+import {
+  getMaterialViewerState,
+  setMaterialHelpfulness,
+  setMaterialSaved,
+} from '@/lib/material-viewer-client';
+import { useAuthStore } from '@/stores/authStore';
+import type { User } from '@/types/auth';
 import type { Material } from '@/types/material';
 import { MaterialPreviewDialog, resolveAllowedPreviewUrl } from './MaterialPreviewDialog';
 
+const navigation = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => navigation,
+}));
 vi.mock('@/lib/discovery-client', () => ({ getPublicMaterial: vi.fn() }));
+vi.mock('@/lib/material-viewer-client', () => ({
+  getMaterialViewerState: vi.fn(),
+  setMaterialHelpfulness: vi.fn(),
+  setMaterialSaved: vi.fn(),
+}));
 
 const file = {
   id: 'material-2',
@@ -15,6 +32,19 @@ const file = {
   fileType: 'application/pdf',
   academicYear: 2026,
   createdAt: '2026-08-30T12:00:00.000Z',
+};
+
+const signedInUser: User = {
+  id: 'viewer-1',
+  username: 'estudiante',
+  email: 'estudiante@example.com',
+  role: 'USER',
+  displayName: 'Estudiante',
+  bio: null,
+  avatarUrl: null,
+  emailVerified: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
 function material(overrides: Partial<Material> = {}): Material {
@@ -82,9 +112,18 @@ function DialogFixture({ onRequestClose = vi.fn() }: { onRequestClose?: () => vo
 }
 
 describe('MaterialPreviewDialog', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.mocked(getPublicMaterial).mockReset();
     vi.mocked(getPublicMaterial).mockResolvedValue(material());
+    vi.mocked(getMaterialViewerState).mockReset();
+    vi.mocked(setMaterialHelpfulness).mockReset();
+    vi.mocked(setMaterialSaved).mockReset();
+    navigation.push.mockReset();
+    useAuthStore.setState({ isLoading: false, user: null });
   });
 
   it('keeps the list inert, moves focus into the dialog, and restores it after Escape', async () => {
@@ -198,5 +237,48 @@ describe('MaterialPreviewDialog', () => {
       await screen.findByRole('heading', { name: 'Vista previa no compatible' }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Descargar' })).toHaveLength(2);
+  });
+
+  it('asks an anonymous viewer to sign in without losing the selected location', async () => {
+    const user = userEvent.setup();
+    render(<DialogFixture />);
+
+    await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' });
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(navigation.push).toHaveBeenCalledWith('/auth/login?redirect=%2F');
+    expect(getMaterialViewerState).not.toHaveBeenCalled();
+  });
+
+  it('reconciles saved and helpful state from idempotent viewer mutations', async () => {
+    const user = userEvent.setup();
+    useAuthStore.setState({ isLoading: false, user: signedInUser });
+    vi.mocked(getMaterialViewerState).mockResolvedValue({ isHelpful: false, isSaved: false });
+    vi.mocked(setMaterialSaved).mockResolvedValue({ isHelpful: false, isSaved: true });
+    vi.mocked(setMaterialHelpfulness).mockResolvedValue({
+      isHelpful: true,
+      isSaved: true,
+      helpfulCount: 1,
+    });
+    render(<DialogFixture />);
+
+    await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' });
+    const save = await screen.findByRole('button', { name: 'Guardar' });
+    await waitFor(() => expect(getMaterialViewerState).toHaveBeenCalledWith(file.id));
+
+    await user.click(save);
+    await waitFor(() => expect(setMaterialSaved).toHaveBeenCalledWith(file.id, true));
+    expect(await screen.findByRole('button', { name: 'Guardado' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Me sirvió' }));
+    await waitFor(() => expect(setMaterialHelpfulness).toHaveBeenCalledWith(file.id, true));
+    expect(await screen.findByText('1 persona indicó que le sirvió.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Me sirvió' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });
