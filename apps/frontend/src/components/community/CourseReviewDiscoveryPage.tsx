@@ -326,6 +326,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
               alt="Observatorio cobalto en pixel art para representar experiencias compartidas"
               className="object-cover object-center"
               fill
+              priority
               sizes="(max-width: 1023px) 100vw, 58vw"
               src="/assets/pixel-notebook/heroes/hero-reviews-cobalto-observatory-1280.webp"
             />

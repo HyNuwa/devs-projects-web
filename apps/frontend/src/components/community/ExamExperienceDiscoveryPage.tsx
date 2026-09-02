@@ -326,6 +326,7 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
               alt="Faro nocturno en pixel art para representar experiencias de final"
               className="object-cover object-center"
               fill
+              priority
               sizes="(max-width: 1023px) 100vw, 58vw"
               src="/assets/pixel-notebook/heroes/hero-finals-cobalto-lighthouse-1280.webp"
             />
