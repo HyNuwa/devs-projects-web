@@ -94,7 +94,7 @@
 ## 9. Integrated verification and handoff
 
 - [x] 9.1 Run Prisma validation/generation, migration verification, backend lint/build, and backend unit/integration suites with full output stored in ignored artifacts; verify concise summaries report zero unresolved failures.
-- [ ] 9.2 Run frontend lint, type/build, and component/integration suites with full output stored in ignored artifacts; verify concise summaries report zero unresolved failures.
+- [x] 9.2 Run frontend lint, type/build, and component/integration suites with full output stored in ignored artifacts; verify concise summaries report zero unresolved failures.
 - [ ] 9.3 Exercise homepage → suggestions → `/buscar` plus `/materiales` → career → year → materia → scoped search → file-list dialog → preview/comments/download and authenticated helpful/save flows in a real browser at desktop and mobile widths; verify all spec scenarios and failure states have evidence.
 - [ ] 9.4 Exercise authenticated review/final create → anonymous/public discovery → shareable detail → edit → report → moderator remove/restore → owner delete flows in a real browser; verify averages, visibility, identity boundaries, timestamps, URLs, and failure states match the community spec.
 - [ ] 9.5 Audit keyboard-only use, breadcrumb navigation, preview-dialog focus trapping/restoration, 200% zoom, reduced motion, semantic labels, non-color statuses, and contrast; verify no high-severity accessibility issue remains.

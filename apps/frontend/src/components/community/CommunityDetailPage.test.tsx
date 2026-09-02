@@ -19,6 +19,10 @@ const navigation = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 const navigatorShare = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const reviewComment =
+  'La práctica semanal hizo que los parciales fueran previsibles y el equipo docente respondió dudas puntuales.';
+const experienceComment =
+  'La mesa recorrió grafos, complejidad y una defensa oral de las estructuras elegidas en el trabajo final.';
 
 vi.mock('next/navigation', () => ({
   useParams: () => navigation.params,
@@ -53,8 +57,7 @@ function review(overrides: Partial<DiscoveryCourseReviewDetail> = {}): Discovery
     academicYear: 2026,
     attempt: 'PRIMERA_RECURSADA',
     author: { username: 'Anónimo' },
-    comment:
-      'La práctica semanal hizo que los parciales fueran previsibles y el equipo docente respondió dudas puntuales.',
+    comment: reviewComment,
     condition: 'REGULAR',
     createdAt: '2026-08-31T12:00:00.000Z',
     difficulty: 'ALTA',
@@ -79,8 +82,7 @@ function experience(
 ): DiscoveryExamExperienceDetail {
   return {
     author: { username: 'Anónimo' },
-    comment:
-      'La mesa recorrió grafos, complejidad y una defensa oral de las estructuras elegidas en el trabajo final.',
+    comment: experienceComment,
     createdAt: '2026-08-31T12:00:00.000Z',
     difficulty: 'ALTA',
     examDate: '2026-07-15T00:00:00.000Z',
@@ -134,7 +136,7 @@ describe('CommunityDetailPage', () => {
     ).toBeInTheDocument();
     expect(getCourseReviewDetail).toHaveBeenCalledWith('review-1');
     expect(screen.getByText('Anónimo')).toBeInTheDocument();
-    expect(screen.getByText(review().comment)).toBeInTheDocument();
+    expect(screen.getByText(reviewComment)).toBeInTheDocument();
     expect(screen.getByText('Profesor: Ing. Laura Quiroga')).toBeInTheDocument();
     expect(screen.getByText('Editada · 1 sept 2026')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ver materia' })).toHaveAttribute(
@@ -151,7 +153,7 @@ describe('CommunityDetailPage', () => {
     navigation.params = { id: 'exam-1' };
     render(<ExamExperienceDetailRoute />);
 
-    expect(await screen.findByText(experience().comment)).toBeInTheDocument();
+    expect(await screen.findByText(experienceComment)).toBeInTheDocument();
     expect(getExamExperienceDetail).toHaveBeenCalledWith('exam-1');
     expect(screen.getByText('Anónimo')).toBeInTheDocument();
     expect(screen.getByText('Final 2026')).toBeInTheDocument();
