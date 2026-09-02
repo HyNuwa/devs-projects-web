@@ -100,5 +100,5 @@
 - [ ] 9.5 Audit keyboard-only use, breadcrumb navigation, preview-dialog focus trapping/restoration, 200% zoom, reduced motion, semantic labels, non-color statuses, and contrast; verify no high-severity accessibility issue remains.
 - [ ] 9.6 Measure route image transfer, LCP, and CLS for the homepage and four section entrances; verify only the active hero is eager, source PNGs are not default candidates, and documented budgets pass.
 - [x] 9.7 Verify visible asset credits and manifest completeness in the built product; confirm no unapproved PixelRepo source pack, remote Glyphy dependency, or unlicensed font is shipped.
-- [ ] 9.8 Run `graphify update .` after implementation and verify the knowledge graph completes without losing the new discovery, hierarchy, preview-dialog, publication-moderation, community-moderation, and route relationships.
+- [x] 9.8 Run `graphify update .` after implementation and verify the knowledge graph completes without losing the new discovery, hierarchy, preview-dialog, publication-moderation, community-moderation, and route relationships.
 - [ ] 9.9 Record implementation decisions, owner-gate resolution, the explicitly deferred external-student validation, verification summaries, and any other deferred follow-up; verify the OpenSpec task checklist and repository documentation agree before requesting archive.
