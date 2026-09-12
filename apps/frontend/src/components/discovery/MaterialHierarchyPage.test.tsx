@@ -78,6 +78,17 @@ describe('MaterialHierarchyPage', () => {
     );
   });
 
+  it('honors shared root preview links without reloading the hierarchy', async () => {
+    vi.mocked(getHierarchyCareers).mockResolvedValue({ careers: [], hasMore: false });
+    const view = render(<MaterialHierarchyPage query="" segments={[]} />);
+    await screen.findByRole('heading', { name: 'Elegí tu carrera' });
+    view.rerender(<MaterialHierarchyPage query="" segments={[]} selectedFileId="material-1" />);
+    expect(
+      await screen.findByRole('dialog', { name: 'Vista previa: Recurso académico' }),
+    ).toBeInTheDocument();
+    expect(getHierarchyCareers).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the subject id for a shared materia-scoped search', async () => {
     vi.mocked(getHierarchySubjects).mockResolvedValue(subjectContext);
     vi.mocked(getMaterialDiscovery).mockResolvedValue({

@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   description: 'Explorá recursos por carrera, año, materia y tipo de archivo.',
 };
 
-export default function MaterialesPage() {
-  return <MaterialHierarchyPage query="" segments={[]} />;
+export default async function MaterialesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ archivo?: string }>;
+}) {
+  const { archivo } = await searchParams;
+  return <MaterialHierarchyPage query="" segments={[]} selectedFileId={archivo} />;
 }

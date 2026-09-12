@@ -30,7 +30,7 @@ describe('PixelNotebookHome', () => {
     expect(screen.getByRole('search', { name: /buscar recursos académicos/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /parciales/i })).toHaveAttribute(
       'href',
-      '/buscar?q=parcial&resourceType=PARCIAL',
+      '/buscar?resourceType=PARCIAL',
     );
     expect(screen.getByRole('link', { name: /finales/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /apuntes/i })).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('PixelNotebookHome', () => {
     const subjectGroup = subjectHeading.closest('section');
 
     expect(subjectGroup).not.toBeNull();
-    expect(subjectGroup?.parentElement).toHaveClass('grid-cols-1', 'lg:grid-cols-2');
+    expect(subjectGroup?.parentElement).toHaveClass('grid-cols-1');
     expect(within(subjectGroup!).getByRole('link')).toHaveAttribute(
       'href',
       '/buscar?q=%C3%81lgebra+I&subjectId=subject-1',
@@ -98,5 +98,25 @@ describe('PixelNotebookHome', () => {
     await user.click(screen.getByRole('button', { name: 'Buscar' }));
 
     expect(push).toHaveBeenCalledWith('/buscar?q=grafos');
+  });
+
+  it('removes outdated suggestions immediately when the query changes and closes on Escape', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getGroupedSuggestions).mockResolvedValue({
+      subjects: [{ kind: 'SUBJECT', id: 'subject-1', name: 'Álgebra I', code: 'ALG-1' }],
+      materials: [],
+    });
+    render(<PixelNotebookHome />);
+    const input = screen.getByRole('searchbox', { name: /buscá materia/i });
+    await user.type(input, 'álgebra');
+    await screen.findByRole('link', { name: /álgebra i/i });
+    vi.mocked(getGroupedSuggestions).mockImplementation(() => new Promise(() => {}));
+
+    await user.clear(input);
+    await user.type(input, 'física');
+    expect(screen.queryByRole('link', { name: /álgebra i/i })).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByLabelText('Sugerencias de búsqueda')).not.toBeInTheDocument();
+    expect(input).toHaveFocus();
   });
 });

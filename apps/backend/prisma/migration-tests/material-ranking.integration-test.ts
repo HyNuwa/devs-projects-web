@@ -191,9 +191,29 @@ async function main() {
       );
     }
 
+    // Section entrances and type-only shortcuts do not send a text query.
+    // Exercise the actual SQL: PostgreSQL treats ORDER BY 0 as an invalid ordinal.
+    const unfilteredQuery = buildMaterialRankingQuery({ limit: 10, offset: 0 });
+    const unfiltered = await client.query<{ id: string }>(
+      unfilteredQuery.text,
+      unfilteredQuery.values,
+    );
+    assertIds(
+      unfiltered.rows.map(({ id }) => id),
+      [
+        fixtures[2].id,
+        fixtures[0].id,
+        fixtures[3].id,
+        fixtures[4].id,
+        fixtures[5].id,
+        fixtures[1].id,
+      ],
+    );
+
     console.log(
       JSON.stringify({
         pagesVerified: 3,
+        unfilteredDiscovery: 'verified',
         precedence: 'exact,prefix,contains,context,recency,helpfulness,id',
         starAggregates: 'presentation-only',
       }),

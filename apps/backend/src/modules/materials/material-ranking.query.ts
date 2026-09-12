@@ -81,12 +81,12 @@ function buildRelevanceOrdering(
             WHEN m.search_key = ${searchKey} THEN 0
             WHEN m.search_key LIKE ${`${escapedSearchKey}%`} ESCAPE '\\' THEN 1
             ELSE 2
-          END
+          END ASC,
         `
-      : Prisma.sql`0`;
+      : Prisma.empty;
 
   return Prisma.sql`
-    ${textualRelevance} ASC,
+    ${textualRelevance}
     (
       (m.academic_year IS NOT NULL)::int +
       (m.professor_id IS NOT NULL)::int +

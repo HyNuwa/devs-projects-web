@@ -146,6 +146,67 @@ function CommunityRatingSummary({ average, count }: { average: string; count: nu
   );
 }
 
+function LocalPdfPreview({
+  url,
+  title,
+  onError,
+}: {
+  url: string;
+  title: string;
+  onError: () => void;
+}) {
+  const [source, setSource] = useState<{ url: string; objectUrl: string } | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let objectUrl: string | undefined;
+    async function load() {
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error('PDF unavailable');
+        const blob = await response.blob();
+        // Only a verified PDF may receive a same-origin object URL. Never embed
+        // an HTML error response or a user-controlled active document this way.
+        if (
+          blob.type.split(';')[0] !== 'application/pdf' ||
+          (await blob.slice(0, 5).text()) !== '%PDF-'
+        ) {
+          throw new Error('Invalid PDF response');
+        }
+        if (controller.signal.aborted) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSource({ url, objectUrl });
+      } catch {
+        if (!controller.signal.aborted) setFailedUrl(url);
+      }
+    }
+    void load();
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url]);
+
+  if (failedUrl === url) {
+    return (
+      <PreviewFallback
+        title="No pudimos cargar la vista previa"
+        description="Podés descargar el archivo para abrirlo en tu dispositivo."
+      />
+    );
+  }
+  if (source?.url !== url) return <p role="status">Preparando vista previa…</p>;
+  return (
+    <iframe
+      className="size-full min-h-[20rem] border-0 bg-background sm:min-h-[28rem]"
+      src={source.objectUrl}
+      title={title}
+      onError={onError}
+    />
+  );
+}
+
 function PreviewRegion({
   attempt,
   file,
@@ -219,15 +280,24 @@ function PreviewRegion({
   if (preview.capability === 'PDF') {
     return (
       <div className="grid size-full grid-rows-[minmax(0,1fr)_auto] gap-3">
-        <iframe
-          className="size-full min-h-[20rem] border-0 bg-background sm:min-h-[28rem]"
-          key={`${file.id}-${attempt}`}
-          onError={onPreviewError}
-          referrerPolicy="no-referrer"
-          sandbox="allow-forms allow-popups allow-same-origin allow-scripts"
-          src={previewUrl}
-          title={`Vista previa del archivo ${file.title}`}
-        />
+        {new URL(previewUrl).origin === apiOrigin() ? (
+          <LocalPdfPreview
+            key={`${file.id}-${attempt}`}
+            url={previewUrl}
+            title={`Vista previa del archivo ${file.title}`}
+            onError={onPreviewError}
+          />
+        ) : (
+          <iframe
+            className="size-full min-h-[20rem] border-0 bg-background sm:min-h-[28rem]"
+            key={`${file.id}-${attempt}`}
+            onError={onPreviewError}
+            referrerPolicy="no-referrer"
+            sandbox="allow-forms allow-popups allow-same-origin allow-scripts"
+            src={previewUrl}
+            title={`Vista previa del archivo ${file.title}`}
+          />
+        )}
         <Button className="justify-self-end" onClick={onPreviewError} size="sm" variant="ghost">
           La vista previa no cargó
         </Button>
@@ -351,6 +421,7 @@ export function MaterialPreviewDialog({
       ? communityState
       : { materialId: file.id, status: 'loading' as const };
   const viewer = currentViewerState.status === 'ready' ? currentViewerState.viewer : null;
+  const material = currentMaterialState.status === 'ready' ? currentMaterialState.material : null;
   const viewerIsLoading = Boolean(user) && currentViewerState.status === 'loading';
   const isViewerError = currentViewerState.status === 'error';
   const previewFailed = failedPreviewId === file.id;
@@ -358,14 +429,11 @@ export function MaterialPreviewDialog({
   const actionIsDisabled = isAuthLoading || (Boolean(user) && (!viewer || actionIsPending));
   const contextualViewerError = viewerError?.materialId === file.id ? viewerError.message : null;
 
-  const defaultDownloadHref = `${api.defaults.baseURL ?? ''}/materials/${encodeURIComponent(file.id)}/download`;
-  const downloadHref =
-    currentMaterialState.status === 'ready'
-      ? currentMaterialState.material.preview.downloadUrl
-      : defaultDownloadHref;
-  const uploadedAt = new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(
-    new Date(file.createdAt),
-  );
+  const downloadHref = `${api.defaults.baseURL ?? ''}/materials/${encodeURIComponent(file.id)}/download`;
+  const createdAt = new Date(material?.createdAt ?? file.createdAt);
+  const uploadedAt = Number.isNaN(createdAt.getTime())
+    ? 'Fecha no informada'
+    : new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(createdAt);
 
   const requestSignIn = () => {
     router.push(loginHrefForCurrentLocation());
@@ -468,14 +536,15 @@ export function MaterialPreviewDialog({
             </span>
             <div className="min-w-0 flex-1">
               <Dialog.Title className="truncate font-serif text-xl font-bold text-foreground sm:text-2xl">
-                Vista previa: {file.title}
+                Vista previa: {material?.title ?? file.title}
               </Dialog.Title>
               <Dialog.Description
                 className="mt-1 text-sm text-secondary-foreground"
                 id="material-preview-description"
               >
-                {subjectName} · {file.fileType.toUpperCase()} ·{' '}
-                {file.academicYear ?? 'Ciclo no informado'}
+                {material?.subject.name ?? subjectName} ·{' '}
+                {(material?.fileType ?? file.fileType).toUpperCase()} ·{' '}
+                {material?.academicYear ?? file.academicYear ?? 'Ciclo no informado'}
               </Dialog.Description>
             </div>
             <Button asChild className="hidden shrink-0 sm:inline-flex" size="sm" variant="outline">

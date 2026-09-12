@@ -755,13 +755,38 @@ export function MaterialHierarchyPage({
   selectedFileId?: string;
   segments: string[];
 }) {
-  const route = useMemo(() => parseMaterialHierarchyRoute(segments), [segments]);
+  const router = useRouter();
+  const pathSegments = segments.join('/');
+  const route = useMemo(
+    () => parseMaterialHierarchyRoute(pathSegments ? pathSegments.split('/') : []),
+    [pathSegments],
+  );
   const normalizedQuery = query.trim().slice(0, 120);
-  const routeKey = `${segments.join('/')}:${normalizedQuery}:${selectedFileId ?? ''}`;
+  const routeKey = `${pathSegments}:${normalizedQuery}`;
 
   return (
-    <main className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
-      <div className="mx-auto max-w-[1180px] px-5 py-10 sm:px-10 sm:py-14">
+    <div className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
+      {route.kind === 'careers' && selectedFileId ? (
+        <MaterialPreviewDialog
+          key={selectedFileId}
+          file={{
+            id: selectedFileId,
+            title: 'Recurso académico',
+            academicYear: null,
+            createdAt: '',
+            fileType: '',
+          }}
+          focusTargetId="material-hierarchy-content"
+          onRequestClose={() => router.replace('/materiales', { scroll: false })}
+          open
+          subjectName="Materia"
+        />
+      ) : null}
+      <div
+        id="material-hierarchy-content"
+        tabIndex={-1}
+        className="mx-auto max-w-[1180px] px-5 py-10 sm:px-10 sm:py-14"
+      >
         <MaterialHierarchyContent
           key={routeKey}
           query={normalizedQuery}
@@ -769,6 +794,6 @@ export function MaterialHierarchyPage({
           selectedFileId={selectedFileId}
         />
       </div>
-    </main>
+    </div>
   );
 }

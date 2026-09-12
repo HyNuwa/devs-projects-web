@@ -20,10 +20,10 @@ import { getGroupedSuggestions } from '@/lib/discovery-client';
 import type { GroupedDiscoverySuggestions } from '@/types/discovery';
 
 const shortcuts = [
-  { label: 'Parciales', query: 'parcial', resourceType: 'PARCIAL', Icon: FileText },
-  { label: 'Finales', query: 'final', resourceType: 'FINAL', Icon: FileCheck2 },
-  { label: 'Apuntes', query: 'apunte', resourceType: 'APUNTE', Icon: NotebookPen },
-  { label: 'Resúmenes', query: 'resumen', resourceType: 'RESUMEN', Icon: BookOpenText },
+  { label: 'Parciales', resourceType: 'PARCIAL', Icon: FileText },
+  { label: 'Finales', resourceType: 'FINAL', Icon: FileCheck2 },
+  { label: 'Apuntes', resourceType: 'APUNTE', Icon: NotebookPen },
+  { label: 'Resúmenes', resourceType: 'RESUMEN', Icon: BookOpenText },
 ] as const;
 
 type SuggestionState =
@@ -87,7 +87,7 @@ export function PixelNotebookHome() {
   return (
     <section
       aria-labelledby="pixel-notebook-home-title"
-      className="relative isolate overflow-hidden border-b border-border bg-background"
+      className="relative z-10 isolate border-b border-border bg-background"
     >
       <span
         aria-hidden="true"
@@ -125,6 +125,9 @@ export function PixelNotebookHome() {
                 }
               }}
               onFocus={() => setIsSearchFocused(true)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setIsSearchFocused(false);
+              }}
             >
               <form
                 aria-label="Buscar recursos académicos"
@@ -140,7 +143,12 @@ export function PixelNotebookHome() {
                   className="min-h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                   id="homepage-discovery-query"
                   name="q"
-                  onChange={(event) => setQuery(event.target.value)}
+                  aria-controls={showSuggestions ? 'homepage-suggestions' : undefined}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setSuggestionState({ status: 'idle' });
+                    setIsSearchFocused(true);
+                  }}
                   placeholder="Buscá materia, parcial o apunte"
                   type="search"
                   value={query}
@@ -154,9 +162,10 @@ export function PixelNotebookHome() {
                 <div
                   aria-label="Sugerencias de búsqueda"
                   aria-live="polite"
+                  id="homepage-suggestions"
                   className="absolute inset-x-0 z-20 mt-2 max-h-[min(60dvh,32rem)] overflow-y-auto border border-primary bg-card shadow-surface"
                 >
-                  {suggestionState.status === 'loading' ? (
+                  {suggestionState.status === 'idle' || suggestionState.status === 'loading' ? (
                     <p className="flex items-center gap-2 px-4 py-4 font-sans text-sm text-muted-foreground">
                       <LoaderCircle
                         aria-hidden="true"
@@ -167,7 +176,7 @@ export function PixelNotebookHome() {
                   ) : null}
 
                   {suggestionState.status === 'ready' && hasSuggestions ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2">
+                    <div className="grid grid-cols-1">
                       <section aria-labelledby="homepage-subject-suggestions">
                         <h2
                           className="border-b border-border bg-secondary px-4 py-3 font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary"
@@ -197,7 +206,7 @@ export function PixelNotebookHome() {
                       </section>
                       <section
                         aria-labelledby="homepage-material-suggestions"
-                        className="border-t border-primary lg:border-l lg:border-t-0"
+                        className="border-t border-primary"
                       >
                         <h2
                           className="border-b border-border bg-secondary px-4 py-3 font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary"
@@ -249,10 +258,10 @@ export function PixelNotebookHome() {
             </div>
 
             <nav aria-label="Atajos por tipo de recurso" className="mt-6 flex flex-wrap gap-2">
-              {shortcuts.map(({ Icon, label, query: shortcutQuery, resourceType }) => (
+              {shortcuts.map(({ Icon, label, resourceType }) => (
                 <Link
                   className="inline-flex min-h-11 items-center gap-2 border border-primary bg-background px-3 font-mono text-xs font-bold text-primary shadow-control outline-none transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  href={toSearchHref({ q: shortcutQuery, resourceType })}
+                  href={toSearchHref({ resourceType })}
                   key={label}
                 >
                   <Icon aria-hidden="true" className="size-4" strokeWidth={1.8} />
@@ -268,7 +277,7 @@ export function PixelNotebookHome() {
           </div>
         </div>
 
-        <div className="relative min-h-[18rem] border-t border-line lg:min-h-0 lg:border-l lg:border-t-0">
+        <div className="relative min-h-[18rem] overflow-hidden border-t border-line lg:min-h-0 lg:border-l lg:border-t-0">
           <Image
             alt="Mochila pixel art con libros, apuntes y útiles de estudio"
             className="object-cover object-[56%_center]"

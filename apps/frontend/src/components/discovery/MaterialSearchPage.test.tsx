@@ -8,12 +8,27 @@ import { MaterialSearchPage } from './MaterialSearchPage';
 
 const navigation = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
   searchParams: new URLSearchParams(),
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: navigation.push }),
+  useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
   useSearchParams: () => navigation.searchParams,
+}));
+
+vi.mock('./MaterialPreviewDialog', () => ({
+  MaterialPreviewDialog: ({
+    file,
+    onRequestClose,
+  }: {
+    file: { title: string };
+    onRequestClose: () => void;
+  }) => (
+    <div role="dialog" aria-label={file.title}>
+      <button onClick={onRequestClose}>Cerrar vista previa</button>
+    </div>
+  ),
 }));
 
 vi.mock('@/lib/discovery-client', async (importOriginal) => {
@@ -79,6 +94,7 @@ function suggestions(subjects: GroupedDiscoverySuggestions['subjects'] = []) {
 describe('MaterialSearchPage', () => {
   beforeEach(() => {
     navigation.push.mockReset();
+    navigation.replace.mockReset();
     navigation.searchParams = new URLSearchParams();
     vi.mocked(getGroupedSuggestions).mockReset();
     vi.mocked(getMaterialDiscovery).mockReset();
@@ -150,9 +166,27 @@ describe('MaterialSearchPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Vista previa' })).toHaveAttribute(
       'href',
-      '/materiales?archivo=material-1',
+      '/buscar?q=estructuras&archivo=material-1',
     );
     expect(screen.queryByText(/revisado/i)).not.toBeInTheDocument();
+  });
+
+  it('opens a URL-backed preview without replacing or refetching the search results', async () => {
+    const query = 'q=grafos&resourceType=FINAL&sort=RECENT&page=2';
+    navigation.searchParams = new URLSearchParams(query);
+    vi.mocked(getGroupedSuggestions).mockResolvedValue(suggestions());
+    vi.mocked(getMaterialDiscovery).mockResolvedValue(materialPage([material()], 2));
+    const view = render(<MaterialSearchPage />);
+    await screen.findByText('Parcial resuelto de complejidad');
+
+    navigation.searchParams = new URLSearchParams(`${query}&archivo=material-1`);
+    view.rerender(<MaterialSearchPage />);
+    expect(
+      await screen.findByRole('dialog', { name: 'Parcial resuelto de complejidad' }),
+    ).toBeInTheDocument();
+    expect(getMaterialDiscovery).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar vista previa' }));
+    expect(navigation.replace).toHaveBeenCalledWith(`/buscar?${query}`, { scroll: false });
   });
 
   it('updates sorting in the URL and reloads results when browser state changes', async () => {

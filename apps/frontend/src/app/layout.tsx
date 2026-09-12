@@ -23,8 +23,8 @@ const pressStart2P = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
-  title: 'DevsProject Foro',
-  description: 'Plataforma comunitaria para estudiantes universitarios con temática RPG.',
+  title: 'DevsProject · Comunidad FI UNJu',
+  description: 'Parciales, apuntes y experiencias de estudiantes de FI · UNJu.',
 };
 
 export default function RootLayout({

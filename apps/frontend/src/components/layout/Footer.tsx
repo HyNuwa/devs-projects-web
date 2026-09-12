@@ -1,148 +1,52 @@
-import Image from 'next/image';
 import Link from 'next/link';
-import { Globe, Mail, MessageCircle } from 'lucide-react';
-import styles from './Footer.module.css';
 
-export const Footer = () => {
-  const currentYear = new Date().getFullYear();
-
+export function Footer() {
   return (
-    <footer className={styles.footer}>
-      <div className={styles.container}>
-        <div className={styles.topSection}>
-          {/* Brand & Description */}
-          <div className={styles.brandSection}>
-            <Link href="/" className={styles.logo}>
-              <Image
-                src="/assets/logo.png"
-                alt="DevsProject Logo"
-                width={120}
-                height={48}
-                className={styles.logoImage}
-              />
+    <footer className="mt-auto border-t border-border bg-background font-sans text-foreground">
+      <div className="mx-auto max-w-[1180px] px-5 py-10 sm:px-6">
+        <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <div>
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center font-serif text-2xl font-bold"
+            >
+              DevsProject
             </Link>
-            <p className={styles.description}>
-              Tu aventura académica comienza aquí. Comparte conocimiento, ayuda a otros y
-              conviértete en leyenda en nuestra comunidad universitaria.
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-secondary-foreground">
+              Parciales, apuntes y experiencias de la comunidad FI · UNJu.
             </p>
-            <div className={styles.socialLinks}>
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.socialIcon}
-                aria-label="Website"
-              >
-                <Globe size={20} />
-              </a>
-              <a
-                href="mailto:contacto@devsproject.com"
-                className={styles.socialIcon}
-                aria-label="Email"
-              >
-                <Mail size={20} />
-              </a>
-              <a
-                href="https://discord.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.socialIcon}
-                aria-label="Discord"
-              >
-                <MessageCircle size={20} />
-              </a>
-            </div>
           </div>
-
-          {/* Quick Links */}
-          <div className={styles.linksSection}>
-            <h3 className={styles.linksTitle}>Explorar</h3>
-            <ul className={styles.linksList}>
-              <li>
-                <Link href="/foro" className={styles.link}>
-                  Foro
-                </Link>
-              </li>
-              <li>
-                <Link href="/materias" className={styles.link}>
-                  Materias
-                </Link>
-              </li>
-              <li>
-                <Link href="/materiales" className={styles.link}>
-                  Materiales
-                </Link>
-              </li>
-              <li>
-                <Link href="/herramientas" className={styles.link}>
-                  Herramientas
-                </Link>
-              </li>
-              <li>
-                <Link href="/ranking" className={styles.link}>
-                  Ranking
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Resources */}
-          <div className={styles.linksSection}>
-            <h3 className={styles.linksTitle}>Recursos</h3>
-            <ul className={styles.linksList}>
-              <li>
-                <Link href="/faq" className={styles.link}>
-                  Preguntas Frecuentes
-                </Link>
-              </li>
-              <li>
-                <Link href="/reglas" className={styles.link}>
-                  Reglas de la Comunidad
-                </Link>
-              </li>
-              <li>
-                <Link href="/api" className={styles.link}>
-                  API para Desarrolladores
-                </Link>
-              </li>
-              <li>
-                <Link href="/contacto" className={styles.link}>
-                  Contacto
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div className={styles.linksSection}>
-            <h3 className={styles.linksTitle}>Legal</h3>
-            <ul className={styles.linksList}>
-              <li>
-                <Link href="/terminos" className={styles.link}>
-                  Términos de Servicio
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacidad" className={styles.link}>
-                  Política de Privacidad
-                </Link>
-              </li>
-              <li>
-                <Link href="/cookies" className={styles.link}>
-                  Uso de Cookies
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <nav
+            aria-label="Explorar DevsProject"
+            className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm"
+          >
+            <Link className="inline-flex min-h-11 items-center hover:underline" href="/materias">
+              Materias
+            </Link>
+            <Link className="inline-flex min-h-11 items-center hover:underline" href="/resenas">
+              Reseñas
+            </Link>
+            <Link className="inline-flex min-h-11 items-center hover:underline" href="/materiales">
+              Materiales
+            </Link>
+            <Link className="inline-flex min-h-11 items-center hover:underline" href="/finales">
+              Finales
+            </Link>
+            <Link
+              className="inline-flex min-h-11 items-center font-bold text-primary hover:underline"
+              href="/materiales/nuevo"
+            >
+              Subir material
+            </Link>
+            <Link className="inline-flex min-h-11 items-center hover:underline" href="/foro">
+              Foro
+            </Link>
+          </nav>
         </div>
-
-        <div className={styles.bottomSection}>
-          <p className={styles.copyright}>
-            &copy; {currentYear} DevsProject Foro. Todos los derechos reservados.
-          </p>
-          <div className={styles.pixelArt}>⚔️ 🛡️ 🧪</div>
-        </div>
+        <p className="mt-8 border-t border-line pt-5 text-xs text-secondary-foreground">
+          &copy; {new Date().getFullYear()} DevsProject
+        </p>
       </div>
     </footer>
   );
-};
+}

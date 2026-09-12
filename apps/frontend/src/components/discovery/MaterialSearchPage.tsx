@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/shadcn/button';
 import { FilterSheet, FilterSheetFieldSet } from '@/components/ui/shadcn/filter-sheet';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn/state';
 import { Input } from '@/components/ui/shadcn/input';
+import { MaterialPreviewDialog } from './MaterialPreviewDialog';
 import { api } from '@/lib/api';
 import { getData } from '@/lib/apiHelpers';
 import { getGroupedSuggestions, getMaterialDiscovery } from '@/lib/discovery-client';
 import { resourceTypeLabel, resourceTypeOptions, shiftLabel } from '@/lib/presentation-labels';
 import {
   parseMaterialSearchState,
+  serializeMaterialSearchState,
   toMaterialSearchHref,
   type MaterialSearchState,
 } from '@/lib/material-search-state';
@@ -267,7 +269,13 @@ function PartialContextNotice({
   );
 }
 
-function SearchContent({ state }: { state: MaterialSearchState }) {
+function SearchContent({
+  state,
+  selectedFileId,
+}: {
+  state: MaterialSearchState;
+  selectedFileId?: string;
+}) {
   const router = useRouter();
   const [queryInput, setQueryInput] = useState(state.q);
   const [requestState, setRequestState] = useState<SearchRequestState>({ status: 'loading' });
@@ -275,6 +283,15 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
   const [filterOptions, setFilterOptions] = useState<FilterOptionsState>({ status: 'loading' });
   const [searchRetryKey, setSearchRetryKey] = useState(0);
   const [filterOptionsRetryKey, setFilterOptionsRetryKey] = useState(0);
+  const selectedMaterial =
+    requestState.status === 'ready'
+      ? requestState.results.data.find((material) => material.id === selectedFileId)
+      : undefined;
+  const previewHref = (fileId: string) => {
+    const params = serializeMaterialSearchState(state);
+    params.set('archivo', fileId);
+    return `/buscar?${params.toString()}`;
+  };
 
   useEffect(() => {
     let current = true;
@@ -385,7 +402,27 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
   const filtersAreActive = hasActiveFilters(state);
 
   return (
-    <main className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
+    <div className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
+      {selectedFileId ? (
+        <MaterialPreviewDialog
+          key={selectedFileId}
+          file={
+            selectedMaterial ?? {
+              id: selectedFileId,
+              title: 'Recurso académico',
+              academicYear: null,
+              createdAt: '',
+              fileType: '',
+            }
+          }
+          focusTargetId={
+            selectedMaterial ? `search-preview-${selectedFileId}` : 'material-search-query'
+          }
+          onRequestClose={() => router.replace(toMaterialSearchHref(state), { scroll: false })}
+          open
+          subjectName={selectedMaterial?.subject.name ?? 'Materia'}
+        />
+      ) : null}
       <div className="border-b border-border bg-secondary/55">
         <div className="mx-auto max-w-[1180px] px-5 py-11 sm:px-10 sm:py-14">
           {strongSubject ? (
@@ -710,7 +747,11 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
                     </div>
                   </div>
                   <Button asChild size="sm" variant="outline">
-                    <Link href={`/materiales?archivo=${encodeURIComponent(material.id)}`}>
+                    <Link
+                      href={previewHref(material.id)}
+                      id={`search-preview-${material.id}`}
+                      scroll={false}
+                    >
                       <Eye aria-hidden="true" className="size-4" strokeWidth={1.8} />
                       Vista previa
                     </Link>
@@ -791,17 +832,20 @@ function SearchContent({ state }: { state: MaterialSearchState }) {
           />
         ) : null}
       </div>
-    </main>
+    </div>
   );
 }
 
 export function MaterialSearchPage() {
   const searchParams = useSearchParams();
-  const rawSearch = searchParams.toString();
+  const selectedFileId = searchParams.get('archivo') || undefined;
+  const resultParams = new URLSearchParams(searchParams.toString());
+  resultParams.delete('archivo');
+  const rawSearch = resultParams.toString();
   const state = useMemo(
     () => parseMaterialSearchState(new URLSearchParams(rawSearch)),
     [rawSearch],
   );
 
-  return <SearchContent key={rawSearch} state={state} />;
+  return <SearchContent key={rawSearch} state={state} selectedFileId={selectedFileId} />;
 }
