@@ -4,12 +4,10 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
-import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
-import { join } from 'path';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { configureGlobalExceptionFilters } from './common/filters/configure-global-exception-filters';
+import { configureHttpMiddleware } from './config/http-security';
 
 // Serialize BigInt as string in JSON responses (Material.fileSize is BigInt)
 (BigInt.prototype as unknown as { toJSON: (this: bigint) => string }).toJSON =
@@ -28,10 +26,7 @@ async function bootstrap() {
   const apiPrefix = configService.get<string>('app.apiPrefix', 'api/v1');
   app.setGlobalPrefix(apiPrefix);
 
-  app.useGlobalFilters(
-    new HttpExceptionFilter(),
-    new AllExceptionsFilter(configService),
-  );
+  configureGlobalExceptionFilters(app);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -44,18 +39,12 @@ async function bootstrap() {
     }),
   );
 
-  app.use(helmet());
   app.use(cookieParser());
-  app.useStaticAssets(join(process.cwd(), 'public'));
-
-  const corsOrigin = configService.get<string>(
-    'app.corsOrigin',
-    'http://localhost:3000',
-  );
-  app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true,
+  configureHttpMiddleware(app, {
+    corsOrigin: configService.get<string>(
+      'app.corsOrigin',
+      'http://localhost:3000',
+    ),
   });
 
   const nodeEnv = configService.get<string>('app.nodeEnv', 'development');
