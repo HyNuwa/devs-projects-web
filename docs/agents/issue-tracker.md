@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Incoming bug reports and feature requests for this repo live as GitHub issues. Use the `gh` CLI for all operations. Planned work (specs and tasks) lives in OpenSpec instead; see `docs/agents/workflow.md`.
 
 The canonical repository is `HyNuwa/devs-projects-web`. Commands may pass `--repo HyNuwa/devs-projects-web` when repository inference is unavailable.
 
