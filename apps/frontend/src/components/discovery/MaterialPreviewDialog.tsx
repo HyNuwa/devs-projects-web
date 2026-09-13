@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useState } from 'react';
 
 import { Button } from '@/components/ui/shadcn/button';
 import { api } from '@/lib/api';
@@ -85,29 +85,94 @@ export function resolveAllowedPreviewUrl(previewUrl: string | null): string | nu
   }
 }
 
+type PreviewIdentity = {
+  downloadHref: string;
+  fileType: string;
+  title: string;
+};
+
+/** Centred, self-contained failure state: file identity plus download stay in reach. */
 function PreviewFallback({
   description,
+  identity,
   onRetry,
   title,
 }: {
   description: string;
+  identity: PreviewIdentity;
   onRetry?: () => void;
   title: string;
 }) {
   return (
-    <div className="max-w-md text-center">
-      <TriangleAlert
-        aria-hidden="true"
-        className="mx-auto size-10 text-primary"
-        strokeWidth={1.6}
-      />
-      <h2 className="mt-4 font-serif text-3xl font-bold text-foreground">{title}</h2>
-      <p className="mt-3 text-sm leading-relaxed text-secondary-foreground">{description}</p>
-      {onRetry ? (
-        <Button className="mt-5" onClick={onRetry} variant="outline">
-          Reintentar vista previa
+    <div
+      className="mx-auto flex w-full max-w-md flex-col items-center text-center"
+      data-slot="material-preview-fallback"
+    >
+      <TriangleAlert aria-hidden="true" className="size-10 text-primary" strokeWidth={1.6} />
+      <h2 className="mt-4 text-balance font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+        {title}
+      </h2>
+      <p className="mt-3 text-pretty text-sm leading-relaxed text-secondary-foreground">
+        {description}
+      </p>
+      <p className="mt-5 flex max-w-full items-center gap-2 border border-border bg-background px-3 py-2 text-sm text-foreground">
+        <FileText aria-hidden="true" className="size-4 shrink-0 text-primary" strokeWidth={1.8} />
+        <span className="min-w-0 truncate font-bold">{identity.title}</span>
+        {identity.fileType ? (
+          <span className="shrink-0 font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
+            {identity.fileType}
+          </span>
+        ) : null}
+      </p>
+      <div className="mt-5 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-center">
+        <Button asChild>
+          <a href={identity.downloadHref} rel="noreferrer">
+            <Download aria-hidden="true" className="size-4" strokeWidth={1.8} />
+            Descargar archivo
+          </a>
         </Button>
-      ) : null}
+        {onRetry ? (
+          <Button onClick={onRetry} variant="outline">
+            Reintentar vista previa
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PreviewLoading() {
+  return (
+    <div aria-live="polite" className="mx-auto max-w-md text-center">
+      <FileText aria-hidden="true" className="mx-auto size-10 text-primary" strokeWidth={1.6} />
+      <p className="mt-4 font-serif text-2xl font-bold text-foreground sm:text-3xl">
+        Preparando vista previa…
+      </p>
+    </div>
+  );
+}
+
+/** A rendered document plus the manual escape hatch for frames that fail silently. */
+function PreviewFrame({
+  children,
+  onReportFailure,
+}: {
+  children: ReactNode;
+  onReportFailure: () => void;
+}) {
+  return (
+    // Below `lg` the dialog stacks inside one scroll container with no free space, so rows
+    // size to min-content: `auto` rows keep the iframe's min-height in that measure. A
+    // `minmax(0,1fr)` row would report 0, let the frame overflow its section, and the
+    // community aside would paint over the escape-hatch button.
+    <div
+      className="grid w-full grid-rows-[auto_auto] gap-3 lg:h-full lg:grid-rows-[minmax(0,1fr)_auto]"
+      data-slot="material-preview-frame"
+    >
+      {children}
+      <Button className="justify-self-end" onClick={onReportFailure} size="sm" variant="ghost">
+        La vista previa no cargó
+      </Button>
     </div>
   );
 }
@@ -156,7 +221,8 @@ function LocalPdfPreview({
   onError: () => void;
 }) {
   const [source, setSource] = useState<{ url: string; objectUrl: string } | null>(null);
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  // Lift failures to the dialog so it renders the single, centred fallback.
+  const reportFailure = useEffectEvent(() => onError());
 
   useEffect(() => {
     const controller = new AbortController();
@@ -178,7 +244,7 @@ function LocalPdfPreview({
         objectUrl = URL.createObjectURL(blob);
         setSource({ url, objectUrl });
       } catch {
-        if (!controller.signal.aborted) setFailedUrl(url);
+        if (!controller.signal.aborted) reportFailure();
       }
     }
     void load();
@@ -188,28 +254,23 @@ function LocalPdfPreview({
     };
   }, [url]);
 
-  if (failedUrl === url) {
-    return (
-      <PreviewFallback
-        title="No pudimos cargar la vista previa"
-        description="Podés descargar el archivo para abrirlo en tu dispositivo."
-      />
-    );
-  }
-  if (source?.url !== url) return <p role="status">Preparando vista previa…</p>;
+  if (source?.url !== url) return <PreviewLoading />;
   return (
-    <iframe
-      className="size-full min-h-[20rem] border-0 bg-background sm:min-h-[28rem]"
-      src={source.objectUrl}
-      title={title}
-      onError={onError}
-    />
+    <PreviewFrame onReportFailure={onError}>
+      <iframe
+        className="size-full min-h-[20rem] border-0 bg-background sm:min-h-[28rem]"
+        src={source.objectUrl}
+        title={title}
+        onError={onError}
+      />
+    </PreviewFrame>
   );
 }
 
 function PreviewRegion({
   attempt,
   file,
+  identity,
   materialState,
   onPreviewError,
   onRetry,
@@ -217,25 +278,20 @@ function PreviewRegion({
 }: {
   attempt: number;
   file: MaterialPreviewDialogFile;
+  identity: PreviewIdentity;
   materialState: MaterialState;
   onPreviewError: () => void;
   onRetry: () => void;
   previewFailed: boolean;
 }) {
   if (materialState.status === 'loading') {
-    return (
-      <div aria-live="polite" className="max-w-md text-center">
-        <FileText aria-hidden="true" className="mx-auto size-10 text-primary" strokeWidth={1.6} />
-        <p className="mt-4 font-serif text-3xl font-bold text-foreground">
-          Preparando vista previa…
-        </p>
-      </div>
-    );
+    return <PreviewLoading />;
   }
 
   if (materialState.status === 'error') {
     return (
       <PreviewFallback
+        identity={identity}
         description="No pudimos obtener una fuente de vista previa. Todavía podés descargar el archivo."
         title="Vista previa no disponible"
       />
@@ -248,6 +304,7 @@ function PreviewRegion({
   if (previewFailed) {
     return (
       <PreviewFallback
+        identity={identity}
         description="No pudimos cargar este archivo en el navegador. Podés reintentar o descargarlo para abrirlo en tu dispositivo."
         onRetry={onRetry}
         title="No pudimos cargar la vista previa"
@@ -258,6 +315,7 @@ function PreviewRegion({
   if (preview.capability === 'UNSUPPORTED') {
     return (
       <PreviewFallback
+        identity={identity}
         description="Este formato no admite una vista previa integrada. Podés descargar el archivo para abrirlo en tu dispositivo."
         title="Vista previa no compatible"
       />
@@ -267,6 +325,7 @@ function PreviewRegion({
   if (preview.capability === 'UNAVAILABLE' || !preview.canPreview || !previewUrl) {
     return (
       <PreviewFallback
+        identity={identity}
         description={
           preview.url && !previewUrl
             ? 'Por seguridad no cargamos vistas previas desde ese origen. Podés descargar el archivo.'
@@ -278,30 +337,25 @@ function PreviewRegion({
   }
 
   if (preview.capability === 'PDF') {
-    return (
-      <div className="grid size-full grid-rows-[minmax(0,1fr)_auto] gap-3">
-        {new URL(previewUrl).origin === apiOrigin() ? (
-          <LocalPdfPreview
-            key={`${file.id}-${attempt}`}
-            url={previewUrl}
-            title={`Vista previa del archivo ${file.title}`}
-            onError={onPreviewError}
-          />
-        ) : (
-          <iframe
-            className="size-full min-h-[20rem] border-0 bg-background sm:min-h-[28rem]"
-            key={`${file.id}-${attempt}`}
-            onError={onPreviewError}
-            referrerPolicy="no-referrer"
-            sandbox="allow-forms allow-popups allow-same-origin allow-scripts"
-            src={previewUrl}
-            title={`Vista previa del archivo ${file.title}`}
-          />
-        )}
-        <Button className="justify-self-end" onClick={onPreviewError} size="sm" variant="ghost">
-          La vista previa no cargó
-        </Button>
-      </div>
+    return new URL(previewUrl).origin === apiOrigin() ? (
+      <LocalPdfPreview
+        key={`${file.id}-${attempt}`}
+        url={previewUrl}
+        title={`Vista previa del archivo ${file.title}`}
+        onError={onPreviewError}
+      />
+    ) : (
+      <PreviewFrame onReportFailure={onPreviewError}>
+        <iframe
+          className="size-full min-h-[20rem] border-0 bg-background sm:min-h-[28rem]"
+          key={`${file.id}-${attempt}`}
+          onError={onPreviewError}
+          referrerPolicy="no-referrer"
+          sandbox="allow-forms allow-popups allow-same-origin allow-scripts"
+          src={previewUrl}
+          title={`Vista previa del archivo ${file.title}`}
+        />
+      </PreviewFrame>
     );
   }
 
@@ -517,7 +571,7 @@ export function MaterialPreviewDialog({
         />
         <Dialog.Content
           aria-describedby="material-preview-description"
-          className="fixed inset-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)_auto] bg-card text-card-foreground shadow-surface outline-none sm:inset-x-5 sm:inset-y-5 sm:border sm:border-border lg:inset-x-10 lg:inset-y-8"
+          className="fixed inset-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)] bg-card sm:grid-rows-[auto_minmax(0,1fr)_auto] text-card-foreground shadow-surface outline-none sm:inset-x-5 sm:inset-y-5 sm:border sm:border-border lg:inset-x-10 lg:inset-y-8"
           data-slot="material-preview-dialog"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
@@ -547,10 +601,15 @@ export function MaterialPreviewDialog({
                 {material?.academicYear ?? file.academicYear ?? 'Ciclo no informado'}
               </Dialog.Description>
             </div>
-            <Button asChild className="hidden shrink-0 sm:inline-flex" size="sm" variant="outline">
+            {/* One download control, always in the fixed header: mobile never needs a bottom bar. */}
+            <Button
+              asChild
+              className="min-w-11 shrink-0 px-2 sm:min-h-9 sm:px-3 sm:text-xs"
+              variant="outline"
+            >
               <a href={downloadHref} rel="noreferrer">
                 <Download aria-hidden="true" className="size-4" strokeWidth={1.8} />
-                Descargar
+                <span className="sr-only sm:not-sr-only">Descargar</span>
               </a>
             </Button>
             <Dialog.Close asChild>
@@ -565,7 +624,12 @@ export function MaterialPreviewDialog({
             </Dialog.Close>
           </header>
 
-          <div className="grid min-h-0 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden">
+          {/* Block flow below `lg`: as auto grid rows in a scroller without free space, the
+              preview section would be clamped to its min-height and overlapped by the aside. */}
+          <div
+            className="min-h-0 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden"
+            data-slot="material-preview-body"
+          >
             <section
               aria-label={`Vista previa de ${file.title}`}
               className="grid min-h-[20rem] place-items-center border-b border-border bg-secondary p-5 sm:min-h-[28rem] sm:p-8 lg:min-h-0 lg:border-b-0 lg:border-r"
@@ -573,6 +637,11 @@ export function MaterialPreviewDialog({
               <PreviewRegion
                 attempt={attempt}
                 file={file}
+                identity={{
+                  downloadHref,
+                  fileType: (material?.fileType ?? file.fileType).toUpperCase(),
+                  title: material?.title ?? file.title,
+                }}
                 materialState={currentMaterialState}
                 onPreviewError={() => setFailedPreviewId(file.id)}
                 onRetry={() => {
@@ -585,7 +654,8 @@ export function MaterialPreviewDialog({
 
             <aside
               aria-labelledby="material-preview-community"
-              className="bg-background p-5 sm:p-6"
+              className="bg-background px-5 pt-5 pb-[max(4rem,env(safe-area-inset-bottom))] sm:p-6 lg:overflow-y-auto"
+              data-slot="material-preview-community"
             >
               <div className="flex items-center gap-2 text-primary">
                 <MessageSquare aria-hidden="true" className="size-5" strokeWidth={1.8} />
@@ -717,17 +787,17 @@ export function MaterialPreviewDialog({
                   </Button>
                 </div>
               ) : null}
+              <p className="mt-6 border-t border-border pt-4 text-sm text-secondary-foreground sm:hidden">
+                Publicado el {uploadedAt}
+              </p>
             </aside>
           </div>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-4 py-3 text-sm text-secondary-foreground sm:px-5">
+          <footer
+            className="hidden items-center border-t border-border bg-background px-5 py-3 text-sm text-secondary-foreground sm:flex"
+            data-slot="material-preview-footer"
+          >
             <span>Publicado el {uploadedAt}</span>
-            <Button asChild className="sm:hidden" size="sm" variant="outline">
-              <a href={downloadHref} rel="noreferrer">
-                <Download aria-hidden="true" className="size-4" strokeWidth={1.8} />
-                Descargar
-              </a>
-            </Button>
           </footer>
         </Dialog.Content>
       </Dialog.Portal>

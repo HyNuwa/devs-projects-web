@@ -9,7 +9,14 @@ import { Button } from '@/components/ui/shadcn/button';
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/shadcn/breadcrumb';
 import { Input } from '@/components/ui/shadcn/input';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn/state';
-import { MaterialPreviewDialog } from './MaterialPreviewDialog';
+import { cn } from '@/components/ui/shadcn/utils';
+import {
+  academicContextValue,
+  MaterialCommunityEvidence,
+  MaterialPreviewAction,
+  notInformedLabel,
+} from './MaterialComparisonEvidence';
+import { MaterialPreviewDialog, type MaterialPreviewDialogFile } from './MaterialPreviewDialog';
 import {
   getHierarchyCareers,
   getHierarchyCategories,
@@ -25,7 +32,7 @@ import {
   toMaterialHierarchyHref,
   type MaterialHierarchyRoute,
 } from '@/lib/material-hierarchy-state';
-import type { Material, MaterialResourceType, Paginated } from '@/types/material';
+import type { Material, MaterialPreview, MaterialResourceType, Paginated } from '@/types/material';
 import type {
   DiscoveryHierarchyCareer,
   DiscoveryHierarchyCategory,
@@ -167,6 +174,7 @@ async function getHierarchyView(
     } satisfies HierarchyView;
   }
 
+  // Each hierarchy file row carries its own evidence (stars, `Me sirvió`, preview).
   const response = await getHierarchyFiles(route.subjectId, route.resourceType);
   return {
     kind: 'files',
@@ -332,6 +340,23 @@ function ScopeIdentity({
   );
 }
 
+/** Comparison row; evidence fields stay optional so a missing value renders `No informado`. */
+type ResourceFileRow = MaterialPreviewDialogFile & {
+  helpfulCount?: number | null;
+  preview?: MaterialPreview | null;
+  professorName?: string | null;
+  resourceType?: MaterialResourceType;
+  starSummary?: Material['starSummary'] | null;
+};
+
+function formatUploadedAt(createdAt: string): string {
+  const date = new Date(createdAt);
+
+  return Number.isNaN(date.getTime())
+    ? 'Fecha no informada'
+    : new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(date);
+}
+
 function ResourceFileList({
   files,
   hasMore,
@@ -350,13 +375,18 @@ function ResourceFileList({
   subjectName: string;
 }) {
   const router = useRouter();
-  const rows = materialRows
+  const rows: ResourceFileRow[] = materialRows
     ? materialRows.map((material) => ({
         id: material.id,
         title: material.title,
         fileType: material.fileType,
         academicYear: material.academicYear,
         createdAt: material.createdAt,
+        resourceType: material.resourceType,
+        helpfulCount: material.helpfulCount,
+        starSummary: material.starSummary,
+        preview: material.preview,
+        professorName: material.professor?.name,
       }))
     : (files ?? []);
 
@@ -381,38 +411,62 @@ function ResourceFileList({
           subjectName={subjectName}
         />
       ) : null}
-      <ul className="mt-7 grid gap-3">
-        {rows.map((file) => (
-          <li key={file.id}>
-            <Link
-              aria-label={`Abrir ${file.title}`}
-              className={`flex min-h-20 items-center gap-4 border p-4 shadow-surface outline-none transition-colors hover:bg-secondary focus-visible:bg-secondary ${
-                selectedFileId === file.id ? 'border-primary bg-secondary' : 'border-border bg-card'
-              }`}
-              href={toMaterialHierarchyHref(route, query, file.id)}
-              id={focusTargetId(file.id)}
-              scroll={false}
-            >
-              <span
-                aria-hidden="true"
-                className="grid size-10 place-items-center border border-border bg-background text-primary"
-              >
-                <FileText className="size-5" strokeWidth={1.8} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold text-foreground">{file.title}</span>
-                <span className="mt-1 block text-sm text-secondary-foreground">
-                  {file.fileType.toUpperCase()} · {file.academicYear ?? 'Ciclo no informado'}
-                </span>
-              </span>
-              <span className="hidden text-sm text-secondary-foreground sm:block">
-                {new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium' }).format(
-                  new Date(file.createdAt),
+      <ul aria-label="Archivos" className="mt-7 grid gap-3">
+        {rows.map((file) => {
+          const resourceType = file.resourceType;
+
+          return (
+            <li key={file.id}>
+              {/* The preview action stretches over the row, so the whole row opens the file
+                  while exposing a single interactive control. */}
+              <article
+                className={cn(
+                  'relative grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-4 border p-4 shadow-surface transition-colors focus-within:bg-secondary hover:bg-secondary sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:p-5',
+                  selectedFileId === file.id
+                    ? 'border-primary bg-secondary'
+                    : 'border-border bg-card',
                 )}
-              </span>
-            </Link>
-          </li>
-        ))}
+                data-slot="material-file-row"
+              >
+                <span
+                  aria-hidden="true"
+                  className="grid size-10 place-items-center border border-border bg-background text-primary"
+                >
+                  <FileText className="size-5" strokeWidth={1.8} />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
+                    {resourceType ? resourceTypeLabel(resourceType) : notInformedLabel}
+                    {file.fileType ? ` · ${file.fileType.toUpperCase()}` : ''}
+                  </p>
+                  <h3 className="mt-1 break-words font-serif text-xl font-bold leading-tight text-foreground">
+                    {file.title}
+                  </h3>
+                  <p className="mt-1 text-sm text-secondary-foreground">
+                    Ciclo lectivo: {academicContextValue(file.academicYear)} · Profesor:{' '}
+                    {academicContextValue(file.professorName)} · {formatUploadedAt(file.createdAt)}
+                  </p>
+                  <MaterialCommunityEvidence
+                    className="mt-3"
+                    helpfulCount={file.helpfulCount}
+                    starSummary={file.starSummary}
+                  />
+                  {file.preview && !file.preview.canPreview ? (
+                    <p className="mt-2 text-xs text-secondary-foreground">
+                      Sin vista previa integrada: podés descargarlo desde la vista del archivo.
+                    </p>
+                  ) : null}
+                </div>
+                <MaterialPreviewAction
+                  className="col-span-2 after:absolute after:inset-0 after:content-[''] sm:col-span-1"
+                  href={toMaterialHierarchyHref(route, query, file.id)}
+                  id={focusTargetId(file.id)}
+                  title={file.title}
+                />
+              </article>
+            </li>
+          );
+        })}
       </ul>
       {hasMore ? (
         <p className="mt-4 text-sm text-secondary-foreground">

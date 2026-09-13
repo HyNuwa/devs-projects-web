@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -194,6 +194,15 @@ describe('MaterialPreviewDialog', () => {
       'sandbox',
       'allow-forms allow-popups allow-same-origin allow-scripts',
     );
+    // Stacked (mobile) layout: the frame must size to content so its escape hatch is not
+    // overflowed by the community aside; full height applies only in the lg side-by-side layout.
+    const frame = preview.closest('[data-slot="material-preview-frame"]');
+    expect(frame).toHaveClass(
+      'grid-rows-[auto_auto]',
+      'lg:h-full',
+      'lg:grid-rows-[minmax(0,1fr)_auto]',
+    );
+    expect(frame).not.toHaveClass('size-full');
 
     fireEvent.error(preview);
     await userEvent.setup().click(screen.getByRole('button', { name: 'La vista previa no cargó' }));
@@ -201,9 +210,92 @@ describe('MaterialPreviewDialog', () => {
     expect(
       await screen.findByRole('heading', { name: 'No pudimos cargar la vista previa' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Descargar' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Descargar' })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Descargar archivo' })).toHaveAttribute(
+      'href',
+      'http://localhost:3001/api/v1/materials/material-2/download',
+    );
     expect(screen.getByText(/Estructuras de Datos · APPLICATION\/PDF · 2026/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Comunidad' })).toBeInTheDocument();
+  });
+
+  it('lifts a failed first-party PDF load into one centred fallback without the stray label', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.mocked(getPublicMaterial).mockResolvedValueOnce(
+      material({
+        preview: {
+          capability: 'PDF',
+          url: '/uploads/materials/parcial-1.pdf',
+          canPreview: true,
+          downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+          fallback: {
+            reason: 'PREVIEW_FAILED',
+            downloadUrl: 'http://localhost:3001/api/v1/materials/material-2/download',
+          },
+        },
+      }),
+    );
+
+    try {
+      render(<DialogFixture />);
+
+      const heading = await screen.findByRole('heading', {
+        name: 'No pudimos cargar la vista previa',
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://localhost:3001/uploads/materials/parcial-1.pdf',
+        expect.anything(),
+      );
+      const fallback = heading.closest('[data-slot="material-preview-fallback"]') as HTMLElement;
+      expect(fallback).toHaveClass('mx-auto', 'items-center', 'text-center');
+      expect(within(fallback).getByText('Parcial 1')).toBeInTheDocument();
+      expect(within(fallback).getByText('APPLICATION/PDF')).toBeInTheDocument();
+      expect(within(fallback).getByRole('link', { name: 'Descargar archivo' })).toHaveAttribute(
+        'href',
+        'http://localhost:3001/api/v1/materials/material-2/download',
+      );
+      expect(
+        screen.queryByRole('button', { name: 'La vista previa no cargó' }),
+      ).not.toBeInTheDocument();
+
+      await user.click(within(fallback).getByRole('button', { name: 'Reintentar vista previa' }));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('keeps download in the header and drops the mobile bottom bar so nothing is occluded', async () => {
+    render(<DialogFixture />);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' });
+    const header = dialog.querySelector('header') as HTMLElement;
+    expect(within(header).getByRole('link', { name: 'Descargar' })).toBeInTheDocument();
+    expect(within(header).getByRole('button', { name: 'Cerrar vista previa' })).toBeInTheDocument();
+
+    // Mobile: header + one scroll region only; the footer is desktop-only chrome.
+    expect(dialog).toHaveClass('grid-rows-[auto_minmax(0,1fr)]');
+    // The stacked body flows as blocks so the preview section grows with its content
+    // instead of being clamped (and overlapped by the aside) as an auto grid row.
+    const body = dialog.querySelector('[data-slot="material-preview-body"]');
+    expect(body).toHaveClass('overflow-y-auto', 'lg:grid');
+    expect(body).not.toHaveClass('grid');
+    const footer = dialog.querySelector('[data-slot="material-preview-footer"]');
+    expect(footer).toHaveClass('hidden', 'sm:flex');
+    expect(footer?.querySelector('a')).toBeNull();
+
+    // The sign-in hint lives inside the scrollable community region, with bottom room.
+    const community = dialog.querySelector(
+      '[data-slot="material-preview-community"]',
+    ) as HTMLElement;
+    expect(
+      within(community).getByText(
+        'Iniciá sesión para guardar este material o indicar que te sirvió.',
+      ),
+    ).toBeInTheDocument();
+    expect(community.className).toContain('pb-[max(4rem,env(safe-area-inset-bottom))]');
   });
 
   it('renders allowlisted images and rejects arbitrary preview origins', async () => {
@@ -250,7 +342,8 @@ describe('MaterialPreviewDialog', () => {
     expect(
       await screen.findByRole('heading', { name: 'Vista previa no compatible' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Descargar' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Descargar' })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Descargar archivo' })).toBeInTheDocument();
   });
 
   it('asks an anonymous viewer to sign in without losing the selected location', async () => {
@@ -261,6 +354,27 @@ describe('MaterialPreviewDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     expect(navigation.push).toHaveBeenCalledWith('/auth/login?redirect=%2F');
+    expect(getMaterialViewerState).not.toHaveBeenCalled();
+  });
+
+  it('never reads private viewer state or navigates when an anonymous visitor only opens it', async () => {
+    render(<DialogFixture />);
+
+    await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' });
+    await waitFor(() => expect(getMaterialRatings).toHaveBeenCalled());
+
+    expect(getMaterialViewerState).not.toHaveBeenCalled();
+    expect(navigation.push).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled();
+  });
+
+  it('waits for the auth check before reading private viewer state', async () => {
+    useAuthStore.setState({ isLoading: true, user: null });
+    render(<DialogFixture />);
+
+    await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' });
+    await waitFor(() => expect(getMaterialRatings).toHaveBeenCalled());
+
     expect(getMaterialViewerState).not.toHaveBeenCalled();
   });
 

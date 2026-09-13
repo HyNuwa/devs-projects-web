@@ -1,4 +1,4 @@
-import type { MaterialResourceType } from './material';
+import type { Material, MaterialPreview, MaterialResourceType } from './material';
 
 export interface DiscoveryHierarchyCareer {
   id: string;
@@ -49,6 +49,11 @@ export interface DiscoveryHierarchyFile {
   resourceType: MaterialResourceType;
   academicYear: number | null;
   createdAt: string;
+  /** Row evidence from the same mapper as the public material DTO. */
+  helpfulCount: number;
+  /** `average` is a decimal string (e.g. "0", "4.50"), parsed at render like `Material`. */
+  starSummary: Material['starSummary'];
+  preview: MaterialPreview;
 }
 
 export interface DiscoveryCareerList {

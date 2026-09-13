@@ -2,13 +2,18 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight, BookOpenText, Eye, Search, Star, ThumbsUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpenText, Search } from 'lucide-react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/shadcn/button';
 import { FilterSheet, FilterSheetFieldSet } from '@/components/ui/shadcn/filter-sheet';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn/state';
 import { Input } from '@/components/ui/shadcn/input';
+import {
+  academicContextValue,
+  MaterialCommunityEvidence,
+  MaterialPreviewAction,
+} from './MaterialComparisonEvidence';
 import { MaterialPreviewDialog } from './MaterialPreviewDialog';
 import { api } from '@/lib/api';
 import { getData } from '@/lib/apiHelpers';
@@ -200,29 +205,6 @@ function materialQueryFor(
     sort: state.sort,
     page: state.page,
     limit: pageSize,
-  };
-}
-
-function academicContextValue(value: string | number | null): string | number {
-  return value ?? 'No informado';
-}
-
-function ratingEvidence(material: Material) {
-  const count = material.starSummary.count;
-  const average = Number(material.starSummary.average);
-
-  if (!count || !Number.isFinite(average)) {
-    return { accessibleName: 'Sin valoraciones todavía', visibleText: 'Sin valoraciones' };
-  }
-
-  const formattedAverage = new Intl.NumberFormat('es-AR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  }).format(average);
-
-  return {
-    accessibleName: `${formattedAverage} de 5 estrellas a partir de ${count} valoraciones`,
-    visibleText: `${formattedAverage} ★ · ${count}`,
   };
 }
 
@@ -728,34 +710,16 @@ function SearchContent({
                         </dd>
                       </div>
                     </dl>
-                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-secondary-foreground">
-                      <span className="inline-flex items-center gap-2">
-                        <ThumbsUp
-                          aria-hidden="true"
-                          className="size-4 text-primary"
-                          strokeWidth={1.8}
-                        />
-                        {material.helpfulCount} dijeron “Me sirvió”
-                      </span>
-                      <span
-                        aria-label={ratingEvidence(material).accessibleName}
-                        className="inline-flex items-center gap-1 font-mono font-bold text-primary"
-                      >
-                        <Star aria-hidden="true" className="size-4" strokeWidth={1.8} />
-                        {ratingEvidence(material).visibleText}
-                      </span>
-                    </div>
+                    <MaterialCommunityEvidence
+                      className="mt-4"
+                      helpfulCount={material.helpfulCount}
+                      starSummary={material.starSummary}
+                    />
                   </div>
-                  <Button asChild size="sm" variant="outline">
-                    <Link
-                      href={previewHref(material.id)}
-                      id={`search-preview-${material.id}`}
-                      scroll={false}
-                    >
-                      <Eye aria-hidden="true" className="size-4" strokeWidth={1.8} />
-                      Vista previa
-                    </Link>
-                  </Button>
+                  <MaterialPreviewAction
+                    href={previewHref(material.id)}
+                    id={`search-preview-${material.id}`}
+                  />
                 </article>
               ))}
             </div>
