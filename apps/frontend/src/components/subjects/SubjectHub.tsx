@@ -181,18 +181,18 @@ export function SubjectHub({ code }: { code: string }) {
 
   if (state.status === 'loading') {
     return (
-      <main className="mx-auto grid w-full max-w-6xl px-5 py-12 sm:py-16">
+      <div className="mx-auto grid w-full max-w-[1180px] px-3 py-12 sm:px-6 sm:py-16">
         <LoadingState
           description="Estamos reuniendo el contexto y los aportes de esta materia."
           heading="Cargando materia"
         />
-      </main>
+      </div>
     );
   }
 
   if (state.status === 'error') {
     return (
-      <main className="mx-auto grid w-full max-w-3xl gap-5 px-5 py-12 sm:py-16">
+      <div className="mx-auto grid w-full max-w-3xl gap-5 px-3 py-12 sm:px-6 sm:py-16">
         <ErrorState
           action={
             <div className="flex flex-wrap justify-center gap-3">
@@ -205,7 +205,7 @@ export function SubjectHub({ code }: { code: string }) {
           description={state.error}
           heading="No pudimos cargar esta materia"
         />
-      </main>
+      </div>
     );
   }
 
@@ -214,7 +214,7 @@ export function SubjectHub({ code }: { code: string }) {
   const averageRecommendation = subject.stats.avgRecommendation?.toFixed(1) ?? '—';
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-7 sm:py-10">
+    <div className="mx-auto grid w-full max-w-[1180px] gap-8 px-3 py-7 sm:px-6 sm:py-10">
       <nav aria-label="Ruta de materia">
         <Link
           className="inline-flex min-h-11 items-center gap-2 font-sans text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -463,6 +463,6 @@ export function SubjectHub({ code }: { code: string }) {
           </section>
         ) : null}
       </section>
-    </main>
+    </div>
   );
 }

@@ -97,9 +97,11 @@ describe('ExamExperienceDiscoveryPage', () => {
     );
     vi.mocked(getExamExperienceDiscovery).mockResolvedValue(resultPage([experience()], 2));
 
-    render(<ExamExperienceDiscoveryPage />);
+    const { container } = render(<ExamExperienceDiscoveryPage />);
 
     expect(await screen.findByRole('link', { name: 'Estructuras de Datos' })).toBeInTheDocument();
+    // The root layout owns the only <main> landmark.
+    expect(container.querySelector('main')).toBeNull();
     expect(screen.getByText('Anónimo')).toBeInTheDocument();
     expect(screen.getByText(/fecha exacta cuando se conoce/i)).toBeInTheDocument();
     expect(screen.getByText(/no se ordena por nota/i)).toBeInTheDocument();

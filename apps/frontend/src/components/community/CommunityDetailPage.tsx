@@ -305,7 +305,7 @@ function DetailActions({
   };
 
   return (
-    <aside className="grid content-start gap-3 border border-border bg-card p-4 shadow-surface">
+    <aside className="grid content-start gap-3 border border-border bg-card p-4 shadow-surface min-[820px]:sticky min-[820px]:top-24">
       <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.08em] text-muted-foreground">
         Acciones
       </p>
@@ -341,7 +341,7 @@ function UnavailableDetail({ id, kind }: { id: string; kind: CommunityDetailKind
   const listLabel = kind === 'course-review' ? 'Ver reseñas' : 'Ver experiencias de final';
 
   return (
-    <section className="mx-auto grid w-full max-w-3xl gap-5 px-5 py-12 sm:py-16">
+    <section className="mx-auto grid w-full max-w-3xl gap-5 px-3 py-12 sm:px-6 sm:py-16">
       <div className="border border-border bg-card p-6 text-center shadow-surface sm:p-8">
         <h1 className="font-serif text-3xl font-bold text-card-foreground">
           Esta publicación no está disponible
@@ -379,7 +379,7 @@ function CommunityDetailContent({
   const title = `${sectionLabel}: ${detail.subject.name}`;
 
   return (
-    <section className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-7 sm:py-10">
+    <section className="mx-auto grid w-full max-w-[1180px] gap-6 px-3 py-7 sm:px-6 sm:py-10">
       <nav aria-label="Ruta de comunidad" className="flex flex-wrap items-center gap-2 text-sm">
         <Link
           className="inline-flex min-h-11 items-center gap-2 font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -396,62 +396,68 @@ function CommunityDetailContent({
         </span>
       </nav>
 
-      <article className="border border-border bg-card p-5 shadow-surface sm:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="min-w-0">
-            <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
-              {sectionLabel}
-            </p>
-            <h1 className="mt-2 font-serif text-4xl font-bold leading-[0.95] text-card-foreground sm:text-5xl">
-              {detail.subject.name}
-            </h1>
-            <Link
-              className="mt-4 inline-flex min-h-11 items-center gap-2 font-sans text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              href={detail.subject.href}
-            >
-              <GraduationCap aria-hidden="true" className="size-4" strokeWidth={1.8} />
-              Ver materia
-            </Link>
+      <div className="grid gap-6 min-[820px]:grid-cols-[minmax(0,1fr)_16rem] min-[820px]:items-start">
+        <article className="min-w-0 border border-border bg-card p-5 shadow-surface sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="min-w-0">
+              <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
+                {sectionLabel}
+              </p>
+              <h1 className="mt-2 font-serif text-4xl font-bold leading-[0.95] text-card-foreground sm:text-5xl">
+                {detail.subject.name}
+              </h1>
+              <Link
+                className="mt-4 inline-flex min-h-11 items-center gap-2 font-sans text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                href={detail.subject.href}
+              >
+                <GraduationCap aria-hidden="true" className="size-4" strokeWidth={1.8} />
+                Ver materia
+              </Link>
+            </div>
+            {review ? <StarRecommendation value={review.recommendation} /> : null}
           </div>
-          {review ? <StarRecommendation value={review.recommendation} /> : null}
-        </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border py-4 font-sans text-sm text-secondary-foreground">
-          <span className="inline-flex items-center gap-2">
-            <UserRound aria-hidden="true" className="size-4 text-primary" strokeWidth={1.7} />
-            {detail.author.username || 'Anónimo'}
-          </span>
-          {createdDate ? (
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border py-4 font-sans text-sm text-secondary-foreground">
             <span className="inline-flex items-center gap-2">
-              <CalendarDays aria-hidden="true" className="size-4 text-primary" strokeWidth={1.7} />
-              Publicada el {createdDate}
+              <UserRound aria-hidden="true" className="size-4 text-primary" strokeWidth={1.7} />
+              {detail.author.username || 'Anónimo'}
             </span>
-          ) : null}
-          {edited ? <Chip tone="neutral">Editada · {edited}</Chip> : null}
-        </div>
+            {createdDate ? (
+              <span className="inline-flex items-center gap-2">
+                <CalendarDays
+                  aria-hidden="true"
+                  className="size-4 text-primary"
+                  strokeWidth={1.7}
+                />
+                Publicada el {createdDate}
+              </span>
+            ) : null}
+            {edited ? <Chip tone="neutral">Editada · {edited}</Chip> : null}
+          </div>
 
-        <DetailFacts detail={detail} kind={kind} />
+          <DetailFacts detail={detail} kind={kind} />
 
-        <section aria-labelledby="community-narrative" className="mt-8 max-w-[75ch]">
-          <h2
-            className="font-serif text-2xl font-bold text-card-foreground"
-            id="community-narrative"
-          >
-            Relato completo
-          </h2>
-          {detail.comment ? (
-            <p className="mt-4 whitespace-pre-wrap font-serif text-lg leading-relaxed text-foreground">
-              {detail.comment}
-            </p>
-          ) : (
-            <p className="mt-4 font-sans leading-relaxed text-muted-foreground">
-              No se registró un relato para esta publicación histórica.
-            </p>
-          )}
-        </section>
-      </article>
+          <section aria-labelledby="community-narrative" className="mt-8 max-w-[75ch]">
+            <h2
+              className="font-serif text-2xl font-bold text-card-foreground"
+              id="community-narrative"
+            >
+              Relato completo
+            </h2>
+            {detail.comment ? (
+              <p className="mt-4 whitespace-pre-wrap font-serif text-lg leading-relaxed text-foreground">
+                {detail.comment}
+              </p>
+            ) : (
+              <p className="mt-4 font-sans leading-relaxed text-muted-foreground">
+                No se registró un relato para esta publicación histórica.
+              </p>
+            )}
+          </section>
+        </article>
 
-      <DetailActions id={id} kind={kind} title={title} />
+        <DetailActions id={id} kind={kind} title={title} />
+      </div>
       <CommunityEntryManagement id={id} kind={kind} subjectHref={detail.subject.href} />
     </section>
   );
@@ -491,7 +497,7 @@ export function CommunityDetailPage({
 
   if (state.status === 'loading') {
     return (
-      <section className="mx-auto grid w-full max-w-6xl px-5 py-12 sm:py-16">
+      <section className="mx-auto grid w-full max-w-[1180px] px-3 py-12 sm:px-6 sm:py-16">
         <div
           aria-live="polite"
           className="flex items-center gap-3 font-sans text-muted-foreground"
@@ -510,7 +516,7 @@ export function CommunityDetailPage({
 
   if (state.status === 'error') {
     return (
-      <section className="mx-auto grid w-full max-w-3xl gap-5 px-5 py-12 sm:py-16">
+      <section className="mx-auto grid w-full max-w-3xl gap-5 px-3 py-12 sm:px-6 sm:py-16">
         <div
           aria-live="assertive"
           className="border border-destructive bg-card p-6 text-center shadow-surface"

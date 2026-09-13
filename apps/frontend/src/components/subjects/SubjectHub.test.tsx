@@ -102,9 +102,11 @@ describe('SubjectHub', () => {
   });
 
   it('renders each source review once and keeps its shareable detail route', async () => {
-    render(<SubjectHub code="ED-01" />);
+    const { container } = render(<SubjectHub code="ED-01" />);
 
     expect(await screen.findByText(/los parciales prácticos ayudaron/i)).toBeInTheDocument();
+    // The root layout owns the only <main> landmark.
+    expect(container.querySelector('main')).toBeNull();
     expect(screen.getAllByText(/los parciales prácticos ayudaron/i)).toHaveLength(1);
     expect(screen.getByLabelText('Recomendación: 4 de 5 estrellas')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Leer más' })).toHaveAttribute(

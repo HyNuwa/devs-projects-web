@@ -98,9 +98,11 @@ describe('CourseReviewDiscoveryPage', () => {
     );
     vi.mocked(getCourseReviewDiscovery).mockResolvedValue(resultPage([review()], 2));
 
-    render(<CourseReviewDiscoveryPage />);
+    const { container } = render(<CourseReviewDiscoveryPage />);
 
     expect(await screen.findByRole('link', { name: 'Estructuras de Datos' })).toBeInTheDocument();
+    // The root layout owns the only <main> landmark.
+    expect(container.querySelector('main')).toBeNull();
     expect(screen.getByText('Anónimo')).toBeInTheDocument();
     expect(screen.getByText('4,0')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();

@@ -317,17 +317,17 @@ export function ExamForm() {
 
   if (isAuthLoading) {
     return (
-      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+      <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
         <p aria-live="polite" className="font-sans text-sm text-muted-foreground">
           Cargando tu sesión…
         </p>
-      </main>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+      <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
         <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
           <h1 className="font-serif text-3xl font-bold text-foreground">
             Iniciá sesión para compartir un final
@@ -339,17 +339,17 @@ export function ExamForm() {
             <Link href={loginHrefForReturnPath(returnPath)}>Iniciar sesión</Link>
           </Button>
         </section>
-      </main>
+      </div>
     );
   }
 
   if (editState.status === 'loading') {
     return (
-      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+      <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
         <p aria-live="polite" className="font-sans text-sm text-muted-foreground">
           Cargando la experiencia…
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -360,7 +360,7 @@ export function ExamForm() {
         : 'No encontramos la experiencia que querés editar.';
 
     return (
-      <main className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
+      <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
         <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
           <h1 className="font-serif text-3xl font-bold text-foreground">Edición no disponible</h1>
           <p className="font-sans leading-relaxed text-muted-foreground">{message}</p>
@@ -368,7 +368,7 @@ export function ExamForm() {
             <Link href={`/materias/${code}`}>Volver a la materia</Link>
           </Button>
         </section>
-      </main>
+      </div>
     );
   }
 
@@ -377,7 +377,7 @@ export function ExamForm() {
   const professorModeRegistration = register('professorMode');
 
   return (
-    <main className="mx-auto max-w-[52rem] px-5 py-10 sm:px-8 sm:py-14">
+    <div className="mx-auto max-w-[52rem] px-5 py-10 sm:px-8 sm:py-14">
       <Link
         className="inline-flex min-h-11 items-center gap-2 font-sans text-sm font-bold text-primary underline decoration-primary/35 underline-offset-4"
         href={`/materias/${code}`}
@@ -699,6 +699,6 @@ export function ExamForm() {
           </Button>
         </div>
       </form>
-    </main>
+    </div>
   );
 }

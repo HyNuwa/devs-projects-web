@@ -34,12 +34,14 @@ describe('SubjectList', () => {
       ],
     });
 
-    render(<SubjectList />);
+    const { container } = render(<SubjectList />);
 
     expect(await screen.findByRole('link', { name: /estructuras de datos/i })).toHaveAttribute(
       'href',
       '/materias/ED-01',
     );
+    // The root layout owns the only <main> landmark.
+    expect(container.querySelector('main')).toBeNull();
     expect(screen.getByRole('link', { name: /análisis matemático/i })).toHaveAttribute(
       'href',
       '/buscar?q=An%C3%A1lisis%20Matem%C3%A1tico',

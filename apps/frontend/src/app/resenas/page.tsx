@@ -12,12 +12,13 @@ export default function ReviewsPage() {
   return (
     <Suspense
       fallback={
-        <main
+        <div
           aria-live="polite"
-          className="min-h-[calc(100dvh-4.5rem)] bg-background p-5 text-secondary-foreground"
+          className="min-h-[calc(100dvh-4.5rem)] p-5 text-secondary-foreground"
+          role="status"
         >
           Cargando reseñas…
-        </main>
+        </div>
       }
     >
       <CourseReviewDiscoveryPage />

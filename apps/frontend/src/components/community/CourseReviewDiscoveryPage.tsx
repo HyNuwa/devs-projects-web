@@ -302,14 +302,14 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
   const results = requestState.status === 'ready' ? requestState.results : null;
 
   return (
-    <main className="min-h-[calc(100dvh-4.5rem)] bg-background pb-16">
+    <div className="min-h-[calc(100dvh-4.5rem)] pb-16">
       <section className="relative isolate overflow-hidden border-b border-primary bg-primary text-primary-foreground">
         <span
           aria-hidden="true"
           className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0,transparent_49.8%,rgb(255_255_255/0.1)_50%,transparent_50.2%)]"
         />
         <div className="relative mx-auto grid max-w-[1180px] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="px-5 py-12 sm:px-10 sm:py-16 lg:py-20">
+          <div className="px-3 py-12 sm:px-6 sm:py-16 lg:py-20">
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary-foreground/75">
               Archivo cobalto
             </p>
@@ -334,7 +334,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1180px] px-5 py-9 sm:px-10 sm:py-12">
+      <div className="mx-auto max-w-[1180px] px-3 py-9 sm:px-6 sm:py-12">
         <div className="flex flex-col gap-6 border-y border-line py-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
@@ -609,7 +609,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
           ) : null}
         </section>
       </div>
-    </main>
+    </div>
   );
 }
 

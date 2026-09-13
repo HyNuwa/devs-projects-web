@@ -54,7 +54,7 @@ export function SubjectList() {
   }, [query, state]);
 
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-8 sm:py-12">
+    <div className="mx-auto grid w-full max-w-[1180px] gap-8 px-3 py-8 sm:px-6 sm:py-12">
       <header className="grid gap-4 border-b border-line pb-8 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <p className="flex items-center gap-2 font-mono text-[0.7rem] font-bold uppercase tracking-[0.1em] text-primary">
@@ -152,6 +152,6 @@ export function SubjectList() {
           ))}
         </section>
       ) : null}
-    </main>
+    </div>
   );
 }
