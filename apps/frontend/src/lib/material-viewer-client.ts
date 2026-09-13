@@ -6,9 +6,14 @@ function viewerStatePath(id: string): string {
   return `/materials/${encodeURIComponent(id)}/viewer-state`;
 }
 
-/** Reads the signed-in viewer's private, per-material state. */
+/**
+ * Reads the signed-in viewer's private, per-material state. It is a background read on public
+ * pages, so an expired session must degrade the viewer controls instead of leaving the page.
+ */
 export async function getMaterialViewerState(id: string): Promise<MaterialViewerState> {
-  const response = await api.get<MaterialViewerState>(viewerStatePath(id));
+  const response = await api.get<MaterialViewerState>(viewerStatePath(id), {
+    skipAuthRedirect: true,
+  });
 
   return getData(response);
 }

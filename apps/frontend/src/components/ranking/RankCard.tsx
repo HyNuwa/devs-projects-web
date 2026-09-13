@@ -31,7 +31,7 @@ export const RankCard = () => {
     (async () => {
       try {
         const [meRes, levelsRes] = await Promise.all([
-          api.get('/ranking/me'),
+          api.get('/ranking/me', { skipAuthRedirect: true }),
           api.get('/ranking/levels'),
         ]);
         if (cancelled) return;

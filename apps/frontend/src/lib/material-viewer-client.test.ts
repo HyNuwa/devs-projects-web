@@ -22,7 +22,9 @@ describe('material viewer client', () => {
       isHelpful: true,
       isSaved: false,
     });
-    expect(api.get).toHaveBeenCalledWith('/materials/material%2F1/viewer-state');
+    expect(api.get).toHaveBeenCalledWith('/materials/material%2F1/viewer-state', {
+      skipAuthRedirect: true,
+    });
   });
 
   it('writes the idempotent helpfulness and saved state endpoints', async () => {

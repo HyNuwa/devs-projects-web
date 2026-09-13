@@ -34,3 +34,8 @@ export function loginHrefForCurrentLocation(): string {
     `${window.location.pathname}${window.location.search}${window.location.hash}`,
   );
 }
+
+/** Hard navigation to login that keeps the current same-origin location as the return path. */
+export function redirectToLogin(): void {
+  window.location.href = loginHrefForCurrentLocation();
+}

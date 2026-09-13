@@ -41,8 +41,12 @@ describe('community management client', () => {
       'La información ya fue corregida.',
     );
 
-    expect(api.get).toHaveBeenNthCalledWith(1, '/subjects/reviews/review%20id/management');
-    expect(api.get).toHaveBeenNthCalledWith(2, '/subjects/exams/exam%2Fid/management');
+    expect(api.get).toHaveBeenNthCalledWith(1, '/subjects/reviews/review%20id/management', {
+      skipAuthRedirect: true,
+    });
+    expect(api.get).toHaveBeenNthCalledWith(2, '/subjects/exams/exam%2Fid/management', {
+      skipAuthRedirect: true,
+    });
     expect(api.get).toHaveBeenNthCalledWith(3, '/subjects/community/reports');
     expect(api.delete).toHaveBeenNthCalledWith(1, '/subjects/reviews/review%20id');
     expect(api.delete).toHaveBeenNthCalledWith(2, '/subjects/exams/exam%2Fid');

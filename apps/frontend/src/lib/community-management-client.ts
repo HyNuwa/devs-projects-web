@@ -64,12 +64,17 @@ const moderationPathByKind: Record<
     `/subjects/exams/${encodeURIComponent(id)}/moderation/${action}`,
 };
 
-/** Reads the private owner/moderator projection without changing public visibility. */
+/**
+ * Reads the private owner/moderator projection without changing public visibility. It runs in
+ * the background on public detail pages, so a 401 must not redirect the visitor to login.
+ */
 export async function getCommunityManagement(
   kind: CommunityEntryKind,
   id: string,
 ): Promise<CommunityManagementView> {
-  const response = await api.get<CommunityManagementView>(managementPathByKind[kind](id));
+  const response = await api.get<CommunityManagementView>(managementPathByKind[kind](id), {
+    skipAuthRedirect: true,
+  });
   return getData(response);
 }
 

@@ -60,7 +60,7 @@ export const LevelsTable = () => {
     }
     let cancelled = false;
     api
-      .get('/ranking/me')
+      .get('/ranking/me', { skipAuthRedirect: true })
       .then((res) => {
         if (!cancelled) setCurrentLevel(getData<MeData>(res).level);
       })
