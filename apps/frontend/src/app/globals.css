@@ -82,17 +82,26 @@
   --color-accent-orange: #ff9800;
   --color-accent-red: #f44336;
 
-  /* Neutrales */
-  --color-bg-primary: #f5f9ff;
+  /* Neutrales: legacy aliases resolve to Pixel Notebook paper and ink roles. */
+  --color-bg-primary: var(--background);
   --color-bg-secondary: #ffffff;
   --color-bg-dark: #0f1923;
-  --color-text-primary: #1a2b3c;
-  --color-text-secondary: #64748b;
+  --color-text-primary: var(--foreground);
+  --color-text-secondary: var(--muted-foreground);
 
-  /* Tipografía */
-  --font-heading: 'Outfit', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-pixel: 'Press Start 2P', monospace;
+  /* Tipografía: legacy aliases for the canonical stacks. `--font-pixel` has a
+     single source in app/layout.tsx (next/font), so it is not redeclared here. */
+  --font-heading: var(--ui-font-serif);
+  --font-body: var(--ui-font-sans);
+
+  /* Ruled notebook paper: cream canvas with one notebook line every 32px. */
+  --paper-rule-gap: 32px;
+  --paper-ruled: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--paper-rule-gap) - 1px),
+    var(--pn-line) var(--paper-rule-gap)
+  );
 }
 
 /* Defaults must stay below Tailwind utilities and legacy CSS Modules. Unlayered
@@ -115,9 +124,10 @@
     flex-direction: column;
     /* Preserve the legacy UA-derived rhythm while CSS Modules are migrated incrementally. */
     line-height: normal;
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-primary);
-    font-family: var(--font-body);
+    background-color: var(--background);
+    background-image: var(--paper-ruled);
+    color: var(--foreground);
+    font-family: var(--ui-font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

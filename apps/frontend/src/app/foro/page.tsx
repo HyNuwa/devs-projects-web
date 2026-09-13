@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ForoPage() {
   return (
-    <div style={{ padding: '2rem', minHeight: 'calc(100vh - 80px)', marginTop: '80px' }}>
+    <div style={{ padding: '2rem', minHeight: 'calc(100dvh - 4.5rem)' }}>
       <CategoryList />
     </div>
   );

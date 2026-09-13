@@ -1,12 +1,6 @@
 .page {
   min-height: calc(100vh - 80px);
   padding: 2rem 1rem;
-  margin-top: 80px;
-  background: radial-gradient(
-    ellipse at top,
-    rgba(255, 215, 0, 0.06),
-    transparent 60%
-  );
 }
 
 .container {
