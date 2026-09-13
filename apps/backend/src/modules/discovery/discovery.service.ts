@@ -29,6 +29,7 @@ import {
   DiscoveryExamExperiencesQueryDto,
   MAX_DISCOVERY_EXAM_EXPERIENCE_EXCERPT_LENGTH,
 } from './dto/discovery-exam-experiences.dto';
+import { toMaterialPreview } from '../materials/material-preview.mapper';
 
 const subjectSuggestionSelect = {
   id: true,
@@ -649,9 +650,15 @@ export class DiscoveryService {
           id: true,
           title: true,
           fileType: true,
+          fileUrl: true,
           resourceType: true,
           academicYear: true,
+          avgRating: true,
+          ratingCount: true,
+          drivePreviewUrl: true,
+          driveDownloadUrl: true,
           createdAt: true,
+          _count: { select: { helpfulness: true } },
         },
       }),
     ]);
@@ -664,7 +671,20 @@ export class DiscoveryService {
     return {
       subject,
       resourceType,
-      files: bounded.items,
+      files: bounded.items.map((material) => ({
+        id: material.id,
+        title: material.title,
+        fileType: material.fileType,
+        resourceType: material.resourceType,
+        academicYear: material.academicYear,
+        helpfulCount: material._count.helpfulness,
+        starSummary: {
+          average: material.avgRating.toString(),
+          count: material.ratingCount,
+        },
+        preview: toMaterialPreview(material),
+        createdAt: material.createdAt,
+      })),
       hasMore: bounded.hasMore,
     };
   }

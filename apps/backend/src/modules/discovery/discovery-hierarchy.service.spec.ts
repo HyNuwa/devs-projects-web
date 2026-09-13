@@ -190,16 +190,28 @@ describe('DiscoveryService hierarchy read model', () => {
         id: 'material-1',
         title: 'Apunte de vectores',
         fileType: 'pdf',
+        fileUrl: '/uploads/materials/vectores.pdf',
         resourceType: 'APUNTE',
         academicYear: 2026,
+        avgRating: { toString: () => '4.50' },
+        ratingCount: 2,
+        drivePreviewUrl: '/preview/vectores.pdf',
+        driveDownloadUrl: '/download/vectores.pdf',
+        _count: { helpfulness: 5 },
         createdAt: new Date('2026-08-28T00:00:00.000Z'),
       },
       {
         id: 'material-2',
         title: 'Apunte de matrices',
         fileType: 'pdf',
+        fileUrl: '/uploads/materials/matrices.pdf',
         resourceType: 'APUNTE',
         academicYear: null,
+        avgRating: { toString: () => '0' },
+        ratingCount: 0,
+        drivePreviewUrl: null,
+        driveDownloadUrl: '/downloads/matrices.pdf',
+        _count: { helpfulness: 0 },
         createdAt: new Date('2026-08-27T00:00:00.000Z'),
       },
     ]);
@@ -217,7 +229,23 @@ describe('DiscoveryService hierarchy read model', () => {
     ).resolves.toMatchObject({
       subject: { id: 'subject-1' },
       resourceType: 'APUNTE',
-      files: [expect.objectContaining({ id: 'material-1' })],
+      files: [
+        expect.objectContaining({
+          id: 'material-1',
+          helpfulCount: 5,
+          starSummary: { average: '4.50', count: 2 },
+          preview: {
+            capability: 'PDF',
+            url: '/preview/vectores.pdf',
+            canPreview: true,
+            downloadUrl: '/download/vectores.pdf',
+            fallback: {
+              reason: 'PREVIEW_FAILED',
+              downloadUrl: '/download/vectores.pdf',
+            },
+          },
+        }),
+      ],
       hasMore: true,
     });
     expect(prisma.material.groupBy).toHaveBeenCalledWith(
@@ -232,6 +260,19 @@ describe('DiscoveryService hierarchy read model', () => {
     expect(prisma.subject.findUnique).toHaveBeenCalledTimes(2);
     expect(prisma.material.groupBy).toHaveBeenCalledTimes(1);
     expect(prisma.material.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.material.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          avgRating: true,
+          ratingCount: true,
+          drivePreviewUrl: true,
+          driveDownloadUrl: true,
+          _count: expect.objectContaining({
+            select: expect.objectContaining({ helpfulness: true }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('mantiene vacías las categorías y archivos si la materia existe', async () => {

@@ -18,13 +18,10 @@ import { Role } from '../auth/dto/auth-response.dto';
 import { PointService } from '../ranking/point.service';
 import { normalizeSearchKey } from '../../common/search/search-key';
 import {
-  MaterialPreviewCapability,
-  MaterialPreviewFallbackReason,
-} from './dto/material-response.dto';
-import {
   buildMaterialRankingQuery,
   RankedMaterialId,
 } from './material-ranking.query';
+import { toMaterialPreview } from './material-preview.mapper';
 
 const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
@@ -86,40 +83,8 @@ type PublicMaterialRecord = Prisma.MaterialGetPayload<{
   select: typeof publicMaterialSelect;
 }>;
 
-function getPreviewCapability(
-  fileType: string,
-  previewUrl: string | null,
-): MaterialPreviewCapability {
-  if (!previewUrl) {
-    return MaterialPreviewCapability.UNAVAILABLE;
-  }
-
-  const normalized = fileType.toLowerCase().replace(/^image\//, '');
-  if (normalized === 'pdf' || normalized === 'application/pdf') {
-    return MaterialPreviewCapability.PDF;
-  }
-  if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(normalized)) {
-    return MaterialPreviewCapability.IMAGE;
-  }
-  return MaterialPreviewCapability.UNSUPPORTED;
-}
-
 function toPublicMaterial(material: PublicMaterialRecord) {
-  const previewCandidate = material.drivePreviewUrl || material.fileUrl || null;
-  const capability = getPreviewCapability(material.fileType, previewCandidate);
-  const previewUrl =
-    capability === MaterialPreviewCapability.PDF ||
-    capability === MaterialPreviewCapability.IMAGE
-      ? previewCandidate
-      : null;
   const average = material.avgRating.toString();
-  const downloadUrl = material.driveDownloadUrl ?? material.fileUrl;
-  const fallbackReason =
-    capability === MaterialPreviewCapability.UNSUPPORTED
-      ? MaterialPreviewFallbackReason.UNSUPPORTED
-      : capability === MaterialPreviewCapability.UNAVAILABLE
-        ? MaterialPreviewFallbackReason.UNAVAILABLE
-        : MaterialPreviewFallbackReason.PREVIEW_FAILED;
 
   return {
     id: material.id,
@@ -142,13 +107,7 @@ function toPublicMaterial(material: PublicMaterialRecord) {
     commentCount: material._count.ratings,
     starSummary: { average, count: material.ratingCount },
     commentSummary: { count: material._count.ratings },
-    preview: {
-      capability,
-      url: previewUrl,
-      canPreview: previewUrl !== null,
-      downloadUrl,
-      fallback: { reason: fallbackReason, downloadUrl },
-    },
+    preview: toMaterialPreview(material),
     createdAt: material.createdAt,
     updatedAt: material.updatedAt,
     author: material.author,

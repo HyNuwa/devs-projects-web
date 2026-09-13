@@ -2,6 +2,10 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { MaterialResourceType } from '../../../generated/prisma';
+import {
+  MaterialPreviewDto,
+  MaterialStarSummaryDto,
+} from '../../materials/dto/material-response.dto';
 
 export const DEFAULT_DISCOVERY_HIERARCHY_LIMIT = 50;
 export const MAX_DISCOVERY_HIERARCHY_LIMIT = 50;
@@ -169,6 +173,15 @@ export class DiscoveryMaterialFileDto {
 
   @ApiPropertyOptional({ nullable: true })
   academicYear: number | null;
+
+  @ApiProperty()
+  helpfulCount: number;
+
+  @ApiProperty({ type: MaterialStarSummaryDto })
+  starSummary: MaterialStarSummaryDto;
+
+  @ApiProperty({ type: MaterialPreviewDto })
+  preview: MaterialPreviewDto;
 
   @ApiProperty()
   createdAt: Date;
