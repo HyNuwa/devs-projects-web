@@ -22,6 +22,7 @@ src/generated/
 !.env.example
 
 # AI agent caches & internal session logs
+.audit-logs/
 .omo/
 .opencode/
 .gemini/
