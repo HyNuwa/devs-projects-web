@@ -18,11 +18,11 @@
 
 ## 4. Shell components
 
-- [ ] 4.1 Build `SiteHeader` (desktop: logo ✦, menu, search link, Subir material, UNJU/FI mark, Iniciar sesión or avatar pill; below `lg`: logo, search, Ingresar or avatar) test-first against the header and account-affordance scenarios; verify `SiteHeader.test.tsx` covers signed-out, USER and MODERATOR and passes.
-- [ ] 4.2 Build `AccountMenu` (DropdownMenu on desktop, Dialog bottom sheet below `lg`, same item list, Cerrar sesión calls logout) test-first; verify keyboard open, arrow navigation, Escape, focus return and sign-out tests pass.
-- [ ] 4.3 Build `BottomBar` (Inicio · Materias · Subir · Experiencias, emphasized Subir with `pop`, current marker, safe-area padding, `lg:hidden`) test-first; verify `BottomBar.test.tsx` covers the current item and the Subir link.
-- [ ] 4.4 Build `SiteFooter` (brand, one-line description, primary destinations and Subir material from the config, copyright, no legacy links) and `AccessHeader` (logo plus `Crear cuenta` or `Ingresar` by segment); verify tests assert there is no Foro link and the correct access link on login and register.
-- [ ] 4.5 Add `id="mis-envios"` and the «Mis envíos» heading to the profile submissions section; verify the account-menu link resolves to that anchor in a component test.
+- [x] 4.1 Build `SiteHeader` (desktop: logo ✦, menu, search link, Subir material, UNJU/FI mark, Iniciar sesión or avatar pill; below `lg`: logo, search, Ingresar or avatar) test-first against the header and account-affordance scenarios; verify `SiteHeader.test.tsx` covers signed-out, USER and MODERATOR and passes.
+- [x] 4.2 Build `AccountMenu` (DropdownMenu on desktop, Dialog bottom sheet below `lg`, same item list, Cerrar sesión calls logout) test-first; verify keyboard open, arrow navigation, Escape, focus return and sign-out tests pass.
+- [x] 4.3 Build `BottomBar` (Inicio · Materias · Subir · Experiencias, emphasized Subir with `pop`, current marker, safe-area padding, `lg:hidden`) test-first; verify `BottomBar.test.tsx` covers the current item and the Subir link.
+- [x] 4.4 Build `SiteFooter` (brand, one-line description, primary destinations and Subir material from the config, copyright, no legacy links) and `AccessHeader` (logo plus `Crear cuenta` or `Ingresar` by segment); verify tests assert there is no Foro link and the correct access link on login and register.
+- [x] 4.5 Add `id="mis-envios"` and the «Mis envíos» heading to the profile submissions section; verify the account-menu link resolves to that anchor in a component test.
 
 ## 5. Layouts and route groups
 

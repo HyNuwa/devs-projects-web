@@ -49,8 +49,8 @@ export function MySubmissions() {
   }, []);
 
   return (
-    <section className={styles.section}>
-      <h2 className={styles.title}>Mis subidas</h2>
+    <section className={styles.section} id="mis-envios">
+      <h2 className={styles.title}>Mis envíos</h2>
 
       {isLoading ? (
         <div className={styles.state}>
