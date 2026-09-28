@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>DevsProject · Experiencias (con sesión)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Caveat:wght@600;700&display=swap">
+<style>
+  body { margin: 0; font-family: 'Figtree', system-ui, sans-serif; background: #FDF3E5; }
+  a { color: #0A4DE8; text-decoration: none; }
+  a:hover { color: #0239B4; }
+  .dp-hand { font-family: 'Caveat', 'Segoe Script', cursive; }
+  .dp-tip { position: relative; }
+  .dp-tip:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: #021238; color: #FFFFFF; font: 700 12px/1 'Figtree', sans-serif; padding: 7px 9px; border-radius: 8px; pointer-events: none; z-index: 6; }
+</style>
+</helmet>
+
+<div style="width: 1440px; height: 700px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; position: relative; background: #FDF3E5; background-image: linear-gradient(rgba(2,18,56,0.032) 1px, transparent 1px), linear-gradient(90deg, rgba(2,18,56,0.032) 1px, transparent 1px); background-size: 44px 44px; font-family: 'Figtree', system-ui, sans-serif; color: #021238;">
+  <header style="height: 68px; flex-shrink: 0; padding: 0 64px; display: flex; align-items: center; justify-content: space-between; gap: 28px;">
+    <div style="display: flex; align-items: center; gap: 36px;">
+      <a href="#inicio" style="display: flex; align-items: center; gap: 11px;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H9a3 3 0 0 1 3 3v12a2.5 2.5 0 0 0-2.5-2.5H3z"></path><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H15a3 3 0 0 0-3 3v12a2.5 2.5 0 0 1 2.5-2.5H21z"></path></svg><span style="font-size: 23px; font-weight: 800; letter-spacing: -0.035em; color: #021238;">DevsProject</span><span style="color: #0261FE; font-size: 13px; line-height: 1;">✦</span></a>
+      <nav style="display: flex; align-items: center; gap: 24px; font-size: 15px; font-weight: 500;"><a href="#inicio" style="color: #3D4459;">Inicio</a><a href="#materias" style="color: #3D4459;">Materias</a><a href="#experiencias" style="color: #0A4DE8; font-weight: 700; padding-bottom: 3px; border-bottom: 2px solid #0A4DE8;">Experiencias</a><a href="#eventos" style="color: #3D4459;">Eventos</a><a href="#clasificados" style="color: #3D4459;">Clasificados</a></nav>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button type="button" aria-label="Buscar" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #021238;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg></button>
+      <a href="#subir" style="display: inline-flex; align-items: center; gap: 9px; background: #0261FE; border-radius: 11px; padding: 11px 18px; font-size: 14.5px; font-weight: 700; color: #FFFFFF;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg> Subir material</a>
+      <a href="#mochila" aria-label="Mi mochila, 4 novedades" style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 12px;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6V5a4 4 0 0 1 8 0v1"></path><rect x="4.5" y="6" width="15" height="15" rx="4"></rect><path d="M8.5 13h7v4h-7z"></path></svg><span style="position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; box-sizing: border-box; padding: 0 5px; border-radius: 999px; background: #FD4F8D; border: 2px solid #FDF3E5; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800; color: #FFFFFF;">4</span></a>
+      <a href="#menu" style="display: inline-flex; align-items: center; gap: 9px; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 14.5px; font-weight: 800; color: #021238;"><img src="av-max.png" alt="" style="width: 34px; height: 34px; border-radius: 999px; border: 1.5px solid #021238;">Max <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></a>
+      <div style="margin-left: 10px; text-align: right; font-size: 10.5px; font-weight: 700; letter-spacing: 0.15em; line-height: 1.35; color: #021238;">UNJU<br>FI<div style="margin-top: 3px; height: 2px; background: #021238;"></div></div>
+    </div>
+  </header>
+
+  <section style="flex-shrink: 0; position: relative; padding: 26px 64px 0 64px;">
+    <div style="position: absolute; right: 56px; top: 0; width: 560px; height: 312px; overflow: hidden;">
+      <img src="hero-experiencias.png" alt="Ilustración: el gato de DevsProject lee una nota en un tablero de corcho lleno de consejos de otros estudiantes" style="display: block; position: absolute; left: 0; top: 0; width: 560px; height: auto;">
+    </div>
+    <span class="dp-hand" style="position: absolute; left: 720px; top: 28px; width: 132px; text-align: center; font-size: 20px; font-weight: 700; line-height: 1.05; transform: rotate(-5deg);">lo que nadie te cuenta, te lo cuentan acá ♥</span>
+    <div style="position: relative; width: 720px;">
+      <div style="display: inline-flex; align-items: center; gap: 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: #0A4DE8;"><span style="width: 8px; height: 8px; background: #0A4DE8; display: block;"></span>Experiencias · Comunidad FI UNJu</div>
+      <h1 style="margin: 14px 0 0 0; font-size: 72px; line-height: 0.92; font-weight: 800; letter-spacing: -0.055em; color: #021238;">Cómo les fue<br><span style="color: #0A4DE8;">a los que ya cursaron</span><span style="color: #FA6304;">.</span></h1>
+      <p style="margin: 16px 0 0 0; font-size: 17px; line-height: 1.5; font-weight: 500; color: #3F4657; max-width: 560px;">Reseñas de cursada y experiencias de final escritas por estudiantes. Buscá tu materia y mirá cómo les fue a otros en tu mismo contexto.</p>
+      <form style="margin-top: 22px; width: 660px; display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 2px solid #021238; border-radius: 14px; padding: 6px 6px 6px 18px;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#7E8698" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+        <input type="search" aria-label="Buscá una materia" placeholder="Buscá una materia: Análisis II, Física, Bases de Datos..." style="flex-grow: 1; min-width: 0; border: none; outline: none; background: transparent; font-family: 'Figtree', sans-serif; font-size: 15.5px; font-weight: 500; color: #021238; padding: 12px 0;">
+        <button type="submit" style="flex-shrink: 0; background: #0261FE; color: #FFFFFF; border: none; border-radius: 10px; padding: 13px 24px; font-family: 'Figtree', sans-serif; font-size: 15px; font-weight: 700;">Buscar</button>
+      </form>
+    </div>
+    <div style="position: relative; margin-top: 30px; background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 16px 18px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.02em;">Tu contexto</span>
+        <span style="display: inline-flex; align-items: center; gap: 7px; background: #D6E5FB; border: 1.5px solid #021238; border-radius: 9px; padding: 6px 11px; font-size: 13px; font-weight: 800;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0261FE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 4 10 5-10 5L2 9z"></path><path d="M6 11.5V16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4.5"></path></svg>Ing. Informática · Plan 2023 · 2° año</span>
+        <span style="font-size: 12.5px; font-weight: 600; color: #6B7286;">tomado de tu perfil</span>
+        <a href="#cambiar" style="font-size: 12.5px; font-weight: 700; color: #0A4DE8;">Cambiar</a>
+        <span style="margin-left: auto; display: flex; gap: 8px;"><a href="#f" style="display: inline-flex; align-items: center; gap: 7px; background: #0261FE; border: 1.5px solid #021238; border-radius: 10px; padding: 8px 14px; font-size: 13.5px; font-weight: 800; color: #FFFFFF;">Cursadas y finales</a><a href="#f" style="display: inline-flex; align-items: center; gap: 7px; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 10px; padding: 8px 14px; font-size: 13.5px; font-weight: 700; color: #021238;">Solo cursadas</a><a href="#f" style="display: inline-flex; align-items: center; gap: 7px; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 10px; padding: 8px 14px; font-size: 13.5px; font-weight: 700; color: #021238;">Solo finales</a></span>
+      </div>
+      <div style="margin-top: 16px; display: flex; align-items: flex-end; justify-content: space-between;">
+        <div><div style="font-size: 20px; font-weight: 800; letter-spacing: -0.03em;">Tus materias</div><div style="margin-top: 3px; font-size: 13px; font-weight: 500; color: #6B7286;">Las que seguís en tu mochila, primero.</div></div>
+        <a href="#ver" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: #0A4DE8; white-space: nowrap;">Ver todas las de tu carrera <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A4DE8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+      </div>
+      <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;">
+        <a href="#m-09" style="background: #FDF3E5; border: 1.5px solid #021238; border-radius: 13px; padding: 12px 13px; display: flex; flex-direction: column; color: #021238;">
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; font-weight: 800; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">09</span><span style="background: #FED3DF; border-radius: 6px; padding: 3px 7px; font-size: 10.5px; font-weight: 800; color: #B31450;">2 nuevas</span></span>
+          <span style="margin-top: 8px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.22;">Matemática Discreta</span>
+          <span style="margin-top: auto; padding-top: 9px; font-size: 12px; font-weight: 700; color: #6B7286;">24 experiencias · 46% promocionó</span>
+        </a>
+        <a href="#m-10" style="background: #FDF3E5; border: 1.5px solid #021238; border-radius: 13px; padding: 12px 13px; display: flex; flex-direction: column; color: #021238;">
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; font-weight: 800; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">10</span></span>
+          <span style="margin-top: 8px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.22;">Teoría de la Información y la Comunicación</span>
+          <span style="margin-top: auto; padding-top: 9px; font-size: 12px; font-weight: 700; color: #6B7286;">12 experiencias · 58% promocionó</span>
+        </a>
+        <a href="#m-11" style="background: #FDF3E5; border: 1.5px solid #021238; border-radius: 13px; padding: 12px 13px; display: flex; flex-direction: column; color: #021238;">
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; font-weight: 800; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">11</span><span style="background: #FED3DF; border-radius: 6px; padding: 3px 7px; font-size: 10.5px; font-weight: 800; color: #B31450;">1 nueva</span></span>
+          <span style="margin-top: 8px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.22;">Desarrollo Sistemático de Programas</span>
+          <span style="margin-top: auto; padding-top: 9px; font-size: 12px; font-weight: 700; color: #6B7286;">19 experiencias · 37% promocionó</span>
+        </a>
+        <a href="#m-12" style="background: #FDF3E5; border: 1.5px solid #021238; border-radius: 13px; padding: 12px 13px; display: flex; flex-direction: column; color: #021238;">
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; font-weight: 800; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">12</span><span style="background: #FED3DF; border-radius: 6px; padding: 3px 7px; font-size: 10.5px; font-weight: 800; color: #B31450;">1 nueva</span></span>
+          <span style="margin-top: 8px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.22;">Probabilidades y Estadística</span>
+          <span style="margin-top: auto; padding-top: 9px; font-size: 12px; font-weight: 700; color: #6B7286;">33 experiencias · 41% promocionó</span>
+        </a>
+        <a href="#m-06" style="background: #FDF3E5; border: 1.5px solid #021238; border-radius: 13px; padding: 12px 13px; display: flex; flex-direction: column; color: #021238;">
+          <span style="display: flex; align-items: center; justify-content: space-between;"><span style="font-size: 11px; font-weight: 800; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">06</span></span>
+          <span style="margin-top: 8px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.22;">Análisis Matemático II</span>
+          <span style="margin-top: auto; padding-top: 9px; font-size: 12px; font-weight: 700; color: #6B7286;">58 experiencias · 38% promocionó</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1440,"height":700}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

@@ -1,149 +1,87 @@
-# Sistema de Autenticación y Autorización
+# Autenticación y autorización
 
-> Documentación completa del flujo de auth basado en roles implementado en devs-projects.
-
----
-
-## Arquitectura General
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (Next.js)                        │
-│                                                                  │
-│  ┌──────────┐   ┌──────────┐   ┌───────────┐   ┌────────────┐  │
-│  │LoginForm │   │RegisterForm│  │AuthGuard  │   │useAuthStore│  │
-│  │/Register │   │           │   │(wrapper)  │   │(zustand)   │  │
-│  └────┬─────┘   └─────┬─────┘   └─────┬─────┘   └─────┬──────┘  │
-│       │               │               │               │         │
-│       └───────────────┴───────┬───────┴───────────────┘         │
-│                               │                                  │
-│                      ┌────────┴────────┐                        │
-│                      │    api.ts        │  axios + withCreds     │
-│                      │ (lib/api.ts)     │                        │
-│                      └────────┬────────┘                        │
-│                               │ cookies httpOnly                 │
-├───────────────────────────────┼──────────────────────────────────┤
-│                        BACKEND (NestJS)                          │
-│                               │                                  │
-│                      ┌────────┴────────┐                        │
-│                      │  cookie-parser   │                        │
-│                      └────────┬────────┘                        │
-│                               │                                  │
-│              ┌────────────────┼────────────────┐                │
-│              ▼                ▼                ▼                │
-│         @Public()       JwtAuthGuard      RolesGuard            │
-│         (sin token)     (requiere JWT)    (requiere rol)        │
-│              │                │                │                │
-│              ▼                ▼                ▼                │
-│     auth/register       auth/me          admin/*                │
-│     auth/login          auth/logout                             │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                  Estrategias Passport                     │   │
-│  │  LocalStrategy (email + password)                         │   │
-│  │  JwtStrategy   (cookie httpOnly + Bearer header)          │   │
-│  └──────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────┘
-```
+Cómo se registra, se identifica y se autoriza a una persona en DevsProject. Los permisos de moderación se detallan en [`README_MODERACION.md`](README_MODERACION.md).
 
 ---
 
-## Flujo de Autenticación
+## Resumen
+
+- Sesión con **dos cookies httpOnly**: `access_token` (JWT, 15 min, `path=/`) y `refresh_token` (7 días, `path=/api/v1/auth/refresh`).
+- Los refresh tokens se guardan **hasheados** (SHA‑256) en la tabla `RefreshToken`. Se rotan en cada refresh y se borran al cerrar sesión o al cambiar la contraseña.
+- Contraseñas con bcrypt, 12 rondas.
+- Verificación de email con un token de un solo uso válido 24 h. Recuperación de contraseña con un token válido 1 h.
+- `JwtAuthGuard` es global: toda ruta requiere sesión salvo las marcadas con `@Public()`. `RolesGuard` + `@Roles()` restringen por rol.
+
+---
+
+## Flujos
 
 ### Registro
 
 ```
 POST /api/v1/auth/register  { username, email, password }
-         │
-         ▼
-  RegisterDto → class-validator (password: 8+ chars, mayúscula, número, especial)
-         │
-         ▼
-  AuthService.register()
-    ├── Verifica unicidad de username y email
-    ├── bcrypt.hash(password, 12 rounds) → passwordHash
-    ├── Prisma user.create() → User (role: USER por defecto)
-    ├── jwtService.sign({ sub, email, role }) → accessToken (15 min)
-    └── Retorna { accessToken, user }
-         │
-         ▼
-  AuthController → res.cookie('access_token', ..., httpOnly, SameSite=Lax)
-         │
-         ▼
-  Response: { user } + cookie httpOnly con JWT
+  → RegisterDto (class-validator: 8+ caracteres, mayúscula, número y carácter especial)
+  → AuthService.register()
+      ├── valida que username y email no existan
+      ├── bcrypt.hash(password, 12)
+      ├── crea User (role USER, emailVerified false)
+      ├── crea EmailVerification (token hasheado, vence en 24 h) y envía el mail
+      └── emite access + refresh token
+  → setea las dos cookies y responde { user }
 ```
 
 ### Login
 
 ```
 POST /api/v1/auth/login  { email, password }
-         │
-         ▼
-  @UseGuards(AuthGuard('local'))  →  LocalStrategy
-         │
-         ▼
-  AuthService.validateUser(email, password)
-    ├── Prisma user.findUnique({ email })
-    ├── bcrypt.compare(password, passwordHash)
-    └── Retorna user (sin passwordHash) o null → 401
-         │
-         ▼
-  AuthService.login(user)
-    ├── jwtService.sign({ sub, email, role })
-    └── Retorna { accessToken, user }
-         │
-         ▼
-  AuthController → res.cookie('access_token', ...)
-         │
-         ▼
-  Response: { user } + cookie httpOnly con JWT
+  → LocalStrategy → AuthService.validateUser()   (401 «Credenciales inválidas»)
+  → emite access + refresh token → cookies → { user }
 ```
 
-### Sesión (checkAuth / me)
+El login **no exige** email verificado. Qué acciones requieren verificación es una decisión pendiente (ver «Pendiente»).
+
+### Refresh
 
 ```
-GET /api/v1/auth/me
-         │
-         ▼
-  JwtAuthGuard (global)
-    ├── ¿@Public()? → OK sin token
-    └── Extrae JWT de cookie httpOnly (o Bearer header)
-         │
-         ▼
-  JwtStrategy.validate(payload) → { id, email, role }
-         │
-         ▼
-  AuthService.getProfile(userId) → UserResponseDto
+POST /api/v1/auth/refresh        (cookie refresh_token)
+  → busca el hash en RefreshToken
+      ├── no existe → 401 «Refresh token inválido»
+      ├── vencido   → se borra → 401 «Refresh token expirado»
+  → borra el token usado y emite un par nuevo (rotación) → cookies → { user }
 ```
 
-### Logout
+**Hoy el frontend no llama a este endpoint.** El interceptor de `lib/api.ts` redirige al login ante un 401 (salvo en rutas `/auth/*` y en lecturas en segundo plano marcadas con `skipAuthRedirect`), así que la sesión se corta a los 15 min aunque el refresh token siga vigente.
 
-```
-POST /api/v1/auth/logout
-         │
-         ▼
-  JwtAuthGuard → requiere JWT
-         │
-         ▼
-  res.clearCookie('access_token') → elimina cookie
-         │
-         ▼
-  Response: { message: 'Sesión cerrada exitosamente' }
-```
+### Verificación de email y recuperación de contraseña
+
+| Endpoint | Qué hace |
+|---|---|
+| `POST /auth/verify-email` `{ token }` | Marca `emailVerified = true` si el token existe y no venció (24 h). |
+| `POST /auth/forgot-password` `{ email }` | Crea un `PasswordResetRequest` (1 h) y envía el enlace. Responde lo mismo exista o no el email. |
+| `POST /auth/reset-password` `{ token, password }` | Cambia la contraseña y **revoca todos los refresh tokens** de la cuenta. |
+
+Los mails salen por el módulo `mail` (config en `config/mail.config.ts`).
+
+### Sesión y logout
+
+- `GET /auth/me` devuelve el perfil (`UserResponseDto`).
+- `POST /auth/logout` borra el refresh token de la base y limpia ambas cookies.
 
 ---
 
-## Roles y Permisos
+## Roles
 
-| Rol | Descripción | Acceso |
-|-----|-------------|--------|
-| `VISITOR` | Usuario no verificado (futuro) | Rutas públicas |
-| `USER` | Usuario registrado (default al registrarse) | Rutas autenticadas, `auth/me`, `auth/logout` |
-| `MODERATOR` | Moderador de contenido | Pendiente: gestión de foro |
-| `ADMIN` | Administrador | `admin/*` (usuarios, stats) |
-| `SUPERADMIN` | Super administrador | `admin/*` (todos los endpoints) |
+Enum `Role` en `prisma/schema.prisma`.
 
-Los roles se definen en el enum de Prisma (`schema.prisma`) y se verifican en el backend con:
+| Rol | Uso actual en el código | Según el diseño de moderación |
+|---|---|---|
+| `VISITOR` | Sin uso (reservado) | — |
+| `USER` | Rol por defecto al registrarse | Publica, reporta, apela |
+| `MODERATOR` | Aprobar/rechazar materiales (`materials/pending`, `approve`, `reject`) y retirar/restaurar reseñas y experiencias (`community-moderation`) | Resuelve casos de su facultad, advierte y silencia 7 días; no suspende |
+| `ADMIN` | `admin/*`, alta/edición de profesores, más todo lo de `MODERATOR` | Suspende, nombra moderadores y organizadores verificados, ve todas las facultades |
+| `SUPERADMIN` | Igual que `ADMIN` | Igual que `ADMIN` |
+
+> Con la publicación inmediata ([ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md)) los endpoints de aprobación de materiales quedan solo para los casos de revisión previa. El alcance por facultad todavía no existe en el esquema.
 
 ```typescript
 @Controller('admin')
@@ -154,197 +92,83 @@ export class AdminController { ... }
 
 ---
 
-## Guards y Decoradores
+## Guards y decoradores
 
-### `JwtAuthGuard` (`src/common/guards/jwt-auth.guard.ts`)
+| Pieza | Archivo | Qué hace |
+|---|---|---|
+| `JwtAuthGuard` | `src/common/guards/jwt-auth.guard.ts` | Global (`APP_GUARD`). Lee el JWT de la cookie `access_token` o del header `Authorization: Bearer`. |
+| `@Public()` | `src/common/decorators/public.decorator.ts` | Saltea el guard global. |
+| `RolesGuard` + `@Roles()` | `src/common/guards/roles.guard.ts`, `src/common/decorators/roles.decorator.ts` | Compara `request.user.role`; si no coincide, 403. Se aplica por controlador o por ruta. |
+| `CommunityWriteThrottlerGuard` | `src/common/guards/community-write-throttler.guard.ts` | Limita la frecuencia al crear o editar reseñas y experiencias de final y al reportarlas. |
 
-- **Registrado globalmente** en `app.module.ts` vía `APP_GUARD`
-- Todas las rutas requieren JWT **por defecto**
-- Soporta el decorador `@Public()` para omitir la verificación
-- Extrae el token de la cookie `access_token` (httpOnly) o del header `Authorization: Bearer`
+---
 
-### `@Public()` (`src/common/decorators/public.decorator.ts`)
+## Endpoints
 
-```typescript
-@Public()           // ← esta ruta NO requiere autenticación
-@Post('register')
-async register(...) { }
+Prefijo `/api/v1`.
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| POST | `/auth/register` | Público |
+| POST | `/auth/login` | Público |
+| POST | `/auth/verify-email` | Público |
+| POST | `/auth/forgot-password` | Público |
+| POST | `/auth/reset-password` | Público |
+| POST | `/auth/refresh` | Público (usa la cookie de refresh) |
+| GET | `/auth/me` | Sesión |
+| POST | `/auth/logout` | Sesión |
+| GET | `/admin/users`, `/admin/users/:id` | ADMIN, SUPERADMIN |
+| PATCH | `/admin/users/:id/role` | ADMIN, SUPERADMIN |
+| GET | `/admin/stats` | ADMIN, SUPERADMIN |
+
+---
+
+## Archivos
+
 ```
+apps/backend/src/
+├── config/jwt.config.ts, env.validation.ts     JWT_SECRET, JWT_EXPIRATION (900 s)
+├── common/decorators/                          @Public, @Roles
+├── common/guards/                              JwtAuthGuard, RolesGuard, throttler de comunidad
+└── modules/auth/
+    ├── auth.controller.ts                      endpoints y cookies
+    ├── auth.service.ts                         tokens, verificación, reset
+    ├── dto/                                    register, login, auth-actions, auth-response
+    └── strategies/                             local.strategy, jwt.strategy
 
-### `RolesGuard` (`src/common/guards/roles.guard.ts`)
-
-- **No es global** — se aplica manualmente con `@UseGuards(RolesGuard)`
-- Lee los roles requeridos del decorador `@Roles()`
-- Compara con `request.user.role` (inyectado por JwtStrategy)
-- Si no coincide → `403 Forbidden`
-
-### `@Roles()` (`src/common/decorators/roles.decorator.ts`)
-
-```typescript
-@Roles(Role.ADMIN, Role.SUPERADMIN)  // ← solo estos roles pueden acceder
-@Get('users')
-async getUsers() { }
+apps/frontend/src/
+├── lib/api.ts                                  axios withCredentials + redirección al login en 401
+├── stores/authStore.ts                         zustand: login, register, logout, checkAuth
+├── components/auth/                            LoginForm, RegisterForm, ForgotPasswordForm,
+│                                               ResetPasswordForm, VerifyEmail, AuthGuard, AuthInitializer
+├── app/(auth)/auth/                            login, register, verify-email, forgot-password, reset-password
+└── proxy.ts                                    protección de rutas del lado del servidor (Next.js 16)
 ```
 
 ---
 
-## API Endpoints
-
-| Método | Ruta | Auth | Roles | Descripción |
-|--------|------|------|-------|-------------|
-| `POST` | `/api/v1/auth/register` | `@Public()` | — | Registrar usuario |
-| `POST` | `/api/v1/auth/login` | `@Public()` + LocalAuth | — | Login, retorna cookie httpOnly |
-| `GET` | `/api/v1/auth/me` | JWT | — | Perfil del usuario autenticado |
-| `POST` | `/api/v1/auth/logout` | JWT | — | Cerrar sesión (limpia cookie) |
-| `GET` | `/api/v1/admin/users` | JWT | `ADMIN`, `SUPERADMIN` | Listar usuarios |
-| `GET` | `/api/v1/admin/users/:id` | JWT | `ADMIN`, `SUPERADMIN` | Detalle de usuario |
-| `PATCH` | `/api/v1/admin/users/:id/role` | JWT | `ADMIN`, `SUPERADMIN` | Cambiar rol |
-| `GET` | `/api/v1/admin/stats` | JWT | `ADMIN`, `SUPERADMIN` | Estadísticas |
-
----
-
-## Estructura de Archivos
-
-### Backend
-
-```
-apps/backend/
-├── prisma/
-│   ├── schema.prisma              # Modelo User + enum Role
-│   └── migrations/                # Migraciones de DB
-├── src/
-│   ├── config/
-│   │   ├── jwt.config.ts          # Config JWT (registerAs)
-│   │   └── env.validation.ts      # JWT_SECRET, JWT_EXPIRATION
-│   ├── common/
-│   │   ├── decorators/
-│   │   │   ├── public.decorator.ts   # @Public()
-│   │   │   └── roles.decorator.ts    # @Roles()
-│   │   └── guards/
-│   │       ├── jwt-auth.guard.ts     # JwtAuthGuard (global)
-│   │       └── roles.guard.ts        # RolesGuard
-│   ├── modules/
-│   │   ├── auth/
-│   │   │   ├── auth.module.ts        # AuthModule
-│   │   │   ├── auth.service.ts       # register, validate, login, getProfile
-│   │   │   ├── auth.controller.ts    # Endpoints REST
-│   │   │   ├── dto/
-│   │   │   │   ├── register.dto.ts   # Validación de registro
-│   │   │   │   ├── login.dto.ts      # Validación de login
-│   │   │   │   └── auth-response.dto.ts  # UserResponseDto, Role enum
-│   │   │   └── strategies/
-│   │   │       ├── local.strategy.ts     # Passport Local
-│   │   │       └── jwt.strategy.ts       # Passport JWT (cookie + bearer)
-│   │   └── admin/
-│   │       ├── admin.module.ts       # AdminModule
-│   │       └── admin.controller.ts   # CRUD usuarios + stats
-│   ├── app.module.ts             # APP_GUARD (JwtAuthGuard), imports
-│   └── main.ts                   # cookie-parser, CORS, Swagger
-```
-
-### Frontend
-
-```
-apps/frontend/
-├── src/
-│   ├── types/
-│   │   └── auth.ts               # User, Role, LoginPayload, RegisterPayload
-│   ├── lib/
-│   │   └── api.ts                # Axios con withCredentials, interceptor 401
-│   ├── stores/
-│   │   └── authStore.ts          # Zustand: login, register, logout, checkAuth
-│   ├── components/
-│   │   └── auth/
-│   │       ├── LoginForm.tsx          # Formulario login (react-hook-form + zod)
-│   │       ├── LoginForm.module.css
-│   │       ├── RegisterForm.tsx       # Formulario registro
-│   │       ├── RegisterForm.module.css
-│   │       ├── AuthGuard.tsx          # Wrapper para rutas protegidas
-│   │       └── AuthInitializer.tsx    # checkAuth() al montar la app
-│   ├── app/
-│   │   ├── layout.tsx            # <AuthInitializer /> en el root
-│   │   └── (auth)/
-│   │       └── auth/
-│   │           ├── login/page.tsx     # /auth/login
-│   │           └── register/page.tsx  # /auth/register
-│   └── proxy.ts                  # Middleware Next.js 16 (protección server-side)
-```
-
----
-
-## Seguridad
-
-| Medida | Implementación |
-|--------|---------------|
-| Hashing de contraseñas | bcrypt, salt rounds **12** |
-| Token JWT | HS256, expiración **900s** (15 min) |
-| httpOnly cookies | El token **no es accesible desde JavaScript** |
-| SameSite | `Lax` (protección CSRF básica) |
-| CORS con credenciales | `credentials: true`, origen configurable |
-| Helmet | Headers de seguridad HTTP |
-| Validación de entrada | `class-validator` en DTOs, `zod` en formularios frontend |
-| Contraseñas seguras | Mínimo 8 caracteres, 1 mayúscula, 1 número, 1 especial |
-| `whitelist` + `forbidNonWhitelisted` | ValidationPipe rechaza propiedades no declaradas |
-| Redacción de datos sensibles | Pino redacta `authorization` y `cookie` en logs |
-
-### Pendiente (próximos sprints)
+## Pendiente
 
 | Medida | Detalle |
-|--------|---------|
-| Refresh tokens con Redis | Rotación de refresh tokens, invalidación en logout real |
-| Rate limiting | 5 req/15 min en login, 3 req/hora en register |
-| Verificación de email | Token único + expiración 24h |
-| Bloqueo por intentos fallidos | 5 intentos → bloqueo 15 min (Redis) |
+|---|---|
+| Refresh en el frontend | Reintentar con `POST /auth/refresh` ante un 401 antes de mandar al login. |
+| Rate limit en auth | Hoy el throttler solo cubre escrituras de la comunidad. Falta limitar login, register y forgot-password. |
+| Bloqueo por intentos fallidos | Por ejemplo, 5 intentos fallidos bloquean 15 min. |
+| Qué exige email verificado | Decidir si publicar o reportar requiere cuenta verificada. |
+| Alcance por facultad para moderadores | Lo pide [`README_MODERACION.md`](README_MODERACION.md); el esquema no lo modela. |
+| Sanciones | Silenciar y suspender no existen todavía; un usuario suspendido debería perder la sesión (borrar sus refresh tokens). |
 
 ---
 
-## Cómo Probar
+## Cómo probar
 
-### Swagger
-Abrir `http://localhost:3001/docs` y usar los endpoints documentados. El candado `Authorize` acepta el token JWT para probar rutas protegidas.
-
-### curl
+Swagger en `http://localhost:3001/docs` (fuera de producción).
 
 ```bash
-# Registrar usuario
 curl -X POST http://localhost:3001/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"test","email":"test@test.com","password":"StrongP@ss1"}'
+  -d '{"username":"test","email":"test@test.com","password":"StrongP@ss1"}' -c cookies.txt
 
-# Login (cookie httpOnly se guarda automáticamente con -c)
-curl -X POST http://localhost:3001/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"StrongP@ss1"}' \
-  -c cookies.txt
-
-# Perfil (usando cookie guardada)
 curl http://localhost:3001/api/v1/auth/me -b cookies.txt
-
-# Admin — cambiar rol a ADMIN primero (si eres ADMIN)
-curl -X PATCH http://localhost:3001/api/v1/admin/users/1/role \
-  -H "Content-Type: application/json" \
-  -d '{"role":"ADMIN"}' \
-  -b cookies.txt
+curl -X POST http://localhost:3001/api/v1/auth/logout -b cookies.txt
 ```
-
-### Frontend
-1. Abrir `http://localhost:3000/auth/register` y crear un usuario
-2. Ser redirigido a `/` con el navbar mostrando el username
-3. Cerrar sesión → vuelve a mostrar "Iniciar sesión"
-4. Login en `http://localhost:3000/auth/login`
-
----
-
-## Issues Cubiertos
-
-| Issue | Descripción | Estado |
-|-------|-------------|--------|
-| DB-002 | Modelo User + enum Role + migración | ✅ |
-| B-010 | AuthModule + RegisterDto + registro | ✅ |
-| B-011 | LocalStrategy + JwtStrategy (Passport) | ✅ |
-| B-012 | JwtAuthGuard global + @Public() | ✅ |
-| B-013 | RolesGuard + @Roles() decorator | ✅ |
-| B-060 | AdminModule (panel) | ✅ |
-| F-020 | Contexto de autenticación (Zustand store) | ✅ |
-| F-018 | LoginForm + RegisterForm | ✅ |
-| F-019 | AuthGuard para rutas protegidas | ✅ |

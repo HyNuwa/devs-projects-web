@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>DevsProject · Menú de usuario</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Caveat:wght@600;700&display=swap">
+<style>
+  body { margin: 0; font-family: 'Figtree', system-ui, sans-serif; background: #FDF3E5; }
+  a { color: #0A4DE8; text-decoration: none; }
+  a:hover { color: #0239B4; }
+  .dp-hand { font-family: 'Caveat', 'Segoe Script', cursive; }
+</style>
+</helmet>
+
+<div style="width: 1440px; height: 470px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; position: relative; background: #FDF3E5; background-image: linear-gradient(rgba(2,18,56,0.032) 1px, transparent 1px), linear-gradient(90deg, rgba(2,18,56,0.032) 1px, transparent 1px); background-size: 44px 44px; font-family: 'Figtree', system-ui, sans-serif; color: #021238;">
+  <header style="height: 68px; flex-shrink: 0; padding: 0 64px; display: flex; align-items: center; justify-content: space-between; gap: 28px; position: relative; z-index: 2;">
+    <div style="display: flex; align-items: center; gap: 36px;">
+      <a href="#inicio" style="display: flex; align-items: center; gap: 11px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H9a3 3 0 0 1 3 3v12a2.5 2.5 0 0 0-2.5-2.5H3z"></path><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H15a3 3 0 0 0-3 3v12a2.5 2.5 0 0 1 2.5-2.5H21z"></path></svg>
+        <span style="font-size: 23px; font-weight: 800; letter-spacing: -0.035em; color: #021238;">DevsProject</span>
+        <span style="color: #0261FE; font-size: 13px; line-height: 1;">✦</span>
+      </a>
+      <nav style="display: flex; align-items: center; gap: 24px; font-size: 15px; font-weight: 500;"><a href="#inicio" style="color: #3D4459;">Inicio</a><a href="#materias" style="color: #3D4459;">Materias</a><a href="#experiencias" style="color: #3D4459;">Experiencias</a><a href="#eventos" style="color: #3D4459;">Eventos</a><a href="#clasificados" style="color: #3D4459;">Clasificados</a></nav>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <button type="button" aria-label="Buscar" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #021238;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg></button>
+      <a href="#subir" style="display: inline-flex; align-items: center; gap: 9px; background: #0261FE; border-radius: 11px; padding: 11px 18px; font-size: 14.5px; font-weight: 700; color: #FFFFFF;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg> Subir material</a>
+      <a href="#mochila" aria-label="Mi mochila, 4 novedades" style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 12px; color: #021238;">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6V5a4 4 0 0 1 8 0v1"></path><rect x="4.5" y="6" width="15" height="15" rx="4"></rect><path d="M8.5 13h7v4h-7z"></path></svg>
+        <span style="position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; box-sizing: border-box; padding: 0 5px; border-radius: 999px; background: #FD4F8D; border: 2px solid #FDF3E5; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800; color: #FFFFFF;">4</span>
+      </a>
+      <a href="#menu" aria-haspopup="menu" aria-expanded="true" style="display: inline-flex; align-items: center; gap: 9px; background: #FFFFFF; border: 2px solid #0261FE; border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 14.5px; font-weight: 800; color: #021238;">
+        <img src="av-max.png" alt="" style="width: 34px; height: 34px; border-radius: 999px; border: 1.5px solid #021238; object-fit: cover;">
+        Max <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate(180deg);"><path d="m6 9 6 6 6-6"></path></svg>
+      </a>
+      <div style="margin-left: 10px; text-align: right; font-size: 10.5px; font-weight: 700; letter-spacing: 0.15em; line-height: 1.35; color: #021238;">UNJU<br>FI<div style="margin-top: 3px; height: 2px; background: #021238;"></div></div>
+    </div>
+  </header>
+  <div style="flex-shrink: 0; padding: 4px 64px 0 64px;">
+    <nav aria-label="Mi espacio" style="display: flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 13px; padding: 6px 16px 6px 8px;">
+      <span style="padding: 0 10px 0 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.16em; color: #6B7286;">MI ESPACIO</span>
+      <a href="#mochila" aria-current="page" style="display: inline-flex; align-items: center; gap: 8px; background: #0261FE; border: 1.5px solid #021238; border-radius: 10px; padding: 8px 15px; font-size: 14px; font-weight: 800; color: #FFFFFF;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6V5a4 4 0 0 1 8 0v1"></path><rect x="4.5" y="6" width="15" height="15" rx="4"></rect><path d="M8.5 13h7v4h-7z"></path></svg>Mi mochila</a><a href="#perfil" style="display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 8px 13px; font-size: 14px; font-weight: 700; color: #021238;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"></path></svg>Mi perfil</a><a href="#config" style="display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 8px 13px; font-size: 14px; font-weight: 700; color: #021238;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 2.5v3M12 18.5v3M3.8 3.8l2.1 2.1M18.1 18.1l2.1 2.1M2.5 12h3M18.5 12h3M3.8 20.2l2.1-2.1M18.1 5.9l2.1-2.1"></path></svg>Configuración</a>
+      <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #3F4657;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Tu mochila es privada: solo la ves vos</span>
+    </nav>
+  </div>
+  <section style="flex-shrink: 0; position: relative; padding: 26px 64px 0 64px; min-height: 300px; box-sizing: border-box;">
+    <div style="position: absolute; right: 60px; top: 6px; width: 600px; height: 300px; overflow: hidden;">
+      <img src="hero-mochila-abierta.png" alt="Ilustración: el gato de DevsProject revisando una mochila abierta llena de apuntes, un parcial y una calculadora" style="display: block; position: absolute; left: 0; top: 0; width: 600px; height: auto;">
+    </div>
+    <span class="dp-hand" style="position: absolute; left: 700px; top: 34px; width: 130px; text-align: center; font-size: 20px; font-weight: 700; line-height: 1.05; transform: rotate(-5deg);">todo lo que necesitás, a mano ♥</span>
+    <div style="position: relative; width: 660px;">
+      <div style="display: inline-flex; align-items: center; gap: 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: #0A4DE8;"><span style="width: 8px; height: 8px; background: #0A4DE8; display: block;"></span>Mi mochila</div>
+      <h1 style="margin: 14px 0 0 0; font-size: 86px; line-height: 0.9; font-weight: 800; letter-spacing: -0.055em; color: #021238;">Buenas, <span style="color: #0A4DE8;">Max</span><span style="color: #FA6304;">.</span></h1>
+      <p style="margin: 16px 0 0 0; font-size: 17.5px; line-height: 1.5; font-weight: 500; color: #3F4657; max-width: 560px;">Tenés <b style="color: #021238;">4 novedades</b> en tus materias y <b style="color: #021238;">1 material en revisión</b>.</p>
+      <div style="margin-top: 18px; display: flex; flex-wrap: wrap; gap: 9px;">
+        <span style="display: inline-flex; align-items: center; gap: 7px; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 700;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0261FE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 4 10 5-10 5L2 9z"></path><path d="M6 11.5V16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4.5"></path></svg>Ingeniería Informática · Plan 2023</span>
+        <span style="display: inline-flex; align-items: center; gap: 7px; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 700;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0261FE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2.5"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>Cursando 2° año</span>
+        <span style="display: inline-flex; align-items: center; gap: 7px; background: #F0F7C9; border: 1.5px solid #021238; border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 700;">★ Nv. 5 · Siete vidas · 612 puntos</span>
+      </div>
+    </div>
+  </section>
+  <div role="menu" aria-label="Menú de Max" style="position: absolute; right: 150px; top: 76px; width: 330px; z-index: 5; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 16px; box-shadow: 6px 6px 0 #021238; padding: 10px;">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 8px 8px 14px 8px; border-bottom: 1.5px solid #EFE7D8;">
+      <img src="av-max.png" alt="" style="width: 50px; height: 50px; border-radius: 999px; border: 1.5px solid #021238;">
+      <div style="min-width: 0;">
+        <div style="font-size: 17px; font-weight: 800; letter-spacing: -0.02em;">Max <span style="font-size: 12.5px; font-weight: 600; color: #6B7286;">@max</span></div>
+        <div style="font-size: 12.5px; font-weight: 600; color: #3F4657;">Ingeniería Informática · FI UNJu</div>
+        <div style="margin-top: 5px; display: inline-flex; align-items: center; gap: 5px; background: #F0F7C9; border: 1.5px solid #021238; border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 800;">★ Nv. 5 · Siete vidas</div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1.5px solid #EFE7D8;"><a href="#Mi mochila" role="menuitem" style="display: flex; align-items: center; gap: 12px; border-radius: 10px; padding: 10px 12px; background: #ECF2FE; color: #021238;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0261FE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6V5a4 4 0 0 1 8 0v1"></path><rect x="4.5" y="6" width="15" height="15" rx="4"></rect><path d="M8.5 13h7v4h-7z"></path></svg><span style="font-size: 14.5px; font-weight: 800;">Mi mochila</span><span style="margin-left: auto;"><span style="background: #FD4F8D; color: #FFFFFF; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800;">4 novedades</span></span></a><a href="#Ver mi perfil público" role="menuitem" style="display: flex; align-items: center; gap: 12px; border-radius: 10px; padding: 10px 12px;  color: #021238;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"></path></svg><span style="font-size: 14.5px; font-weight: 700;">Ver mi perfil público</span><span style="margin-left: auto;"></span></a><a href="#Mis aportes" role="menuitem" style="display: flex; align-items: center; gap: 12px; border-radius: 10px; padding: 10px 12px;  color: #021238;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></svg><span style="font-size: 14.5px; font-weight: 700;">Mis aportes</span><span style="margin-left: auto;"><span style="font-size: 12.5px; font-weight: 700; color: #6B7286;">24</span></span></a><a href="#Mis envíos" role="menuitem" style="display: flex; align-items: center; gap: 12px; border-radius: 10px; padding: 10px 12px;  color: #021238;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h5l1.5 3h5L16 13h5"></path><path d="M5 5h14l2 8v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z"></path></svg><span style="font-size: 14.5px; font-weight: 700;">Mis envíos</span><span style="margin-left: auto;"><span style="display: inline-flex; align-items: center; gap: 5px; background: #FDF0C8; border-radius: 7px; padding: 4px 9px; font-size: 11px; font-weight: 800; color: #8A5A00; white-space: nowrap;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8A5A00" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>1 en revisión previa</span></span></a><a href="#Configuración" role="menuitem" style="display: flex; align-items: center; gap: 12px; border-radius: 10px; padding: 10px 12px;  color: #021238;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 2.5v3M12 18.5v3M3.8 3.8l2.1 2.1M18.1 18.1l2.1 2.1M2.5 12h3M18.5 12h3M3.8 20.2l2.1-2.1M18.1 5.9l2.1-2.1"></path></svg><span style="font-size: 14.5px; font-weight: 700;">Configuración</span><span style="margin-left: auto;"></span></a></div>
+    <a href="#salir" role="menuitem" style="margin-top: 6px; display: flex; align-items: center; gap: 12px; border-radius: 10px; padding: 10px 12px; color: #3F4657;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3F4657" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg><span style="font-size: 14.5px; font-weight: 700;">Cerrar sesión</span></a>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1440,"height":470}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

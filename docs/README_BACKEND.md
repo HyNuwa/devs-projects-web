@@ -1,289 +1,104 @@
-# ⚙️ DEVs PROJECT — Plan de Backend (NestJS)
+# Backend (NestJS)
 
-> Documento de planificación para el equipo de Backend / API.
+API REST de DevsProject en `apps/backend`. El vocabulario del dominio está en [`CONTEXT.md`](../CONTEXT.md); la autenticación, en [`README_AUTH.md`](README_AUTH.md).
 
-## 📐 Stack
+## Stack
 
 | Tecnología | Uso |
-|-----------|-----|
-| NestJS 11 | Framework principal (arquitectura modular, DI, decoradores) |
-| Node.js 22 LTS | Runtime |
-| TypeScript 5 | Tipado estático (nativo en NestJS) |
-| Prisma 6 | ORM + migraciones |
-| class-validator + class-transformer | Validación con decoradores (DTOs) |
-| @nestjs/jwt + Passport | Autenticación |
-| bcrypt | Hashing contraseñas |
-| @nestjs/websockets + Socket.io | Tiempo real |
-| @nestjs/bull + Redis | Cola de trabajos |
-| @nestjs-modules/mailer | Emails |
-| Sharp | Procesamiento imágenes |
-| @nestjs/platform-express + Multer | Upload archivos |
-| Winston / Pino (nestjs-pino) | Logging |
-| @nestjs/swagger | Documentación OpenAPI automática |
+|---|---|
+| NestJS 11 + TypeScript 5 | Framework (módulos, DI, guards, pipes) |
+| Prisma 7 + `@prisma/adapter-pg` | ORM y migraciones sobre PostgreSQL |
+| class-validator / class-transformer | Validación de DTOs (`whitelist` + `forbidNonWhitelisted`) |
+| Passport (local + jwt), `@nestjs/jwt`, bcrypt | Autenticación |
+| `@nestjs/throttler` | Límite de escrituras de la comunidad (registrado en `SubjectsModule`) |
+| helmet, cookie-parser | Cabeceras de seguridad y cookies |
+| nodemailer | Mails de verificación y recuperación |
+| googleapis | Almacenamiento de archivos en Google Drive |
+| sharp | Procesamiento de imágenes (avatares) |
+| nestjs-pino | Logging estructurado |
+| `@nestjs/swagger` | OpenAPI en `/docs` (fuera de producción) |
 
-## 🏛️ Arquitectura Modular (NestJS)
+`ioredis` figura como dependencia pero no se usa: no hay Redis en el proyecto.
 
-NestJS usa una arquitectura modular basada en **Módulos**, **Controllers**, **Services**, **Guards**, **Pipes**, **Interceptors** y **Decoradores**.
+## Estructura
 
 ```
-backend/src/
-├── main.ts                        # Bootstrap NestJS application
-├── app.module.ts                  # Módulo raíz
-├── config/                        # Configuración con @nestjs/config
-│   ├── app.config.ts
-│   ├── database.config.ts
-│   └── jwt.config.ts
-├── common/                        # Código compartido
-│   ├── decorators/                # @CurrentUser, @Roles, @Public
-│   ├── guards/                    # JwtAuthGuard, RolesGuard
-│   ├── interceptors/              # TransformInterceptor, LoggingInterceptor
-│   ├── pipes/                     # ValidationPipe custom
-│   ├── filters/                   # HttpExceptionFilter global
-│   ├── dto/                       # DTOs compartidos (pagination, etc.)
-│   └── utils/                     # Funciones utilitarias
-├── modules/                       # Un módulo NestJS por feature
-│   ├── auth/
-│   │   ├── auth.module.ts         # Declara providers, imports, exports
-│   │   ├── auth.controller.ts     # Rutas HTTP con decoradores
-│   │   ├── auth.service.ts        # Lógica de negocio
-│   │   ├── dto/                   # CreateUserDto, LoginDto, etc.
-│   │   ├── strategies/            # JwtStrategy, LocalStrategy (Passport)
-│   │   ├── guards/                # Guards específicos del módulo
-│   │   └── auth.controller.spec.ts
-│   ├── users/
-│   │   ├── users.module.ts
-│   │   ├── users.controller.ts
-│   │   ├── users.service.ts
-│   │   ├── dto/
-│   │   └── entities/              # User entity type
-│   ├── forum/
-│   │   ├── forum.module.ts
-│   │   ├── threads/               # Sub-módulo de hilos
-│   │   │   ├── threads.controller.ts
-│   │   │   ├── threads.service.ts
-│   │   │   └── dto/
-│   │   ├── replies/               # Sub-módulo de respuestas
-│   │   ├── votes/                 # Sub-módulo de votación
-│   │   └── categories/            # Sub-módulo de categorías
-│   ├── materials/
-│   ├── guides/
-│   ├── professors/
-│   ├── ranking/
-│   ├── search/
-│   ├── notifications/
-│   └── admin/
-├── prisma/                        # Módulo Prisma como servicio global
-│   ├── prisma.module.ts
-│   └── prisma.service.ts
-└── redis/                         # Módulo Redis
-    ├── redis.module.ts
-    └── redis.service.ts
+apps/backend/
+├── prisma/
+│   ├── schema.prisma            modelo de datos (ver README_DATABASE.md)
+│   ├── migrations/
+│   ├── migration-tests/         pruebas de migraciones contra una base real
+│   ├── backfills/               scripts de relleno (search keys)
+│   └── seed.ts                  datos de ejemplo
+└── src/
+    ├── main.ts                  prefijo global, helmet, CORS, cookies, Swagger
+    ├── app.module.ts            JwtAuthGuard global, pino
+    ├── config/                  app, jwt, mail, validación de env, seguridad HTTP
+    ├── common/
+    │   ├── decorators/          @Public, @Roles
+    │   ├── guards/              JwtAuthGuard, RolesGuard, CommunityWriteThrottlerGuard
+    │   ├── filters/             filtros globales de excepciones
+    │   ├── search/              claves de búsqueda normalizadas
+    │   └── validation/          ciclo lectivo
+    ├── prisma/                  PrismaService
+    └── modules/                 un módulo por área (tabla de abajo)
 ```
 
-> [!NOTE]
-> En NestJS, cada **Module** encapsula su funcionalidad. Los `Controllers` manejan rutas HTTP, los `Services` contienen la lógica de negocio, los `Guards` protegen rutas, y los `Pipes` validan/transforman datos. Todo se conecta mediante **Dependency Injection** automática.
+## Módulos y endpoints
 
-### Ejemplo de estructura NestJS (AuthModule)
+Prefijo global `/api/v1`. Todo requiere sesión salvo lo marcado con `@Public()`; Swagger documenta cada contrato.
 
-```typescript
-// auth.module.ts
-@Module({
-  imports: [
-    JwtModule.registerAsync({ ... }),
-    PassportModule,
-    UsersModule,
-    PrismaModule,
-  ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
-  exports: [AuthService],
-})
-export class AuthModule {}
+| Módulo | Rutas | Qué cubre |
+|---|---|---|
+| `auth` | `POST register, login, verify-email, forgot-password, reset-password, refresh, logout` · `GET me` | Cuentas y sesión |
+| `users` | `GET/PATCH me` · `POST me/avatar` · `GET :id` | Perfil propio y perfil público |
+| `subjects` | `GET /`, `GET :code` · `GET/POST :code/reviews` · `PUT/DELETE reviews/:id` · `GET/POST :code/exams` · `PUT/DELETE exams/:id` | Materias, reseñas de cursada y experiencias de final |
+| `subjects` (moderación comunitaria) | `POST reviews/:id/reports`, `exams/:id/reports` · `GET community/reports` · `GET …/:id/management` · `POST …/:id/moderation/remove` y `restore` | Reportes y retiro reversible de reseñas y experiencias |
+| `materials` | `GET/POST /` · `GET mine` · `GET pending` · `GET/PATCH/DELETE :id` · `POST :id/approve`, `reject` · `GET :id/download` · `POST :id/rate` · `GET :id/ratings`, `viewer-state` · `PUT :id/helpfulness`, `saved` | Recursos académicos: subida, vista previa, descarga, «Me sirvió», guardado, valoraciones |
+| `discovery` | `GET suggestions` · `GET course-reviews[/:id]`, `exam-experiences[/:id]` · `GET hierarchy/careers`, `careers/:id/years`, `subjects/:id/resource-categories` | Búsqueda, navegación Universidad → Carrera → Año → Materia |
+| `ranking` | `GET /`, `me`, `levels`, `top` | Puntos y niveles |
+| `admin` | `GET users`, `users/:id`, `stats` · `PATCH users/:id/role` | Administración (ADMIN, SUPERADMIN) |
+| `mail` | — | Servicio interno de envío |
+| `guides`, `professors` | CRUD | **Heredados.** El producto ya no incluye guías ni profesores; no construir sobre ellos. |
 
-// auth.controller.ts
-@Controller('api/auth')
-export class AuthController {
-  constructor(private authService: AuthService) {}
+### Almacenamiento de archivos
 
-  @Post('register')
-  @UsePipes(new ValidationPipe())
-  register(@Body() dto: RegisterDto) { ... }
+`FileStorageService` abstrae el proveedor: disco local (staging privado y luego publicación) o Google Drive, que además permite importar una carpeta existente. Las descargas pasan por `GET materials/:id/download`.
 
-  @Post('login')
-  @UseGuards(LocalAuthGuard)
-  login(@Request() req) { ... }
+## Puntos (estado actual vs. especificación)
 
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  getProfile(@CurrentUser() user: User) { ... }
-}
-```
+La especificación está en [`README_PUNTOS_E_INSIGNIAS.md`](README_PUNTOS_E_INSIGNIAS.md). El código (`modules/ranking/point.service.ts`, `rpg-levels.ts`) todavía refleja el modelo anterior:
 
-## 🔌 API Endpoints
+| Tema | Código hoy | Especificación |
+|---|---|---|
+| Material | +10 al **aprobar** (`MATERIAL_APPROVED`) | Al publicar (`MATERIAL_PUBLISHED`), se revierte al retirar |
+| Reseña / experiencia | +5 siempre | Sin puntos si es anónima |
+| Guía | +15 (`GUIDE_CREATED`) | Sin guías |
+| Niveles | Viajero Novato … Leyenda Eterna (0–12000) | Primeros pasos … Leyenda de la facultad (0–4500) |
+| Insignias | Tablas `Badge` y `UserBadge` vacías, sin lógica | Catálogo completo en el documento |
 
-### 🔐 Auth (`/api/auth`)
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| POST | `/register` | Registro | ❌ |
-| POST | `/login` | Login | ❌ |
-| POST | `/logout` | Cerrar sesión | ✅ |
-| POST | `/refresh` | Renovar token | ✅ |
-| POST | `/forgot-password` | Recuperar contraseña | ❌ |
-| POST | `/reset-password` | Restablecer contraseña | ❌ |
-| GET | `/verify-email/:token` | Verificar email | ❌ |
-| GET | `/me` | Usuario autenticado | ✅ |
+## Moderación (estado actual vs. especificación)
 
-### 👤 Users (`/api/users`)
-| Método | Ruta | Descripción | Rol |
-|--------|------|-------------|-----|
-| GET | `/` | Listar (paginado) | Admin |
-| GET | `/:username` | Perfil público | — |
-| PATCH | `/:id` | Editar perfil | Owner |
-| PATCH | `/:id/avatar` | Cambiar avatar | Owner |
-| DELETE | `/:id` | Desactivar cuenta | Owner/Admin |
-| PATCH | `/:id/role` | Cambiar rol | SuperAdmin |
+La especificación está en [`README_MODERACION.md`](README_MODERACION.md) y el [ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md). Hoy:
 
-### 💬 Forum (`/api/forum`)
-| Método | Ruta | Descripción | Rol |
-|--------|------|-------------|-----|
-| GET | `/categories` | Listar categorías | — |
-| POST | `/categories` | Crear categoría | Admin |
-| GET/POST | `/threads` | Listar/Crear hilos | Estudiante+ |
-| GET/PATCH/DELETE | `/threads/:id` | CRUD hilo | Owner/Mod |
-| POST | `/threads/:id/replies` | Responder | Estudiante+ |
-| POST | `/threads/:id/vote` | Votar (+1/-1) | Estudiante+ |
-| POST | `/threads/:id/pin` | Fijar hilo | Mod+ |
-| POST | `/threads/:id/lock` | Bloquear hilo | Mod+ |
-| POST | `/threads/:id/report` | Reportar | Estudiante+ |
+- Los materiales esperan aprobación (`pending` → `approve`/`reject`). La especificación pide publicación inmediata con revisión previa solo en casos de riesgo.
+- Las reseñas y experiencias ya se publican al instante y se pueden reportar, retirar y restaurar.
+- Faltan casos agrupados, ocultamiento preventivo, sanciones, apelaciones, alcance por facultad y registro de «Ver autor».
 
-### 📚 Materiales (`/api/materials`)
-| Método | Ruta | Descripción | Rol |
-|--------|------|-------------|-----|
-| GET/POST | `/` | Listar/Subir | Estudiante+ |
-| GET | `/:id` | Detalle | — |
-| GET | `/:id/download` | Descargar | — |
-| POST | `/:id/rate` | Valorar (1-5) | Estudiante+ |
-| DELETE | `/:id` | Eliminar | Owner/Mod |
+## Convenciones
 
-### 📖 Guías, 🎓 Profesores, 🏆 Ranking, 🔍 Búsqueda, 🔔 Notificaciones, 🛡️ Admin
-> Cada uno sigue el mismo patrón CRUD con permisos por rol. La documentación completa se genera automáticamente con `@nestjs/swagger`.
+- Un módulo por área: `*.module.ts`, `*.controller.ts`, `*.service.ts`, `dto/`, tests `*.spec.ts` junto al código.
+- DTOs con class-validator y decoradores de Swagger (`@ApiTags`, `@ApiOperation`, `@ApiResponse`).
+- Los permisos se declaran en el controlador (`@Public()`, `@Roles()`), no dentro del servicio.
+- Cambios en el esquema: ver [`README_DATABASE.md`](README_DATABASE.md). Tests: [`README_TESTING.md`](README_TESTING.md).
 
-## 🔐 Sistema de Autenticación (Passport + JWT)
+## Scripts
 
-NestJS usa **Passport.js** integrado con Guards:
-
-- **LocalStrategy**: Valida email + contraseña en login
-- **JwtStrategy**: Valida access token en rutas protegidas
-- **RolesGuard**: Verifica el rol del usuario con decorador `@Roles()`
-
-### Tokens
-- **Access Token**: JWT, 15 min, contiene `userId`, `role`, `email`
-- **Refresh Token**: UUID opaco, 7 días, en Redis
-- **Email Verification**: UUID, 24h, un solo uso
-- **Password Reset**: UUID, 1h, un solo uso
-- Contraseñas hasheadas con **bcrypt** (salt rounds: 12)
-
-## 🏅 Sistema de Puntos
-
-| Acción | Puntos |
-|--------|--------|
-| Crear hilo | +5 |
-| Responder hilo | +3 |
-| Recibir upvote (hilo) | +2 |
-| Recibir upvote (respuesta) | +1 |
-| Subir material | +10 |
-| Crear guía | +15 |
-| Evaluar profesor | +5 |
-| Login diario | +1 |
-| Recibir downvote | -1 |
-| Contenido eliminado por reporte | -20 |
-
-### Niveles RPG
-| Nivel | Nombre | Puntos |
-|-------|--------|--------|
-| 1 | Viajero Novato | 0 |
-| 2 | Aprendiz | 50 |
-| 3 | Explorador | 150 |
-| 4 | Aventurero | 400 |
-| 5 | Caballero del Código | 800 |
-| 6 | Mago del Saber | 1500 |
-| 7 | Maestro Arcano | 3000 |
-| 8 | Guardián Legendario | 5000 |
-| 9 | Sabio Ancestral | 8000 |
-| 10 | Leyenda Eterna | 12000 |
-
-## 📋 Tareas del Equipo Backend
-
-### Sprint 0 — Setup
-
-| # | Tarea | Tipo | Dependencias |
-|---|-------|------|--------------|
-| B-001 | Inicializar proyecto con `nest new` (NestJS CLI) | 🔵 Solo | — |
-| B-002 | ESLint + Prettier (viene preconfigurado en NestJS) | 🔵 Solo | B-001 |
-| B-003 | Crear PrismaModule + PrismaService global | 🟠 Conjunto (DB) | **DB-001** |
-| B-004 | Configurar módulos globales (ConfigModule, Swagger, CORS, Helmet) | 🔵 Solo | B-001 |
-| B-005 | Configurar @nestjs/config con validación de env | 🔵 Solo | B-001 |
-| B-006 | Crear HttpExceptionFilter global | 🔵 Solo | B-001 |
-| B-007 | Configurar logging (nestjs-pino o Winston) | 🟢 Paralelo | B-001 |
-| B-008 | Configurar Docker para desarrollo | 🟠 Conjunto (DevOps) | **DO-001** |
-
-### Sprint 1 — Auth + Usuarios
-
-| # | Tarea | Tipo | Dependencias |
-|---|-------|------|--------------|
-| B-010 | Crear AuthModule + RegisterDto + registro | 🟠 Conjunto (DB) | **DB-002** |
-| B-011 | Implementar LocalStrategy + JwtStrategy (Passport) | 🔵 Solo | B-010 |
-| B-012 | Crear JwtAuthGuard global | 🔵 Solo | B-011 |
-| B-013 | Crear RolesGuard + @Roles() decorator | 🔵 Solo | B-012 |
-| B-014 | Implementar verificación de email | 🟠 Conjunto (DevOps) | **DO-005** |
-| B-015 | Implementar recuperar contraseña | 🔵 Solo | B-014 |
-| B-016 | Crear UsersModule con CRUD de perfil | 🔵 Solo | B-012 |
-| B-017 | Implementar subida de avatar (Multer + Sharp) | 🔵 Solo | B-016 |
-
-### Sprint 2 — Foro + Búsqueda
-
-| # | Tarea | Tipo | Dependencias |
-|---|-------|------|--------------|
-| B-020 | Crear ForumModule + CategoriesController | 🟠 Conjunto (DB) | **DB-003** |
-| B-021 | Crear ThreadsController + ThreadsService (CRUD) | 🔵 Solo | B-020 |
-| B-022 | Crear RepliesController + RepliesService | 🔵 Solo | B-021 |
-| B-023 | Crear VotesService (upvote/downvote) | 🔵 Solo | B-021 |
-| B-024 | Sistema de reportes | 🔵 Solo | B-021 |
-| B-025 | Fijar/bloquear hilos (moderación) | 🔵 Solo | B-021 |
-| B-026 | Crear RankingModule (cálculo de puntos) | 🟠 Conjunto (DB) | **DB-004** |
-| B-030 | Crear SearchModule (full-text search PostgreSQL) | 🟠 Conjunto (DB) | **DB-005** |
-
-### Sprint 3 — Materiales + Guías
-
-| # | Tarea | Tipo | Dependencias |
-|---|-------|------|--------------|
-| B-040 | Crear MaterialsModule + upload de archivos | 🟠 Conjunto (DB) | **DB-006** |
-| B-041 | Descargas + contador | 🔵 Solo | B-040 |
-| B-042 | Crear GuidesModule | 🟠 Conjunto (DB) | **DB-007** |
-| B-043 | Valoración de materiales | 🔵 Solo | B-040 |
-
-### Sprint 4 — Ranking, Profesores, Notif, Admin
-
-| # | Tarea | Tipo | Dependencias |
-|---|-------|------|--------------|
-| B-050 | Perfil extendido | 🔵 Solo | B-016 |
-| B-051 | API ranking (global, semanal, mensual) | 🟠 Conjunto (DB) | **DB-004** |
-| B-052 | Crear ProfessorsModule + evaluaciones | 🟠 Conjunto (DB) | **DB-008** |
-| B-053 | Crear NotificationsGateway (WebSockets) | 🔵 Solo | B-012 |
-| B-054 | Crear MailModule con @nestjs/bull (cola) | 🟢 Paralelo | B-014 |
-| B-060 | Crear AdminModule (panel) | 🔵 Solo | B-013 |
-| B-061 | Moderación (ban, mute, reportes) | 🔵 Solo | B-060 |
-
-## 🔑 Leyenda
-
-| Icono | Tipo | Significado |
-|-------|------|-------------|
-| 🔵 | **Solo** | Independiente, sin esperar a otros |
-| 🟢 | **Paralelo** | Simultáneo con otras tareas del sprint |
-| 🟠 | **Conjunto** | Requiere coordinación con otro equipo |
-
-> [!IMPORTANT]
-> NestJS genera documentación Swagger automáticamente con decoradores `@ApiTags()`, `@ApiOperation()`, `@ApiResponse()`. Usarla en cada controller para que Frontend pueda consultar los contratos de API en `/api/docs`.
-
----
-*📅 Última actualización: Julio 2026*
+| Comando (`pnpm --filter backend …`) | Qué hace |
+|---|---|
+| `start:dev` | Servidor con recarga |
+| `build`, `start:prod` | Compilar y correr `dist/` |
+| `lint`, `format` | ESLint y Prettier |
+| `test`, `test:e2e`, `test:cov` | Jest unitario, e2e y cobertura |
+| `test:migration:*`, `test:integration:material-ranking` | Pruebas de migraciones e integración contra Postgres |
+| `backfill:search-keys` | Recalcula claves de búsqueda |

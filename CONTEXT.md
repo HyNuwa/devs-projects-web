@@ -1,6 +1,6 @@
 # DevsProject Academic Resources
 
-DevsProject helps FI-UNJU students discover and judge academic resources in the context of a materia and a specific cursada.
+DevsProject helps FI-UNJU students discover and judge academic resources in the context of a materia and a specific cursada, and also serve a tool for students to share their knowledge/resources and experiences with each other.
 
 ## Language
 
@@ -53,16 +53,44 @@ An optional verbal assessment attached to one cursada or final experience: muy b
 _Avoid_: Star rating, professor score, pass probability
 
 **Publicación anónima**:
-A per-entry presentation choice that replaces the public author with “Anónimo” while preserving authenticated ownership for the author and authorized moderators.
+A per-entry presentation choice that replaces the public author with “Anónimo” while preserving authenticated ownership for the author and authorized moderators. Moderators do not see the author by default: revealing it requires a stated reason and is logged. Anonymous entries earn no public points or badges.
 _Avoid_: Unowned content, anonymous account, unverifiable record
 
-**Retiro de contenido comunitario**:
-A reversible moderator action that hides a reseña de cursada or experiencia de final while preserving author, reason, actor, and date evidence. It is distinct from permanent deletion by the author.
-_Avoid_: Report, automatic hiding, publication rejection
+**Publicación inmediata**:
+The default rule for all contributed content (recursos académicos, reseñas de cursada, experiencias de final, eventos and avisos de Clasificados): it becomes public as soon as it passes automatic checks, and moderation acts afterwards through reportes. It does not assert academic correctness or contextual accuracy. See ADR 0001.
+_Avoid_: Approved, verified, reviewed content
 
-**Aprobación para publicación**:
-A mandatory moderation outcome confirming that a recurso académico may appear publicly. Every upload starts pending; only approved material enters public discovery, preview, comments, and download. Approval does not assert academic correctness or contextual accuracy and is not exposed as a public trust badge.
-_Avoid_: Verification, academic review, Revisado
+**Revisión previa**:
+The exception to publicación inmediata: a moderator must approve a publication before it becomes public because its author or content is considered risky (new or unverified account, recent retiro, content flagged as spam, organizer with retired events).
+_Avoid_: Aprobación para publicación, mandatory approval, verification
+
+**Reporte**:
+A signed-in student's claim, with one of the fixed reasons, that a publication breaks the community rules. A reporte never removes anything by itself; it opens or joins a caso de moderación and ends up confirmed or dismissed.
+_Avoid_: Flag, vote, automatic removal
+
+**Caso de moderación**:
+The group of all reportes about one publication, resolved once by moderation: keep visible, retiro, or restore.
+_Avoid_: Ticket, individual report
+
+**Ocultamiento preventivo**:
+A temporary, automatic hiding of a publication while its caso de moderación is pending, triggered by several independent reportes in a short time or by one reporte of exposed personal data. It is not a moderation decision and reverts if moderation keeps the publication visible.
+_Avoid_: Retiro, deletion, ban
+
+**Retiro de contenido comunitario**:
+A reversible moderator decision that removes any publication from public view while preserving author, reason, actor, and date evidence. The author sees the reason, never who decided or who reported. It is distinct from permanent deletion by the author.
+_Avoid_: Report, ocultamiento preventivo, publication rejection
+
+**Sanción**:
+A moderation measure on an account, applied by a person and never automatically: advertencia, silenciamiento (temporary, cannot publish or report), or suspensión (cannot sign in; only an admin applies it).
+_Avoid_: Automatic penalty, strike
+
+**Apelación**:
+A single request, within 14 days, that a different moderator review a decision. Its answer is final and always has a written reason.
+_Avoid_: Complaint, second report
+
+**Organizador verificado**:
+A student group, chair or institutional office whose identity an admin confirmed, so its members can publish eventos in its name with a visible backing label. Other eventos show that the community published them.
+_Avoid_: Official event, approved event
 
 **Señal de utilidad**:
 A student's indication that a recurso académico helped them, presented in the interface as “Me sirvió.” It reflects usefulness, not academic correctness.

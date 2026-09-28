@@ -1,0 +1,730 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 3336,
+      "title": "Portada · escritorio",
+      "page": "page-1"
+    },
+    {
+      "file": "Clasificados.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1150,
+      "title": "Clasificados · Todo",
+      "page": "page-2"
+    },
+    {
+      "file": "ClasificadosTutorias.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1660,
+      "title": "Clasificados · Tutorías",
+      "page": "page-2"
+    },
+    {
+      "file": "PerfilTutor.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1180,
+      "title": "Perfil de tutor",
+      "page": "page-2"
+    },
+    {
+      "file": "PublicarVenta.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 2210,
+      "title": "Publicar · venta",
+      "page": "page-2"
+    },
+    {
+      "file": "PublicarTutoria.dc.html",
+      "x": 6240,
+      "y": 0,
+      "w": 1440,
+      "h": 1991,
+      "title": "Publicar · tutoría",
+      "page": "page-2"
+    },
+    {
+      "file": "Universidades.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1375,
+      "title": "1 · Universidades",
+      "page": "page-3"
+    },
+    {
+      "file": "Universidad.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1315,
+      "title": "2 · Universidad",
+      "page": "page-3"
+    },
+    {
+      "file": "Facultad.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1270,
+      "title": "3 · Facultad → carreras",
+      "page": "page-3"
+    },
+    {
+      "file": "Carrera.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 1560,
+      "title": "4 · Carrera → materias",
+      "page": "page-3"
+    },
+    {
+      "file": "Materia.dc.html",
+      "x": 6240,
+      "y": 0,
+      "w": 1440,
+      "h": 1460,
+      "title": "5 · Materia",
+      "page": "page-3"
+    },
+    {
+      "file": "DetalleRecurso.dc.html",
+      "x": 7800,
+      "y": 0,
+      "w": 1440,
+      "h": 960,
+      "title": "6 · Detalle de recurso (popup)",
+      "page": "page-3"
+    },
+    {
+      "file": "SubirMaterial.dc.html",
+      "x": 9360,
+      "y": 0,
+      "w": 1440,
+      "h": 960,
+      "title": "7 · Subir material (popup)",
+      "page": "page-3"
+    },
+    {
+      "file": "MenuAvatar.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 470,
+      "title": "Menú del avatar",
+      "page": "page-4"
+    },
+    {
+      "file": "Mochila.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1890,
+      "title": "Mi mochila · privada",
+      "page": "page-4"
+    },
+    {
+      "file": "Perfil.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1285,
+      "title": "Mi perfil · público",
+      "page": "page-4"
+    },
+    {
+      "file": "Configuracion.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 2779,
+      "title": "Configuración",
+      "page": "page-4"
+    },
+    {
+      "file": "Experiencias.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1590,
+      "title": "Experiencias · sin sesión",
+      "page": "page-5"
+    },
+    {
+      "file": "ExperienciasConSesion.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 700,
+      "title": "Experiencias · con sesión (arriba)",
+      "page": "page-5"
+    },
+    {
+      "file": "ExperienciasMateria.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1671,
+      "title": "Experiencias de una materia",
+      "page": "page-5"
+    },
+    {
+      "file": "EscribirExperiencia.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 1848,
+      "title": "Escribir · reseña de cursada",
+      "page": "page-5"
+    },
+    {
+      "file": "EscribirFinal.dc.html",
+      "x": 6240,
+      "y": 0,
+      "w": 1440,
+      "h": 2192,
+      "title": "Escribir · experiencia de final",
+      "page": "page-5"
+    },
+    {
+      "file": "Ingresar.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 818,
+      "title": "Iniciar sesión",
+      "page": "page-6"
+    },
+    {
+      "file": "Registro.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1076,
+      "title": "Registro · paso 1",
+      "page": "page-6"
+    },
+    {
+      "file": "Onboarding.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1577,
+      "title": "Registro · paso 2: ¿qué estudiás?",
+      "page": "page-6"
+    },
+    {
+      "file": "CuentaEstados.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 882,
+      "title": "Verificar email y recuperar contraseña",
+      "page": "page-6"
+    },
+    {
+      "file": "EstadosVacios.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1270,
+      "title": "Estados vacíos",
+      "page": "page-8"
+    },
+    {
+      "file": "Errores.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1210,
+      "title": "Errores y avisos",
+      "page": "page-8"
+    },
+    {
+      "file": "Pagina404.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 718,
+      "title": "Página 404",
+      "page": "page-8"
+    },
+    {
+      "file": "MovilInicio.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1778,
+      "title": "Inicio",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilMateria.dc.html",
+      "x": 510,
+      "y": 0,
+      "w": 390,
+      "h": 1173,
+      "title": "Materia",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilRecurso.dc.html",
+      "x": 1020,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Detalle de recurso",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilExperiencias.dc.html",
+      "x": 1530,
+      "y": 0,
+      "w": 390,
+      "h": 1169,
+      "title": "Experiencias de una materia",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilClasificados.dc.html",
+      "x": 2040,
+      "y": 0,
+      "w": 390,
+      "h": 1185,
+      "title": "Clasificados",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilMochila.dc.html",
+      "x": 2550,
+      "y": 0,
+      "w": 390,
+      "h": 1140,
+      "title": "Mi mochila",
+      "page": "page-9"
+    },
+    {
+      "file": "EventosListado.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2270,
+      "title": "Eventos · lista",
+      "page": "page-10"
+    },
+    {
+      "file": "EventoDetalle.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 2025,
+      "title": "Ficha de un evento",
+      "page": "page-10"
+    },
+    {
+      "file": "EventosMes.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1388,
+      "title": "Eventos · vista de mes",
+      "page": "page-10"
+    },
+    {
+      "file": "CrearEvento.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 2553,
+      "title": "Crear evento",
+      "page": "page-10"
+    },
+    {
+      "file": "Buscar.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1230,
+      "title": "Resultados de búsqueda",
+      "page": "page-11"
+    },
+    {
+      "file": "TuProgreso.dc.html",
+      "x": 6240,
+      "y": 0,
+      "w": 1440,
+      "h": 1962,
+      "title": "Tu progreso · nivel e insignias",
+      "page": "page-4"
+    },
+    {
+      "file": "InsigniaGanada.dc.html",
+      "x": 7800,
+      "y": 0,
+      "w": 1440,
+      "h": 840,
+      "title": "Nueva insignia (popup)",
+      "page": "page-4"
+    },
+    {
+      "file": "PerfilPersonalizado.dc.html",
+      "x": 9360,
+      "y": 0,
+      "w": 1440,
+      "h": 972,
+      "title": "Perfil público personalizado (Nv. 5)",
+      "page": "page-4"
+    },
+    {
+      "file": "AvisoDetalle.dc.html",
+      "x": 7800,
+      "y": 0,
+      "w": 1440,
+      "h": 1590,
+      "title": "Detalle de un aviso",
+      "page": "page-2"
+    },
+    {
+      "file": "ExperienciaCompleta.dc.html",
+      "x": 7800,
+      "y": 0,
+      "w": 1440,
+      "h": 996,
+      "title": "Reseña completa",
+      "page": "page-5"
+    },
+    {
+      "file": "NovedadesPanel.dc.html",
+      "x": 10920,
+      "y": 0,
+      "w": 1440,
+      "h": 760,
+      "title": "Novedades · panel desde la mochila",
+      "page": "page-4"
+    },
+    {
+      "file": "Novedades.dc.html",
+      "x": 12480,
+      "y": 0,
+      "w": 1440,
+      "h": 1468,
+      "title": "Novedades · página",
+      "page": "page-4"
+    },
+    {
+      "file": "MisAportes.dc.html",
+      "x": 14040,
+      "y": 0,
+      "w": 1440,
+      "h": 1279,
+      "title": "Mis aportes",
+      "page": "page-4"
+    },
+    {
+      "file": "Normas.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2552,
+      "title": "Normas de la comunidad",
+      "page": "page-12"
+    },
+    {
+      "file": "ModeracionCasos.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1278,
+      "title": "Casos · material oculto por datos personales",
+      "page": "page-7"
+    },
+    {
+      "file": "ModeracionCasoResena.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1366,
+      "title": "Casos · reseña anónima (autor oculto)",
+      "page": "page-7"
+    },
+    {
+      "file": "ModeracionUsuarios.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1217,
+      "title": "Usuarios · ficha y sanción sugerida",
+      "page": "page-7"
+    },
+    {
+      "file": "ModeracionApelaciones.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 998,
+      "title": "Apelaciones",
+      "page": "page-7"
+    },
+    {
+      "file": "ModeracionHistorial.dc.html",
+      "x": 6240,
+      "y": 0,
+      "w": 1440,
+      "h": 1023,
+      "title": "Historial (vista de admin)",
+      "page": "page-7"
+    },
+    {
+      "file": "MovilEventos.dc.html",
+      "x": 3060,
+      "y": 0,
+      "w": 390,
+      "h": 1537,
+      "title": "Eventos",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilEvento.dc.html",
+      "x": 3570,
+      "y": 0,
+      "w": 390,
+      "h": 1160,
+      "title": "Ficha de un evento",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilBuscar.dc.html",
+      "x": 4080,
+      "y": 0,
+      "w": 390,
+      "h": 1056,
+      "title": "Búsqueda",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilSubir.dc.html",
+      "x": 4590,
+      "y": 0,
+      "w": 390,
+      "h": 863,
+      "title": "Subir material",
+      "page": "page-9"
+    },
+    {
+      "file": "MovilEscribir.dc.html",
+      "x": 5100,
+      "y": 0,
+      "w": 390,
+      "h": 987,
+      "title": "Escribir reseña",
+      "page": "page-9"
+    },
+    {
+      "file": "AyudaPuntos.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1976,
+      "title": "Cómo funcionan los puntos",
+      "page": "page-12"
+    },
+    {
+      "file": "AyudaFAQ.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1433,
+      "title": "Preguntas frecuentes",
+      "page": "page-12"
+    },
+    {
+      "file": "AyudaTerminos.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 1843,
+      "title": "Términos y privacidad (borrador)",
+      "page": "page-12"
+    }
+  ],
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Portada"
+    },
+    {
+      "id": "page-2",
+      "name": "Clasificados"
+    },
+    {
+      "id": "page-3",
+      "name": "Materias"
+    },
+    {
+      "id": "page-4",
+      "name": "Mi espacio"
+    },
+    {
+      "id": "page-5",
+      "name": "Experiencias"
+    },
+    {
+      "id": "page-6",
+      "name": "Acceso"
+    },
+    {
+      "id": "page-7",
+      "name": "Moderación"
+    },
+    {
+      "id": "page-8",
+      "name": "Estados y errores"
+    },
+    {
+      "id": "page-9",
+      "name": "Mobile"
+    },
+    {
+      "id": "page-10",
+      "name": "Eventos"
+    },
+    {
+      "id": "page-11",
+      "name": "Búsqueda"
+    },
+    {
+      "id": "page-12",
+      "name": "Ayuda"
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-5"
+  },
+  "annotations": [
+    {
+      "id": "recorrido-materias",
+      "x": 0,
+      "y": -230,
+      "w": 900,
+      "page": "page-3",
+      "text": "Recorrido de Materias, de izquierda a derecha:\nUniversidades → UNJu → Facultad de Ingeniería → Carreras → Ingeniería Informática → Materias → Introducción a la Programación.\n\nDatos reales: el plan 2023 de Ingeniería Informática (códigos, años, cuatrimestres y créditos salen del seed del repo). El resto —otras universidades, facultades, carreras, cantidades de recursos y reseñas— es de muestra."
+    },
+    {
+      "id": "clasificados-estados",
+      "x": 0,
+      "y": -230,
+      "w": 900,
+      "page": "page-2",
+      "text": "Clasificados = cosas y ayuda entre estudiantes.\nIzquierda: selector en «Todo» (feed mezclado: Vendo, Busco, Ofrezco tutoría, Busco tutor). Centro: selector en «Tutorías» — la segunda fila cambia a Materia / Modalidad / Disponibilidad / Precio y a las intenciones Ofrezco tutorías / Busco tutor. Derecha: perfil de tutor (se contacta directo; sin pagos ni reservas en la plataforma).\n\nTutores, pedidos, precios y opiniones son datos de muestra."
+    },
+    {
+      "id": "mi-espacio",
+      "x": 0,
+      "y": 620,
+      "w": 1040,
+      "page": "page-4",
+      "text": "Mi espacio = Mi mochila (privada, página personal principal) + Mi perfil (público) + Configuración.\nSe entra por el avatar (arriba) o por el botón de la mochila del header, que muestra las novedades.\n\nDecisiones que salen del modelo real:\n· Las reseñas y experiencias anónimas (isAnonymous) no aparecen ni se cuentan en el perfil público.\n· Todo material nuevo empieza pendiente: «Mis envíos» muestra En revisión / Publicado / No aprobado, y solo lo aprobado llega al perfil.\n· La reputación usa «Me sirvió», puntos, nivel e insignias, que ya existen en el esquema.\n\nTodavía no existen en el backend: materias que sigo, colecciones, guardar tutores o clasificados (hoy solo se guardan materiales) y novedades."
+    },
+    {
+      "id": "experiencias-notas",
+      "x": 1560,
+      "y": 780,
+      "w": 1440,
+      "page": "page-5",
+      "text": "Sin sesión: no se muestran todas las materias. Arranca en la comunidad activa (FI UNJu) y pregunta una vez «¿Qué estudiás?» (carrera y año); se recuerda en el dispositivo. Con sesión, el contexto sale del perfil y arriba aparecen tus materias.\n\nExperiencias de una materia: resumen + lista filtrable por contexto de cursada (ciclo, franja, profesor/a, situación, resultado). Sin puntajes ni rankings de profesores (CONTEXT.md).\n«Cómo terminó la cursada» es ordinal: una sola rampa de azul validada (#0A3FC7 / #4A7BE9 / #90AEF1), no verde/rojo, para no juzgar. Los que prefirieron no responder se informan aparte, no se reparten.\nFormularios, uno al lado del otro: reseña de cursada y experiencia de final comparten pasos y vista previa.\nReseña: ciclo lectivo, situación de cursada, resultado y recomendación obligatorios; si terminó en Promoción se abre la nota (opcional).\nFinal: período, año, formato, resultado y nota obligatorios (con «Prefiero no decir» no se pide nota); mesa, dificultad, temas y preparación opcionales.\nPide cambios de esquema: CourseReview.academicYear y attempt pasan a obligatorios + nota de promoción; ExamExperience.outcome obligatorio y campos nuevos: temas, semanas de preparación, horas por día, profesores en la mesa y duración."
+    },
+    {
+      "id": "popups-materia",
+      "x": 7800,
+      "y": -230,
+      "w": 1500,
+      "page": "page-3",
+      "text": "Popups sobre la página de la materia, con sesión iniciada.\nDetalle de recurso: vista previa, Descargar, «Me sirvió», Guardar en la mochila y valoraciones con comentario (MaterialRating: de 1 a 5 estrellas + comentario, con nombre). Con ← → pasás al recurso anterior o siguiente sin cerrar.\nSubir material: la materia llega elegida desde su página. Cada archivo es un material aparte (el esquema guarda un archivo por material) y todo arranca pendiente de revisión. Tipo, ciclo, profesor/a y turno salen del modelo Material; los formatos y el límite de 25 MB, del formulario actual."
+    },
+    {
+      "id": "publicar-clasificados",
+      "x": 4680,
+      "y": -230,
+      "w": 1500,
+      "page": "page-2",
+      "text": "Publicar en Clasificados: un solo formulario que cambia según la intención (Vendo, Busco, Ofrezco tutoría, Busco tutor). Izquierda: venta. Derecha: tutoría.\nEl contacto es directo (WhatsApp, Telegram o email) y solo lo ven estudiantes con sesión iniciada. Se publica al instante y vence a los 30 días; moderación interviene si la reportan.\nClasificados todavía no existe en el backend: todo esto es propuesta."
+    },
+    {
+      "id": "configuracion",
+      "x": 4680,
+      "y": -230,
+      "w": 1440,
+      "page": "page-4",
+      "text": "Configuración: perfil público, lo que estudio, privacidad, notificaciones, seguridad y datos. Los textos se guardan con botón; interruptores y casillas, al instante.\nYa existe en el esquema: displayName, username, avatarUrl, bio, emailVerified, carrera y plan (UserStudyPlan) y sesiones (RefreshToken).\nFalta: año que cursás y materias actuales, preferencias de privacidad y de notificaciones, y el anónimo por defecto."
+    },
+    {
+      "id": "acceso",
+      "x": 0,
+      "y": -230,
+      "w": 1440,
+      "page": "page-6",
+      "text": "Acceso con email y contraseña, como en la app actual: usuario de 3 a 30 caracteres y contraseña con mayúscula, minúscula, número y símbolo.\n«Continuar con Google» es propuesta: hoy los botones sociales del front no tienen backend.\nEl paso 2 guarda carrera y plan (UserStudyPlan); el año y las materias que cursás todavía no existen en el esquema. Verificar y recuperar usan EmailVerification y PasswordResetRequest."
+    },
+    {
+      "id": "moderacion",
+      "x": 0,
+      "y": -230,
+      "w": 1440,
+      "page": "page-7",
+      "text": "Moderación según docs/README_MODERACION.md y el ADR 0001: todo se publica al instante y moderación trabaja sobre casos.\nCasos: ocultos preventivamente (3 reportes en 48 h o 1 por datos personales, con plazo), revisión previa (cuentas nuevas, spam) y reportados. Mantener visible o retirar, siempre con razón; el sistema sugiere la sanción.\nLo anónimo muestra «Autor oculto»: verlo pide motivo y queda registrado. Usuarios: ficha, línea de tiempo y paso sugerido (la suspensión la confirma un admin). Apelaciones: solo de decisiones de otros. Historial: de solo lectura; los usos de «Ver autor» solo los ve un admin."
+    },
+    {
+      "id": "estados",
+      "x": 0,
+      "y": -230,
+      "w": 1440,
+      "page": "page-8",
+      "text": "Cada estado dice qué pasó, qué no se perdió y cuál es el paso siguiente.\nSalen de la app y del esquema actuales: vista previa no disponible, rechazo con motivo, cuenta silenciada (isMuted, mutedUntil), sin permiso (roles) y el límite de 25 MB por archivo."
+    },
+    {
+      "id": "mobile",
+      "x": 0,
+      "y": -230,
+      "w": 1440,
+      "page": "page-9",
+      "text": "Mobile a 390 px. Barra inferior: Inicio · Materias · Subir · Experiencias · Clasificados. La mochila y el avatar quedan arriba, como en escritorio.\nEl detalle de recurso ocupa toda la pantalla y los comentarios suben como una hoja. Los botones flotantes (Escribir, Publicar) aparecen donde hay una acción principal."
+    },
+    {
+      "id": "eventos",
+      "x": 0,
+      "y": -230,
+      "w": 1440,
+      "page": "page-10",
+      "text": "Eventos = todo lo que pasa en el ambiente universitario, en un solo lugar. No es una ticketera: «Inscribirme» siempre lleva al formulario del organizador y el cupo es informativo.\nAcciones: Me interesa (cuenta interesados), Guardar, Agregar al calendario (Google, Apple, Outlook, .ics), Compartir, Recordarme y seguir organizadores. Preguntas al organizador, más adelante.\nAlcance: mi facultad, cercanas o toda la UNJu. Crear evento: flyer primero (hasta 3 imágenes; sin flyer se arma una portada con el tipo), fechas múltiples, lugar y alcance, link de inscripción, cupo y costo informativos, y organizar en nombre de una agrupación. Pasa por moderación. También aparece en la Portada («Próximamente en la FI») y en Mi mochila («Próximos eventos»). Todavía no existe nada de esto en el backend."
+    },
+    {
+      "id": "busqueda",
+      "x": 0,
+      "y": -230,
+      "w": 1440,
+      "page": "page-11",
+      "text": "Una sola búsqueda para todo: materias, materiales, experiencias, eventos y clasificados, con pestañas y contadores.\nArranca en tu carrera (con opción de ampliar a toda la UNJu) y resalta lo buscado. Los filtros de materiales (materia, tipo, profesor/a, ciclo, orden) son los que ya tiene /buscar en la app actual; sumar experiencias, eventos y clasificados a los resultados es nuevo.\nSin resultados: ver «Estados y errores»."
+    },
+    {
+      "id": "progreso",
+      "x": 6240,
+      "y": -230,
+      "w": 1440,
+      "page": "page-4",
+      "text": "Tu progreso sigue docs/README_PUNTOS_E_INSIGNIAS.md: niveles nuevos (Primeros pasos → Leyenda de la facultad), puntos que faltan, qué desbloquea el próximo nivel, insignias ganadas y por ganar, movimientos de puntos (incluida una reversión con motivo) y el ranking del mes.\nLas insignias son las gema de apps/frontend/public/assets/insignias/gema (versión .svg; la .lottie anima la entrada del popup). El perfil personalizado es de Max en Nv. 5: marco, banner, aportes fijados y 3 insignias destacadas."
+    }
+  ]
+}

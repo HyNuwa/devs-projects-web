@@ -1,4 +1,4 @@
-# 📜 DEVs PROJECT — Reglas, Convenciones y Arquitectura
+# Reglas, convenciones y arquitectura
 
 > **Rol del Desarrollador / IA:** Actúa como un Senior Full Stack Developer especializado en NestJS y Next.js. No solo debes generar código funcional, sino también mantener una arquitectura limpia, escalable y fácil de mantener. Antes de escribir código, piensa si existe una forma más simple, reutilizable o mantenible.
 
@@ -64,7 +64,7 @@ Siempre que sea posible, respeta la arquitectura modular de NestJS:
    - **Repositories (Prisma):** Encapsulan las queries complejas a la base de datos.
 2. **Validación:** Usa siempre **DTOs** (Data Transfer Objects) con `class-validator` y `class-transformer`. El `ValidationPipe` global debe estar activo.
 3. **Inyección de Dependencias (DI):** Reutiliza Providers. No instancies clases manualmente con `new` si pueden ser inyectadas.
-4. **Módulos:** Mantén los módulos cohesivos por feature (ej. `AuthModule`, `ForumModule`). Usa `exports` solo para lo estrictamente necesario.
+4. **Módulos:** Mantén los módulos cohesivos por feature (ej. `AuthModule`, `SubjectsModule`). Usa `exports` solo para lo estrictamente necesario.
 5. **Seguridad:** Usa `Guards` para autenticación/autorización y `Interceptors` para transformar respuestas o manejar logs.
 
 ---
@@ -77,9 +77,9 @@ Prioriza el rendimiento y la mantenibilidad en el App Router:
    - Usa **Server Components** por defecto (fetching de datos, SEO, HTML estático).
    - Usa **Client Components** (`"use client"`) SOLO cuando necesites interactividad (onClick, useState, useEffect, hooks de navegador).
 2. **Componentes Reutilizables:** Extrae UI repetitiva a `components/ui/` (botones, inputs, modales).
-3. **Custom Hooks:** Extrae la lógica compleja de los componentes a custom hooks (`useThread.ts`, `useAuth.ts`).
+3. **Custom Hooks:** Extrae la lógica compleja de los componentes a custom hooks (`useSubjects.ts`, `useAuth.ts`).
 4. **Separación Lógica/UI:** Evita componentes gigantes. Si un componente tiene más de 150 líneas, probablemente deba dividirse.
-5. **Estado Global:** Usa Zustand solo para estado verdaderamente global (usuario logueado, tema oscuro). Usa React Query (TanStack) para estado del servidor (fetching, caching).
+5. **Estado Global:** Usa Zustand solo para estado verdaderamente global (usuario logueado). Los datos del servidor se piden con los clientes de `lib/` (axios); no hay una librería de caché de servidor instalada, así que no agregues una sin acordarlo.
 
 ---
 
@@ -89,7 +89,7 @@ Prioriza el rendimiento y la mantenibilidad en el App Router:
 - **Código explícito:** Prefiere código explícito y fácil de leer sobre código "inteligente" o "clever" de una sola línea que es difícil de entender.
 - **Comentarios:** No agregues comentarios que expliquen cosas obvias. Los nombres de variables/funciones deben explicar el código.
   - ❌ `// Incrementa el contador \n counter++`
-  - ✅ Solo comenta **decisiones arquitectónicas importantes** o "por qués" (ej. `// Usamos Redis aquí porque la query a Postgres tarda >2s en tablas grandes`).
+  - ✅ Solo comenta **decisiones arquitectónicas importantes** o "por qués" (ej. `// Contamos la descarga antes de redirigir porque Drive no avisa cuando termina`).
 
 ---
 
@@ -98,17 +98,21 @@ Prioriza el rendimiento y la mantenibilidad en el App Router:
 Para mantener un historial limpio y evitar conflictos, sigue estas reglas estrictamente:
 
 ### Mensajes de Commit
-El formato debe indicar el área/feature y una descripción breve de la acción en **español**.
-- **Formato:** `[Área/Feature]: [Acción breve en español]`
-- ✅ `Backend: agrega validación de contraseña en el registro`
-- ✅ `Frontend: corrige el padding del botón de login`
-- ✅ `Database: crea migración para la tabla de notificaciones`
+Usamos [Conventional Commits](https://www.conventionalcommits.org/): `tipo(área): descripción breve`, en imperativo y en minúscula.
+- **Tipos:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`, `perf`.
+- **Áreas:** `frontend`, `backend`, `db`, `docs`, `agents`, `git`, `skills`, o un módulo concreto.
+- ✅ `feat(frontend): show material evidence in hierarchy file rows`
+- ✅ `fix(backend): reject expired refresh tokens`
+- ✅ `docs(agents): document the shared OpenSpec workflow`
 - ❌ `fix login`
 - ❌ `update`
 
+El cuerpo del commit explica el porqué cuando no es obvio.
+
 ### Flujo de Ramas (Branching)
 1. **Basadas en develop:** Todas las ramas de nuevas features o fixes deben crearse a partir de la rama `develop` (NUNCA de `main`).
-2. **Actualizar antes de pushear/mergear:** Antes de hacer push de tus cambios o abrir un Pull Request hacia `develop`, **DEBES actualizar tu rama** con los últimos cambios de `develop` (`git pull origin develop` o `git rebase develop`). Esto garantiza que resuelvas los conflictos localmente y no rompas el trabajo de los demás.
+2. **Nombre de rama:** `feature/<id-o-tema>`, `fix/<tema>`, o `prototype/<nombre>` para prototipos (ver [`agents/workflow.md`](agents/workflow.md)). Cada cambio de OpenSpec va en su propia rama.
+3. **Actualizar antes de pushear/mergear:** Antes de hacer push de tus cambios o abrir un Pull Request hacia `develop`, **DEBES actualizar tu rama** con los últimos cambios de `develop` (`git pull origin develop` o `git rebase develop`). Esto garantiza que resuelvas los conflictos localmente y no rompas el trabajo de los demás.
 
 ---
 

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>DevsProject · Tutoría de Camila R.</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Caveat:wght@600;700&display=swap">
+<style>
+  body { margin: 0; font-family: 'Figtree', system-ui, sans-serif; background: #FDF3E5; }
+  a { color: #0A4DE8; text-decoration: none; }
+  a:hover { color: #0239B4; }
+  .dp-hand { font-family: 'Caveat', 'Segoe Script', cursive; }
+</style>
+</helmet>
+
+<div style="width: 1440px; height: 1180px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; background: #FDF3E5; background-image: linear-gradient(rgba(2,18,56,0.032) 1px, transparent 1px), linear-gradient(90deg, rgba(2,18,56,0.032) 1px, transparent 1px); background-size: 44px 44px; font-family: 'Figtree', system-ui, sans-serif; color: #021238;">
+
+  <!-- barra superior -->
+  <header style="height: 68px; flex-shrink: 0; padding: 0 64px; display: flex; align-items: center; justify-content: space-between; gap: 28px;">
+    <div style="display: flex; align-items: center; gap: 26px;">
+      <a href="#inicio" style="display: flex; align-items: center; gap: 11px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H9a3 3 0 0 1 3 3v12a2.5 2.5 0 0 0-2.5-2.5H3z"></path><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H15a3 3 0 0 0-3 3v12a2.5 2.5 0 0 1 2.5-2.5H21z"></path></svg>
+        <span style="font-size: 23px; font-weight: 800; letter-spacing: -0.035em; color: #021238;">DevsProject</span>
+      </a>
+      <span style="font-size: 13.5px; font-weight: 700; color: #0A4DE8;">Comunidad FI · UNJu</span>
+      <nav style="display: flex; align-items: center; gap: 22px; font-size: 14.5px; font-weight: 500;">
+        <a href="#inicio" style="color: #3D4459;">Inicio</a>
+        <a href="#materias" style="color: #3D4459;">Materias</a>
+        <a href="#experiencias" style="color: #3D4459;">Experiencias</a><a href="#eventos" style="color: #3D4459;">Eventos</a>
+        <a href="#clasificados" style="color: #0A4DE8; font-weight: 700; padding-bottom: 3px; border-bottom: 2px solid #0A4DE8;">Clasificados</a>
+      </nav>
+    </div>
+    <div style="display: flex; align-items: center; gap: 11px;">
+      <button type="button" aria-label="Buscar" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: #021238;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+      </button>
+      <a href="#ingresar" style="display: inline-flex; align-items: center; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 11px; padding: 10px 18px; font-size: 14px; font-weight: 600; color: #021238;">Iniciar sesión</a>
+      <a href="#subir" style="display: inline-flex; align-items: center; gap: 9px; background: #0261FE; border-radius: 11px; padding: 11px 19px; font-size: 14px; font-weight: 700; color: #FFFFFF;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
+        Subir material
+      </a>
+      <div style="margin-left: 10px; text-align: right; font-size: 10.5px; font-weight: 700; letter-spacing: 0.15em; line-height: 1.35; color: #021238;">UNJU<br>FI<div style="margin-top: 3px; height: 2px; background: #021238;"></div></div>
+    </div>
+  </header>
+
+  <div style="flex-shrink: 0; padding: 4px 64px 0 64px;">
+    <nav aria-label="Ubicación" style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 12px; padding: 10px 16px; font-size: 13.5px;">
+      <span style="display: flex; color: #0A4DE8; margin-right: 2px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 4-6 2.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5z"></path><path d="M9 4v13.5M15 6.5V20"></path></svg></span>
+      <a href="#nivel-0" style="font-weight: 600; color: #4B5265;">Clasificados</a><span style="display: flex; color: #A3A9B8;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></span><a href="#nivel-1" style="font-weight: 600; color: #4B5265;">Tutorías</a><span style="display: flex; color: #A3A9B8;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></span><span aria-current="page" style="font-weight: 800; color: #021238;">Camila R.</span>
+      
+    </nav>
+  </div>
+
+  <section style="flex-shrink: 0; margin-top: 22px; padding: 0 64px;">
+    <div style="background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 24px 26px; display: flex; align-items: center; gap: 26px; position: relative;">
+      <div style="position: relative; flex-shrink: 0;">
+        <img src="av-crema.png" alt="" style="width: 132px; height: 132px; border-radius: 999px; border: 2px solid #021238; background: #FDF3E5; display: block;">
+        <span style="position: absolute; right: 6px; bottom: 8px; width: 22px; height: 22px; border-radius: 999px; background: #37C46B; border: 3px solid #FFFFFF; box-shadow: 0 0 0 1.5px #021238;"></span>
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;"><span style="display: inline-flex; align-items: center; gap: 5px; background: #E1F5E4; border-radius: 6px; padding: 3px 8px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; color: #1F7A37;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1F7A37" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 4 10 5-10 5L2 9z"></path><path d="M6 11.5V16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4.5"></path></svg>OFREZCO TUTORÍA</span><span style="display: inline-flex; align-items: center; gap: 6px; background: #E7F7E9; border: 1.5px solid #9BD3A6; border-radius: 7px; padding: 3px 9px; font-size: 11px; font-weight: 700; color: #1F7A37;"><span style="width: 7px; height: 7px; border-radius: 999px; background: #37C46B; display: block;"></span>Disponible esta semana</span></div>
+        <h1 style="margin: 10px 0 0 0; font-size: 56px; line-height: 0.95; font-weight: 800; letter-spacing: -0.05em; color: #021238;">Camila R<span style="color: #FA6304;">.</span></h1>
+        <div style="margin-top: 8px; font-size: 15px; font-weight: 600; color: #3F4657;">Ingeniería Informática · 4° año · Facultad de Ingeniería, UNJu</div>
+        <div style="margin-top: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 16px; font-size: 13.5px; font-weight: 700;">
+          <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg>4.9 <span style="font-weight: 600; color: #6B7286;">· 28 opiniones</span></span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0261FE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 4 10 5-10 5L2 9z"></path><path d="M6 11.5V16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4.5"></path></svg>46 tutorías dadas</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0261FE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Responde en el día</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0261FE" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>Presencial en FI UNJu o virtual</span>
+        </div>
+      </div>
+      <div style="width: 300px; flex-shrink: 0; background: #FDF3E5; border: 1.5px solid #021238; border-radius: 14px; padding: 18px;">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.14em; color: #6B7286;">PRECIO ORIENTATIVO</div>
+        <div style="margin-top: 4px; font-size: 32px; font-weight: 800; letter-spacing: -0.04em;">$ 3.000 <span style="font-size: 14px; font-weight: 600; color: #6B7286; letter-spacing: 0;">/ hora</span></div>
+        <div style="font-size: 12.5px; font-weight: 600; color: #6B7286;">Grupal: $ 2.000 por persona</div>
+        <div style="margin-top: 14px; display: flex; gap: 8px;">
+          <a href="#contactar" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #0261FE; border: 1.5px solid #021238; border-radius: 11px; padding: 12px 14px; font-size: 14.5px; font-weight: 800; color: #FFFFFF;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 21h7"></path></svg>Contactar</a>
+          <a href="#guardar" aria-label="Guardar tutor" style="width: 46px; display: flex; align-items: center; justify-content: center; background: #FFFFFF; border: 1.5px solid #021238; border-radius: 11px; color: #021238;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 8.6c0 5-8.5 10.4-8.5 10.4S3.5 13.6 3.5 8.6a4.6 4.6 0 0 1 8.5-2.4 4.6 4.6 0 0 1 8.5 2.4z"></path></svg></a>
+        </div>
+        <p style="margin: 10px 0 0 0; font-size: 11.5px; line-height: 1.4; font-weight: 500; color: #6B7286;">El contacto es directo entre estudiantes. DevsProject no interviene en pagos ni reservas.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="flex-shrink: 0; margin-top: 22px; padding: 0 64px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; align-items: start;">
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <div style="background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 20px 22px;">
+        <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">Sobre mí</h2>
+        <p style="margin: 10px 0 0 0; font-size: 15px; line-height: 1.6; font-weight: 500; color: #4B5265;">Doy clases de las materias de matemática del primer año desde 2023. Trabajo con ejercicios de parciales viejos y armo un resumen por tema para que te lleves. Si venís a pocos días del examen, arrancamos por lo que más toman.</p>
+      </div>
+      <div style="background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 18px 22px 8px 22px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">Materias que enseña</h2>
+          <span style="font-size: 12.5px; font-weight: 600; color: #6B7286;">Del plan de Ingeniería Informática</span>
+        </div>
+        <div style="margin-top: 6px;">
+        <div style="display: flex; align-items: center; gap: 14px; padding: 13px 0; ">
+          <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">04</span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">Análisis Matemático I</div>
+            <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"><span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Integrales</span><span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Límites</span><span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Derivadas</span></div>
+          </div>
+          <span style="font-size: 12px; font-weight: 600; color: #6B7286; white-space: nowrap;">La cursé en 2022 · Promoción</span>
+          <a href="#materia-04" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: #0A4DE8; white-space: nowrap;">Ver materia <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A4DE8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 13px 0; border-top: 1.5px solid #EFE7D8;">
+          <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">06</span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">Análisis Matemático II</div>
+            <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"><span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Series</span><span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Integrales múltiples</span></div>
+          </div>
+          <span style="font-size: 12px; font-weight: 600; color: #6B7286; white-space: nowrap;">La cursé en 2022 · Regular</span>
+          <a href="#materia-06" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: #0A4DE8; white-space: nowrap;">Ver materia <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A4DE8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 13px 0; border-top: 1.5px solid #EFE7D8;">
+          <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.06em; color: #0A4DE8; background: #ECF2FE; border-radius: 6px; padding: 3px 7px;">02</span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">Álgebra Lineal</div>
+            <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"><span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Matrices</span><span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Sistemas de ecuaciones</span></div>
+          </div>
+          <span style="font-size: 12px; font-weight: 600; color: #6B7286; white-space: nowrap;">La cursé en 2021 · Promoción</span>
+          <a href="#materia-02" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: #0A4DE8; white-space: nowrap;">Ver materia <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A4DE8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+        </div>
+        </div>
+      </div>
+      <div style="background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 20px 22px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">Disponibilidad</h2>
+          <span style="display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: #6B7286;"><span style="width: 12px; height: 12px; border-radius: 4px; background: #E1F5E4; border: 1.5px solid #021238;"></span>Disponible</span>
+        </div>
+        <div style="margin-top: 14px; display: grid; grid-template-columns: 76px repeat(6, minmax(0, 1fr)); gap: 7px;">
+          <span></span><span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #6B7286; text-align: center;">LUN</span><span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #6B7286; text-align: center;">MAR</span><span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #6B7286; text-align: center;">MIÉ</span><span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #6B7286; text-align: center;">JUE</span><span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #6B7286; text-align: center;">VIE</span><span style="font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: #6B7286; text-align: center;">SÁB</span><span style="font-size: 12.5px; font-weight: 700; color: #3F4657; align-self: center;">Mañana</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #021238; background: #E1F5E4; display: flex; align-items: center; justify-content: center; color: #1F7A37;">✓</span><span style="font-size: 12.5px; font-weight: 700; color: #3F4657; align-self: center;">Tarde</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #021238; background: #E1F5E4; display: flex; align-items: center; justify-content: center; color: #1F7A37;">✓</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #021238; background: #E1F5E4; display: flex; align-items: center; justify-content: center; color: #1F7A37;">✓</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #021238; background: #E1F5E4; display: flex; align-items: center; justify-content: center; color: #1F7A37;">✓</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="font-size: 12.5px; font-weight: 700; color: #3F4657; align-self: center;">Noche</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #021238; background: #E1F5E4; display: flex; align-items: center; justify-content: center; color: #1F7A37;">✓</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #021238; background: #E1F5E4; display: flex; align-items: center; justify-content: center; color: #1F7A37;">✓</span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span><span style="height: 30px; border-radius: 8px; border: 1.5px solid #E4DCCB; background: #FFFFFF; display: flex; align-items: center; justify-content: center; color: #1F7A37;"></span>
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+        <div><h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.03em;">Opiniones</h2><div style="margin-top: 4px; font-size: 13px; font-weight: 600; color: #6B7286;">De estudiantes que tomaron clases con ella</div></div>
+        <a href="#opiniones" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: #0A4DE8;">Ver las 28 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A4DE8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+      </div>
+        <article style="background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="av-guino.png" alt="" style="width: 34px; height: 34px; border-radius: 999px; border: 1.5px solid #021238;">
+            <div style="flex: 1;"><div style="display: flex; gap: 2px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg></div><div style="margin-top: 3px; font-size: 11.5px; font-weight: 600; color: #6B7286;">Anónimo · hace 2 semanas</div></div>
+            <span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Análisis Matemático I</span>
+          </div>
+          <p style="margin: 11px 0 0 0; font-size: 13.5px; line-height: 1.5; font-weight: 500; color: #4B5265;">“Me explicó límites con ejercicios de parciales viejos y por fin le encontré la vuelta. Aprobé el recuperatorio.”</p>
+        </article>
+        <article style="background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="av-birrete.png" alt="" style="width: 34px; height: 34px; border-radius: 999px; border: 1.5px solid #021238;">
+            <div style="flex: 1;"><div style="display: flex; gap: 2px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg></div><div style="margin-top: 3px; font-size: 11.5px; font-weight: 600; color: #6B7286;">Anónimo · hace 1 mes</div></div>
+            <span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Álgebra Lineal</span>
+          </div>
+          <p style="margin: 11px 0 0 0; font-size: 13.5px; line-height: 1.5; font-weight: 500; color: #4B5265;">“Muy paciente. Si no entendés, te lo explica de otra forma hasta que sale.”</p>
+        </article>
+        <article style="background: #FEFEFE; border: 1.5px solid #021238; border-radius: 16px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="av-crema.png" alt="" style="width: 34px; height: 34px; border-radius: 999px; border: 1.5px solid #021238;">
+            <div style="flex: 1;"><div style="display: flex; gap: 2px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#E9B949" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg><svg width="13" height="13" viewBox="0 0 24 24" fill="#DDD6C6" aria-hidden="true"><path d="m12 2.6 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"></path></svg></div><div style="margin-top: 3px; font-size: 11.5px; font-weight: 600; color: #6B7286;">Anónimo · hace 2 meses</div></div>
+            <span style="background: #ECF2FE; border-radius: 7px; padding: 5px 10px; font-size: 11.5px; font-weight: 600; color: #2B4C8C; white-space: nowrap;">Análisis Matemático II</span>
+          </div>
+          <p style="margin: 11px 0 0 0; font-size: 13.5px; line-height: 1.5; font-weight: 500; color: #4B5265;">“Las clases virtuales funcionan bien; te comparte la pizarra y los ejercicios quedan guardados.”</p>
+        </article>
+      <div style="position: relative; background: #E1F5E4; border: 1.5px solid #021238; border-radius: 16px; padding: 18px; overflow: hidden; min-height: 150px; box-sizing: border-box;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; max-width: 190px;">¿Tomaste clases con Camila?</h3>
+        <p style="margin: 7px 0 0 0; font-size: 12.5px; line-height: 1.45; font-weight: 500; color: #2F5A3A; max-width: 190px;">Tu opinión ayuda a otros a elegir.</p>
+        <div style="margin-top: 12px;"><a href="#accion" style="display: inline-flex; align-items: center; gap: 9px; background: #0261FE; color: #FFFFFF; border: 1.5px solid #021238; border-radius: 11px; padding: 10px 16px; font-size: 13px; font-weight: 700; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13 21h7"></path></svg>Dejar opinión</a></div>
+        <img src="hero-tutoria.png" alt="" style="position: absolute; right: -40px; bottom: -8px; width: 250px; height: auto;">
+      </div>
+    </div>
+  </section>
+
+  <!-- pie -->
+  <footer style="margin-top: auto; flex-shrink: 0; position: relative; padding: 0 64px 26px 64px; display: flex; align-items: flex-end; justify-content: space-between; gap: 28px;">
+    <svg viewBox="0 0 470 150" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; left: 0; bottom: 0; width: 470px; height: 150px;"><path d="M0,150 L0,44 C 90,10 170,74 268,54 C 350,38 410,78 470,58 L470,150 Z" fill="#0A66FE"></path></svg>
+    <svg viewBox="0 0 330 120" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; right: 0; bottom: 0; width: 330px; height: 120px;"><path d="M0,120 L0,96 C 70,96 96,44 140,44 C 178,44 196,86 232,72 C 268,58 286,20 330,20 L330,120 Z" fill="#0A66FE"></path><circle cx="272" cy="42" r="15" fill="#FA6304"></circle></svg>
+
+    <div class="dp-hand" style="position: relative; width: 132px; font-size: 19px; font-weight: 700; line-height: 1.12; color: #FDF3E5; transform: rotate(-4deg); padding-bottom: 6px;">estudiantes de hoy, grandes cosas mañana</div>
+
+    <div style="position: relative; display: flex; align-items: center; gap: 24px; padding-bottom: 8px;">
+      <a href="#inicio" style="display: flex; align-items: center; gap: 9px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#021238" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H9a3 3 0 0 1 3 3v12a2.5 2.5 0 0 0-2.5-2.5H3z"></path><path d="M21 5.5A1.5 1.5 0 0 0 19.5 4H15a3 3 0 0 0-3 3v12a2.5 2.5 0 0 1 2.5-2.5H21z"></path></svg>
+        <span style="font-size: 17px; font-weight: 800; letter-spacing: -0.03em; color: #021238;">DevsProject</span>
+      </a>
+      <span style="font-size: 13.5px; font-weight: 600; color: #3D4459;">· Comunidad FI · UNJu</span>
+      <span style="width: 1.5px; height: 22px; background: #E4DCCB;"></span>
+      <nav style="display: flex; align-items: center; gap: 22px; font-size: 13.5px; font-weight: 600;">
+        <a href="#experiencias" style="color: #3D4459;">Experiencias</a><a href="#eventos" style="color: #3D4459;">Eventos</a>
+        <a href="#clasificados" style="color: #3D4459;">Clasificados</a>
+      </nav>
+    </div>
+
+    <div class="dp-hand" style="position: relative; font-size: 21px; font-weight: 700; color: #021238; padding-bottom: 8px; border-bottom: 2px solid #FD4F8D;">Compartir también es hacer facultad.</div>
+
+    <div class="dp-hand" style="position: relative; width: 96px; text-align: right; font-size: 20px; font-weight: 700; line-height: 1.08; color: #FDF3E5; padding-bottom: 6px;">UNJU siempre</div>
+  </footer>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

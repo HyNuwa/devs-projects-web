@@ -13,10 +13,12 @@
     "verify:kaomoji": "node scripts/verify-local-kaomoji.mjs",
     "verify:assets": "node scripts/verify-asset-manifest.mjs && node scripts/verify-generated-assets.mjs",
     "verify:prototype": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pixel-notebook-prototype.mjs",
-    "assets:build": "node scripts/build-pixel-notebook-assets.mjs"
+    "assets:build": "node scripts/build-pixel-notebook-assets.mjs",
+    "assets:insignias": "python scripts/insignias/generar.py"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@lottiefiles/dotlottie-react": "^0.19.16",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-slot": "^1.3.3",
     "axios": "^1.18.1",

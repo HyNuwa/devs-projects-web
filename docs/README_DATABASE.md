@@ -1,217 +1,101 @@
-# 🗄️ DEVs PROJECT — Plan de Base de Datos
+# Base de datos
 
-> Documento de planificación para el equipo de Base de Datos.
+PostgreSQL con Prisma 7. La fuente de verdad es `apps/backend/prisma/schema.prisma`; este documento explica cómo está organizado y qué falta para lo que ya está especificado. Los nombres del dominio siguen [`CONTEXT.md`](../CONTEXT.md).
 
-## 📐 Stack
+No hay Redis: sesiones, tokens y contadores viven en Postgres.
 
-| Tecnología | Uso |
-|-----------|-----|
-| PostgreSQL 16 | Base de datos relacional principal |
-| Redis 7 | Cache, sesiones, rate limiting, pub/sub |
-| Prisma 6 | ORM, migraciones, seeding |
-
-## 📊 Modelo de Datos (Entidades)
-
-### Diagrama Entidad-Relación
+## Mapa del modelo
 
 ```mermaid
 erDiagram
-    USER ||--o{ THREAD : creates
-    USER ||--o{ REPLY : writes
-    USER ||--o{ VOTE : gives
-    USER ||--o{ MATERIAL : uploads
-    USER ||--o{ GUIDE : creates
-    USER ||--o{ PROFESSOR_REVIEW : writes
-    USER ||--o{ NOTIFICATION : receives
-    USER ||--o{ REPORT : submits
-    CATEGORY ||--o{ THREAD : contains
-    THREAD ||--o{ REPLY : has
-    THREAD ||--o{ VOTE : receives
-    THREAD ||--o{ TAG : tagged_with
-    SUBJECT ||--o{ THREAD : related_to
-    SUBJECT ||--o{ MATERIAL : belongs_to
-    CAREER ||--o{ SUBJECT : includes
-    CAREER ||--o{ STUDY_PLAN : has
-    PROFESSOR ||--o{ PROFESSOR_REVIEW : receives
-    PROFESSOR ||--o{ SUBJECT : teaches
+    CAREER ||--o{ STUDY_PLAN : tiene
+    STUDY_PLAN ||--o{ STUDY_PLAN_SUBJECT : incluye
+    SUBJECT ||--o{ STUDY_PLAN_SUBJECT : "aparece en"
+    USER ||--o{ USER_STUDY_PLAN : cursa
+    STUDY_PLAN ||--o{ USER_STUDY_PLAN : ""
+
+    SUBJECT ||--o{ MATERIAL : contiene
+    USER ||--o{ MATERIAL : sube
+    MATERIAL ||--o{ MATERIAL_RATING : ""
+    MATERIAL ||--o{ MATERIAL_HELPFULNESS : "me sirvió"
+    MATERIAL ||--o{ SAVED_MATERIAL : guardado
+
+    SUBJECT ||--o{ COURSE_REVIEW : ""
+    SUBJECT ||--o{ EXAM_EXPERIENCE : ""
+    USER ||--o{ COURSE_REVIEW : escribe
+    USER ||--o{ EXAM_EXPERIENCE : escribe
+    COURSE_REVIEW ||--o{ COMMUNITY_REPORT : ""
+    EXAM_EXPERIENCE ||--o{ COMMUNITY_REPORT : ""
+    COURSE_REVIEW ||--o{ COMMUNITY_MODERATION_ACTION : ""
+    EXAM_EXPERIENCE ||--o{ COMMUNITY_MODERATION_ACTION : ""
+
+    USER ||--o{ POINT_TRANSACTION : gana
+    USER ||--o{ USER_BADGE : obtiene
+    BADGE ||--o{ USER_BADGE : ""
 ```
 
-### Tablas Principales
+## Modelos por área
 
-#### `users`
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | UUID (PK) | Identificador único |
-| username | VARCHAR(30) UNIQUE | Nombre de usuario |
-| email | VARCHAR(255) UNIQUE | Email institucional preferido |
-| password_hash | VARCHAR(255) | Bcrypt hash |
-| display_name | VARCHAR(50) | Nombre visible |
-| avatar_url | VARCHAR(500) | URL del avatar |
-| bio | TEXT | Biografía corta |
-| role | ENUM | visitor/student/moderator/admin/superadmin |
-| points | INT DEFAULT 0 | Puntos de gamificación |
-| level | INT DEFAULT 1 | Nivel RPG |
-| email_verified | BOOLEAN | Email verificado |
-| is_banned | BOOLEAN | Usuario baneado |
-| is_muted | BOOLEAN | Usuario silenciado |
-| muted_until | TIMESTAMP | Fin del silencio temporal |
-| career_id | UUID (FK) | Carrera del estudiante |
-| created_at | TIMESTAMP | Fecha de registro |
-| updated_at | TIMESTAMP | Última actualización |
-| last_login | TIMESTAMP | Último login |
+| Área | Modelos | Notas |
+|---|---|---|
+| Cuentas | `User`, `RefreshToken`, `EmailVerification`, `PasswordResetRequest` | Tokens guardados hasheados. `User` ya tiene `isBanned`, `isMuted`, `mutedUntil`, pero no hay lógica que los use. |
+| Plan de estudios | `Career`, `StudyPlan`, `StudyPlanSubject`, `Subject`, `UserStudyPlan` | La materia se vincula al **plan**, no a la carrera (ver abajo). |
+| Recursos | `Material`, `MaterialRating`, `MaterialHelpfulness`, `SavedMaterial` | `Material` guarda el contexto de cursada (`resourceType`, `academicYear`, `professorId`, `shift`), el estado de moderación y los datos del archivo (Drive o staging local). |
+| Comunidad | `CourseReview`, `ExamExperience` | Publicación anónima con `isAnonymous`; retiro reversible con `isRemoved`, `removedReason`, `removedAt`, `removedById`. |
+| Moderación comunitaria | `CommunityReport`, `CommunityModerationAction` | Un reporte apunta a una reseña **o** a una experiencia. Cada retiro o restauración queda registrado con su motivo. |
+| Moderación de materiales | `ModerationLog` (+ enum `ModerationAction`) | Registro de aprobaciones y rechazos. Incluye acciones de ban, mute y guías que nunca se implementaron. |
+| Puntos | `PointTransaction`, `User.points`, `User.level` | Libro de movimientos; `points` es el total acumulado. |
+| Insignias | `Badge`, `UserBadge` | Tablas creadas, sin datos ni lógica. |
+| Heredado | `Professor`, `SubjectProfessor`, `Guide`, `GuideStep` | `Professor` sigue en uso como dato de contexto (quién dictó o tomó). Las guías y las páginas de profesores salieron del producto. |
 
-#### `categories`
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | UUID (PK) | ID |
-| name | VARCHAR(100) | Nombre de la categoría |
-| slug | VARCHAR(100) UNIQUE | URL amigable |
-| description | TEXT | Descripción |
-| icon | VARCHAR(50) | Nombre del icono |
-| color | VARCHAR(7) | Color hex |
-| order | INT | Orden de visualización |
-| thread_count | INT DEFAULT 0 | Counter cache |
-| is_active | BOOLEAN | Activa/inactiva |
+### Enums relevantes
 
-#### `threads`
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | UUID (PK) | ID |
-| title | VARCHAR(200) | Título del hilo |
-| slug | VARCHAR(250) UNIQUE | URL amigable |
-| content | TEXT | Contenido (Markdown) |
-| type | ENUM | question/material/guide/discussion |
-| author_id | UUID (FK → users) | Autor |
-| category_id | UUID (FK → categories) | Categoría |
-| subject_id | UUID (FK → subjects) | Materia relacionada |
-| vote_count | INT DEFAULT 0 | Counter cache votos |
-| reply_count | INT DEFAULT 0 | Counter cache respuestas |
-| view_count | INT DEFAULT 0 | Vistas |
-| is_pinned | BOOLEAN | Hilo fijado |
-| is_locked | BOOLEAN | Hilo bloqueado |
-| is_solved | BOOLEAN | Pregunta resuelta |
-| solved_reply_id | UUID (FK) | Respuesta aceptada |
-| created_at | TIMESTAMP | Fecha creación |
-| updated_at | TIMESTAMP | Última edición |
+- `Role`: VISITOR, USER, MODERATOR, ADMIN, SUPERADMIN.
+- Contexto de cursada: `Shift`, `CourseCondition`, `CourseAttempt`, `CommunityDifficulty`.
+- Finales: `ExamSession`, `ExamFormat`, `ExamOutcome`.
+- Recursos: `MaterialResourceType` (PARCIAL, FINAL, APUNTE, RESUMEN, TRABAJO_PRACTICO, GUIA_EJERCICIOS, OTRO) y `MaterialModerationStatus` (PENDING, APPROVED, REJECTED).
+- Reportes: `CommunityReportReason` (SPAM_O_REPETIDO, INSULTOS_O_ACOSO, DATOS_PERSONALES, NO_RELACIONADO, POSIBLEMENTE_ENGANOSO, OTRO).
 
-#### `replies`
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | UUID (PK) | ID |
-| content | TEXT | Contenido (Markdown) |
-| author_id | UUID (FK → users) | Autor |
-| thread_id | UUID (FK → threads) | Hilo padre |
-| parent_id | UUID (FK → replies) | Respuesta padre (anidado) |
-| vote_count | INT DEFAULT 0 | Counter cache |
-| is_accepted | BOOLEAN | Respuesta aceptada |
-| created_at | TIMESTAMP | |
-| updated_at | TIMESTAMP | |
+## Preguntas de diseño resueltas
 
-#### `votes`
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | UUID (PK) | ID |
-| user_id | UUID (FK) | Quién votó |
-| thread_id | UUID (FK, nullable) | Hilo votado |
-| reply_id | UUID (FK, nullable) | Respuesta votada |
-| value | SMALLINT | +1 o -1 |
-| created_at | TIMESTAMP | |
-| UNIQUE(user_id, thread_id) | | Un voto por usuario por hilo |
-| UNIQUE(user_id, reply_id) | | Un voto por usuario por respuesta |
+Estas dudas estaban anotadas en el antiguo `README_DATABASE_MODELO.md`.
 
-#### `materials`
-| Columna | Tipo | Descripción |
-|---------|------|-------------|
-| id | UUID (PK) | ID |
-| title | VARCHAR(200) | Título |
-| description | TEXT | Descripción |
-| file_url | VARCHAR(500) | Ruta del archivo |
-| file_type | VARCHAR(20) | pdf/doc/ppt/img/zip |
-| file_size | BIGINT | Tamaño en bytes |
-| thumbnail_url | VARCHAR(500) | Miniatura generada |
-| author_id | UUID (FK) | Quien lo subió |
-| subject_id | UUID (FK) | Materia |
-| download_count | INT DEFAULT 0 | Descargas |
-| avg_rating | DECIMAL(3,2) | Promedio de valoración |
-| rating_count | INT DEFAULT 0 | Cantidad de valoraciones |
-| is_approved | BOOLEAN | Aprobado por mod |
-| created_at | TIMESTAMP | |
+**¿Por qué la materia se vincula al plan y no a la carrera?** Una misma carrera cambia de plan (Plan 2011, Plan 2023) y la materia puede cambiar de año, de cuatrimestre o desaparecer. `StudyPlanSubject` guarda `year`, `semester` y `credits` para cada plan. Una materia compartida por varias carreras aparece en varios planes sin duplicarse.
 
-#### `guides`, `professors`, `professor_reviews`, `careers`, `subjects`, `study_plans`, `tags`, `notifications`, `reports`
-> Siguen patrones similares. Ver schema completo en `prisma/schema.prisma`.
+**¿Un estudiante puede tener más de una carrera?** Sí. `UserStudyPlan` es la tabla estudiante–plan, con estado ACTIVE, COMPLETED o DROPPED. Reemplazó al `career_id` único del diseño original.
 
-## 🔍 Índices Importantes
+**¿Hace falta una tabla para valorar materiales?** Sí, y existe: `MaterialRating` guarda una valoración de 1 a 5 por usuario y material (único por par), con comentario opcional. `Material.avgRating` y `ratingCount` son un caché de esa tabla. El «Me sirvió» es aparte (`MaterialHelpfulness`) y es la señal principal que se muestra.
 
-```sql
--- Búsqueda full-text
-CREATE INDEX idx_threads_search ON threads USING GIN (
-  to_tsvector('spanish', title || ' ' || content)
-);
-CREATE INDEX idx_materials_search ON materials USING GIN (
-  to_tsvector('spanish', title || ' ' || description)
-);
+## Lo que falta para las especificaciones
 
--- Consultas frecuentes
-CREATE INDEX idx_threads_category ON threads(category_id, created_at DESC);
-CREATE INDEX idx_threads_author ON threads(author_id);
-CREATE INDEX idx_replies_thread ON replies(thread_id, created_at);
-CREATE INDEX idx_votes_user_thread ON votes(user_id, thread_id);
-CREATE INDEX idx_materials_subject ON materials(subject_id);
-CREATE INDEX idx_users_points ON users(points DESC);
-CREATE INDEX idx_notifications_user ON notifications(user_id, read, created_at DESC);
+| Especificación | Cambios en el esquema |
+|---|---|
+| [Moderación](README_MODERACION.md) y [ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md) | Caso de moderación que agrupe reportes de cualquier contenido (materiales, reseñas, experiencias, eventos, avisos); ocultamiento preventivo; sanciones con vencimiento; apelaciones; registro de «Ver autor» con motivo; `Material` publicado por defecto. |
+| Alcance por facultad | No existen `University` ni `Faculty`; la carrera no sabe a qué facultad pertenece. Hace falta para moderadores por facultad y para la navegación Universidad → Facultad → Carrera del rediseño. |
+| [Puntos e insignias](README_PUNTOS_E_INSIGNIAS.md) | Códigos de motivo nuevos (`MATERIAL_PUBLISHED`, `EVENT_PUBLISHED`, reversiones); catálogo de insignias con clave estable; privilegios por nivel. |
+| Formularios de experiencias | Nota de promoción, temas y preparación del final, datos de la mesa; `academicYear`, `attempt` y `outcome` pasan a ser obligatorios según el formulario. |
+| Eventos y Clasificados | Modelos nuevos (evento, «Me interesa», organizador verificado; aviso de venta y de tutoría). |
+
+## Migraciones
+
+```
+20260718225826_add_auth_fields
+20260726022757_remove_forum_setup_app            quita el foro
+20260807003124_add_point_transactions
+20260812000000_add_reviews_and_moderation
+20260828090000_add_material_context_and_interactions
+20260828100000_expand_community_evidence
+20260828110000_add_community_reporting_and_moderation
 ```
 
-## 🔄 Redis - Uso Planificado
+Flujo de trabajo:
 
-| Key Pattern | TTL | Uso |
-|-------------|-----|-----|
-| `session:{userId}` | 7 días | Refresh tokens |
-| `user:{id}` | 15 min | Cache de perfil |
-| `thread:{id}:views` | — | Contador de vistas (flush a PG cada 5 min) |
-| `ranking:global` | 5 min | Cache ranking global |
-| `ranking:weekly` | 5 min | Cache ranking semanal |
-| `ratelimit:{ip}` | 1 min | Rate limiting |
-| `email:verify:{token}` | 24h | Tokens de verificación |
-| `password:reset:{token}` | 1h | Tokens de reset |
-| `search:popular` | 1h | Búsquedas populares |
+```bash
+pnpm --filter backend exec prisma migrate dev --name <cambio>   # crea y aplica
+pnpm --filter backend exec prisma generate                      # cliente en src/generated/prisma
+pnpm --filter backend exec prisma db seed                       # datos de ejemplo (prisma/seed.ts)
+```
 
-## 📋 Tareas del Equipo Base de Datos
-
-### Sprint 0 — Diseño y Setup
-
-| # | Tarea | Tipo | Dependencias |
-|---|-------|------|--------------|
-| DB-001 | Diseñar schema completo en Prisma | 🔵 Solo | — |
-| DB-002 | Crear modelo `users` + migración | 🔵 Solo | DB-001 |
-| DB-003 | Crear modelos `categories`, `threads`, `replies`, `votes` | 🔵 Solo | DB-001 |
-| DB-004 | Crear modelo de puntos y niveles | 🔵 Solo | DB-001 |
-| DB-005 | Configurar índices full-text search | 🔵 Solo | DB-003 |
-| DB-006 | Crear modelos `materials`, `ratings` | 🔵 Solo | DB-001 |
-| DB-007 | Crear modelos `guides`, `guide_steps` | 🔵 Solo | DB-001 |
-| DB-008 | Crear modelos `professors`, `reviews` | 🔵 Solo | DB-001 |
-| DB-009 | Crear modelos `careers`, `subjects`, `study_plans` | 🔵 Solo | DB-001 |
-| DB-010 | Crear modelos `notifications`, `reports`, `tags` | 🔵 Solo | DB-001 |
-
-### Sprint 1 — Seeds y Optimización
-
-| # | Tarea | Tipo | Dependencias |
-|---|-------|------|--------------|
-| DB-011 | Crear seed de datos de desarrollo | 🔵 Solo | DB-002...DB-010 |
-| DB-012 | Crear seed de carreras/materias reales | 🟠 Conjunto (equipo) | DB-009 |
-| DB-013 | Configurar Redis en Docker | 🟠 Conjunto (DevOps) | **DO-001** |
-| DB-014 | Documentar queries complejas | 🔵 Solo | DB-005 |
-| DB-015 | Configurar backups automáticos | 🟠 Conjunto (DevOps) | **DO-006** |
-
-## 🔑 Leyenda
-
-| Icono | Tipo |
-|-------|------|
-| 🔵 Solo | Independiente |
-| 🟢 Paralelo | Simultáneo |
-| 🟠 Conjunto | Requiere coordinación |
-
-> [!IMPORTANT]
-> El equipo de DB debe tener el schema de Prisma listo **antes** de que Backend empiece el Sprint 1. Deben coordinarse para validar modelos y relaciones.
-
----
-*📅 Última actualización: Julio 2026*
+- Las migraciones que transforman datos llevan una prueba en `prisma/migration-tests/` (se corren con `pnpm --filter backend test:migration:<nombre>`).
+- Los rellenos de datos van en `prisma/backfills/`.
+- Nunca editar una migración ya aplicada en otra máquina: crear una nueva.

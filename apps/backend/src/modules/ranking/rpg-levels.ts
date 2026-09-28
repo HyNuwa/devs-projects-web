@@ -5,7 +5,8 @@ export interface RpgLevel {
 }
 
 /**
- * Tabla de niveles RPG (fuente: docs/README_BACKEND.md).
+ * Tabla de niveles RPG heredada. La tabla vigente está en
+ * docs/README_PUNTOS_E_INSIGNIAS.md y todavía no se migró.
  * Ordenada ascendentemente por puntos requeridos.
  */
 export const RPG_LEVELS: RpgLevel[] = [
