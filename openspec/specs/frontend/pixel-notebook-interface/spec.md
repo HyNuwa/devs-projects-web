@@ -6,28 +6,6 @@ Establish a coherent, accessible, and performant Pixel Notebook interface that s
 
 ## Requirements
 
-### Requirement: Shared light-theme application shell
-The system SHALL provide a responsive light-theme shell with DevsProject identity, navigation to Materias, Reseñas, Materiales, and Finales, a persistent `Subir material` action, and an account affordance.
-
-#### Scenario: Desktop navigation
-- **WHEN** a user views the application at a desktop width
-- **THEN** all primary destinations, the contribution action, and account affordance are visible and the current destination is identified without relying on color alone
-
-#### Scenario: Mobile navigation
-- **WHEN** a user views the application at a narrow width
-- **THEN** the same destinations and actions are available through a keyboard-operable compact menu with managed focus
-
-### Requirement: Pixel Notebook visual roles
-The interface SHALL use the approved warm lined-paper canvas, dark editorial display hierarchy, compact monospaced labels, one-pixel borders, crisp offset shadows, and one dominant cobalt primary action per view.
-
-#### Scenario: Section accent is applied
-- **WHEN** a Materias, Reseñas, Materiales, or Finales entrance uses its approved accent palette and artwork
-- **THEN** the accent identifies that content family without redefining generic success, warning, error, focus, disabled, or trust semantics
-
-#### Scenario: Font is unavailable locally
-- **WHEN** the preferred editorial font is not installed on the user's device
-- **THEN** the interface uses a documented licensed or system fallback without losing readable hierarchy or causing hidden text
-
 ### Requirement: Responsive hierarchy and accessibility
 The core discovery journey SHALL preserve information hierarchy across desktop and mobile, support keyboard operation, expose visible focus, maintain readable zoom behavior, and provide non-color status cues.
 
