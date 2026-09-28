@@ -73,7 +73,7 @@ export function SiteHeader() {
               <Button asChild className="hidden lg:inline-flex" variant="outline">
                 <Link href="/auth/login">Iniciar sesión</Link>
               </Button>
-              <Button asChild className="lg:hidden" size="sm">
+              <Button asChild className="border-foreground lg:hidden" size="sm" variant="outline">
                 <Link href="/auth/login">Ingresar</Link>
               </Button>
             </>

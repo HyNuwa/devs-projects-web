@@ -13,7 +13,7 @@
 
 ## 3. Navigation model
 
-- [ ] 3.1 Implement `components/layout/navigation.ts` (`primaryDestinations`, `uploadDestination`, `currentDestination`) test-first with a table-driven test that covers every current-destination scenario in `specs/frontend/app-shell`, including `/materias/x/resenar` → Experiencias and `/materiales/nuevo` → upload only; verify the test passes.
+- [x] 3.1 Implement `components/layout/navigation.ts` (`primaryDestinations`, `uploadDestination`, `currentDestination`) test-first with a table-driven test that covers every current-destination scenario in `specs/frontend/app-shell`, including `/materias/x/resenar` → Experiencias and `/materiales/nuevo` → upload only; verify the test passes.
 - [x] 3.2 Implement `accountMenuItems(user)` and `defaultAvatarFor(userId)` test-first (Moderación only for MODERATOR/ADMIN/SUPERADMIN; same id gives the same avatar; ids spread across all four); copy the four `av-*.png` avatars into `public/avatars/` as 96px WebP; verify the tests pass.
 
 ## 4. Shell components
@@ -35,7 +35,7 @@
 
 ## 7. Integrated verification
 
-- [ ] 7.1 Run frontend lint, typecheck/build, `pnpm test` and `pnpm verify:design-tokens` with full output in ignored artifacts; verify concise summaries show zero failures.
-- [ ] 7.2 With agent-browser, capture `/`, `/materias`, `/resenas`, `/auth/login`, `/auth/register` and `/materias/<codigo>/resenar` at 390, 1024 and 1440px, signed out and signed in (USER and MODERATOR), and compare the header, account menu and bottom bar with the `Main`, `MenuAvatar` and `MovilInicio` artboards; verify screenshots and notes are saved in `docs/validation/evidence/base-visual/`.
-- [ ] 7.3 In the browser, check keyboard-only use of the shell (skip link, menu, account menu, sheet), 200% zoom at 1440px without horizontal scroll, content not hidden behind the bottom bar, and an axe run on each captured page; verify no serious or critical axe violations remain and record the results in the evidence folder.
-- [ ] 7.4 Run `graphify update .` and verify it completes.
+- [x] 7.1 Run frontend lint, typecheck/build, `pnpm test` and `pnpm verify:design-tokens` with full output in ignored artifacts; verify concise summaries show zero failures.
+- [x] 7.2 With agent-browser, capture `/`, `/materias`, `/resenas`, `/auth/login`, `/auth/register` and `/materias/<codigo>/resenar` at 390, 1024 and 1440px, signed out and signed in (USER and MODERATOR), and compare the header, account menu and bottom bar with the `Main`, `MenuAvatar` and `MovilInicio` artboards; verify screenshots and notes are saved in `docs/validation/evidence/base-visual/`.
+- [x] 7.3 In the browser, check keyboard-only use of the shell (skip link, menu, account menu, sheet), 200% zoom at 1440px without horizontal scroll, content not hidden behind the bottom bar, and an axe run on each captured page; verify no serious or critical axe violations remain and record the results in the evidence folder.
+- [x] 7.4 Run `graphify update .` and verify it completes.

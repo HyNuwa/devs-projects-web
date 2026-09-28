@@ -34,6 +34,7 @@ const AvatarPill = forwardRef<HTMLButtonElement, AvatarPillProps>(function Avata
 
   return (
     <button
+      aria-label={`${name}, abrir menú de cuenta`}
       className={cn(
         'inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-primary bg-card p-1 font-extrabold text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         variant === 'desktop' ? 'pr-3 text-[0.906rem]' : 'text-sm',
@@ -51,8 +52,7 @@ const AvatarPill = forwardRef<HTMLButtonElement, AvatarPillProps>(function Avata
         src={user.avatarUrl ?? defaultAvatarFor(user.id)}
         width={34}
       />
-      <span className={variant === 'mobile' ? 'sr-only' : 'max-w-28 truncate'}>{name}</span>
-      <span className="sr-only">, abrir menú de cuenta</span>
+      {variant === 'desktop' ? <span className="max-w-28 truncate">{name}</span> : null}
       {variant === 'desktop' ? <ChevronDown aria-hidden="true" className="size-3.5" /> : null}
     </button>
   );
