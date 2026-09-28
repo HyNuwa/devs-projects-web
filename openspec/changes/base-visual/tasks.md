@@ -31,7 +31,7 @@
 
 ## 6. Documentation
 
-- [ ] 6.1 Rewrite `apps/frontend/DESIGN.md` for the redesigned system (tokens with `tokens.css` as the source, Figtree/Caveat, controls, header, account menu, bottom bar, shell variants, links to the canvas and `design/canvas/`) and remove Pixel Notebook guidance from `PRODUCT.md`; verify a grep for "Pixel Notebook" in both files only finds historical mentions.
+- [x] 6.1 Rewrite `apps/frontend/DESIGN.md` for the redesigned system (tokens with `tokens.css` as the source, Figtree/Caveat, controls, header, account menu, bottom bar, shell variants, links to the canvas and `design/canvas/`) and remove Pixel Notebook guidance from `PRODUCT.md`; verify a grep for "Pixel Notebook" in both files only finds historical mentions.
 
 ## 7. Integrated verification
 

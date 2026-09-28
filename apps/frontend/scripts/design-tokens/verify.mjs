@@ -20,7 +20,7 @@ const forbiddenPatterns = [
 const canonicalTokens = new Map([
   ['--dp-ink', '#021238'],
   ['--dp-ink-soft', '#3d4459'],
-  ['--dp-muted', '#6b7286'],
+  ['--dp-muted', '#5a6178'],
   ['--dp-blue', '#0261fe'],
   ['--dp-link', '#0a4de8'],
   ['--dp-blue-tint', '#ecf2fe'],
@@ -32,7 +32,7 @@ const canonicalTokens = new Map([
   ['--dp-red', '#e01f63'],
   ['--dp-orange', '#fa6304'],
   ['--dp-gold', '#e9b949'],
-  ['--dp-green', '#1f8f6b'],
+  ['--dp-green', '#187a5b'],
   ['--dp-radius-sm', '8px'],
   ['--dp-radius-md', '11px'],
   ['--dp-radius-lg', '14px'],

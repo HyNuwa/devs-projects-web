@@ -30,7 +30,7 @@ New canonical file (replacing `pixel-notebook-tokens.css`) with the canvas value
 |---|---|---|
 | `--dp-ink` | `#021238` | foreground, border, card outline |
 | `--dp-ink-soft` | `#3D4459` | menu text, secondary text |
-| `--dp-muted` | `#6B7286` | muted-foreground |
+| `--dp-muted` | `#5a6178` (the canvas' inactive-tab gray; `#6B7286` is 4.37:1 on cream) | muted-foreground |
 | `--dp-blue` | `#0261FE` | primary, ring |
 | `--dp-link` | `#0A4DE8` | links, current menu item |
 | `--dp-blue-tint` | `#ECF2FE` | secondary / selected backgrounds |
@@ -40,7 +40,7 @@ New canonical file (replacing `pixel-notebook-tokens.css`) with the canvas value
 | `--dp-pink` | `#FD4F8D` | destructive/badge accent |
 | `--dp-orange` | `#FA6304` | warning accent |
 | `--dp-gold` | `#E9B949` | accent |
-| `--dp-green` | `#1F8F6B` | success |
+| `--dp-green` | `#187a5b` (canvas `#1F8F6B` darkened to reach 4.5:1 on white and cream) | success |
 | `--dp-radius-sm/md/lg/xl/pill` | `8 / 11 / 14 / 16 / 999px` | radii |
 | `--dp-outline` | `1.5px` | border width |
 | `--dp-shadow-pop` | `3px 3px 0 var(--dp-ink)` | emphasized control (Subir) |
