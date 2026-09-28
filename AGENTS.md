@@ -35,7 +35,7 @@ Rules:
 
 ### Workflow
 
-Planned changes run through OpenSpec, with Matt Pocock skills around it, shared by Claude Code and Codex. Read `docs/agents/workflow.md` before starting a change, fixing a bug, or splitting work between agents.
+Planned changes run through OpenSpec, with Matt Pocock skills around it, run by Claude Code. Read `docs/agents/workflow.md` before starting a change, fixing a bug, or splitting work between agents.
 
 ### Issue tracker
 
