@@ -187,10 +187,10 @@ function DuplicateConfirmation({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/35" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-5 border border-border bg-card p-6 text-card-foreground shadow-surface outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-5 border border-border bg-card p-6 text-card-foreground outline-none">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Dialog.Title className="font-serif text-2xl font-bold leading-tight">
+              <Dialog.Title className="font-sans text-2xl font-bold leading-tight">
                 ¿Es otra cursada real?
               </Dialog.Title>
               <Dialog.Description className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
@@ -379,8 +379,8 @@ export function ReviewForm() {
   if (!user) {
     return (
       <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
-        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
-          <h1 className="font-serif text-3xl font-bold text-foreground">
+        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center">
+          <h1 className="font-sans text-3xl font-bold text-foreground">
             Iniciá sesión para reseñar
           </h1>
           <p className="font-sans leading-relaxed text-muted-foreground">
@@ -412,8 +412,8 @@ export function ReviewForm() {
 
     return (
       <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
-        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
-          <h1 className="font-serif text-3xl font-bold text-foreground">Edición no disponible</h1>
+        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center">
+          <h1 className="font-sans text-3xl font-bold text-foreground">Edición no disponible</h1>
           <p className="font-sans leading-relaxed text-muted-foreground">{message}</p>
           <Button asChild className="justify-self-center" variant="outline">
             <Link href={`/materias/${code}`}>Volver a la materia</Link>
@@ -441,7 +441,7 @@ export function ReviewForm() {
         <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
           Reseña de cursada
         </p>
-        <h1 className="mt-3 max-w-[14ch] font-serif text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
+        <h1 className="mt-3 max-w-[14ch] font-sans text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
           {isEditing ? 'Actualizá tu experiencia.' : 'Contá cómo fue tu cursada.'}
         </h1>
         <p className="mt-5 max-w-[64ch] font-sans leading-relaxed text-muted-foreground">
@@ -462,10 +462,10 @@ export function ReviewForm() {
         noValidate
         onSubmit={handleSubmit((values) => submit(values))}
       >
-        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
           <div className="flex items-center gap-3">
             <Sparkles aria-hidden="true" className="size-5 text-primary" strokeWidth={1.6} />
-            <h2 className="font-serif text-2xl font-bold text-foreground">Tu cursada</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Tu cursada</h2>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
@@ -532,11 +532,9 @@ export function ReviewForm() {
           </fieldset>
         </section>
 
-        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
           <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground">
-              Recomendación y relato
-            </h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Recomendación y relato</h2>
             <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
               Las estrellas son una opinión sobre la cursada; tu relato aporta el contexto.
             </p>
@@ -580,7 +578,7 @@ export function ReviewForm() {
             <textarea
               aria-describedby={errors.comment ? 'comment-error' : undefined}
               aria-invalid={Boolean(errors.comment)}
-              className="min-h-44 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm leading-relaxed text-foreground outline-none shadow-field placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+              className="min-h-44 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
               id="comment"
               maxLength={4000}
               placeholder="Contá cómo fue la cursada, cómo se trabajó y qué le recomendarías a otra persona."
@@ -591,9 +589,9 @@ export function ReviewForm() {
           </Field>
         </section>
 
-        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
           <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground">Contexto opcional</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Contexto opcional</h2>
             <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
               Agregá solo datos que recuerdes con seguridad.
             </p>
@@ -621,7 +619,7 @@ export function ReviewForm() {
           <Field>
             <FieldLabel htmlFor="difficulty">Dificultad general</FieldLabel>
             <select
-              className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               id="difficulty"
               {...register('difficulty')}
             >
@@ -672,7 +670,7 @@ export function ReviewForm() {
                 </label>
                 <select
                   aria-invalid={Boolean(errors.professorId)}
-                  className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+                  className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
                   id="professorId"
                   {...register('professorId')}
                 >

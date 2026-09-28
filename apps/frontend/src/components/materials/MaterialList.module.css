@@ -19,26 +19,26 @@
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--color-accent-gold);
+  color: var(--accent);
   margin-bottom: 0.75rem;
 }
 
 .headerLabel {
   font-size: 0.7rem;
   letter-spacing: 2px;
-  color: var(--color-primary-600);
+  color: var(--primary);
 }
 
 .title {
   font-size: 1.15rem;
-  color: var(--color-primary-700);
+  color: var(--primary);
   letter-spacing: 2px;
   margin: 0 0 0.75rem;
   text-shadow: 2px 2px 0 rgba(33, 150, 243, 0.12);
 }
 
 .subtitle {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 0.95rem;
   margin: 0;
 }
@@ -52,7 +52,7 @@
   flex-wrap: wrap;
   margin-bottom: 2rem;
   padding: 1rem 1.25rem;
-  background: var(--color-bg-secondary);
+  background: var(--card);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
@@ -72,9 +72,9 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background-color: #f8fafc;
-  font-family: var(--font-body);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   cursor: pointer;
   transition: all 0.2s ease;
   max-width: 240px;
@@ -82,9 +82,9 @@
 
 .select:focus {
   outline: none;
-  border-color: var(--color-primary-500);
+  border-color: var(--primary);
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px var(--color-primary-50);
+  box-shadow: 0 0 0 3px var(--secondary);
 }
 
 .searchForm {
@@ -98,7 +98,7 @@
 .searchIcon {
   position: absolute;
   left: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   pointer-events: none;
 }
 
@@ -108,27 +108,27 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px 0 0 8px;
   background-color: #f8fafc;
-  font-family: var(--font-body);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   transition: all 0.2s ease;
 }
 
 .searchInput:focus {
   outline: none;
-  border-color: var(--color-primary-500);
+  border-color: var(--primary);
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px var(--color-primary-50);
+  box-shadow: 0 0 0 3px var(--secondary);
 }
 
 .searchBtn {
   padding: 0.6rem 1.1rem;
-  border: 1px solid var(--color-primary-500);
+  border: 1px solid var(--primary);
   border-left: none;
   border-radius: 0 8px 8px 0;
-  background-color: var(--color-primary-500);
+  background-color: var(--primary);
   color: #ffffff;
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -137,7 +137,7 @@
 }
 
 .searchBtn:hover {
-  background-color: var(--color-primary-600);
+  background-color: var(--primary);
 }
 
 .uploadLink {
@@ -168,7 +168,7 @@
 .card {
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-secondary);
+  background: var(--card);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   overflow: hidden;
@@ -180,14 +180,14 @@
 
 .card:hover {
   transform: translateY(-6px);
-  border-color: var(--color-primary-200);
+  border-color: var(--secondary);
   box-shadow: 0 12px 28px rgba(33, 150, 243, 0.16);
 }
 
 .thumbnail {
   position: relative;
   height: 150px;
-  background: linear-gradient(135deg, var(--color-primary-100) 0%, var(--color-primary-50) 100%);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -202,7 +202,7 @@
 }
 
 .thumbnailIcon {
-  color: var(--color-primary-600);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -217,7 +217,7 @@
   border-radius: 6px;
   background: rgba(15, 25, 35, 0.78);
   color: #ffffff;
-  font-family: var(--font-pixel);
+  font-family: var(--ui-font-sans);
   font-size: 0.55rem;
   letter-spacing: 1px;
 }
@@ -232,10 +232,10 @@
 
 .cardTitle {
   margin: 0;
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -245,7 +245,7 @@
 }
 
 .card:hover .cardTitle {
-  color: var(--color-primary-600);
+  color: var(--primary);
 }
 
 .cardMeta {
@@ -259,16 +259,16 @@
 .author {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .subject {
   font-size: 0.72rem;
   padding: 0.2rem 0.55rem;
   border-radius: 100px;
-  background: var(--color-primary-50);
-  border: 1px solid var(--color-primary-200);
-  color: var(--color-primary-700);
+  background: var(--secondary);
+  border: 1px solid var(--secondary);
+  color: var(--primary);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -290,17 +290,17 @@
   align-items: center;
   gap: 0.3rem;
   font-size: 0.85rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   font-weight: 600;
 }
 
 .starIcon {
-  color: var(--color-accent-gold);
-  fill: var(--color-accent-gold);
+  color: var(--accent);
+  fill: var(--accent);
 }
 
 .ratingCount {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-weight: 400;
   font-size: 0.78rem;
 }
@@ -310,7 +310,7 @@
   align-items: center;
   gap: 0.3rem;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-weight: 500;
 }
 
@@ -354,27 +354,27 @@
   text-align: center;
   gap: 0.75rem;
   padding: 3.5rem 1.5rem;
-  background: var(--color-bg-secondary);
+  background: var(--card);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .stateIcon {
-  color: var(--color-primary-300);
+  color: var(--primary);
 }
 
 .stateTitle {
   margin: 0;
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .stateText {
   margin: 0 0 0.5rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 0.9rem;
   max-width: 420px;
 }
@@ -389,10 +389,10 @@
 }
 
 .pageInfo {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 @keyframes cardIn {

@@ -1,9 +1,9 @@
 ## 1. Tokens and typography
 
-- [ ] 1.1 Write `scripts/verify-design-tokens.mjs` first (canonical `--dp-*` values, semantic roles resolve to `--dp-*`, forbidden legacy patterns with file:line output), point `verify:design-tokens` at it and delete the Pixel Notebook script; verify it fails against the current tree, listing the legacy tokens and `font-pixel` users.
-- [ ] 1.2 Create `src/styles/tokens.css` with the design.md token table, re-point the roles and `@theme inline` bridge in `globals.css` (radius scale, outline, grid page background 44px / 32px below `lg`, `color-scheme: light`), and delete `pixel-notebook-tokens.css`; verify the canonical-value part of the check passes.
-- [ ] 1.3 Load Figtree (400–900) and Caveat (600/700) with `next/font/google` in the root layout, remove Press Start 2P, and map `--font-sans` / `--dp-font-hand`; verify `pnpm build` succeeds and a component test sees no `--font-pixel` variable.
-- [ ] 1.4 Write and run the one-off codemod (`scripts/codemods/remap-legacy-tokens.mjs`) with the design.md mapping table over `src/**/*.{css,ts,tsx}`, replace `.font-pixel` with `font-sans`, remove the legacy alias declarations from `globals.css`, then delete the codemod; verify `pnpm verify:design-tokens` passes with zero violations and `pnpm test` stays green.
+- [x] 1.1 Write `scripts/verify-design-tokens.mjs` first (canonical `--dp-*` values, semantic roles resolve to `--dp-*`, forbidden legacy patterns with file:line output), point `verify:design-tokens` at it and delete the Pixel Notebook script; verify it fails against the current tree, listing the legacy tokens and `font-pixel` users.
+- [x] 1.2 Create `src/styles/tokens.css` with the design.md token table, re-point the roles and `@theme inline` bridge in `globals.css` (radius scale, outline, grid page background 44px / 32px below `lg`, `color-scheme: light`), and delete `pixel-notebook-tokens.css`; verify the canonical-value part of the check passes.
+- [x] 1.3 Load Figtree (400–900) and Caveat (600/700) with `next/font/google` in the root layout, remove Press Start 2P, and map `--font-sans` / `--dp-font-hand`; verify `pnpm build` succeeds and a component test sees no `--font-pixel` variable.
+- [x] 1.4 Write and run the one-off codemod (`scripts/codemods/remap-legacy-tokens.mjs`) with the design.md mapping table over `src/**/*.{css,ts,tsx}`, replace `.font-pixel` with `font-sans`, remove the legacy alias declarations from `globals.css`, then delete the codemod; verify `pnpm verify:design-tokens` passes with zero violations and `pnpm test` stays green.
 
 ## 2. Base components
 

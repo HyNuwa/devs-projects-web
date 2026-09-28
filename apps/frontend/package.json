@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:design-tokens": "node scripts/verify-pixel-notebook-tokens.mjs",
+    "verify:design-tokens": "node scripts/verify-design-tokens.mjs",
     "verify:kaomoji": "node scripts/verify-local-kaomoji.mjs",
     "verify:assets": "node scripts/verify-asset-manifest.mjs && node scripts/verify-generated-assets.mjs",
     "verify:prototype": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/verify-pixel-notebook-prototype.mjs",

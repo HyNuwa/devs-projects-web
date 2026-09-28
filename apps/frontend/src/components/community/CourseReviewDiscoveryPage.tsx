@@ -33,7 +33,7 @@ const attempts: CourseAttempt[] = [
   'PREFIERO_NO_RESPONDER',
 ];
 const filterControlClassName =
-  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none shadow-field focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 type ReviewRequestState =
   | { status: 'loading' }
@@ -206,7 +206,7 @@ function AverageEvidence({ average, count }: { average: number | null; count: nu
         <dt className="font-mono text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-primary">
           Promedio
         </dt>
-        <dd className="mt-1 flex items-center gap-1 font-serif text-2xl font-bold text-foreground">
+        <dd className="mt-1 flex items-center gap-1 font-sans text-2xl font-bold text-foreground">
           <Star aria-hidden="true" className="size-4 fill-current text-primary" strokeWidth={1.7} />
           {formattedAverage}
         </dd>
@@ -215,7 +215,7 @@ function AverageEvidence({ average, count }: { average: number | null; count: nu
         <dt className="font-mono text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-primary">
           Reseñas
         </dt>
-        <dd className="mt-1 font-serif text-2xl font-bold text-foreground">{count}</dd>
+        <dd className="mt-1 font-sans text-2xl font-bold text-foreground">{count}</dd>
       </div>
     </dl>
   );
@@ -313,10 +313,10 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary-foreground/75">
               Archivo cobalto
             </p>
-            <h1 className="mt-4 max-w-[10ch] font-serif text-[clamp(3.1rem,6vw,5.4rem)] font-bold leading-[0.9] tracking-[-0.045em]">
+            <h1 className="mt-4 max-w-[10ch] font-sans text-[clamp(3.1rem,6vw,5.4rem)] font-bold leading-[0.9] tracking-[-0.045em]">
               Reseñas de cursada reales.
             </h1>
-            <p className="mt-6 max-w-[56ch] font-serif text-lg leading-relaxed text-primary-foreground/85 sm:text-xl">
+            <p className="mt-6 max-w-[56ch] font-sans text-lg leading-relaxed text-primary-foreground/85 sm:text-xl">
               Mirá experiencias concretas antes de anotarte, preparar una materia o decidir cómo
               encarar la cursada.
             </p>
@@ -340,7 +340,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
               Voz de la comunidad
             </p>
-            <h2 className="mt-2 font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+            <h2 className="mt-2 font-sans text-3xl font-bold leading-tight text-foreground sm:text-4xl">
               {results ? `${results.meta.total} reseñas publicadas` : 'Explorá reseñas'}
             </h2>
             <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-secondary-foreground">
@@ -356,7 +356,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
 
         <section aria-label="Filtros de reseñas" className="mt-7">
           <div className="flex items-center justify-between gap-4 lg:hidden">
-            <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Filtros</h2>
             <FilterSheet
               description="Refiná las reseñas por contexto de cursada."
               onApply={applyFilters}
@@ -384,7 +384,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
             <div className="mb-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal aria-hidden="true" className="size-4 text-primary" />
-                <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
+                <h2 className="font-sans text-2xl font-bold text-foreground">Filtros</h2>
               </div>
               <div className="flex gap-2">
                 <Button onClick={clearDraftFilters} size="sm" variant="outline">
@@ -479,7 +479,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
 
         <section className="mt-10" aria-labelledby="review-results">
           <div className="flex flex-col justify-between gap-4 border-b border-line pb-4 sm:flex-row sm:items-center">
-            <h2 id="review-results" className="font-serif text-3xl font-bold text-foreground">
+            <h2 id="review-results" className="font-sans text-3xl font-bold text-foreground">
               Reseñas
             </h2>
             <div className="flex flex-wrap items-center gap-2" aria-label="Orden de reseñas">

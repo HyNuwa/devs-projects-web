@@ -328,8 +328,8 @@ export function ExamForm() {
   if (!user) {
     return (
       <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
-        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
-          <h1 className="font-serif text-3xl font-bold text-foreground">
+        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center">
+          <h1 className="font-sans text-3xl font-bold text-foreground">
             Iniciá sesión para compartir un final
           </h1>
           <p className="font-sans leading-relaxed text-muted-foreground">
@@ -361,8 +361,8 @@ export function ExamForm() {
 
     return (
       <div className="mx-auto grid min-h-[60vh] max-w-[44rem] place-items-center px-5 py-16">
-        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center shadow-surface">
-          <h1 className="font-serif text-3xl font-bold text-foreground">Edición no disponible</h1>
+        <section className="grid max-w-lg gap-5 border border-border bg-card p-7 text-center">
+          <h1 className="font-sans text-3xl font-bold text-foreground">Edición no disponible</h1>
           <p className="font-sans leading-relaxed text-muted-foreground">{message}</p>
           <Button asChild className="justify-self-center" variant="outline">
             <Link href={`/materias/${code}`}>Volver a la materia</Link>
@@ -390,7 +390,7 @@ export function ExamForm() {
         <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
           Experiencia de final
         </p>
-        <h1 className="mt-3 max-w-[15ch] font-serif text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
+        <h1 className="mt-3 max-w-[15ch] font-sans text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
           {isEditing ? 'Actualizá tu mesa.' : 'Contá tu intento de final.'}
         </h1>
         <p className="mt-5 max-w-[64ch] font-sans leading-relaxed text-muted-foreground">
@@ -411,10 +411,10 @@ export function ExamForm() {
         noValidate
         onSubmit={handleSubmit((values) => submit(values))}
       >
-        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
           <div className="flex items-center gap-3">
             <GraduationCap aria-hidden="true" className="size-5 text-primary" strokeWidth={1.6} />
-            <h2 className="font-serif text-2xl font-bold text-foreground">Datos del final</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Datos del final</h2>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
@@ -438,7 +438,7 @@ export function ExamForm() {
               <FieldLabel htmlFor="session">Período de final</FieldLabel>
               <select
                 aria-invalid={Boolean(errors.session)}
-                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
                 id="session"
                 {...register('session')}
               >
@@ -478,9 +478,9 @@ export function ExamForm() {
           </fieldset>
         </section>
 
-        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
           <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground">Tu relato</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Tu relato</h2>
             <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
               Incluí temas, preparación y consejos dentro de una sola experiencia, solo si ayudan a
               entender el contexto.
@@ -496,7 +496,7 @@ export function ExamForm() {
             <textarea
               aria-describedby={errors.comment ? 'comment-error' : undefined}
               aria-invalid={Boolean(errors.comment)}
-              className="min-h-44 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm leading-relaxed text-foreground outline-none shadow-field placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+              className="min-h-44 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
               id="comment"
               maxLength={4000}
               placeholder="Contá cómo fue el intento, qué recordás de la mesa y qué contexto te parece útil."
@@ -507,9 +507,9 @@ export function ExamForm() {
           </Field>
         </section>
 
-        <section className="grid gap-6 border border-border bg-card p-5 shadow-surface sm:p-7">
+        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
           <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground">Contexto opcional</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Contexto opcional</h2>
             <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
               Omití cualquier dato que no recuerdes; no se infiere ni se completa después.
             </p>
@@ -524,7 +524,7 @@ export function ExamForm() {
             <Field>
               <FieldLabel htmlFor="difficulty">Dificultad general</FieldLabel>
               <select
-                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 id="difficulty"
                 {...register('difficulty')}
               >
@@ -595,7 +595,7 @@ export function ExamForm() {
                 </label>
                 <select
                   aria-invalid={Boolean(errors.professorId)}
-                  className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+                  className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
                   id="professorId"
                   {...register('professorId')}
                 >
@@ -625,7 +625,7 @@ export function ExamForm() {
             <Field>
               <FieldLabel htmlFor="outcome">Resultado</FieldLabel>
               <select
-                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground shadow-field outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 id="outcome"
                 {...register('outcome')}
               >

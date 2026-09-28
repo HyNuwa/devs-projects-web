@@ -97,10 +97,10 @@ function ModerationDecisionDialog({
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-[1px]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(34rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto border border-border bg-card p-5 text-card-foreground shadow-surface outline-none sm:p-6">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(34rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto border border-border bg-card p-5 text-card-foreground outline-none sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Dialog.Title className="font-serif text-2xl font-bold leading-tight">
+              <Dialog.Title className="font-sans text-2xl font-bold leading-tight">
                 {actionLabel}
               </Dialog.Title>
               <Dialog.Description className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
@@ -125,7 +125,7 @@ function ModerationDecisionDialog({
                 aria-describedby={`community-moderation-reason-help-${report.id} community-moderation-error-${report.id}`}
                 aria-invalid={Boolean(error)}
                 className={cn(
-                  'min-h-28 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm text-foreground outline-none shadow-field focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  'min-h-28 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 )}
                 id={`community-moderation-reason-${report.id}`}
                 maxLength={1000}
@@ -210,14 +210,14 @@ export function CommunityModerationPanel() {
       className="mx-auto grid w-full max-w-5xl gap-5 px-5 pb-12"
       aria-labelledby="community-moderation-title"
     >
-      <header className="border border-border bg-card p-5 shadow-surface sm:p-6">
+      <header className="border border-border bg-card p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
               Moderación de comunidad
             </p>
             <h2
-              className="mt-2 font-serif text-3xl font-bold text-card-foreground"
+              className="mt-2 font-sans text-3xl font-bold text-card-foreground"
               id="community-moderation-title"
             >
               Reportes sobre reseñas y finales
@@ -233,7 +233,7 @@ export function CommunityModerationPanel() {
 
       {state === 'loading' ? (
         <div
-          className="flex items-center gap-3 border border-border bg-card p-5 font-sans text-muted-foreground shadow-surface"
+          className="flex items-center gap-3 border border-border bg-card p-5 font-sans text-muted-foreground"
           role="status"
         >
           <LoaderCircle aria-hidden="true" className="size-5 animate-spin text-primary" />
@@ -242,10 +242,7 @@ export function CommunityModerationPanel() {
       ) : null}
 
       {state === 'error' ? (
-        <div
-          className="grid gap-4 border border-destructive bg-card p-5 shadow-surface"
-          role="alert"
-        >
+        <div className="grid gap-4 border border-destructive bg-card p-5" role="alert">
           <p className="font-sans text-destructive">{error}</p>
           <Button
             className="justify-self-start"
@@ -259,7 +256,7 @@ export function CommunityModerationPanel() {
       ) : null}
 
       {state === 'ready' && reports.length === 0 ? (
-        <div className="border border-border bg-card p-5 font-sans text-muted-foreground shadow-surface">
+        <div className="border border-border bg-card p-5 font-sans text-muted-foreground">
           No hay reportes de comunidad pendientes de revisión.
         </div>
       ) : null}
@@ -277,16 +274,13 @@ export function CommunityModerationPanel() {
               report.target.type === 'COURSE_REVIEW' ? 'Reseña de cursada' : 'Experiencia de final';
 
             return (
-              <article
-                className="grid gap-4 border border-border bg-card p-5 shadow-surface"
-                key={report.id}
-              >
+              <article className="grid gap-4 border border-border bg-card p-5" key={report.id}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.08em] text-primary">
                       {targetKind} · {reportReasonLabels[report.reason]}
                     </p>
-                    <h3 className="mt-2 font-serif text-2xl font-bold text-card-foreground">
+                    <h3 className="mt-2 font-sans text-2xl font-bold text-card-foreground">
                       {report.target.subject.name}
                     </h3>
                     <p className="mt-1 font-sans text-sm text-muted-foreground">

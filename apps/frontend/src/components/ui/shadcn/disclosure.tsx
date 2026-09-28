@@ -11,10 +11,7 @@ export function Disclosure({ children, className, title, ...props }: DisclosureP
   return (
     <details
       data-slot="disclosure"
-      className={cn(
-        'group border border-border bg-card text-card-foreground shadow-surface',
-        className,
-      )}
+      className={cn('group border border-border bg-card text-card-foreground', className)}
       {...props}
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 px-4 py-2 font-sans text-sm font-bold text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset">

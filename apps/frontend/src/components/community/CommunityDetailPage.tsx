@@ -63,7 +63,7 @@ const reportReasonLabels: Record<CommunityReportReason, string> = {
 };
 
 const reportSelectClassName =
-  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none shadow-field focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 function isUnavailableError(error: unknown) {
   const status = (error as { response?: { status?: number } } | undefined)?.response?.status;
@@ -185,10 +185,10 @@ function ReportDialog({
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-[1px]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(34rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto border border-border bg-card p-5 text-card-foreground shadow-surface outline-none sm:p-6">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(34rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto border border-border bg-card p-5 text-card-foreground outline-none sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Dialog.Title className="font-serif text-2xl font-bold leading-tight">
+              <Dialog.Title className="font-sans text-2xl font-bold leading-tight">
                 Reportar publicación
               </Dialog.Title>
               <Dialog.Description className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
@@ -305,7 +305,7 @@ function DetailActions({
   };
 
   return (
-    <aside className="grid content-start gap-3 border border-border bg-card p-4 shadow-surface min-[820px]:sticky min-[820px]:top-24">
+    <aside className="grid content-start gap-3 border border-border bg-card p-4 min-[820px]:sticky min-[820px]:top-24">
       <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.08em] text-muted-foreground">
         Acciones
       </p>
@@ -342,8 +342,8 @@ function UnavailableDetail({ id, kind }: { id: string; kind: CommunityDetailKind
 
   return (
     <section className="mx-auto grid w-full max-w-3xl gap-5 px-3 py-12 sm:px-6 sm:py-16">
-      <div className="border border-border bg-card p-6 text-center shadow-surface sm:p-8">
-        <h1 className="font-serif text-3xl font-bold text-card-foreground">
+      <div className="border border-border bg-card p-6 text-center sm:p-8">
+        <h1 className="font-sans text-3xl font-bold text-card-foreground">
           Esta publicación no está disponible
         </h1>
         <p className="mx-auto mt-3 max-w-xl font-sans leading-relaxed text-muted-foreground">
@@ -397,13 +397,13 @@ function CommunityDetailContent({
       </nav>
 
       <div className="grid gap-6 min-[820px]:grid-cols-[minmax(0,1fr)_16rem] min-[820px]:items-start">
-        <article className="min-w-0 border border-border bg-card p-5 shadow-surface sm:p-8">
+        <article className="min-w-0 border border-border bg-card p-5 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="min-w-0">
               <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
                 {sectionLabel}
               </p>
-              <h1 className="mt-2 font-serif text-4xl font-bold leading-[0.95] text-card-foreground sm:text-5xl">
+              <h1 className="mt-2 font-sans text-4xl font-bold leading-[0.95] text-card-foreground sm:text-5xl">
                 {detail.subject.name}
               </h1>
               <Link
@@ -439,13 +439,13 @@ function CommunityDetailContent({
 
           <section aria-labelledby="community-narrative" className="mt-8 max-w-[75ch]">
             <h2
-              className="font-serif text-2xl font-bold text-card-foreground"
+              className="font-sans text-2xl font-bold text-card-foreground"
               id="community-narrative"
             >
               Relato completo
             </h2>
             {detail.comment ? (
-              <p className="mt-4 whitespace-pre-wrap font-serif text-lg leading-relaxed text-foreground">
+              <p className="mt-4 whitespace-pre-wrap font-sans text-lg leading-relaxed text-foreground">
                 {detail.comment}
               </p>
             ) : (
@@ -519,10 +519,10 @@ export function CommunityDetailPage({
       <section className="mx-auto grid w-full max-w-3xl gap-5 px-3 py-12 sm:px-6 sm:py-16">
         <div
           aria-live="assertive"
-          className="border border-destructive bg-card p-6 text-center shadow-surface"
+          className="border border-destructive bg-card p-6 text-center"
           role="alert"
         >
-          <h1 className="font-serif text-3xl font-bold text-card-foreground">
+          <h1 className="font-sans text-3xl font-bold text-card-foreground">
             No pudimos cargar la publicación
           </h1>
           <p className="mt-3 font-sans text-muted-foreground">

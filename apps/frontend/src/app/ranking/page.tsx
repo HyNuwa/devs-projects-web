@@ -18,10 +18,10 @@ export default function RankingPage() {
         <header className={styles.header}>
           <div className={styles.headerBadge}>
             <Sparkles size={16} />
-            <span className={`${styles.headerLabel} font-pixel`}>CLASIFICACIÓN</span>
+            <span className={`${styles.headerLabel} font-sans`}>CLASIFICACIÓN</span>
             <Sparkles size={16} />
           </div>
-          <h1 className={`${styles.title} font-pixel`}>RANKING DE AVENTUREROS</h1>
+          <h1 className={`${styles.title} font-sans`}>RANKING DE AVENTUREROS</h1>
           <p className={styles.subtitle}>
             Cada aporte suma puntos. Sube de nivel y conviértete en leyenda.
           </p>

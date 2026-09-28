@@ -77,12 +77,12 @@ export function Navbar() {
       <div className="mx-auto flex min-h-[72px] w-full max-w-[1180px] items-center justify-between gap-3 px-3 sm:px-6">
         <Link
           aria-label="DevsProject, inicio"
-          className="inline-flex min-h-11 items-center gap-2 font-serif text-xl font-bold text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="inline-flex min-h-11 items-center gap-2 font-sans text-xl font-bold text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           href="/"
         >
           <span
             aria-hidden="true"
-            className="grid size-8 place-items-center border border-primary bg-primary font-mono text-xs font-bold text-primary-foreground shadow-control"
+            className="grid size-8 place-items-center border border-primary bg-primary font-mono text-xs font-bold text-primary-foreground"
           >
             DP
           </span>
@@ -142,10 +142,10 @@ export function Navbar() {
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/35 lg:hidden" />
-            <Dialog.Content className="fixed inset-x-0 top-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)] border-b border-border bg-background shadow-surface outline-none lg:hidden">
+            <Dialog.Content className="fixed inset-x-0 top-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)] border-b border-border bg-background outline-none lg:hidden">
               <header className="flex min-h-[72px] items-center justify-between border-b border-border px-3 sm:px-6">
                 <div>
-                  <Dialog.Title className="font-serif text-2xl font-bold text-foreground">
+                  <Dialog.Title className="font-sans text-2xl font-bold text-foreground">
                     Menú principal
                   </Dialog.Title>
                   <Dialog.Description className="sr-only">

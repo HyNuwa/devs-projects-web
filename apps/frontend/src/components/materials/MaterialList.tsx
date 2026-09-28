@@ -191,10 +191,10 @@ export function MaterialList() {
         <header className={styles.header}>
           <div className={styles.headerBadge}>
             <Sparkles size={16} />
-            <span className={`${styles.headerLabel} font-pixel`}>APUNTES & MATERIAL</span>
+            <span className={`${styles.headerLabel} font-sans`}>APUNTES & MATERIAL</span>
             <Sparkles size={16} />
           </div>
-          <h1 className={`${styles.title} font-pixel`}>BAÚL DE RECURSOS</h1>
+          <h1 className={`${styles.title} font-sans`}>BAÚL DE RECURSOS</h1>
           <p className={styles.subtitle}>
             Descubre apuntes, libros y presentaciones compartidos por la comunidad
           </p>

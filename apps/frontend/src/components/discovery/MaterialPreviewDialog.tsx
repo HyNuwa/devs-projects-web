@@ -109,7 +109,7 @@ function PreviewFallback({
       data-slot="material-preview-fallback"
     >
       <TriangleAlert aria-hidden="true" className="size-10 text-primary" strokeWidth={1.6} />
-      <h2 className="mt-4 text-balance font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+      <h2 className="mt-4 text-balance font-sans text-2xl font-bold leading-tight text-foreground sm:text-3xl">
         {title}
       </h2>
       <p className="mt-3 text-pretty text-sm leading-relaxed text-secondary-foreground">
@@ -145,7 +145,7 @@ function PreviewLoading() {
   return (
     <div aria-live="polite" className="mx-auto max-w-md text-center">
       <FileText aria-hidden="true" className="mx-auto size-10 text-primary" strokeWidth={1.6} />
-      <p className="mt-4 font-serif text-2xl font-bold text-foreground sm:text-3xl">
+      <p className="mt-4 font-sans text-2xl font-bold text-foreground sm:text-3xl">
         Preparando vista previa…
       </p>
     </div>
@@ -571,7 +571,7 @@ export function MaterialPreviewDialog({
         />
         <Dialog.Content
           aria-describedby="material-preview-description"
-          className="fixed inset-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)] bg-card sm:grid-rows-[auto_minmax(0,1fr)_auto] text-card-foreground shadow-surface outline-none sm:inset-x-5 sm:inset-y-5 sm:border sm:border-border lg:inset-x-10 lg:inset-y-8"
+          className="fixed inset-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)] bg-card sm:grid-rows-[auto_minmax(0,1fr)_auto] text-card-foreground outline-none sm:inset-x-5 sm:inset-y-5 sm:border sm:border-border lg:inset-x-10 lg:inset-y-8"
           data-slot="material-preview-dialog"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
@@ -589,7 +589,7 @@ export function MaterialPreviewDialog({
               <FileText className="size-5" strokeWidth={1.8} />
             </span>
             <div className="min-w-0 flex-1">
-              <Dialog.Title className="truncate font-serif text-xl font-bold text-foreground sm:text-2xl">
+              <Dialog.Title className="truncate font-sans text-xl font-bold text-foreground sm:text-2xl">
                 Vista previa: {material?.title ?? file.title}
               </Dialog.Title>
               <Dialog.Description
@@ -660,7 +660,7 @@ export function MaterialPreviewDialog({
               <div className="flex items-center gap-2 text-primary">
                 <MessageSquare aria-hidden="true" className="size-5" strokeWidth={1.8} />
                 <h2
-                  className="font-serif text-2xl font-bold text-foreground"
+                  className="font-sans text-2xl font-bold text-foreground"
                   id="material-preview-community"
                 >
                   Comunidad

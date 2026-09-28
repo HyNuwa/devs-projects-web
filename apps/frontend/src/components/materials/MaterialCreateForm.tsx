@@ -151,10 +151,10 @@ export function MaterialCreateForm() {
         <header className={styles.header}>
           <div className={styles.headerBadge}>
             <Sparkles size={16} />
-            <span className={`${styles.headerLabel} font-pixel`}>NUEVO RECURSO</span>
+            <span className={`${styles.headerLabel} font-sans`}>NUEVO RECURSO</span>
             <Sparkles size={16} />
           </div>
-          <h1 className={`${styles.title} font-pixel`}>AÑADE AL BAÚL</h1>
+          <h1 className={`${styles.title} font-sans`}>AÑADE AL BAÚL</h1>
           <p className={styles.subtitle}>
             Compartí apuntes, libros o presentaciones con la comunidad
           </p>

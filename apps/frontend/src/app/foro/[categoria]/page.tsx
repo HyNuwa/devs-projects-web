@@ -76,7 +76,7 @@ export default async function CategoriaPage({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            color: 'var(--color-text-secondary)',
+            color: 'var(--muted-foreground)',
             textDecoration: 'none',
             marginBottom: '1rem',
             fontSize: '0.875rem',
@@ -100,14 +100,14 @@ export default async function CategoriaPage({
             <h1
               style={{
                 fontSize: '2rem',
-                fontFamily: 'var(--font-heading)',
+                fontFamily: 'var(--ui-font-sans)',
                 margin: '0 0 0.5rem 0',
-                color: 'var(--color-text-primary)',
+                color: 'var(--foreground)',
               }}
             >
               {categoryName}
             </h1>
-            <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
+            <p style={{ color: 'var(--muted-foreground)', margin: 0 }}>
               Explora y participa en las discusiones de esta categoría.
             </p>
           </div>
@@ -118,7 +118,7 @@ export default async function CategoriaPage({
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.75rem 1.25rem',
-              background: 'var(--color-primary-500)',
+              background: 'var(--primary)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',

@@ -1,5 +1,5 @@
 .container {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
@@ -14,7 +14,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid #f1f5f9;
   padding-bottom: 1rem;
 }
 
@@ -25,33 +25,33 @@
 }
 
 .titleIcon {
-  color: var(--color-primary-500);
+  color: var(--primary);
 }
 
 .title {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   margin: 0;
   letter-spacing: 0.5px;
 }
 
 .sparkle {
-  color: var(--color-primary-400);
+  color: var(--primary);
   font-size: 1rem;
 }
 
 .viewAll {
   font-size: 0.9rem;
-  color: var(--color-primary-500);
+  color: var(--primary);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .viewAll:hover {
-  color: var(--color-primary-700);
+  color: var(--primary);
   text-decoration: underline;
 }
 
@@ -72,8 +72,8 @@
 }
 
 .postCard:hover {
-  background-color: #F8FAFC;
-  border-color: #E2E8F0;
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
 }
 
 .iconWrapper {
@@ -87,22 +87,22 @@
 }
 
 .blue {
-  background-color: #E0F2FE;
-  color: #0284C7;
+  background-color: #e0f2fe;
+  color: #0284c7;
 }
 
 .green {
-  background-color: #DCFCE7;
+  background-color: #dcfce7;
   color: #059669;
 }
 
 .purple {
-  background-color: #F3E8FF;
-  color: #7E22CE;
+  background-color: #f3e8ff;
+  color: #7e22ce;
 }
 
 .text-blue {
-  color: #0284C7;
+  color: #0284c7;
 }
 
 .text-green {
@@ -110,7 +110,7 @@
 }
 
 .text-purple {
-  color: #7E22CE;
+  color: #7e22ce;
 }
 
 .postContent {
@@ -137,7 +137,7 @@
 .postTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   margin: 0;
   line-height: 1.4;
 }
@@ -147,24 +147,24 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   flex-wrap: wrap;
 }
 
 .author {
-  color: var(--color-text-primary);
+  color: var(--foreground);
   font-weight: 500;
 }
 
 .dot {
-  color: #CBD5E1;
+  color: #cbd5e1;
 }
 
 .categoryTag {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
-  background-color: #F1F5F9;
+  color: var(--muted-foreground);
+  background-color: #f1f5f9;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   white-space: nowrap;

@@ -53,11 +53,11 @@ function SubjectStat({
   value: string | number;
 }) {
   return (
-    <div className="grid content-start gap-2 border border-border bg-card p-4 shadow-surface">
+    <div className="grid content-start gap-2 border border-border bg-card p-4">
       <span aria-hidden="true" className="text-primary">
         {icon}
       </span>
-      <strong className="font-serif text-3xl leading-none text-card-foreground">{value}</strong>
+      <strong className="font-sans text-3xl leading-none text-card-foreground">{value}</strong>
       <span className="font-mono text-[0.65rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
         {label}
       </span>
@@ -114,13 +114,13 @@ function MaterialList({ materials }: { materials: Material[] }) {
     <div className="grid gap-3">
       {materials.map((material) => (
         <Link
-          className="flex min-h-20 items-center gap-4 border border-border bg-card p-4 shadow-surface transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="flex min-h-20 items-center gap-4 border border-border bg-card p-4 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           href={`/materiales/${encodeURIComponent(material.id)}`}
           key={material.id}
         >
           <FileText aria-hidden="true" className="size-5 shrink-0 text-primary" strokeWidth={1.7} />
           <span className="min-w-0 flex-1">
-            <strong className="block truncate font-serif text-lg text-card-foreground">
+            <strong className="block truncate font-sans text-lg text-card-foreground">
               {material.title}
             </strong>
             <span className="mt-1 block font-sans text-sm text-muted-foreground">
@@ -231,7 +231,7 @@ export function SubjectHub({ code }: { code: string }) {
             <Sparkles aria-hidden="true" className="size-4" strokeWidth={1.8} />
             Materia
           </p>
-          <h1 className="mt-3 max-w-[16ch] font-serif text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
+          <h1 className="mt-3 max-w-[16ch] font-sans text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
             {subject.name}
           </h1>
           {subject.description ? (
@@ -284,12 +284,9 @@ export function SubjectHub({ code }: { code: string }) {
       </section>
 
       {subject.professors.length > 0 ? (
-        <section
-          aria-labelledby="subject-professors"
-          className="border border-border bg-card p-5 shadow-surface"
-        >
+        <section aria-labelledby="subject-professors" className="border border-border bg-card p-5">
           <h2
-            className="flex items-center gap-2 font-serif text-2xl font-bold text-card-foreground"
+            className="flex items-center gap-2 font-sans text-2xl font-bold text-card-foreground"
             id="subject-professors"
           >
             <Users aria-hidden="true" className="size-5 text-primary" strokeWidth={1.7} />
@@ -328,9 +325,7 @@ export function SubjectHub({ code }: { code: string }) {
           >
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">
-                  Reseñas de cursada
-                </h2>
+                <h2 className="font-sans text-3xl font-bold text-foreground">Reseñas de cursada</h2>
                 <p className="mt-2 font-sans text-muted-foreground">
                   Experiencias independientes de cursada para esta materia.
                 </p>
@@ -392,7 +387,7 @@ export function SubjectHub({ code }: { code: string }) {
           >
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">
+                <h2 className="font-sans text-3xl font-bold text-foreground">
                   Experiencias de final
                 </h2>
                 <p className="mt-2 font-sans text-muted-foreground">
@@ -448,7 +443,7 @@ export function SubjectHub({ code }: { code: string }) {
           >
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="font-serif text-3xl font-bold text-foreground">Materiales</h2>
+                <h2 className="font-sans text-3xl font-bold text-foreground">Materiales</h2>
                 <p className="mt-2 font-sans text-muted-foreground">
                   Recursos aprobados para esta materia.
                 </p>

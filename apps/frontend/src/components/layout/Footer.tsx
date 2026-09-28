@@ -8,7 +8,7 @@ export function Footer() {
           <div>
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center font-serif text-2xl font-bold"
+              className="inline-flex min-h-11 items-center font-sans text-2xl font-bold"
             >
               DevsProject
             </Link>

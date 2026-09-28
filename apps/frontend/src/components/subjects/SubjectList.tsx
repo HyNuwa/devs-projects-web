@@ -61,7 +61,7 @@ export function SubjectList() {
             <Sparkles aria-hidden="true" className="size-4" strokeWidth={1.8} />
             Archivo académico
           </p>
-          <h1 className="mt-3 max-w-[14ch] font-serif text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
+          <h1 className="mt-3 max-w-[14ch] font-sans text-5xl font-bold leading-[0.92] tracking-[-0.035em] text-foreground sm:text-6xl">
             Materias
           </h1>
           <p className="mt-4 max-w-2xl font-sans leading-relaxed text-muted-foreground">
@@ -135,13 +135,13 @@ export function SubjectList() {
         >
           {filteredSubjects.map((subject) => (
             <Link
-              className="group grid min-h-40 content-between border border-border bg-card p-5 shadow-surface transition-transform hover:-translate-y-0.5 hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="group grid min-h-40 content-between border border-border bg-card p-5 transition-transform hover:-translate-y-0.5 hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               href={subjectHref(subject)}
               key={subject.id}
             >
               <BookOpen aria-hidden="true" className="size-6 text-primary" strokeWidth={1.7} />
               <div className="mt-8">
-                <h2 className="font-serif text-2xl font-bold leading-tight text-card-foreground group-hover:text-primary">
+                <h2 className="font-sans text-2xl font-bold leading-tight text-card-foreground group-hover:text-primary">
                   {subject.name}
                 </h2>
                 <p className="mt-2 font-mono text-[0.68rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">

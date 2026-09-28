@@ -105,7 +105,7 @@ export function PixelNotebookHome() {
             </p>
             <h1
               id="pixel-notebook-home-title"
-              className="mt-4 max-w-[10ch] text-balance font-serif text-[clamp(3.25rem,6.8vw,5.8rem)] font-bold leading-[0.88] tracking-[-0.045em] text-foreground"
+              className="mt-4 max-w-[10ch] text-balance font-sans text-[clamp(3.25rem,6.8vw,5.8rem)] font-bold leading-[0.88] tracking-[-0.045em] text-foreground"
             >
               Tu{' '}
               <em className="font-inherit text-destructive underline decoration-[0.16em] decoration-accent underline-offset-[0.13em]">
@@ -113,7 +113,7 @@ export function PixelNotebookHome() {
               </em>
               .
             </h1>
-            <p className="mt-6 max-w-[54ch] font-serif text-lg leading-relaxed text-secondary-foreground sm:text-xl">
+            <p className="mt-6 max-w-[54ch] font-sans text-lg leading-relaxed text-secondary-foreground sm:text-xl">
               Reuní parciales, apuntes y experiencias para preparar una materia con una ruta clara.
             </p>
 
@@ -131,7 +131,7 @@ export function PixelNotebookHome() {
             >
               <form
                 aria-label="Buscar recursos académicos"
-                className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border border-border bg-card p-2 pl-4 shadow-field sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+                className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border border-border bg-card p-2 pl-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
                 onSubmit={handleSubmit}
                 role="search"
               >
@@ -163,7 +163,7 @@ export function PixelNotebookHome() {
                   aria-label="Sugerencias de búsqueda"
                   aria-live="polite"
                   id="homepage-suggestions"
-                  className="absolute inset-x-0 z-20 mt-2 max-h-[min(60dvh,32rem)] overflow-y-auto border border-primary bg-card shadow-surface"
+                  className="absolute inset-x-0 z-20 mt-2 max-h-[min(60dvh,32rem)] overflow-y-auto border border-primary bg-card"
                 >
                   {suggestionState.status === 'idle' || suggestionState.status === 'loading' ? (
                     <p className="flex items-center gap-2 px-4 py-4 font-sans text-sm text-muted-foreground">
@@ -260,7 +260,7 @@ export function PixelNotebookHome() {
             <nav aria-label="Atajos por tipo de recurso" className="mt-6 flex flex-wrap gap-2">
               {shortcuts.map(({ Icon, label, resourceType }) => (
                 <Link
-                  className="inline-flex min-h-11 items-center gap-2 border border-primary bg-background px-3 font-mono text-xs font-bold text-primary shadow-control outline-none transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="inline-flex min-h-11 items-center gap-2 border border-primary bg-background px-3 font-mono text-xs font-bold text-primary outline-none transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   href={toSearchHref({ resourceType })}
                   key={label}
                 >

@@ -58,7 +58,7 @@ function ResourceRows({ materials }: { materials: Material[] }) {
           key={material.id}
         >
           <span className="min-w-0 px-1 sm:px-3">
-            <span className="block truncate font-serif text-xl font-bold leading-tight text-foreground transition-colors group-hover:text-primary sm:text-2xl">
+            <span className="block truncate font-sans text-xl font-bold leading-tight text-foreground transition-colors group-hover:text-primary sm:text-2xl">
               {material.title}
             </span>
             <span className="mt-1 block text-sm text-secondary-foreground">
@@ -166,7 +166,7 @@ export function HomepageSupport() {
           <div className="lg:col-span-4">
             <BookOpenText aria-hidden="true" className="size-7 text-primary" strokeWidth={1.6} />
             <h2
-              className="mt-5 max-w-[12ch] font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
+              className="mt-5 max-w-[12ch] font-sans text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
               id="home-recent-subjects"
             >
               Materias con materiales recientes.
@@ -205,7 +205,7 @@ export function HomepageSupport() {
                     href={subject.href}
                     key={subject.id}
                   >
-                    <span className="block font-serif text-2xl font-bold leading-tight text-foreground group-hover:text-primary">
+                    <span className="block font-sans text-2xl font-bold leading-tight text-foreground group-hover:text-primary">
                       {subject.name}
                     </span>
                     <span className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-primary">
@@ -224,12 +224,12 @@ export function HomepageSupport() {
         <div className="mx-auto grid max-w-[1180px] gap-10 px-5 py-14 sm:px-10 lg:grid-cols-12 lg:gap-12 lg:py-20">
           <div className="lg:col-span-7">
             <h2
-              className="max-w-[14ch] font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
+              className="max-w-[14ch] font-sans text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
               id="home-recent-materials"
             >
               Materiales recientes.
             </h2>
-            <p className="mt-4 max-w-[48ch] font-serif text-lg leading-relaxed text-secondary-foreground">
+            <p className="mt-4 max-w-[48ch] font-sans text-lg leading-relaxed text-secondary-foreground">
               Recursos que se publicaron recientemente para que encuentres un punto de partida.
             </p>
           </div>
@@ -269,7 +269,7 @@ export function HomepageSupport() {
           <div className="lg:col-span-4">
             <FileText aria-hidden="true" className="size-7 text-primary" strokeWidth={1.6} />
             <h2
-              className="mt-5 max-w-[12ch] font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
+              className="mt-5 max-w-[12ch] font-sans text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
               id="home-final-materials"
             >
               Finales para preparar.
@@ -308,7 +308,7 @@ export function HomepageSupport() {
           <div className="lg:col-span-4">
             <MessageCircle aria-hidden="true" className="size-7 text-primary" strokeWidth={1.6} />
             <h2
-              className="mt-5 max-w-[11ch] font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
+              className="mt-5 max-w-[11ch] font-sans text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-5xl"
               id="home-student-experiences"
             >
               Experiencias de estudiantes.
@@ -347,12 +347,12 @@ export function HomepageSupport() {
           <div>
             <Upload aria-hidden="true" className="size-7" strokeWidth={1.6} />
             <h2
-              className="mt-5 max-w-[18ch] font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] sm:text-5xl"
+              className="mt-5 max-w-[18ch] font-sans text-4xl font-bold leading-[0.94] tracking-[-0.035em] sm:text-5xl"
               id="home-contribution"
             >
               ¿Tenés un recurso que puede ayudar?
             </h2>
-            <p className="mt-5 max-w-[54ch] font-serif text-lg leading-relaxed text-primary-foreground">
+            <p className="mt-5 max-w-[54ch] font-sans text-lg leading-relaxed text-primary-foreground">
               Compartilo con la comunidad. Se podrá consultar cuando esté publicado.
             </p>
           </div>

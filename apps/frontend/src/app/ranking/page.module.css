@@ -21,26 +21,26 @@
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--color-accent-gold);
+  color: var(--accent);
   margin-bottom: 0.75rem;
 }
 
 .headerLabel {
   font-size: 0.7rem;
   letter-spacing: 2px;
-  color: var(--color-primary-600);
+  color: var(--primary);
 }
 
 .title {
   font-size: 1.15rem;
-  color: var(--color-primary-700);
+  color: var(--primary);
   letter-spacing: 2px;
   margin: 0 0 0.75rem;
   text-shadow: 2px 2px 0 rgba(33, 150, 243, 0.12);
 }
 
 .subtitle {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 0.95rem;
   margin: 0;
 }

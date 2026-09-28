@@ -12,7 +12,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
@@ -20,7 +20,7 @@
 }
 
 .backLink:hover {
-  color: var(--color-primary-600);
+  color: var(--primary);
 }
 
 .header {
@@ -32,7 +32,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--color-accent-gold);
+  color: var(--accent);
   margin-bottom: 0.75rem;
 }
 
@@ -42,21 +42,21 @@
 }
 
 .title {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 2rem;
-  color: var(--color-primary-700);
+  color: var(--primary);
   letter-spacing: 0.02em;
   margin: 0 0 0.5rem 0;
 }
 
 .subtitle {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   margin: 0;
 }
 
 .form {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-primary-100);
+  background: var(--card);
+  border: 1px solid var(--secondary);
   border-radius: 16px;
   padding: 1.5rem;
   display: flex;
@@ -73,12 +73,12 @@
 .fieldLabel {
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .optional {
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 0.8rem;
 }
 
@@ -101,18 +101,18 @@
 .chip span {
   display: inline-block;
   padding: 0.5rem 1rem;
-  border: 1px solid var(--color-primary-100);
+  border: 1px solid var(--secondary);
   border-radius: 999px;
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-primary);
+  color: var(--muted-foreground);
+  background: var(--background);
   transition: all 0.2s ease;
 }
 
 .chip .radio:checked + span {
-  border-color: var(--color-primary-500);
-  background: var(--color-primary-50);
-  color: var(--color-primary-700);
+  border-color: var(--primary);
+  background: var(--secondary);
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -129,35 +129,37 @@
 }
 
 .starFilled {
-  color: var(--color-accent-gold);
-  fill: var(--color-accent-gold);
+  color: var(--accent);
+  fill: var(--accent);
 }
 
 .starEmpty {
-  color: var(--color-primary-100);
+  color: var(--secondary);
 }
 
 .textarea {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--color-primary-100);
+  border: 1px solid var(--secondary);
   border-radius: 10px;
-  background: var(--color-bg-primary);
+  background: var(--background);
   font-size: 0.95rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   resize: vertical;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .textarea:focus {
-  border-color: var(--color-primary-500);
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .fieldError {
   font-size: 0.8rem;
-  color: var(--color-accent-red);
+  color: var(--destructive);
 }
 
 .actions {
@@ -167,32 +169,32 @@
 }
 
 .cancelLink {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   text-decoration: none;
   font-size: 0.9rem;
 }
 
 .cancelLink:hover {
-  color: var(--color-primary-600);
+  color: var(--primary);
 }
 
 .stateBox {
   text-align: center;
   padding: 3rem 1rem;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-primary-100);
+  background: var(--card);
+  border: 1px solid var(--secondary);
   border-radius: 16px;
 }
 
 .stateText {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   margin: 0 0 1rem 0;
 }
 
 .loginBtn {
   display: inline-block;
   padding: 0.6rem 1.4rem;
-  background: var(--color-primary-500);
+  background: var(--primary);
   color: white;
   border-radius: 10px;
   text-decoration: none;

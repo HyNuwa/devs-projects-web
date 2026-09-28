@@ -107,7 +107,7 @@ export function ModerationPanel() {
         <header className={styles.header}>
           <div className={styles.headerBadge}>
             <Sparkles size={16} />
-            <span className={`${styles.headerLabel} font-pixel`}>MODERACIÓN</span>
+            <span className={`${styles.headerLabel} font-sans`}>MODERACIÓN</span>
             <Sparkles size={16} />
           </div>
           <h1 className={styles.title}>Materiales en revisión</h1>
