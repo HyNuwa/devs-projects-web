@@ -14,7 +14,7 @@
 ## 3. Navigation model
 
 - [ ] 3.1 Implement `components/layout/navigation.ts` (`primaryDestinations`, `uploadDestination`, `currentDestination`) test-first with a table-driven test that covers every current-destination scenario in `specs/frontend/app-shell`, including `/materias/x/resenar` → Experiencias and `/materiales/nuevo` → upload only; verify the test passes.
-- [ ] 3.2 Implement `accountMenuItems(user)` and `defaultAvatarFor(userId)` test-first (Moderación only for MODERATOR/ADMIN/SUPERADMIN; same id gives the same avatar; ids spread across all four); copy the four `av-*.png` avatars into `public/avatars/` as 96px WebP; verify the tests pass.
+- [x] 3.2 Implement `accountMenuItems(user)` and `defaultAvatarFor(userId)` test-first (Moderación only for MODERATOR/ADMIN/SUPERADMIN; same id gives the same avatar; ids spread across all four); copy the four `av-*.png` avatars into `public/avatars/` as 96px WebP; verify the tests pass.
 
 ## 4. Shell components
 
