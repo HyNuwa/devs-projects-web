@@ -29,7 +29,7 @@ export function PrototypeShell({ children }: { children: ReactNode }) {
 
         <span className={styles.prototypeBadge}>Prototipo · datos sintéticos</span>
       </header>
-      {/* The root layout owns the only <main> landmark. */}
+      {/* The (site) layout owns the only <main> landmark. */}
       <div id="prototype-content" className={styles.main} tabIndex={-1}>
         {children}
       </div>

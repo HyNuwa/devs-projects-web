@@ -27,7 +27,7 @@
 ## 5. Layouts and route groups
 
 - [x] 5.1 Move routes into `(site)` and the focus screens (`materiales/nuevo`, `materias/[codigo]/resenar`, `materias/[codigo]/final`) into `(focus)` with `git mv` in a dedicated commit; verify `pnpm build` produces the same URL list as before the move and `pnpm test` passes.
-- [ ] 5.2 Slim `app/layout.tsx` to html/body, fonts, providers, skip link and `<main>`; add `(site)`, `(focus)` and `(auth)` layouts per design.md; remove the old `Navbar`, `Footer` and their tests; verify layout tests assert each variant's header, bottom bar and footer presence, and that the skip link is the first focusable element.
+- [x] 5.2 Slim `app/layout.tsx` to html/body, fonts, providers, skip link and `<main>`; add `(site)`, `(focus)` and `(auth)` layouts per design.md; remove the old `Navbar`, `Footer` and their tests; verify layout tests assert each variant's header, bottom bar and footer presence, and that the skip link is the first focusable element.
 
 ## 6. Documentation
 

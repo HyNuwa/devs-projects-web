@@ -7,9 +7,6 @@ import { cn } from '@/components/ui/shadcn/utils';
 
 import { currentDestination, primaryDestinations, uploadDestination } from './navigation';
 
-/** Height of the bar's link row; layouts reserve this plus the safe area below lg. */
-export const BOTTOM_BAR_HEIGHT = '60px';
-
 // The canvas puts the emphasized Subir button in the middle of the bar.
 const [inicio, ...rest] = primaryDestinations;
 const items = [inicio, rest[0], uploadDestination, ...rest.slice(1)];

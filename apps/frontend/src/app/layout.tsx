@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { Caveat, Figtree } from 'next/font/google';
 import './globals.css';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { SkipLink } from '@/components/layout/SkipLink';
 import { ToastProvider } from '@/components/ui';
 import { AuthInitializer } from '@/components/auth/AuthInitializer';
 
@@ -34,19 +33,10 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${figtree.variable} ${caveat.variable}`}>
       <body>
-        <a
-          className="sr-only fixed left-4 top-4 z-[100] border border-primary bg-background px-4 py-3 font-sans text-sm font-bold text-primary focus:not-sr-only focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          href="#main-content"
-        >
-          Saltar al contenido principal
-        </a>
+        <SkipLink />
         <ToastProvider>
           <AuthInitializer />
-          <Navbar />
-          <main className="main-content" id="main-content" tabIndex={-1}>
-            {children}
-          </main>
-          <Footer />
+          {children}
         </ToastProvider>
       </body>
     </html>
