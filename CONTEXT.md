@@ -64,6 +64,14 @@ _Avoid_: Approved, verified, reviewed content
 The exception to publicación inmediata: a moderator must approve a publication before it becomes public because its author or content is considered risky (new or unverified account, recent retiro, content flagged as spam, organizer with retired events).
 _Avoid_: Aprobación para publicación, mandatory approval, verification
 
+**Rechazo en revisión previa**:
+The outcome of a revisión previa that a moderator did not approve. The publication stays private with a written reason, and its author can correct and resubmit it. It never was public, so it is distinct from a retiro.
+_Avoid_: Retiro, rejection of a published item, deletion
+
+**Revelación de autor**:
+A moderator's act of seeing who wrote a publicación anónima during moderation. It requires a stated reason, is recorded, and only admins review those records.
+_Avoid_: Unmasking, doxxing, author lookup
+
 **Reporte**:
 A signed-in student's claim, with one of the fixed reasons, that a publication breaks the community rules. A reporte never removes anything by itself; it opens or joins a caso de moderación and ends up confirmed or dismissed.
 _Avoid_: Flag, vote, automatic removal

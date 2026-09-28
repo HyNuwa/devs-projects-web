@@ -97,7 +97,7 @@ Cada reporte queda como **confirmado** (el contenido se retiró) o **desestimado
 El sistema oculta un contenido hasta que moderación lo revise cuando:
 
 - recibe **3 reportes de cuentas distintas en 48 horas**, contando solo cuentas con email verificado y más de 7 días de antigüedad; o
-- recibe **1 reporte por datos personales**, porque el daño es inmediato.
+- recibe **1 reporte por datos personales** de una cuenta con email verificado y más de 7 días de antigüedad, porque el daño es inmediato. Si lo hace una cuenta que no cumple esas condiciones, el reporte se suma al caso con prioridad alta pero no oculta el contenido.
 
 Los reportes de cuentas con *Reportes prioritarios* valen doble para este cálculo. El autor ve su contenido como «Oculto mientras se revisa» y no se le descuentan puntos hasta que haya una decisión.
 
@@ -186,8 +186,8 @@ El historial es de solo lectura: nadie puede editar ni borrar un registro.
 - **Reportes:** generalizar `CommunityReport` para cualquier contenido (materiales, reseñas, experiencias, eventos, avisos) y agregar estado del reporte (`OPEN`, `CONFIRMED`, `DISMISSED`).
 - **Nuevo `ModerationCase`:** agrupa los reportes de un contenido, con estado, facultad y quién lo resolvió.
 - **Nuevo `Appeal`:** decisión apelada, explicación, estado, quién la revisó y razón.
-- **Nuevo `ModeratorScope`:** qué facultades cubre cada moderador.
-- **Nuevo `AuthorReveal`:** cada uso de «Ver autor» (moderador, publicación, motivo, fecha).
+- **Nuevo `ModeratorScope`:** qué facultades cubre cada moderador. Llega con el modelo de Facultad (cambio Universidad/Facultad); hasta entonces todo moderador ve todos los casos.
+- **Revelación de autor:** cada uso de «Ver autor» (moderador, publicación, motivo, fecha) se guarda como un evento `AUTHOR_REVEALED` del historial único, visible solo para `ADMIN`.
 - **Advertencias:** agregar `WARN_USER` a `ModerationAction`.
 - **Organizadores:** nuevos `Organization` (verificada o no) y `OrganizationMember`.
 
