@@ -63,6 +63,9 @@ Figtree (variable, 400–900) and Caveat (600, 700) are loaded in the root layou
 - `app/(focus)/layout.tsx`: `SiteHeader` + children + `SiteFooter`, no `BottomBar`. It holds `materiales/nuevo`, `materias/[codigo]/resenar` and `materias/[codigo]/final`, moved with `git mv`, so URLs don't change.
 - `app/(auth)/layout.tsx`: `AccessHeader` (logo plus one complementary link: `Ingresar` when the selected segments include `register`, `Crear cuenta` otherwise, read with `useSelectedLayoutSegments`) + children.
 
+- `app/(prototype)/layout.tsx`: only `MainContent`, for the Pixel Notebook validation prototype, which brings its own header.
+- `app/not-found.tsx`: unknown URLs render outside every group, so it composes the full shell itself.
+
 All remaining top-level routes move under `(site)`. Route groups do not change URLs, so links, `proxy.ts` matchers and tests stay valid. The move is its own commit so the diff is reviewable.
 *Alternative considered*: one shell that hides parts by `usePathname()`. Rejected in grilling (P13) because every new focus screen would edit the shell.
 

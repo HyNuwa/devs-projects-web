@@ -180,7 +180,7 @@
 
 .card:hover {
   transform: translateY(-6px);
-  border-color: var(--secondary);
+  border-color: var(--primary);
   box-shadow: 0 12px 28px rgba(33, 150, 243, 0.16);
 }
 

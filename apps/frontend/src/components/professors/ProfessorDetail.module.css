@@ -312,7 +312,7 @@
 }
 
 .emptyIcon {
-  color: var(--secondary);
+  color: var(--muted-foreground);
 }
 
 /* Stars */

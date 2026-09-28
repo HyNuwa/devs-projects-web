@@ -49,6 +49,8 @@ describe('verify-design-tokens', () => {
     ['a legacy background alias', 'background: var(--color-bg-secondary);'],
     ['the legacy heading font', 'font-family: var(--font-heading);'],
     ['the pixel font variable', 'font-family: var(--font-pixel);'],
+    ['the serif font variable', 'font-family: var(--font-serif);'],
+    ['the Press Start 2P family by name', "font-family: 'Press Start 2P', monospace;"],
   ])('fails with file and line when a stylesheet uses %s', (_label, declaration) => {
     const root = fixtureRoot();
     writeFileSync(
@@ -65,6 +67,7 @@ describe('verify-design-tokens', () => {
   it.each([
     ['the pixel font class', 'font-pixel'],
     ['the serif font class', 'font-serif'],
+    ['a removed offset-shadow class', 'shadow-control'],
   ])('fails when a component uses %s', (_label, className) => {
     const root = fixtureRoot();
     edit(root, 'src/components/Card.tsx', (source) => source.replace('font-sans', className));

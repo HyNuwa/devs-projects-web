@@ -10,6 +10,15 @@
   /* Allow clicking through the container */
 }
 
+/* Below lg the shell's bottom bar (62px + safe area) sits at the bottom edge. */
+@media (width < 64rem) {
+  .toastContainer {
+    bottom: calc(62px + env(safe-area-inset-bottom) + 1rem);
+    right: 1rem;
+    left: 1rem;
+  }
+}
+
 .toast {
   display: flex;
   align-items: center;

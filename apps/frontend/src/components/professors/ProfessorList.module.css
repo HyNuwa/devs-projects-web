@@ -142,7 +142,7 @@
 
 .card:hover {
   transform: translateY(-3px);
-  border-color: var(--secondary);
+  border-color: var(--primary);
   box-shadow: 0 10px 24px rgba(33, 150, 243, 0.14);
 }
 
@@ -235,7 +235,7 @@
 }
 
 .emptyIcon {
-  color: var(--secondary);
+  color: var(--muted-foreground);
 }
 
 .emptyTitle {

@@ -127,7 +127,7 @@ Source-owned shadcn components in `src/components/ui/shadcn`:
 - **Account menu** (`AccountMenu`): avatar pill (user image or a default cat from `public/avatars/`). On desktop a dropdown; below `lg` a bottom sheet. Entries: Mi perfil, Mis envíos, Moderación (moderators and admins), Cerrar sesión.
 - **Bottom bar** (`BottomBar`, below `lg`): Inicio · Materias · **Subir** (raised pop button) · Experiencias, fixed with safe-area padding. There is no hamburger menu.
 - **Footer** (`SiteFooter`): brand, one-line description, the primary destinations and Subir material.
-- **Variants** by route group: `(site)` full shell; `(focus)` (upload, write a reseña or final) without the bottom bar; `(auth)` only the reduced `AccessHeader`.
+- **Variants** by route group: `(site)` full shell; `(focus)` (upload, write a reseña or final) without the bottom bar; `(auth)` only the reduced `AccessHeader`; `(prototype)` (the Pixel Notebook validation prototype) only the `<main>` landmark. `app/not-found.tsx` renders the full shell itself.
 - Destinations come from `src/components/layout/navigation.ts`. Add a destination there only when its page exists.
 
 ## Do's and don'ts

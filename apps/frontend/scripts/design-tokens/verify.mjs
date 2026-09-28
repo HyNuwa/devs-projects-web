@@ -9,10 +9,11 @@ const forbiddenPatterns = [
   [/--color-accent-(?!foreground\b)[a-z]+/, 'legacy accent alias'],
   [/--color-bg-[a-z]+/, 'legacy background alias'],
   [/--color-text-[a-z]+/, 'legacy text alias'],
-  [/--font-(?:heading|body|pixel)\b/, 'legacy font variable'],
+  [/--font-(?:heading|body|pixel|serif)\b/, 'legacy font variable'],
   [/--paper-ruled\b/, 'Pixel Notebook ruled paper'],
   [/(?<![\w-])font-(?:pixel|serif)\b/, 'legacy font class'],
-  [/Press_Start_2P/, 'Press Start 2P font'],
+  [/(?<![\w-])(?:[a-z-]+:)*shadow-(?:control|surface|field)\b/, 'removed offset-shadow class'],
+  [/Press[ _]Start[ _]2P/i, 'Press Start 2P font'],
   [/pixel-notebook-tokens\.css/, 'Pixel Notebook token file'],
 ];
 

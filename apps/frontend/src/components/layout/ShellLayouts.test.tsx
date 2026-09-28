@@ -14,7 +14,9 @@ vi.mock('@/stores/authStore', () => ({
 
 import AccessLayout from '@/app/(auth)/layout';
 import FocusLayout from '@/app/(focus)/layout';
+import PrototypeLayout from '@/app/(prototype)/layout';
 import SiteLayout from '@/app/(site)/layout';
+import NotFound from '@/app/not-found';
 
 import { SkipLink } from './SkipLink';
 
@@ -50,10 +52,31 @@ describe('shell layouts', () => {
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
   });
 
+  it('keeps the validation prototype free of the production shell', () => {
+    render(<PrototypeLayout>{page}</PrototypeLayout>);
+
+    expect(screen.getByRole('main')).toHaveTextContent('Contenido');
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+  });
+
+  it('frames unknown URLs with the full shell and one main region', () => {
+    render(<NotFound />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Esta página no existe.' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/');
+  });
+
   it.each([
     ['site', SiteLayout],
     ['focus', FocusLayout],
     ['access', AccessLayout],
+    ['prototype', PrototypeLayout],
   ])('puts the skip link first and targets the %s main region', async (_name, Layout) => {
     const user = userEvent.setup();
     render(

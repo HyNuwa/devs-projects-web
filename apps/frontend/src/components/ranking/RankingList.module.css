@@ -144,11 +144,11 @@
 }
 
 .rowTop.silver {
-  border-left-color: var(--muted);
+  border-left-color: var(--muted-foreground);
 }
 
 .rowTop.bronze {
-  border-left-color: var(--accent);
+  border-left-color: color-mix(in srgb, var(--accent) 55%, var(--foreground));
 }
 
 .position {
@@ -172,12 +172,12 @@
 }
 
 .silverIcon {
-  color: var(--muted);
+  color: var(--muted-foreground);
   filter: drop-shadow(0 2px 4px rgba(192, 199, 209, 0.4));
 }
 
 .bronzeIcon {
-  color: var(--accent);
+  color: color-mix(in srgb, var(--accent) 55%, var(--foreground));
   filter: drop-shadow(0 2px 4px rgba(205, 127, 50, 0.4));
 }
 
@@ -276,7 +276,7 @@
 }
 
 .stateIcon {
-  color: var(--secondary);
+  color: var(--muted-foreground);
 }
 
 .errorText {
@@ -321,7 +321,7 @@
 
 .pageBtn:hover:not(:disabled) {
   background: var(--secondary);
-  border-color: var(--secondary);
+  border-color: var(--primary);
   color: var(--primary);
 }
 
