@@ -7,9 +7,9 @@
 
 ## 2. Base components
 
-- [ ] 2.1 Restyle `ui/shadcn/button.tsx` to the canvas (radius, 1.5px outline, solid blue primary, white outlined secondary, ghost) and add the `pop` variant; verify existing button tests pass and a new test covers `pop` and 44px minimum targets.
-- [ ] 2.2 Restyle `chip`, `field`, `input`, `breadcrumb` and `state` without changing their props; verify `shadcn-primitives.test.tsx`, `breadcrumb.test.tsx` and `filter-sheet.test.tsx` pass and focus rings remain visible (class assertions on `focus-visible:ring`).
-- [ ] 2.3 Add source-owned `ui/shadcn/dropdown-menu.tsx` on `@radix-ui/react-dropdown-menu`; verify the package installs and a smoke test opens it with the keyboard.
+- [x] 2.1 Restyle `ui/shadcn/button.tsx` to the canvas (radius, 1.5px outline, solid blue primary, white outlined secondary, ghost) and add the `pop` variant; verify existing button tests pass and a new test covers `pop` and 44px minimum targets.
+- [x] 2.2 Restyle `chip`, `field`, `input`, `breadcrumb` and `state` without changing their props; verify `shadcn-primitives.test.tsx`, `breadcrumb.test.tsx` and `filter-sheet.test.tsx` pass and focus rings remain visible (class assertions on `focus-visible:ring`).
+- [x] 2.3 Add source-owned `ui/shadcn/dropdown-menu.tsx` on `@radix-ui/react-dropdown-menu`; verify the package installs and a smoke test opens it with the keyboard.
 
 ## 3. Navigation model
 

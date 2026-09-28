@@ -3,14 +3,14 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from './utils';
 
 const chipVariants = cva(
-  'inline-flex min-h-9 items-center border px-3 font-sans text-xs font-bold tracking-[0.04em]',
+  'inline-flex min-h-7 items-center gap-1.5 rounded-sm border px-2.5 font-sans text-xs font-extrabold',
   {
     variants: {
       tone: {
-        neutral: 'border-border bg-muted text-muted-foreground',
-        accent: 'border-primary bg-accent text-accent-foreground',
-        success: 'border-success bg-success/10 text-success',
-        destructive: 'border-destructive bg-destructive/10 text-destructive',
+        neutral: 'border-transparent bg-muted text-foreground',
+        accent: 'border-transparent bg-accent/30 text-accent-foreground',
+        success: 'border-transparent bg-success/12 text-success',
+        destructive: 'border-transparent bg-destructive/10 text-destructive',
       },
     },
     defaultVariants: {

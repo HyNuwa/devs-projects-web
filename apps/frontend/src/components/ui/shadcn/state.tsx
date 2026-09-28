@@ -24,7 +24,7 @@ function StatePanel({
       data-status={status}
       data-slot="state-panel"
       className={cn(
-        'flex min-h-40 flex-col items-center justify-center gap-3 border border-border bg-card px-6 py-8 text-center',
+        'flex min-h-40 flex-col items-center justify-center gap-3 rounded-xl border-[1.5px] border-border bg-card px-6 py-8 text-center',
         className,
       )}
       {...props}
