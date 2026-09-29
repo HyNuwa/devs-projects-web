@@ -117,7 +117,12 @@ INSERT INTO "reports" ("id", "case_id", "reporter_id", "reason", "explanation", 
 SELECT r."id", c."id", r."reporter_id", r."reason", r."explanation",
   CASE WHEN c."status" = 'CLOSED' THEN 'CONFIRMED'::"ReportStatus" ELSE 'OPEN'::"ReportStatus" END,
   c."target_type", r."course_review_id", r."exam_experience_id", r."created_at", c."closed_at"
-FROM "community_reports" r
+FROM (
+  -- The old table allowed repeated reports from one account; keep the first one.
+  SELECT DISTINCT ON ("reporter_id", "course_review_id", "exam_experience_id") *
+  FROM "community_reports"
+  ORDER BY "reporter_id", "course_review_id", "exam_experience_id", "created_at", "id"
+) r
 JOIN "moderation_cases" c
   ON c."course_review_id" IS NOT DISTINCT FROM r."course_review_id"
  AND c."exam_experience_id" IS NOT DISTINCT FROM r."exam_experience_id"

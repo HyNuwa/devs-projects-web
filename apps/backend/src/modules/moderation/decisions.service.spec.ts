@@ -28,12 +28,16 @@ describe('DecisionsService.decide', () => {
   let service: DecisionsService;
 
   const prisma = {
-    moderationCase: { findUnique: jest.fn(), update: jest.fn() },
+    moderationCase: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      updateMany: jest.fn(),
+    },
     report: { updateMany: jest.fn() },
     moderationEvent: { create: jest.fn() },
-    material: { findUnique: jest.fn(), update: jest.fn() },
-    courseReview: { findUnique: jest.fn(), update: jest.fn() },
-    examExperience: { findUnique: jest.fn(), update: jest.fn() },
+    material: { findUnique: jest.fn(), updateMany: jest.fn() },
+    courseReview: { findUnique: jest.fn(), updateMany: jest.fn() },
+    examExperience: { findUnique: jest.fn(), updateMany: jest.fn() },
     subject: { update: jest.fn() },
     $transaction: jest.fn(),
   };
@@ -64,6 +68,7 @@ describe('DecisionsService.decide', () => {
       decision: null,
       ...fixture,
     });
+    prisma.moderationCase.findFirst.mockResolvedValue({ id: fixture.id });
   }
 
   const materialCase = (overrides: Partial<CaseFixture> = {}): CaseFixture => ({
@@ -79,6 +84,14 @@ describe('DecisionsService.decide', () => {
   beforeEach(async () => {
     jest.useFakeTimers().setSystemTime(NOW);
     jest.clearAllMocks();
+    for (const delegate of [
+      prisma.moderationCase,
+      prisma.material,
+      prisma.courseReview,
+      prisma.examExperience,
+    ]) {
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+    }
     prisma.$transaction.mockImplementation(
       async (work: (tx: typeof prisma) => unknown) => work(prisma),
     );
@@ -115,8 +128,8 @@ describe('DecisionsService.decide', () => {
       decision: 'KEEP_VISIBLE',
       status: 'PUBLISHED',
     });
-    expect(prisma.material.update).toHaveBeenCalledWith({
-      where: { id: 'mat-1' },
+    expect(prisma.material.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 'mat-1' }),
       data: expect.objectContaining({
         publicationStatus: 'PUBLISHED',
         hiddenAt: null,
@@ -126,8 +139,8 @@ describe('DecisionsService.decide', () => {
       where: { caseId: 'case-1', status: 'OPEN' },
       data: { status: 'DISMISSED', resolvedAt: NOW },
     });
-    expect(prisma.moderationCase.update).toHaveBeenCalledWith({
-      where: { id: 'case-1' },
+    expect(prisma.moderationCase.updateMany).toHaveBeenCalledWith({
+      where: { id: 'case-1', status: 'OPEN' },
       data: expect.objectContaining({
         status: 'CLOSED',
         closedAt: NOW,
@@ -161,8 +174,8 @@ describe('DecisionsService.decide', () => {
       reason: 'Ataca a una persona en lugar de contar la cursada.',
     });
 
-    expect(prisma.courseReview.update).toHaveBeenCalledWith({
-      where: { id: 'rev-1' },
+    expect(prisma.courseReview.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 'rev-1' }),
       data: expect.objectContaining({
         publicationStatus: 'REMOVED',
         authorFacingReason:
@@ -244,7 +257,7 @@ describe('DecisionsService.decide', () => {
         reason: 'Los datos ya estaban tapados.',
       }),
     });
-    expect(prisma.moderationCase.update).not.toHaveBeenCalled();
+    expect(prisma.moderationCase.updateMany).not.toHaveBeenCalled();
   });
 
   it('approves a material in revisión previa: publishes its staged file, awards points and closes the caso', async () => {
@@ -254,8 +267,8 @@ describe('DecisionsService.decide', () => {
     await service.decide('case-1', 'mod-1', { decision: 'APPROVE' });
 
     expect(materials.publishStagedFile).toHaveBeenCalledWith('mat-1');
-    expect(prisma.material.update).toHaveBeenCalledWith({
-      where: { id: 'mat-1' },
+    expect(prisma.material.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 'mat-1' }),
       data: expect.objectContaining({
         publicationStatus: 'PUBLISHED',
         fileUrl: 'https://drive/f',
@@ -285,8 +298,8 @@ describe('DecisionsService.decide', () => {
       reason: 'Tapá los DNI y volvé a enviarlo.',
     });
 
-    expect(prisma.material.update).toHaveBeenCalledWith({
-      where: { id: 'mat-1' },
+    expect(prisma.material.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 'mat-1' }),
       data: expect.objectContaining({
         publicationStatus: 'REJECTED',
         authorFacingReason: 'Tapá los DNI y volvé a enviarlo.',
@@ -306,7 +319,7 @@ describe('DecisionsService.decide', () => {
     await expect(
       service.decide('case-1', moderatorId, { decision: 'KEEP_VISIBLE' }),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(prisma.material.update).not.toHaveBeenCalled();
+    expect(prisma.material.updateMany).not.toHaveBeenCalled();
   });
 
   it('refuses deciding a closed caso again', async () => {
@@ -331,5 +344,60 @@ describe('DecisionsService.decide', () => {
         reason: 'error',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  describe('when two decisions race on one caso', () => {
+    it('refuses the one that finds the caso already closed, without touching points', async () => {
+      withCase(materialCase());
+      prisma.material.findUnique.mockResolvedValue(material('PUBLISHED'));
+      prisma.moderationCase.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.decide('case-1', 'mod-1', {
+          decision: 'REMOVE',
+          reason: 'Datos personales',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(points.revertFor).not.toHaveBeenCalled();
+      expect(prisma.moderationEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('changes the content only from the status it was read in', async () => {
+      withCase(materialCase({ status: 'CLOSED', decision: 'REMOVE' }));
+      prisma.material.findUnique.mockResolvedValue(material('REMOVED'));
+      prisma.material.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.decide('case-1', 'mod-1', {
+          decision: 'RESTORE',
+          reason: 'Error de moderación',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.material.updateMany).toHaveBeenCalledWith({
+        where: { id: 'mat-1', publicationStatus: 'REMOVED' },
+        data: expect.objectContaining({ publicationStatus: 'PUBLISHED' }),
+      });
+      expect(points.awardFor).not.toHaveBeenCalled();
+    });
+  });
+
+  it('restores only from the most recent caso of the content', async () => {
+    withCase(materialCase({ status: 'CLOSED', decision: 'REMOVE' }));
+    prisma.moderationCase.findFirst.mockResolvedValue({ id: 'case-newer' });
+    prisma.material.findUnique.mockResolvedValue(material('REMOVED'));
+
+    await expect(
+      service.decide('case-1', 'mod-1', {
+        decision: 'RESTORE',
+        reason: 'Error',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.moderationCase.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { materialId: 'mat-1' },
+        orderBy: [{ openedAt: 'desc' }, { id: 'desc' }],
+      }),
+    );
+    expect(points.awardFor).not.toHaveBeenCalled();
   });
 });

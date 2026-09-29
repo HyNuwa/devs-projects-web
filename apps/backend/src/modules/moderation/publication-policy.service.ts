@@ -28,22 +28,36 @@ export class PublicationPolicy {
     authorId: string,
     now = new Date(),
   ): Promise<PriorReviewReason | null> {
-    const [author, lastRemoval] = await Promise.all([
+    // Only content that is still retired counts: a restored retiro was undone.
+    const retired = {
+      orderBy: { statusChangedAt: 'desc' },
+      select: { statusChangedAt: true },
+    } as const;
+    const [author, ...lastRetired] = await Promise.all([
       this.prisma.user.findUniqueOrThrow({
         where: { id: authorId },
         select: { createdAt: true, emailVerified: true },
       }),
-      this.prisma.moderationEvent.findFirst({
-        where: { action: 'REMOVED', targetUserId: authorId },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true },
+      this.prisma.material.findFirst({
+        where: { authorId, publicationStatus: 'REMOVED' },
+        ...retired,
+      }),
+      this.prisma.courseReview.findFirst({
+        where: { userId: authorId, publicationStatus: 'REMOVED' },
+        ...retired,
+      }),
+      this.prisma.examExperience.findFirst({
+        where: { userId: authorId, publicationStatus: 'REMOVED' },
+        ...retired,
       }),
     ]);
+    const lastRemovalAt =
+      lastRetired
+        .map((entry) => entry?.statusChangedAt ?? null)
+        .filter((date): date is Date => date !== null)
+        .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
 
-    return priorReviewReason(
-      { ...author, lastRemovalAt: lastRemoval?.createdAt ?? null },
-      now,
-    );
+    return priorReviewReason({ ...author, lastRemovalAt }, now);
   }
 
   /** Opens the revisión previa caso and records why, inside the caller's transaction. */

@@ -26,7 +26,7 @@ import {
 import { toMaterialPreview } from './material-preview.mapper';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
 import type { PriorReviewReason } from '../moderation/rules';
-import { publicVisibility } from '../moderation/visibility';
+import { isPubliclyVisible, publicVisibility } from '../moderation/visibility';
 
 const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
@@ -273,14 +273,26 @@ export class MaterialsService {
         isDeleted: false,
         publicationStatus: { in: ['PUBLISHED', 'PENDING_REVIEW', 'HIDDEN'] },
       },
-      select: { id: true },
+      select: { id: true, publicationStatus: true, hiddenAt: true },
     });
     if (existing) {
-      throw new ConflictException({
-        code: 'DUPLICATE_MATERIAL',
-        materialId: existing.id,
-        message: 'Este archivo ya está publicado en esta materia',
-      });
+      // Only a public copy is named: a pending or hidden one is not the
+      // uploader's to see.
+      throw new ConflictException(
+        isPubliclyVisible(existing, new Date())
+          ? {
+              code: 'DUPLICATE_MATERIAL',
+              visible: true,
+              materialId: existing.id,
+              message: 'Este archivo ya está publicado en esta materia',
+            }
+          : {
+              code: 'DUPLICATE_MATERIAL',
+              visible: false,
+              message:
+                'Este archivo ya se subió a esta materia y está en revisión',
+            },
+      );
     }
   }
 
@@ -378,14 +390,19 @@ export class MaterialsService {
 
   private async assertUploadLimit(userId: string, now = new Date()) {
     const since = new Date(now.getTime() - UPLOAD_WINDOW_MS);
-    const recent = await this.prisma.material.count({
+    const recent = await this.prisma.material.findMany({
       where: { authorId: userId, createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: DAILY_UPLOAD_LIMIT,
+      select: { createdAt: true },
     });
-    if (recent >= DAILY_UPLOAD_LIMIT) {
+    if (recent.length >= DAILY_UPLOAD_LIMIT) {
+      // A slot frees up when the oldest of these leaves the 24-hour window.
+      const oldest = recent[DAILY_UPLOAD_LIMIT - 1].createdAt;
       throw new HttpException(
         {
           code: 'UPLOAD_LIMIT',
-          retryAt: new Date(now.getTime() + UPLOAD_WINDOW_MS).toISOString(),
+          retryAt: new Date(oldest.getTime() + UPLOAD_WINDOW_MS).toISOString(),
           message: `Podés subir hasta ${DAILY_UPLOAD_LIMIT} materiales por día`,
         },
         HttpStatus.TOO_MANY_REQUESTS,

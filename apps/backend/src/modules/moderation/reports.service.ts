@@ -26,6 +26,10 @@ export class ReportsService {
     const now = new Date();
 
     await this.prisma.$transaction(async (tx) => {
+      // Reportes on one content run one at a time: two first reportes would
+      // otherwise both open a caso (one fails the unique index), and each would
+      // count only its own report towards the hiding threshold.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${target.id}, 0))`;
       const snapshot = await loadTarget(tx, target);
       if (!snapshot || !isPubliclyVisible(snapshot, now)) {
         throw new NotFoundException('La publicación no está disponible');
@@ -90,7 +94,9 @@ export class ReportsService {
         });
       }
 
-      if (decision === 'HIDE' && snapshot.publicationStatus === 'PUBLISHED') {
+      const hides =
+        decision === 'HIDE_PERSONAL_DATA' || decision === 'HIDE_REPORT_COUNT';
+      if (hides && snapshot.publicationStatus === 'PUBLISHED') {
         await updateTargetStatus(tx, target, {
           publicationStatus: 'HIDDEN',
           hiddenAt: now,
@@ -103,9 +109,10 @@ export class ReportsService {
             ...columns,
             targetUserId: snapshot.authorId,
             caseId: moderationCase.id,
-            reason: personalData
-              ? '1 reporte por datos personales'
-              : '3 reportes en 48 h',
+            reason:
+              decision === 'HIDE_PERSONAL_DATA'
+                ? '1 reporte por datos personales'
+                : '3 reportes en 48 h',
             metadata: { label: snapshot.label },
           },
         });

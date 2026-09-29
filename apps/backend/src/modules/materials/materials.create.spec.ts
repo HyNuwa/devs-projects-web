@@ -16,7 +16,7 @@ describe('MaterialsService.create (publicación inmediata)', () => {
   let service: MaterialsService;
 
   const prisma = {
-    material: { create: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
+    material: { create: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
     subject: { findUnique: jest.fn(), update: jest.fn() },
     subjectProfessor: { findUnique: jest.fn() },
     $transaction: jest.fn(),
@@ -44,7 +44,7 @@ describe('MaterialsService.create (publicación inmediata)', () => {
     prisma.subject.findUnique.mockResolvedValue({ id: 'sub-1' });
     prisma.material.findFirst.mockResolvedValue(null);
     storage.discard.mockResolvedValue(undefined);
-    prisma.material.count.mockResolvedValue(0);
+    prisma.material.findMany.mockResolvedValue([]);
     prisma.material.create.mockImplementation(async ({ data }) => ({
       id: 'mat-1',
       ...data,
@@ -141,7 +141,11 @@ describe('MaterialsService.create (publicación inmediata)', () => {
   });
 
   it('refuses an exact duplicate in the same materia and points to the existing material', async () => {
-    prisma.material.findFirst.mockResolvedValue({ id: 'existing-7' });
+    prisma.material.findFirst.mockResolvedValue({
+      id: 'existing-7',
+      publicationStatus: 'PUBLISHED',
+      hiddenAt: null,
+    });
 
     const error = await service
       .create(dto, file, 'user-1')
@@ -167,8 +171,39 @@ describe('MaterialsService.create (publicación inmediata)', () => {
     expect(storage.stage).not.toHaveBeenCalled();
   });
 
-  it('refuses the eleventh upload within 24 hours with a retry time', async () => {
-    prisma.material.count.mockResolvedValue(10);
+  it('refuses a duplicate of a copy that is not public without revealing which one', async () => {
+    prisma.material.findFirst.mockResolvedValue({
+      id: 'pending-3',
+      publicationStatus: 'PENDING_REVIEW',
+      hiddenAt: null,
+    });
+
+    const error = await service
+      .create(dto, file, 'user-1')
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ConflictException);
+    const body = (error as ConflictException).getResponse() as Record<
+      string,
+      unknown
+    >;
+    expect(body).toEqual(
+      expect.objectContaining({ code: 'DUPLICATE_MATERIAL', visible: false }),
+    );
+    expect(body).not.toHaveProperty('materialId');
+    expect(body.message).not.toContain('publicado');
+  });
+
+  it('refuses the eleventh upload within 24 hours, retrying when the oldest leaves the window', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-29T12:00:00.000Z'));
+    // The ten most recent uploads, newest first: the oldest was 23 hours ago.
+    prisma.material.findMany.mockResolvedValue(
+      Array.from({ length: 10 }, (_, index) => ({
+        createdAt: new Date(
+          Date.parse('2026-09-29T12:00:00.000Z') - (index * 23 * 3_600_000) / 9,
+        ),
+      })),
+    );
 
     const error = await service
       .create(dto, file, 'user-1')
@@ -179,10 +214,17 @@ describe('MaterialsService.create (publicación inmediata)', () => {
     expect((error as HttpException).getResponse()).toEqual(
       expect.objectContaining({
         code: 'UPLOAD_LIMIT',
-        retryAt: expect.any(String),
+        retryAt: '2026-09-29T13:00:00.000Z',
+      }),
+    );
+    expect(prisma.material.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
       }),
     );
     expect(storage.stage).not.toHaveBeenCalled();
+    jest.useRealTimers();
   });
 
   it('refuses an empty file before storing anything', async () => {

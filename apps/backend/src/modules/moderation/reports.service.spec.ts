@@ -29,6 +29,7 @@ describe('ReportsService.file', () => {
       update: jest.fn(),
     },
     moderationEvent: { create: jest.fn() },
+    $executeRaw: jest.fn(),
     $transaction: jest.fn(),
   };
 
@@ -117,6 +118,40 @@ describe('ReportsService.file', () => {
       }),
     });
     expect(prisma.material.update).not.toHaveBeenCalled();
+  });
+
+  it('serializes reportes on the same content before reading anything', async () => {
+    await file();
+
+    const [lockCall] = prisma.$executeRaw.mock.calls as unknown[][];
+    expect((lockCall[0] as string[]).join('?')).toContain(
+      'pg_advisory_xact_lock',
+    );
+    expect(lockCall).toContain('mat-1');
+    expect(prisma.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.material.findUnique.mock.invocationCallOrder[0],
+    );
+    expect(prisma.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.moderationCase.findFirst.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('logs the rule that hid it, not an unqualified personal-data reporte', async () => {
+    openReports(
+      { reporterId: 'new', reason: 'DATOS_PERSONALES', reporter: newcomer },
+      { reporterId: 'a', hours: 2 },
+      { reporterId: 'b', hours: 1 },
+      { reporterId: 'reporter-1' },
+    );
+
+    await file();
+
+    expect(prisma.moderationEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'AUTO_HIDDEN',
+        reason: '3 reportes en 48 h',
+      }),
+    });
   });
 
   it('joins the open caso instead of opening another one', async () => {

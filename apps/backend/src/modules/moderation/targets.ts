@@ -107,3 +107,39 @@ export async function updateTargetStatus(
       return client.examExperience.update({ where: { id: target.id }, data });
   }
 }
+
+/**
+ * Writes a status change only while the content is still in `from`, so a
+ * concurrent decision that got there first makes this one a no-op.
+ * Returns whether the row changed.
+ */
+export async function updateTargetStatusFrom(
+  client: Client,
+  target: ModerationTarget,
+  from: PublicationStatus,
+  data: StatusChange,
+): Promise<boolean> {
+  const where = { id: target.id, publicationStatus: from };
+  switch (target.type) {
+    case 'MATERIAL':
+      return (await client.material.updateMany({ where, data })).count > 0;
+    case 'COURSE_REVIEW':
+      return (await client.courseReview.updateMany({ where, data })).count > 0;
+    case 'EXAM_EXPERIENCE':
+      return (
+        (await client.examExperience.updateMany({ where, data })).count > 0
+      );
+  }
+}
+
+/** The `where` that finds rows pointing at a target (casos, reportes). */
+export function targetWhere(target: ModerationTarget) {
+  switch (target.type) {
+    case 'MATERIAL':
+      return { materialId: target.id };
+    case 'COURSE_REVIEW':
+      return { courseReviewId: target.id };
+    case 'EXAM_EXPERIENCE':
+      return { examExperienceId: target.id };
+  }
+}

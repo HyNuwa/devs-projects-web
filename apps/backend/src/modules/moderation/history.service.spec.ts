@@ -141,6 +141,58 @@ describe('HistoryService', () => {
       expect(JSON.stringify(page)).not.toContain('juan.p');
     });
 
+    describe('when the author of an anonymous entry acts (a resubmission)', () => {
+      const resubmitted = {
+        id: 'ev-0',
+        createdAt: NOW,
+        actorId: 'author-2',
+        action: 'RESUBMITTED',
+        targetType: 'COURSE_REVIEW',
+        materialId: null,
+        courseReviewId: 'rev-1',
+        examExperienceId: null,
+        targetUserId: 'author-2',
+        caseId: 'case-3',
+        reason: null,
+        metadata: { label: 'Reseña de cursada' },
+      };
+
+      it('shows moderators «Autor oculto» instead of the actor', async () => {
+        prisma.moderationEvent.findMany.mockResolvedValueOnce([resubmitted]);
+
+        const page = await service.list({ role: 'MODERATOR' }, {});
+
+        expect(page.items[0].actor).toEqual({
+          system: false,
+          username: null,
+          hidden: true,
+        });
+        expect(JSON.stringify(page)).not.toContain('juan.p');
+      });
+
+      it('does not let moderators find the entry by filtering on the actor', async () => {
+        prisma.moderationEvent.findMany.mockResolvedValueOnce([resubmitted]);
+
+        const page = await service.list(
+          { role: 'MODERATOR' },
+          { actorId: 'author-2' },
+        );
+
+        expect(page.items).toEqual([]);
+      });
+
+      it('shows admins who acted', async () => {
+        prisma.moderationEvent.findMany.mockResolvedValueOnce([resubmitted]);
+
+        const page = await service.list({ role: 'ADMIN' }, {});
+
+        expect(page.items[0].actor).toEqual({
+          system: false,
+          username: 'juan.p',
+        });
+      });
+    });
+
     it('applies filters and a cursor', async () => {
       await service.list(
         { role: 'ADMIN' },

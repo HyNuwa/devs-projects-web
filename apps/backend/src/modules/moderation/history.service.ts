@@ -96,20 +96,29 @@ export class HistoryService {
       ).map((user) => [user.id, user.username]),
     );
 
-    const items = events.map((event) => {
+    const visible = events.map((event) => {
       const contentId =
         event.materialId ?? event.courseReviewId ?? event.examExperienceId;
       const hideAuthor =
         !isAdmin && contentId !== null && anonymous.has(contentId);
+      // The author acting on their own anonymous entry (a resubmission) must
+      // stay hidden too, or the actor column would reveal them.
+      const actorIsHiddenAuthor =
+        hideAuthor &&
+        event.actorId !== null &&
+        event.actorId === event.targetUserId;
       const label =
         (event.metadata as { label?: string } | null)?.label ?? null;
       return {
+        actorIsHiddenAuthor,
         id: event.id,
         createdAt: event.createdAt,
         action: event.action,
-        actor: event.actorId
-          ? { system: false, username: users.get(event.actorId) ?? null }
-          : { system: true },
+        actor: actorIsHiddenAuthor
+          ? { system: false, username: null, hidden: true }
+          : event.actorId
+            ? { system: false, username: users.get(event.actorId) ?? null }
+            : { system: true },
         target: event.targetType
           ? { type: event.targetType, id: contentId, label }
           : null,
@@ -121,6 +130,10 @@ export class HistoryService {
         reason: event.reason,
       };
     });
+    // Filtering by that actor would link them to the entry just the same.
+    const items = visible
+      .filter((item) => !(filters.actorId && item.actorIsHiddenAuthor))
+      .map(({ actorIsHiddenAuthor: _hidden, ...item }) => item);
 
     return {
       items,

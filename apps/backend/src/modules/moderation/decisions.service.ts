@@ -20,7 +20,7 @@ import {
   type ModerationTarget,
   targetColumns,
 } from './publication-policy.service';
-import { loadTarget, updateTargetStatus } from './targets';
+import { loadTarget, targetWhere, updateTargetStatusFrom } from './targets';
 import { nextStatusFor } from './transitions';
 
 const REASON_REQUIRED: ReadonlySet<ModerationDecision> = new Set([
@@ -94,6 +94,20 @@ export class DecisionsService {
     if (moderationCase.status !== 'OPEN' && !restoresRetiro) {
       throw new ConflictException('Este caso ya fue resuelto');
     }
+    if (restoresRetiro) {
+      // Only the latest caso speaks for the content: an older one would skip
+      // the conflict-of-interest check against the newer caso's reporters.
+      const latest = await this.prisma.moderationCase.findFirst({
+        where: targetWhere(target),
+        orderBy: [{ openedAt: 'desc' }, { id: 'desc' }],
+        select: { id: true },
+      });
+      if (latest?.id !== moderationCase.id) {
+        throw new ConflictException(
+          'Restauralo desde el caso más reciente de este contenido',
+        );
+      }
+    }
     const nextStatus = nextStatusFor(
       decision,
       moderationCase.kind,
@@ -116,24 +130,12 @@ export class DecisionsService {
     const points = CONTRIBUTION_POINTS[target.type];
 
     await this.prisma.$transaction(async (tx) => {
-      const statusChange = {
-        publicationStatus: nextStatus,
-        statusChangedAt: now,
-        hiddenAt: null,
-        ...authorFacingReasonFor(decision, reason),
-      };
-      if (published) {
-        await tx.material.update({
-          where: { id: target.id },
-          data: { ...statusChange, ...published, stagedFilePath: null },
-        });
-      } else {
-        await updateTargetStatus(tx, target, statusChange);
-      }
-
+      // Both writes are conditional: a concurrent decision that committed first
+      // leaves them matching no row, and this one rolls back before any points
+      // or events are written.
       if (!restoresRetiro) {
-        await tx.moderationCase.update({
-          where: { id: moderationCase.id },
+        const closed = await tx.moderationCase.updateMany({
+          where: { id: moderationCase.id, status: 'OPEN' },
           data: {
             status: 'CLOSED',
             closedAt: now,
@@ -142,6 +144,37 @@ export class DecisionsService {
             decisionReason: reason,
           },
         });
+        if (closed.count === 0) {
+          throw new ConflictException('Este caso ya fue resuelto');
+        }
+      }
+
+      const statusChange = {
+        publicationStatus: nextStatus,
+        statusChangedAt: now,
+        hiddenAt: null,
+        ...authorFacingReasonFor(decision, reason),
+      };
+      const changed = published
+        ? (
+            await tx.material.updateMany({
+              where: {
+                id: target.id,
+                publicationStatus: snapshot.publicationStatus,
+              },
+              data: { ...statusChange, ...published, stagedFilePath: null },
+            })
+          ).count > 0
+        : await updateTargetStatusFrom(
+            tx,
+            target,
+            snapshot.publicationStatus,
+            statusChange,
+          );
+      if (!changed) {
+        throw new ConflictException(
+          'El contenido cambió mientras decidías; volvé a abrir el caso',
+        );
       }
       if (decision === 'KEEP_VISIBLE' || decision === 'REMOVE') {
         await tx.report.updateMany({

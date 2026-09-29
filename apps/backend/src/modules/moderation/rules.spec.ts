@@ -80,7 +80,7 @@ describe('hideDecision', () => {
   it('hides on the third distinct qualified reporter within 48 hours', () => {
     expect(
       hideDecision([report('a', 30), report('b', 10), report('c', 0)], now),
-    ).toBe('HIDE');
+    ).toBe('HIDE_REPORT_COUNT');
   });
 
   it('does not hide when reports are spread over more than 48 hours', () => {
@@ -101,7 +101,7 @@ describe('hideDecision', () => {
   it('hides immediately on one qualified personal-data report', () => {
     expect(
       hideDecision([report('a', 0, { reason: 'DATOS_PERSONALES' })], now),
-    ).toBe('HIDE');
+    ).toBe('HIDE_PERSONAL_DATA');
   });
 
   it('raises priority without hiding on an unqualified personal-data report', () => {
@@ -111,6 +111,20 @@ describe('hideDecision', () => {
         now,
       ),
     ).toBe('HIGH_PRIORITY');
+  });
+
+  it('names the report-count rule when an unqualified personal-data report is also open', () => {
+    expect(
+      hideDecision(
+        [
+          report('new', 1, { reason: 'DATOS_PERSONALES', qualified: false }),
+          report('a', 2),
+          report('b', 1),
+          report('c', 0),
+        ],
+        now,
+      ),
+    ).toBe('HIDE_REPORT_COUNT');
   });
 
   it('does nothing special for a single ordinary report', () => {

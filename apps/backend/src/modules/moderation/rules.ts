@@ -49,14 +49,16 @@ export type OpenReport = {
   qualified: boolean;
 };
 
-export type HideDecision = 'HIDE' | 'HIGH_PRIORITY' | 'NONE';
+/** Which rule, if any, hides the content (its name goes to the history). */
+export type HideDecision =
+  'HIDE_PERSONAL_DATA' | 'HIDE_REPORT_COUNT' | 'HIGH_PRIORITY' | 'NONE';
 
 /** Evaluates a caso's open reportes (including the one just filed). */
 export function hideDecision(reports: OpenReport[], now: Date): HideDecision {
   const qualified = reports.filter((report) => report.qualified);
 
   if (qualified.some((report) => report.reason === 'DATOS_PERSONALES'))
-    return 'HIDE';
+    return 'HIDE_PERSONAL_DATA';
 
   const recentReporters = new Set(
     qualified
@@ -67,7 +69,8 @@ export function hideDecision(reports: OpenReport[], now: Date): HideDecision {
       )
       .map((report) => report.reporterId),
   );
-  if (recentReporters.size >= HIDE_REPORTER_THRESHOLD) return 'HIDE';
+  if (recentReporters.size >= HIDE_REPORTER_THRESHOLD)
+    return 'HIDE_REPORT_COUNT';
 
   if (reports.some((report) => report.reason === 'DATOS_PERSONALES'))
     return 'HIGH_PRIORITY';

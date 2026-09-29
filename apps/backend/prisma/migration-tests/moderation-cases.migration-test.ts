@@ -121,6 +121,13 @@ async function seedPreviousState(client: Client) {
     visibleReview,
     'POSIBLEMENTE_ENGANOSO',
   ]);
+  // The old table let an account report the same entry twice; only one survives.
+  await client.query(insertReport, [
+    '60000000-0000-4000-8000-000000000004',
+    reporterA,
+    visibleReview,
+    'SPAM_O_REPETIDO',
+  ]);
   await client.query(insertReport, [
     '60000000-0000-4000-8000-000000000003',
     reporterA,
