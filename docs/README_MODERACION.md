@@ -139,7 +139,7 @@ El sistema **nunca** aplica una sanción solo: calcula el paso sugerido y modera
 
 **Fin de una sanción:** no hace falta ningún proceso periódico. Una cuenta está silenciada mientras `mutedUntil` sea posterior a ahora, y una suspensión temporal dura mientras `bannedUntil` lo sea. Al pasar la fecha, deja de aplicarse sola.
 
-**Publicaciones anónimas:** desde un caso se puede sancionar al autor sin verlo. La sanción aparece en su ficha como «por un caso», con el enlace al caso, y el caso sigue mostrando «Autor oculto».
+**Publicaciones anónimas:** desde un caso se puede sancionar al autor sin verlo, y el caso sigue mostrando «Autor oculto». En la ficha del usuario la sanción aparece como «por un caso sobre una publicación anónima», con la razón y la fecha pero **sin enlace** al caso: relacionar la cuenta con la publicación sigue exigiendo **Ver autor** (§9).
 
 ### 6.2 Efectos sobre puntos y privilegios
 
