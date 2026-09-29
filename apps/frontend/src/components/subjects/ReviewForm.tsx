@@ -33,10 +33,13 @@ import type {
   CourseAttempt,
   CourseCondition,
   CourseReview,
-  CourseReviewResponse,
   Shift,
   SubjectHub,
 } from '@/types/subject';
+import { PriorReviewNotice, PublicationRulesNote } from '@/components/moderation/PriorReviewNotice';
+import { getCommunityManagement } from '@/lib/community-management-client';
+import type { PriorReviewReason, PublicationOutcome } from '@/lib/publication-outcome';
+import { resubmit } from '@/lib/submissions-client';
 
 const MIN_ACADEMIC_YEAR = 1900;
 const MAX_ACADEMIC_YEAR = new Date().getUTCFullYear() + 1;
@@ -118,12 +121,14 @@ type EditState =
   | { status: 'loading' }
   | { status: 'not-found' }
   | { status: 'forbidden' }
-  | { review: CourseReview; status: 'ready' };
+  | { moderation: EntryModeration; review: CourseReview; status: 'ready' };
+
+type EntryModeration = { status: string; reason: string | null };
 
 type LoadedEditState =
   | { id: string; status: 'not-found' }
   | { id: string; status: 'forbidden' }
-  | { id: string; review: CourseReview; status: 'ready' };
+  | { id: string; moderation: EntryModeration; review: CourseReview; status: 'ready' };
 
 function isProbableDuplicate(error: unknown) {
   return (
@@ -237,6 +242,9 @@ export function ReviewForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [pendingValues, setPendingValues] = useState<ReviewFormValues | null>(null);
+  const [pendingReview, setPendingReview] = useState<PriorReviewReason | 'RESUBMITTED' | null>(
+    null,
+  );
 
   const {
     control,
@@ -299,28 +307,24 @@ export function ReviewForm() {
       };
     }
 
-    void api
-      .get(`/subjects/${code}/reviews`)
-      .then((response) => {
+    // The owner's private view loads the entry in any publication status, so a reseña
+    // rejected in revisión previa can be corrected and resubmitted.
+    void getCommunityManagement('course-review', editId)
+      .then((management) => {
         if (!isCurrentRequest) return;
-
-        const result = getData<CourseReviewResponse>(response);
-        const review = result.reviews.find(({ id }) => id === editId);
-        if (!review) {
-          setLoadedEditState({ id: editId, status: 'not-found' });
-          return;
-        }
-
-        if (review.user?.id && review.user.id !== user?.id) {
-          setLoadedEditState({ id: editId, status: 'forbidden' });
-          return;
-        }
-
+        const review = management.entry as unknown as CourseReview;
         reset(toFormValues(review));
-        setLoadedEditState({ id: editId, review, status: 'ready' });
+        setLoadedEditState({
+          id: editId,
+          moderation: management.moderation,
+          review,
+          status: 'ready',
+        });
       })
-      .catch(() => {
-        if (isCurrentRequest) setLoadedEditState({ id: editId, status: 'not-found' });
+      .catch((error: unknown) => {
+        if (!isCurrentRequest) return;
+        const status = (error as { response?: { status?: number } }).response?.status;
+        setLoadedEditState({ id: editId, status: status === 403 ? 'forbidden' : 'not-found' });
       });
 
     return () => {
@@ -347,8 +351,19 @@ export function ReviewForm() {
     try {
       if (editId) {
         await api.put(`/subjects/reviews/${editId}`, payload);
+        if (editState.status === 'ready' && editState.moderation.status === 'REJECTED') {
+          await resubmit('COURSE_REVIEW', editId);
+          setPendingReview('RESUBMITTED');
+          return;
+        }
       } else {
-        await api.post(`/subjects/${code}/reviews`, payload);
+        const created = getData<Partial<PublicationOutcome>>(
+          await api.post(`/subjects/${code}/reviews`, payload),
+        );
+        if (created.outcome === 'PENDING_REVIEW' && created.reason) {
+          setPendingReview(created.reason);
+          return;
+        }
       }
       router.push(`/materias/${code}`);
     } catch (error) {
@@ -423,7 +438,12 @@ export function ReviewForm() {
     );
   }
 
+  if (pendingReview) {
+    return <PriorReviewNotice backHref={`/materias/${code}`} reason={pendingReview} />;
+  }
+
   const isEditing = editState.status === 'ready';
+  const isRejected = isEditing && editState.moderation.status === 'REJECTED';
   const hasLegacyFields = isEditing && reviewNeedsCompletion(editState.review);
   const professorModeRegistration = register('professorMode');
 
@@ -448,7 +468,22 @@ export function ReviewForm() {
           Una reseña representa una cursada concreta. Si tuviste otra experiencia, publicala por
           separado para conservar el contexto.
         </p>
+        <div className="mt-3 max-w-[64ch]">
+          <PublicationRulesNote />
+        </div>
       </header>
+
+      {isRejected ? (
+        <aside
+          className="mt-7 rounded-xl border-[1.5px] border-destructive bg-destructive/10 p-4 font-sans text-sm leading-relaxed"
+          role="status"
+        >
+          <p className="font-bold">Moderación no publicó esta reseña. Corregila y reenviala.</p>
+          {editState.moderation.reason ? (
+            <p className="mt-1">{editState.moderation.reason}</p>
+          ) : null}
+        </aside>
+      ) : null}
 
       {hasLegacyFields ? (
         <aside className="mt-7 border border-primary bg-secondary p-4 font-sans text-sm leading-relaxed text-secondary-foreground">
@@ -735,7 +770,13 @@ export function ReviewForm() {
             ) : (
               <Check aria-hidden="true" className="size-4" />
             )}
-            {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Publicar reseña'}
+            {isSubmitting
+              ? 'Guardando…'
+              : isRejected
+                ? 'Guardar y reenviar'
+                : isEditing
+                  ? 'Guardar cambios'
+                  : 'Publicar reseña'}
           </Button>
         </div>
       </form>

@@ -46,7 +46,9 @@ function management(overrides: Partial<CommunityManagementView> = {}): Community
     createdAt: '2026-08-01T00:00:00.000Z',
     id: 'review-1',
     isAnonymous: true,
+    entry: {},
     moderation: {
+      status: 'PUBLISHED',
       date: null,
       isRemoved: false,
       reason: null,
@@ -110,6 +112,7 @@ describe('CommunityEntryManagement', () => {
       management({
         moderation: {
           date: '2026-09-01T12:00:00.000Z',
+          status: 'REMOVED',
           isRemoved: true,
           reason: 'Expone datos personales de otra persona.',
         },

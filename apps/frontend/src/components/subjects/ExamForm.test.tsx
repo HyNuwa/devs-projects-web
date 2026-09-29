@@ -202,16 +202,17 @@ describe('ExamForm', () => {
     navigation.searchParams = new URLSearchParams('editar=exam-1');
     vi.mocked(api.get).mockImplementation((path) => {
       if (path === '/subjects/ED-01') return Promise.resolve({ data: subject });
-      if (path === '/subjects/ED-01/exams') {
+      if (path === '/subjects/exams/exam-1/management') {
         return Promise.resolve({
-          data: [
-            exam({
+          data: {
+            entry: exam({
               comment: null,
               difficulty: null,
               difficultyTheory: 4,
               difficultyPractice: 2,
             }),
-          ],
+            moderation: { status: 'PUBLISHED', isRemoved: false, reason: null, date: null },
+          },
         });
       }
       return Promise.reject(new Error(`Unexpected request: ${path}`));
@@ -243,5 +244,64 @@ describe('ExamForm', () => {
       );
     });
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('says experiencias are published immediately and links to the rules', async () => {
+    render(<ExamForm />);
+
+    expect(await screen.findByText(/Se publica al instante/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Normas de la comunidad' })).toHaveAttribute(
+      'href',
+      '/normas',
+    );
+  });
+
+  it('tells a new account that the experiencia waits for revisión previa', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.post).mockResolvedValue({
+      data: { exam: { id: 'exam-new' }, outcome: 'PENDING_REVIEW', reason: 'NEW_ACCOUNT' },
+    });
+
+    render(<ExamForm />);
+    await completeRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: 'Publicar experiencia' }));
+
+    expect(await screen.findByRole('heading', { name: 'En revisión previa' })).toBeInTheDocument();
+    expect(screen.getByText(/Tu cuenta es nueva/)).toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it('resubmits a rejected experiencia after the author corrects it', async () => {
+    const user = userEvent.setup();
+    navigation.searchParams = new URLSearchParams('editar=exam-1');
+    vi.mocked(api.get).mockImplementation((path) => {
+      if (path === '/subjects/ED-01') return Promise.resolve({ data: subject });
+      if (path === '/subjects/exams/exam-1/management') {
+        return Promise.resolve({
+          data: {
+            entry: exam(),
+            moderation: {
+              status: 'REJECTED',
+              isRemoved: false,
+              reason: 'Sin datos del examinador.',
+              date: '2026-09-21T10:00:00.000Z',
+            },
+          },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
+    vi.mocked(api.put).mockResolvedValue({ data: { id: 'exam-1' } });
+    vi.mocked(api.post).mockResolvedValue({ data: {} });
+
+    render(<ExamForm />);
+
+    expect(await screen.findByText('Sin datos del examinador.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Guardar y reenviar' }));
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('/me/submissions/EXAM_EXPERIENCE/exam-1/resubmit'),
+    );
+    expect(await screen.findByRole('heading', { name: 'En revisión previa' })).toBeInTheDocument();
   });
 });

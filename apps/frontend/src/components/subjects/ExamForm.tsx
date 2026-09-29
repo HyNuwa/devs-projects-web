@@ -37,6 +37,10 @@ import type {
   Shift,
   SubjectHub,
 } from '@/types/subject';
+import { PriorReviewNotice, PublicationRulesNote } from '@/components/moderation/PriorReviewNotice';
+import { getCommunityManagement } from '@/lib/community-management-client';
+import type { PriorReviewReason, PublicationOutcome } from '@/lib/publication-outcome';
+import { resubmit } from '@/lib/submissions-client';
 
 const MIN_ACADEMIC_YEAR = 1900;
 const MAX_ACADEMIC_YEAR = new Date().getUTCFullYear() + 1;
@@ -142,12 +146,14 @@ type EditState =
   | { status: 'loading' }
   | { status: 'not-found' }
   | { status: 'forbidden' }
-  | { exam: ExamExperience; status: 'ready' };
+  | { exam: ExamExperience; moderation: EntryModeration; status: 'ready' };
+
+type EntryModeration = { status: string; reason: string | null };
 
 type LoadedEditState =
   | { id: string; status: 'not-found' }
   | { id: string; status: 'forbidden' }
-  | { exam: ExamExperience; id: string; status: 'ready' };
+  | { exam: ExamExperience; id: string; moderation: EntryModeration; status: 'ready' };
 
 function toFormValues(exam: ExamExperience): Partial<ExamFormInput> {
   const professorMode = exam.professorId ? 'catalog' : exam.examinerName ? 'manual' : 'none';
@@ -195,6 +201,9 @@ export function ExamForm() {
   const [loadedEditState, setLoadedEditState] = useState<LoadedEditState | null>(null);
   const [professors, setProfessors] = useState<Array<{ id: string; name: string }>>([]);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [pendingReview, setPendingReview] = useState<PriorReviewReason | 'RESUBMITTED' | null>(
+    null,
+  );
 
   const {
     control,
@@ -258,27 +267,24 @@ export function ExamForm() {
       };
     }
 
-    void api
-      .get(`/subjects/${code}/exams`)
-      .then((response) => {
+    // The owner's private view loads the entry in any publication status, so an
+    // experiencia rejected in revisión previa can be corrected and resubmitted.
+    void getCommunityManagement('exam-experience', editId)
+      .then((management) => {
         if (!isCurrentRequest) return;
-
-        const exams = getData<ExamExperience[]>(response);
-        const exam = exams.find(({ id }) => id === editId);
-        if (!exam) {
-          setLoadedEditState({ id: editId, status: 'not-found' });
-          return;
-        }
-        if (exam.user?.id && exam.user.id !== user?.id) {
-          setLoadedEditState({ id: editId, status: 'forbidden' });
-          return;
-        }
-
+        const exam = management.entry as unknown as ExamExperience;
         reset(toFormValues(exam));
-        setLoadedEditState({ exam, id: editId, status: 'ready' });
+        setLoadedEditState({
+          exam,
+          id: editId,
+          moderation: management.moderation,
+          status: 'ready',
+        });
       })
-      .catch(() => {
-        if (isCurrentRequest) setLoadedEditState({ id: editId, status: 'not-found' });
+      .catch((error: unknown) => {
+        if (!isCurrentRequest) return;
+        const status = (error as { response?: { status?: number } }).response?.status;
+        setLoadedEditState({ id: editId, status: status === 403 ? 'forbidden' : 'not-found' });
       });
 
     return () => {
@@ -306,8 +312,19 @@ export function ExamForm() {
     try {
       if (editId) {
         await api.put(`/subjects/exams/${editId}`, payload);
+        if (editState.status === 'ready' && editState.moderation.status === 'REJECTED') {
+          await resubmit('EXAM_EXPERIENCE', editId);
+          setPendingReview('RESUBMITTED');
+          return;
+        }
       } else {
-        await api.post(`/subjects/${code}/exams`, payload);
+        const created = getData<Partial<PublicationOutcome>>(
+          await api.post(`/subjects/${code}/exams`, payload),
+        );
+        if (created.outcome === 'PENDING_REVIEW' && created.reason) {
+          setPendingReview(created.reason);
+          return;
+        }
       }
       router.push(`/materias/${code}`);
     } catch (error) {
@@ -372,7 +389,12 @@ export function ExamForm() {
     );
   }
 
+  if (pendingReview) {
+    return <PriorReviewNotice backHref={`/materias/${code}`} reason={pendingReview} />;
+  }
+
   const isEditing = editState.status === 'ready';
+  const isRejected = isEditing && editState.moderation.status === 'REJECTED';
   const hasLegacyFields = isEditing && examNeedsCompletion(editState.exam);
   const professorModeRegistration = register('professorMode');
 
@@ -397,7 +419,24 @@ export function ExamForm() {
           Cada envío representa un intento independiente. Compartí lo que recuerdes sin convertir la
           preparación, los temas o los consejos en campos obligatorios.
         </p>
+        <div className="mt-3 max-w-[64ch]">
+          <PublicationRulesNote />
+        </div>
       </header>
+
+      {isRejected ? (
+        <aside
+          className="mt-7 rounded-xl border-[1.5px] border-destructive bg-destructive/10 p-4 font-sans text-sm leading-relaxed"
+          role="status"
+        >
+          <p className="font-bold">
+            Moderación no publicó esta experiencia. Corregila y reenviala.
+          </p>
+          {editState.moderation.reason ? (
+            <p className="mt-1">{editState.moderation.reason}</p>
+          ) : null}
+        </aside>
+      ) : null}
 
       {hasLegacyFields ? (
         <aside className="mt-7 border border-primary bg-secondary p-4 font-sans text-sm leading-relaxed text-secondary-foreground">
@@ -695,7 +734,13 @@ export function ExamForm() {
             ) : (
               <Check aria-hidden="true" className="size-4" />
             )}
-            {isSubmitting ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Publicar experiencia'}
+            {isSubmitting
+              ? 'Guardando…'
+              : isRejected
+                ? 'Guardar y reenviar'
+                : isEditing
+                  ? 'Guardar cambios'
+                  : 'Publicar experiencia'}
           </Button>
         </div>
       </form>

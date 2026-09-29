@@ -111,7 +111,9 @@ describe('ReviewForm', () => {
 
   it('creates an independent review with required fields, optional context, and anonymity', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.post).mockResolvedValue({ data: { id: 'review-new' } });
+    vi.mocked(api.post).mockResolvedValue({
+      data: { review: { id: 'review-new' }, outcome: 'PUBLISHED', reason: null },
+    });
 
     render(<ReviewForm />);
     await completeRequiredFields(user);
@@ -187,19 +189,17 @@ describe('ReviewForm', () => {
     navigation.searchParams = new URLSearchParams('editar=review-1');
     vi.mocked(api.get).mockImplementation((path) => {
       if (path === '/subjects/ED-01') return Promise.resolve({ data: subject });
-      if (path === '/subjects/ED-01/reviews') {
+      if (path === '/subjects/reviews/review-1/management') {
         return Promise.resolve({
           data: {
-            reviews: [
-              review({
-                academicYear: null,
-                attempt: null,
-                comment: null,
-                condition: 'PREFIERO_NO_RESPONDER',
-                difficulty: 3,
-              }),
-            ],
-            conditionBreakdown: [],
+            entry: review({
+              academicYear: null,
+              attempt: null,
+              comment: null,
+              condition: 'PREFIERO_NO_RESPONDER',
+              difficulty: 3,
+            }),
+            moderation: { status: 'PUBLISHED', isRemoved: false, reason: null, date: null },
           },
         });
       }
@@ -229,5 +229,64 @@ describe('ReviewForm', () => {
       );
     });
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('says reseñas are published immediately and links to the rules', async () => {
+    render(<ReviewForm />);
+
+    expect(await screen.findByText(/Se publica al instante/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Normas de la comunidad' })).toHaveAttribute(
+      'href',
+      '/normas',
+    );
+  });
+
+  it('tells an unverified author that the reseña waits for revisión previa', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.post).mockResolvedValue({
+      data: { review: { id: 'review-new' }, outcome: 'PENDING_REVIEW', reason: 'UNVERIFIED_EMAIL' },
+    });
+
+    render(<ReviewForm />);
+    await completeRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: 'Publicar reseña' }));
+
+    expect(await screen.findByRole('heading', { name: 'En revisión previa' })).toBeInTheDocument();
+    expect(screen.getByText(/no verificaste tu email/)).toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
+  });
+
+  it('resubmits a rejected reseña after the author corrects it', async () => {
+    const user = userEvent.setup();
+    navigation.searchParams = new URLSearchParams('editar=review-1');
+    vi.mocked(api.get).mockImplementation((path) => {
+      if (path === '/subjects/ED-01') return Promise.resolve({ data: subject });
+      if (path === '/subjects/reviews/review-1/management') {
+        return Promise.resolve({
+          data: {
+            entry: review(),
+            moderation: {
+              status: 'REJECTED',
+              isRemoved: false,
+              reason: 'Sacá los nombres de compañeros.',
+              date: '2026-09-21T10:00:00.000Z',
+            },
+          },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
+    vi.mocked(api.put).mockResolvedValue({ data: { id: 'review-1' } });
+    vi.mocked(api.post).mockResolvedValue({ data: {} });
+
+    render(<ReviewForm />);
+
+    expect(await screen.findByText('Sacá los nombres de compañeros.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Guardar y reenviar' }));
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('/me/submissions/COURSE_REVIEW/review-1/resubmit'),
+    );
+    expect(await screen.findByRole('heading', { name: 'En revisión previa' })).toBeInTheDocument();
   });
 });

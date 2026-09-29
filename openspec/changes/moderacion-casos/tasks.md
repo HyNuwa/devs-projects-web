@@ -34,8 +34,8 @@
 ## 5. Frontend
 
 - [x] 5.1 Build the shared `ReportDialog` test-first (fixed reasons, explanation required for Otro, sign-in redirect for visitors, link to `/normas`). Wire it into `MaterialPreviewDialog` and the reseña and experiencia views through `POST /reports`, and delete `community-report-client.ts`'s old endpoints. Verify with component tests.
-- [ ] 5.2 Rewrite `MySubmissions` on `/me/submissions` test-first: status chip per state, reason and date, «Oculto mientras se revisa» explained as temporary, and «Editar y reenviar» for REJECTED that calls resubmit after editing. Verify with component tests.
-- [ ] 5.3 Update `MaterialCreateForm` and the reseña and experiencia forms test-first: «Se publica al instante» copy with a `/normas` link, a published outcome with a link, a prior-review outcome with its reason, the duplicate 409 linking the existing material, and the 429 limit message. Verify with component tests.
+- [x] 5.2 Rewrite `MySubmissions` on `/me/submissions` test-first: status chip per state, reason and date, «Oculto mientras se revisa» explained as temporary, and «Editar y reenviar» for REJECTED that calls resubmit after editing. Verify with component tests.
+- [x] 5.3 Update `MaterialCreateForm` and the reseña and experiencia forms test-first: «Se publica al instante» copy with a `/normas` link, a published outcome with a link, a prior-review outcome with its reason, the duplicate 409 linking the existing material, and the 429 limit message. Verify with component tests.
 - [ ] 5.4 Rebuild `/admin` as the Casos tab test-first, following `ModeracionCasos`/`ModeracionCasoResena`:
   - grouped list and detail with preview, reports, previous cases, and author or «Autor oculto» + «Ver autor» with reason
   - required-reason decision controls, with controls disabled on a conflict of interest

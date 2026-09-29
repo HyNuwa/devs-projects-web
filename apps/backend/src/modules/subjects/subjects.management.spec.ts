@@ -82,6 +82,28 @@ describe('SubjectsService owner management view', () => {
     );
   });
 
+  it('includes the editable fields so the author can correct the entry', async () => {
+    prisma.courseReview.findUnique.mockResolvedValue(
+      entry({
+        recommendation: 4,
+        comment: 'Buena cursada',
+        academicYear: 2025,
+      }),
+    );
+
+    const view = await service.getReviewManagementView('rev-1', 'author-1');
+
+    expect(view.entry).toEqual(
+      expect.objectContaining({
+        recommendation: 4,
+        comment: 'Buena cursada',
+        academicYear: 2025,
+      }),
+    );
+    expect(view.entry).not.toHaveProperty('userId');
+    expect(view.entry).not.toHaveProperty('user');
+  });
+
   it('reports a published experiencia without a reason or date', async () => {
     const view = await service.getExamManagementView('exam-1', 'author-1');
 

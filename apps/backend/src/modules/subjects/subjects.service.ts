@@ -16,22 +16,13 @@ import { publicVisibility } from '../moderation/visibility';
 // Current points for a reseña or experiencia; the points change will redefine them.
 const COMMUNITY_ENTRY_POINTS = 5;
 
-const managementSelect = {
-  id: true,
-  userId: true,
-  subjectId: true,
-  isAnonymous: true,
-  publicationStatus: true,
-  authorFacingReason: true,
-  statusChangedAt: true,
-  createdAt: true,
-  updatedAt: true,
+const managementInclude = {
   user: {
     select: { id: true, username: true, displayName: true, avatarUrl: true },
   },
 } as const;
 
-type ManagementRecord = {
+type ManagementRecord = Record<string, unknown> & {
   id: string;
   userId: string;
   subjectId: string;
@@ -59,6 +50,15 @@ function toManagementView(
     throw new ForbiddenException('No tienes permisos para ver esta entrada');
   }
   const hasDecision = entry.publicationStatus !== 'PUBLISHED';
+  const {
+    userId: _userId,
+    user: _user,
+    publicationStatus: _status,
+    authorFacingReason: _reason,
+    statusChangedAt: _changedAt,
+    hiddenAt: _hiddenAt,
+    ...editable
+  } = entry;
   return {
     type,
     id: entry.id,
@@ -67,6 +67,7 @@ function toManagementView(
     author: entry.user,
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt,
+    entry: editable,
     moderation: {
       status: entry.publicationStatus,
       isRemoved: entry.publicationStatus === 'REMOVED',
@@ -388,7 +389,7 @@ export class SubjectsService {
   async getReviewManagementView(reviewId: string, viewerId: string) {
     const review = await this.prisma.courseReview.findUnique({
       where: { id: reviewId },
-      select: managementSelect,
+      include: managementInclude,
     });
     if (!review) throw new NotFoundException('Reseña no encontrada');
     return toManagementView('COURSE_REVIEW', review, viewerId);
@@ -397,7 +398,7 @@ export class SubjectsService {
   async getExamManagementView(examId: string, viewerId: string) {
     const exam = await this.prisma.examExperience.findUnique({
       where: { id: examId },
-      select: managementSelect,
+      include: managementInclude,
     });
     if (!exam)
       throw new NotFoundException('Experiencia de final no encontrada');

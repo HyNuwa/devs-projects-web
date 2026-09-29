@@ -17,7 +17,10 @@ export type CommunityManagementView = {
   };
   createdAt: string;
   updatedAt: string;
+  /** Editable fields of the entry, in any publication status. */
+  entry: Record<string, unknown>;
   moderation: {
+    status: 'PUBLISHED' | 'PENDING_REVIEW' | 'REJECTED' | 'HIDDEN' | 'REMOVED';
     isRemoved: boolean;
     reason: string | null;
     date: string | null;
