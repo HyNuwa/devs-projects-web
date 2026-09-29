@@ -13,6 +13,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { UserResponseDto } from './dto/auth-response.dto';
+import { isSuspended } from '../moderation/sanctions.service';
+import { assertNotSuspended } from '../moderation/suspension-notice';
 
 const SALT_ROUNDS = 12;
 const REFRESH_TOKEN_BYTES = 64;
@@ -160,6 +162,9 @@ export class AuthService {
       return null;
     }
 
+    // Only someone who knows the password learns that the account is suspended.
+    await assertNotSuspended(this.prisma, user);
+
     return excludePassword(user);
   }
 
@@ -304,6 +309,13 @@ export class AuthService {
 
     if (storedToken.revokedAt) {
       throw new UnauthorizedException('Refresh token revocado');
+    }
+
+    if (isSuspended(storedToken.user, new Date())) {
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId: storedToken.userId },
+      });
+      await assertNotSuspended(this.prisma, storedToken.user);
     }
 
     // Rotación: eliminar el usado y crear uno nuevo
