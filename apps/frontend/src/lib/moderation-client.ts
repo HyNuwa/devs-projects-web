@@ -121,6 +121,15 @@ export async function getModerationHistory(filters: Record<string, string> = {})
   ).data;
 }
 
+/** Downloads the caso's file with the moderator session, for an in-page preview. */
+export async function getCaseFile(caseId: string): Promise<Blob> {
+  return (
+    await api.get<Blob>(`/moderation/cases/${encodeURIComponent(caseId)}/file`, {
+      responseType: 'blob',
+    })
+  ).data;
+}
+
 /** The caso's file, including the staged copy of a material in revisión previa. */
 export function caseFileUrl(caseId: string): string {
   const base = api.defaults.baseURL ?? '';

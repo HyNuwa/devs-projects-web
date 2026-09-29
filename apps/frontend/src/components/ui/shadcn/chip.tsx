@@ -9,8 +9,8 @@ const chipVariants = cva(
       tone: {
         neutral: 'border-transparent bg-muted text-foreground',
         accent: 'border-transparent bg-accent/30 text-accent-foreground',
-        success: 'border-transparent bg-success/12 text-success',
-        destructive: 'border-transparent bg-destructive/10 text-destructive',
+        success: 'border-transparent bg-success/12 text-success-ink',
+        destructive: 'border-transparent bg-destructive/10 text-destructive-ink',
       },
     },
     defaultVariants: {

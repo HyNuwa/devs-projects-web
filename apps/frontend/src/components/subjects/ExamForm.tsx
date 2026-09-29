@@ -714,7 +714,7 @@ export function ExamForm() {
         {serverError ? (
           <p
             aria-live="assertive"
-            className="border border-destructive bg-destructive/10 p-4 font-sans text-sm font-bold text-destructive"
+            className="border border-destructive bg-destructive/10 p-4 font-sans text-sm font-bold text-destructive-ink"
             role="alert"
           >
             {serverError}

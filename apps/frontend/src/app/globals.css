@@ -18,7 +18,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-ink: var(--destructive-ink);
   --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
   --color-border: var(--border);
   --color-line: var(--line);
   --color-input: var(--input);
@@ -52,7 +54,9 @@
   --accent-foreground: var(--dp-ink);
   --destructive: var(--dp-red);
   --destructive-foreground: var(--dp-surface);
+  --destructive-ink: var(--dp-red-ink);
   --success: var(--dp-green);
+  --success-ink: var(--dp-green-ink);
   --border: var(--dp-ink);
   --line: var(--dp-line);
   --input: var(--dp-ink);

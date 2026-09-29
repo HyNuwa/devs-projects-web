@@ -28,7 +28,7 @@ const STATUS: Record<
   PublicationStatus,
   { label: string; icon: LucideIcon; tone: string; explanation?: string }
 > = {
-  PUBLISHED: { label: 'Publicado', icon: CircleCheck, tone: 'bg-success/12 text-success' },
+  PUBLISHED: { label: 'Publicado', icon: CircleCheck, tone: 'bg-success/12 text-success-ink' },
   PENDING_REVIEW: {
     label: 'En revisión previa',
     icon: Clock,
@@ -46,13 +46,13 @@ const STATUS: Record<
   REJECTED: {
     label: 'Rechazado',
     icon: CircleSlash,
-    tone: 'bg-destructive/10 text-destructive',
+    tone: 'bg-destructive/10 text-destructive-ink',
     explanation: 'No se publicó. Podés corregirlo y reenviarlo.',
   },
   REMOVED: {
     label: 'Retirado',
     icon: Undo2,
-    tone: 'bg-destructive/10 text-destructive',
+    tone: 'bg-destructive/10 text-destructive-ink',
     explanation: 'Moderación lo sacó de la vista pública.',
   },
 };

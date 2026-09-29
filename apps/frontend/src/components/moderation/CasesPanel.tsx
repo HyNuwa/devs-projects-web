@@ -22,6 +22,7 @@ import { getApiError } from '@/lib/apiHelpers';
 import {
   type CaseDetail,
   caseFileUrl,
+  getCaseFile,
   decideCase,
   getModerationCase,
   getModerationQueue,
@@ -70,13 +71,13 @@ function StatusBadge({
     return <Badge tone="bg-accent/30 text-accent-foreground">Previa</Badge>;
   }
   if (item.overdueHidden) {
-    return <Badge tone="bg-destructive/10 text-destructive">Visible de nuevo</Badge>;
+    return <Badge tone="bg-destructive/10 text-destructive-ink">Visible de nuevo</Badge>;
   }
   if (item.targetStatus === 'HIDDEN') {
     const left = Math.max(0, Math.round(HIDDEN_TARGET_HOURS - hoursSince(item.openedAt)));
-    return <Badge tone="bg-destructive/10 text-destructive">Quedan {left} h</Badge>;
+    return <Badge tone="bg-destructive/10 text-destructive-ink">Quedan {left} h</Badge>;
   }
-  return <Badge tone="bg-success/12 text-success">Visible</Badge>;
+  return <Badge tone="bg-success/12 text-success-ink">Visible</Badge>;
 }
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: string }) {
@@ -226,17 +227,60 @@ function AuthorPanel({
   );
 }
 
+/**
+ * The API sits on another origin and forbids framing, so the PDF is downloaded
+ * with the moderator session and shown from an object URL, only once it is
+ * verified to really be a PDF.
+ */
+function PdfPreview({ caseId, title }: { caseId: string; title: string }) {
+  const [preview, setPreview] = useState<{ caseId: string; url: string | null } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | undefined;
+    getCaseFile(caseId)
+      .then(async (blob) => {
+        const isPdf =
+          blob.type.split(';')[0] === 'application/pdf' &&
+          (await blob.slice(0, 5).text()) === '%PDF-';
+        if (!active) return;
+        if (!isPdf) {
+          setPreview({ caseId, url: null });
+          return;
+        }
+        objectUrl = URL.createObjectURL(blob);
+        setPreview({ caseId, url: objectUrl });
+      })
+      .catch(() => {
+        if (active) setPreview({ caseId, url: null });
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [caseId]);
+
+  const frameClassName = 'h-80 w-full rounded-xl border-[1.5px] border-line bg-card';
+  if (preview?.caseId !== caseId) {
+    return <div aria-hidden="true" className={cn(frameClassName, 'animate-pulse')} />;
+  }
+  if (!preview.url) {
+    return (
+      <p className="rounded-xl border-[1.5px] border-line bg-card p-4 text-sm text-muted-foreground">
+        No pudimos mostrar la vista previa.
+      </p>
+    );
+  }
+  return <iframe className={frameClassName} src={preview.url} title={title} />;
+}
+
 function TargetPreview({ detail }: { detail: CaseDetail }) {
   if (detail.target.type === 'MATERIAL') {
     const url = caseFileUrl(detail.caseId);
     return (
       <div className="grid gap-2">
         {detail.target.fileType === 'pdf' ? (
-          <iframe
-            className="h-80 w-full rounded-xl border-[1.5px] border-line bg-card"
-            src={url}
-            title={`Vista previa de ${detail.target.label}`}
-          />
+          <PdfPreview caseId={detail.caseId} title={`Vista previa de ${detail.target.label}`} />
         ) : null}
         <a
           className="text-sm font-bold text-link underline-offset-4 hover:underline"

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   detail: vi.fn(),
   decide: vi.fn(),
   reveal: vi.fn(),
+  file: vi.fn(),
   user: { id: 'mod-1', role: 'MODERATOR' } as { id: string; role: string } | null,
   searchParams: new URLSearchParams(),
   replace: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('@/lib/moderation-client', async (importOriginal) => ({
   getModerationCase: mocks.detail,
   decideCase: mocks.decide,
   revealCaseAuthor: mocks.reveal,
+  getCaseFile: mocks.file,
 }));
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
@@ -145,6 +147,9 @@ beforeEach(() => {
       : detail({ caseId }),
   );
   mocks.decide.mockResolvedValue(undefined);
+  mocks.file.mockResolvedValue(new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }));
+  URL.createObjectURL = vi.fn(() => 'blob:case-file');
+  URL.revokeObjectURL = vi.fn();
 });
 
 describe('CasesPanel', () => {
@@ -178,6 +183,23 @@ describe('CasesPanel', () => {
       await screen.findByRole('heading', { level: 2, name: 'Parcial 1 escaneado' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Se ve el DNI de un compañero.', { exact: false })).toBeInTheDocument();
+  });
+
+  it('previews the caso file through the moderator session, not by framing the API', async () => {
+    render(<CasesPanel />);
+
+    const frame = await screen.findByTitle('Vista previa de Parcial 1 escaneado');
+    expect(frame).toHaveAttribute('src', 'blob:case-file');
+    expect(mocks.file).toHaveBeenCalledWith('case-hidden');
+  });
+
+  it('never embeds a file that is not really a PDF', async () => {
+    mocks.file.mockResolvedValue(new Blob(['<html>nope</html>'], { type: 'text/html' }));
+    render(<CasesPanel />);
+
+    expect(await screen.findByText('No pudimos mostrar la vista previa.')).toBeInTheDocument();
+    expect(screen.queryByTitle('Vista previa de Parcial 1 escaneado')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Abrir archivo' })).toBeInTheDocument();
   });
 
   it('retires with a required reason the author will see', async () => {

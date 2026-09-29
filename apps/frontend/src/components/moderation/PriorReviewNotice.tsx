@@ -39,7 +39,7 @@ export function PublicationRulesNote() {
     <p className="font-sans text-sm leading-relaxed text-muted-foreground">
       Se publica al instante. Que esté publicado no significa que sea correcto: si algo no cumple
       las{' '}
-      <Link className="font-semibold text-link underline-offset-4 hover:underline" href="/normas">
+      <Link className="font-semibold text-link underline underline-offset-4" href="/normas">
         Normas de la comunidad
       </Link>
       , se puede reportar.

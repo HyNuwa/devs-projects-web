@@ -17,9 +17,12 @@
   --dp-line: #e2d9c7;
   --dp-pink: #fd4f8d;
   --dp-red: #e01f63;
+  /* Red and green text on their own tints: the base tones stay below 4.5:1 there. */
+  --dp-red-ink: #b8124e;
   --dp-orange: #fa6304;
   --dp-gold: #e9b949;
   --dp-green: #187a5b;
+  --dp-green-ink: #136249;
 
   --dp-radius-sm: 8px;
   --dp-radius-md: 11px;

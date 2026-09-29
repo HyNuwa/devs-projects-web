@@ -189,8 +189,11 @@ export function MaterialCreateForm() {
           </p>
           <p className={styles.subtitle}>
             Se publica al instante. Que esté publicado no significa que esté bien resuelto: si algo
-            no cumple las <Link href="/normas">Normas de la comunidad</Link>, la comunidad lo puede
-            reportar.
+            no cumple las{' '}
+            <Link className="font-semibold text-link underline underline-offset-4" href="/normas">
+              Normas de la comunidad
+            </Link>
+            , la comunidad lo puede reportar.
           </p>
         </header>
 
