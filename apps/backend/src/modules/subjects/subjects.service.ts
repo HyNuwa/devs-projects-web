@@ -16,6 +16,66 @@ import { publicVisibility } from '../moderation/visibility';
 // Current points for a reseña or experiencia; the points change will redefine them.
 const COMMUNITY_ENTRY_POINTS = 5;
 
+const managementSelect = {
+  id: true,
+  userId: true,
+  subjectId: true,
+  isAnonymous: true,
+  publicationStatus: true,
+  authorFacingReason: true,
+  statusChangedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  user: {
+    select: { id: true, username: true, displayName: true, avatarUrl: true },
+  },
+} as const;
+
+type ManagementRecord = {
+  id: string;
+  userId: string;
+  subjectId: string;
+  isAnonymous: boolean;
+  publicationStatus: string;
+  authorFacingReason: string | null;
+  statusChangedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
+};
+
+// Only the author: moderators see anonymous authors through revelación de autor.
+function toManagementView(
+  type: 'COURSE_REVIEW' | 'EXAM_EXPERIENCE',
+  entry: ManagementRecord,
+  viewerId: string,
+) {
+  if (entry.userId !== viewerId) {
+    throw new ForbiddenException('No tienes permisos para ver esta entrada');
+  }
+  const hasDecision = entry.publicationStatus !== 'PUBLISHED';
+  return {
+    type,
+    id: entry.id,
+    subjectId: entry.subjectId,
+    isAnonymous: entry.isAnonymous,
+    author: entry.user,
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
+    moderation: {
+      status: entry.publicationStatus,
+      isRemoved: entry.publicationStatus === 'REMOVED',
+      reason: hasDecision ? entry.authorFacingReason : null,
+      date: hasDecision ? entry.statusChangedAt : null,
+    },
+  };
+}
+
 @Injectable()
 export class SubjectsService {
   constructor(
@@ -322,6 +382,26 @@ export class SubjectsService {
 
     await this.prisma.courseReview.delete({ where: { id: reviewId } });
     return { message: 'Reseña eliminada' };
+  }
+
+  /** Private view of a reseña for its author only (Mis envíos covers every status). */
+  async getReviewManagementView(reviewId: string, viewerId: string) {
+    const review = await this.prisma.courseReview.findUnique({
+      where: { id: reviewId },
+      select: managementSelect,
+    });
+    if (!review) throw new NotFoundException('Reseña no encontrada');
+    return toManagementView('COURSE_REVIEW', review, viewerId);
+  }
+
+  async getExamManagementView(examId: string, viewerId: string) {
+    const exam = await this.prisma.examExperience.findUnique({
+      where: { id: examId },
+      select: managementSelect,
+    });
+    if (!exam)
+      throw new NotFoundException('Experiencia de final no encontrada');
+    return toManagementView('EXAM_EXPERIENCE', exam, viewerId);
   }
 
   async resubmitReview(reviewId: string, userId: string) {

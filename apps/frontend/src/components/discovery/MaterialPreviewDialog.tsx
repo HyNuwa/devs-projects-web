@@ -28,6 +28,7 @@ import {
 } from '@/lib/material-viewer-client';
 import { useAuthStore } from '@/stores/authStore';
 import type { Material, MaterialRating, MaterialViewerState, Paginated } from '@/types/material';
+import { ReportDialog } from '@/components/moderation/ReportDialog';
 
 export type MaterialPreviewDialogFile = {
   academicYear: number | null;
@@ -64,6 +65,12 @@ type CommunityState =
 
 const thirdPartyPreviewOrigins = new Set(['https://drive.google.com', 'https://docs.google.com']);
 const communityRatingsLimit = 10;
+
+/** The page the preview is open on, so a visitor returns here after signing in. */
+function currentReturnPath(): string {
+  if (typeof window === 'undefined') return '/';
+  return `${window.location.pathname}${window.location.search}`;
+}
 
 function apiOrigin(): string {
   return new URL(api.defaults.baseURL ?? '/', window.location.origin).origin;
@@ -397,6 +404,7 @@ export function MaterialPreviewDialog({
   });
   const [failedPreviewId, setFailedPreviewId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [reportFeedback, setReportFeedback] = useState<string | null>(null);
   const [viewerError, setViewerError] = useState<{ materialId: string; message: string } | null>(
     null,
   );
@@ -703,24 +711,32 @@ export function MaterialPreviewDialog({
                   <ThumbsUp aria-hidden="true" className="size-4" strokeWidth={1.8} />
                   {pendingAction === 'helpfulness' ? 'Actualizando…' : 'Me sirvió'}
                 </Button>
+                <ReportDialog
+                  onReported={setReportFeedback}
+                  returnPath={currentReturnPath()}
+                  targetId={file.id}
+                  targetType="MATERIAL"
+                />
               </div>
               <p
                 aria-live="polite"
                 className="mt-3 text-xs leading-relaxed text-secondary-foreground"
               >
-                {contextualViewerError
-                  ? contextualViewerError
-                  : isAuthLoading
-                    ? 'Comprobando tu sesión…'
-                    : !user
-                      ? 'Iniciá sesión para guardar este material o indicar que te sirvió.'
-                      : viewerIsLoading
-                        ? 'Cargando tu actividad en este material…'
-                        : isViewerError
-                          ? 'No pudimos cargar tu actividad. Podés volver a abrir esta vista.'
-                          : helpfulCount === 1
-                            ? '1 persona indicó que le sirvió.'
-                            : `${helpfulCount} personas indicaron que les sirvió.`}
+                {reportFeedback
+                  ? reportFeedback
+                  : contextualViewerError
+                    ? contextualViewerError
+                    : isAuthLoading
+                      ? 'Comprobando tu sesión…'
+                      : !user
+                        ? 'Iniciá sesión para guardar este material o indicar que te sirvió.'
+                        : viewerIsLoading
+                          ? 'Cargando tu actividad en este material…'
+                          : isViewerError
+                            ? 'No pudimos cargar tu actividad. Podés volver a abrir esta vista.'
+                            : helpfulCount === 1
+                              ? '1 persona indicó que le sirvió.'
+                              : `${helpfulCount} personas indicaron que les sirvió.`}
               </p>
               <div className="mt-6 border-t border-border pt-4">
                 <h3 className="font-semibold text-foreground">

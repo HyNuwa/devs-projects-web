@@ -80,6 +80,24 @@ export class SubjectsController {
     return this.subjectsService.updateReview(id, req.user.id, dto);
   }
 
+  @Get('reviews/:id/management')
+  @ApiOperation({ summary: 'Vista privada de mi reseña (estado y motivo)' })
+  getReviewManagement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.subjectsService.getReviewManagementView(id, req.user.id);
+  }
+
+  @Get('exams/:id/management')
+  @ApiOperation({ summary: 'Vista privada de mi experiencia de final' })
+  getExamManagement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.subjectsService.getExamManagementView(id, req.user.id);
+  }
+
   @Delete('reviews/:id')
   @ApiOperation({ summary: 'Eliminar mi reseña de cursada' })
   @ApiResponse({ status: 200, description: 'Reseña eliminada' })

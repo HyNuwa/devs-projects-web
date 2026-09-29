@@ -189,11 +189,13 @@ describe('CommunityDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar reporte' }));
 
     await waitFor(() =>
-      expect(api.post).toHaveBeenCalledWith('/subjects/reviews/review-1/reports', {
+      expect(api.post).toHaveBeenCalledWith('/reports', {
+        targetType: 'COURSE_REVIEW',
+        targetId: 'review-1',
         reason: 'SPAM_O_REPETIDO',
       }),
     );
-    expect(screen.getByText('Reporte enviado. La publicación sigue visible.')).toBeInTheDocument();
+    expect(screen.getByText('Gracias. Moderación va a revisarlo.')).toBeInTheDocument();
   });
 
   it('requires an explanation for the other report reason before submitting', async () => {
