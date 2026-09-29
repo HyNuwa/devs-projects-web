@@ -21,6 +21,8 @@ vi.mock('@/lib/moderation-client', async (importOriginal) => ({
   getModerationCase: mocks.detail,
   decideCase: mocks.decide,
   revealCaseAuthor: mocks.reveal,
+  getModerationSummary: () =>
+    Promise.resolve({ overdueCases: 0, openCases: 0, pendingAppeals: 0, pendingProposals: null }),
   getCaseFile: mocks.file,
 }));
 vi.mock('@/stores/authStore', () => ({

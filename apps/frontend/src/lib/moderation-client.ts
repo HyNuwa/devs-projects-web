@@ -18,9 +18,13 @@ export type QueueItem = {
   highPriority: boolean;
   openedAt: string;
   overdueHidden: boolean;
+  /** When the caso should be decided (48 h for hidden content, 7 days otherwise). */
+  dueAt?: string;
 };
 
 export type ModerationQueue = {
+  /** Casos past their response time, most overdue first. */
+  vencidos?: QueueItem[];
   hidden: QueueItem[];
   priorReview: QueueItem[];
   reported: QueueItem[];
@@ -84,6 +88,18 @@ export type HistoryItem = {
   caseId: string | null;
   reason: string | null;
 };
+
+export type ModerationSummary = {
+  overdueCases: number;
+  openCases: number;
+  pendingAppeals: number;
+  /** Only for admins. */
+  pendingProposals: number | null;
+};
+
+export async function getModerationSummary(): Promise<ModerationSummary> {
+  return (await api.get<ModerationSummary>('/moderation/summary')).data;
+}
 
 export async function getModerationQueue(): Promise<ModerationQueue> {
   return (await api.get<ModerationQueue>('/moderation/cases')).data;

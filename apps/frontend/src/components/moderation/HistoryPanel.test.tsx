@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/moderation-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/moderation-client')>()),
   getModerationHistory: mocks.history,
+  getModerationSummary: () =>
+    Promise.resolve({ overdueCases: 0, openCases: 0, pendingAppeals: 0, pendingProposals: null }),
 }));
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
