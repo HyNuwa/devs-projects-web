@@ -10,13 +10,19 @@ import { HistoryService } from './history.service';
 import { ModerationCoreModule } from './moderation-core.module';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
+import { SanctionsController } from './sanctions.controller';
 import { SanctionsService } from './sanctions.service';
 import { SuspensionProposalsService } from './suspension-proposals.service';
 
 /** Reportes, casos de moderación, decisions and history (openspec moderation/cases). */
 @Module({
   imports: [ModerationCoreModule, MaterialsModule, RankingModule],
-  controllers: [ReportsController, CasesController, HistoryController],
+  controllers: [
+    ReportsController,
+    CasesController,
+    HistoryController,
+    SanctionsController,
+  ],
   providers: [
     ReportsService,
     CasesService,
