@@ -1,9 +1,11 @@
 import { MaterialResourceType, Prisma } from '../../generated/prisma';
+import { publicVisibilitySql } from '../moderation/visibility';
 import { MaterialSort } from './dto/materials-query.dto';
 
 export type MaterialRankingQueryInput = {
   academicYear?: number;
   limit: number;
+  now: Date;
   offset: number;
   professorId?: string;
   resourceType?: MaterialResourceType;
@@ -23,7 +25,7 @@ export function buildMaterialRankingQuery(
 ): Prisma.Sql {
   const filters: Prisma.Sql[] = [
     Prisma.sql`m.is_deleted = false`,
-    Prisma.sql`m.moderation_status = 'APPROVED'`,
+    publicVisibilitySql(input.now),
   ];
 
   const escapedSearchKey = input.searchKey

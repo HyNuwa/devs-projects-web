@@ -1,4 +1,4 @@
-import type { PublicationStatus } from '../../generated/prisma';
+import { Prisma, type PublicationStatus } from '../../generated/prisma';
 
 /** Hidden content nobody reviewed within this window becomes visible again. */
 export const HIDDEN_REVIEW_WINDOW_DAYS = 7;
@@ -30,7 +30,7 @@ export function isPubliclyVisible(record: Publishable, now: Date) {
 
 /**
  * Prisma `where` fragment for every public read of materials, reseñas and experiencias.
- * Keep it in sync with `isPubliclyVisible`.
+ * Keep it in sync with `isPubliclyVisible` and `publicVisibilitySql`.
  */
 export function publicVisibility(now: Date) {
   return {
@@ -42,4 +42,12 @@ export function publicVisibility(now: Date) {
       },
     ],
   };
+}
+
+/**
+ * Raw SQL twin of `publicVisibility` for the table aliased `m`, for queries
+ * Prisma cannot express (the material ranking). Keep all three in sync.
+ */
+export function publicVisibilitySql(now: Date): Prisma.Sql {
+  return Prisma.sql`(m.publication_status = 'PUBLISHED' OR (m.publication_status = 'HIDDEN' AND m.hidden_at < ${hiddenCutoff(now)}))`;
 }

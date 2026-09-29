@@ -401,9 +401,10 @@ export class MaterialsService {
       ? normalizeSearchKey(query.search)
       : undefined;
 
+    const now = new Date();
     const where: Prisma.MaterialWhereInput = {
       isDeleted: false,
-      ...publicVisibility(new Date()),
+      ...publicVisibility(now),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
       ...(searchKey ? { searchKey: { contains: searchKey } } : {}),
       ...(query.resourceType ? { resourceType: query.resourceType } : {}),
@@ -418,6 +419,7 @@ export class MaterialsService {
             buildMaterialRankingQuery({
               academicYear: query.academicYear,
               limit,
+              now,
               offset,
               professorId: query.professorId,
               resourceType: query.resourceType,
