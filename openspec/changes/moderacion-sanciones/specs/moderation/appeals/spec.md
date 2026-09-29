@@ -38,11 +38,15 @@ When sign-in is refused because of a suspensión, the account SHALL be able to a
 - **THEN** the appeal is refused without saying whether the account exists or is suspended
 
 ### Requirement: Someone else reviews the appeal
-An appeal SHALL be reviewed by a moderator other than the one who made the appealed decision, and never by the appellant. Appeals of a suspensión SHALL be reviewed by an ADMIN or SUPERADMIN. When no moderator other than the decider is eligible, the appeal SHALL wait for an ADMIN. The reviewer of an appeal about anonymous content SHALL see «Autor oculto» and SHALL need «Ver autor», with a recorded reason, to see who it is.
+An appeal SHALL be reviewed by a moderator other than the one who made the appealed decision, never by the appellant, and only by someone whose role is above the appellant's (a moderator's appeal goes to an admin, as with sanciones). Appeals of a suspensión SHALL be reviewed by an ADMIN or SUPERADMIN. When no moderator other than the decider is eligible, the appeal SHALL wait for an ADMIN. The reviewer of an appeal about anonymous content SHALL see «Autor oculto» and SHALL need «Ver autor», with a recorded reason, to see who it is.
 
 #### Scenario: Moderator opens an appeal of their own retiro
 - **WHEN** the moderator who retired a material opens the appeal against that retiro
 - **THEN** they cannot answer it, and it is not listed among the appeals they can resolve
+
+#### Scenario: Moderator appeals a sanción
+- **WHEN** a MODERATOR account appeals a silenciamiento
+- **THEN** only an ADMIN or SUPERADMIN can answer it
 
 #### Scenario: Appeal of an anonymous reseña's retiro
 - **WHEN** a moderator reviews the appeal of a retired anonymous reseña
