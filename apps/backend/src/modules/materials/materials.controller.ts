@@ -28,6 +28,7 @@ import {
 import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
+import { materialUploadOptions } from './material-upload.options';
 import { MaterialsService } from './materials.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
@@ -45,19 +46,6 @@ import {
 } from './dto/set-material-viewer-state.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { Role } from '../auth/dto/auth-response.dto';
-
-const ALLOWED_MATERIAL_TYPES = [
-  'pdf',
-  'doc',
-  'docx',
-  'pptx',
-  'xls',
-  'txt',
-  'md',
-  'jpg',
-  'png',
-  'webp',
-];
 
 @ApiTags('Materials')
 @ApiBearerAuth()
@@ -101,28 +89,7 @@ export class MaterialsController {
   })
   @ApiResponse({ status: 201, type: MaterialResponseDto })
   @ApiResponse({ status: 400, description: 'Archivo inválido' })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      fileFilter: (_req, file, cb) => {
-        const ext = path
-          .extname(file.originalname)
-          .toLowerCase()
-          .replace('.', '');
-        if (!ALLOWED_MATERIAL_TYPES.includes(ext)) {
-          return cb(
-            new BadRequestException(
-              `Tipo de archivo no permitido. Extensiones válidas: ${ALLOWED_MATERIAL_TYPES.join(', ')}`,
-            ),
-            false,
-          );
-        }
-        cb(null, true);
-      },
-      limits: {
-        fileSize: 25 * 1024 * 1024, // 25MB
-      },
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', materialUploadOptions))
   async create(
     @Request() req: { user: { id: string; role: string } },
     @Body() dto: CreateMaterialDto,

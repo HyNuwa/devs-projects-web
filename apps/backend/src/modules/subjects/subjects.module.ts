@@ -25,5 +25,6 @@ import { ModerationCoreModule } from '../moderation/moderation-core.module';
   ],
   controllers: [SubjectsController],
   providers: [SubjectsService, CommunityWriteThrottlerGuard, RolesGuard],
+  exports: [SubjectsService],
 })
 export class SubjectsModule {}

@@ -43,6 +43,7 @@ describe('MaterialsService.create (publicación inmediata)', () => {
     jest.clearAllMocks();
     prisma.subject.findUnique.mockResolvedValue({ id: 'sub-1' });
     prisma.material.findFirst.mockResolvedValue(null);
+    storage.discard.mockResolvedValue(undefined);
     prisma.material.count.mockResolvedValue(0);
     prisma.material.create.mockImplementation(async ({ data }) => ({
       id: 'mat-1',

@@ -14,6 +14,7 @@ import { MaterialsModule } from './modules/materials/materials.module';
 import { ProfessorsModule } from './modules/professors/professors.module';
 import { RankingModule } from './modules/ranking/ranking.module';
 import { SubjectsModule } from './modules/subjects/subjects.module';
+import { SubmissionsModule } from './modules/submissions/submissions.module';
 import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
@@ -75,6 +76,7 @@ import { validate } from './config/env.validation';
     ProfessorsModule,
     RankingModule,
     SubjectsModule,
+    SubmissionsModule,
     UsersModule,
   ],
   controllers: [AppController],

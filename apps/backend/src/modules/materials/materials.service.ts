@@ -260,11 +260,16 @@ export class MaterialsService {
     return { material, outcome: 'PUBLISHED' as const, reason: null };
   }
 
-  private async assertNotDuplicate(subjectId: string, fileHash: string) {
+  private async assertNotDuplicate(
+    subjectId: string,
+    fileHash: string,
+    excludeId?: string,
+  ) {
     const existing = await this.prisma.material.findFirst({
       where: {
         subjectId,
         fileHash,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
         isDeleted: false,
         publicationStatus: { in: ['PUBLISHED', 'PENDING_REVIEW', 'HIDDEN'] },
       },
@@ -277,6 +282,73 @@ export class MaterialsService {
         message: 'Este archivo ya está publicado en esta materia',
       });
     }
+  }
+
+  /**
+   * Returns a material rejected in revisión previa to review, optionally with a
+   * corrected file (openspec moderation/publication, «Correct and resubmit»).
+   */
+  async resubmit(id: string, userId: string, file?: Express.Multer.File) {
+    const material = await this.prisma.material.findUnique({ where: { id } });
+    if (!material || material.isDeleted) {
+      throw new NotFoundException('Material no encontrado');
+    }
+    if (material.authorId !== userId) {
+      throw new ForbiddenException(
+        'Solo el autor puede reenviar este material',
+      );
+    }
+    if (material.publicationStatus !== 'REJECTED') {
+      throw new ConflictException(
+        'Solo se pueden reenviar los materiales rechazados en revisión previa',
+      );
+    }
+
+    let replacement: { staged: StagedFile; fileHash: string } | undefined;
+    if (file) {
+      if (!file.size || !file.buffer?.length) {
+        throw new BadRequestException('El archivo está vacío');
+      }
+      const fileHash = createHash('sha256').update(file.buffer).digest('hex');
+      await this.assertNotDuplicate(material.subjectId, fileHash, id);
+      replacement = { staged: await this.storage.stage(file), fileHash };
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.material.update({
+        where: { id },
+        data: {
+          publicationStatus: 'PENDING_REVIEW',
+          statusChangedAt: new Date(),
+          authorFacingReason: null,
+          ...(replacement
+            ? {
+                stagedFilePath: replacement.staged.stagedPath,
+                fileHash: replacement.fileHash,
+                fileType: replacement.staged.fileType,
+                fileSize: BigInt(replacement.staged.fileSize),
+                thumbnailUrl: replacement.staged.thumbnailUrl,
+              }
+            : {}),
+        },
+      });
+      await this.publicationPolicy.openPriorReview(
+        tx,
+        { type: 'MATERIAL', id },
+        userId,
+        'RESUBMITTED',
+        material.title,
+        'RESUBMITTED',
+      );
+      return next;
+    });
+
+    if (replacement && material.stagedFilePath) {
+      await this.storage
+        .discard(material.stagedFilePath)
+        .catch(() => undefined);
+    }
+    return updated;
   }
 
   private async assertUploadLimit(userId: string, now = new Date()) {

@@ -324,6 +324,79 @@ export class SubjectsService {
     return { message: 'Reseña eliminada' };
   }
 
+  async resubmitReview(reviewId: string, userId: string) {
+    const review = await this.prisma.courseReview.findUnique({
+      where: { id: reviewId },
+      select: { id: true, userId: true, publicationStatus: true },
+    });
+    this.assertResubmittable(review, userId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.courseReview.update({
+        where: { id: reviewId },
+        data: {
+          publicationStatus: 'PENDING_REVIEW',
+          statusChangedAt: new Date(),
+          authorFacingReason: null,
+        },
+      });
+      await this.publicationPolicy.openPriorReview(
+        tx,
+        { type: 'COURSE_REVIEW', id: reviewId },
+        userId,
+        'RESUBMITTED',
+        'Reseña de cursada',
+        'RESUBMITTED',
+      );
+      return updated;
+    });
+  }
+
+  async resubmitExam(examId: string, userId: string) {
+    const exam = await this.prisma.examExperience.findUnique({
+      where: { id: examId },
+      select: { id: true, userId: true, publicationStatus: true },
+    });
+    this.assertResubmittable(exam, userId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.examExperience.update({
+        where: { id: examId },
+        data: {
+          publicationStatus: 'PENDING_REVIEW',
+          statusChangedAt: new Date(),
+          authorFacingReason: null,
+        },
+      });
+      await this.publicationPolicy.openPriorReview(
+        tx,
+        { type: 'EXAM_EXPERIENCE', id: examId },
+        userId,
+        'RESUBMITTED',
+        'Experiencia de final',
+        'RESUBMITTED',
+      );
+      return updated;
+    });
+  }
+
+  private assertResubmittable(
+    entry: { userId: string; publicationStatus: string } | null,
+    userId: string,
+  ) {
+    if (!entry) throw new NotFoundException('Publicación no encontrada');
+    if (entry.userId !== userId) {
+      throw new ForbiddenException(
+        'Solo el autor puede reenviar esta publicación',
+      );
+    }
+    if (entry.publicationStatus !== 'REJECTED') {
+      throw new ConflictException(
+        'Solo se pueden reenviar publicaciones rechazadas en revisión previa',
+      );
+    }
+  }
+
   async getExams(code: string) {
     const subject = await this.findByCode(code);
     const exams = await this.prisma.examExperience.findMany({

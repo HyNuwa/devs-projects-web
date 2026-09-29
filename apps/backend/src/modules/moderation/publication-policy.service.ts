@@ -54,7 +54,7 @@ export class PublicationPolicy {
     tx: Prisma.TransactionClient,
     target: ModerationTarget,
     authorId: string,
-    reason: PriorReviewReason,
+    reason: PriorReviewReason | 'RESUBMITTED',
     label: string,
     action: 'PRIOR_REVIEW_OPENED' | 'RESUBMITTED' = 'PRIOR_REVIEW_OPENED',
   ) {
