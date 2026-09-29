@@ -21,24 +21,12 @@ Every newly contributed resource SHALL declare a materia and resource type and M
 - **WHEN** an existing resource is read after migration
 - **THEN** it remains accessible with a safe resource-type backfill and unknown optional context rather than fabricated metadata
 
-### Requirement: Mandatory pre-publication moderation
-Every uploaded material SHALL enter a non-public pending state and SHALL become available through public reads, search, preview, comments, and download only after an authorized moderator approves it. Rejected material SHALL remain non-public, and the public interface SHALL NOT display a redundant `Revisado` badge or imply that moderation guarantees academic correctness.
-
-#### Scenario: Contributor uploads a material
-- **WHEN** a contributor completes a valid material upload
-- **THEN** the material is recorded as pending and is absent from every public list, search result, preview, comment surface, and download route
-
-#### Scenario: Moderator approves a pending material
-- **WHEN** an authorized moderator approves the material
-- **THEN** the material becomes eligible for public discovery, preview, comments, and download without a public approval badge
-
-#### Scenario: Moderator rejects a pending material
-- **WHEN** an authorized moderator rejects the material
-- **THEN** the material remains non-public and the established moderation evidence and contributor-facing status are preserved
+### Requirement: Publication is not a correctness claim
+The public interface SHALL NOT display a `Revisado`, `Aprobado` or similar badge on published materials, and SHALL NOT imply that publication or moderation guarantees academic correctness.
 
 #### Scenario: Public user judges a material
-- **WHEN** a user views an approved public material
-- **THEN** the interface presents declared academic context, preview availability, ratings, and `Me sirvió` as separate evidence and makes no public correctness or verification claim
+- **WHEN** a user views a published material
+- **THEN** the interface presents declared academic context, preview availability, ratings and `Me sirvió` as separate evidence, and makes no public correctness or verification claim
 
 ### Requirement: Idempotent helpfulness signal
 The system SHALL provide `Me sirvió` as a unique per-user resource reaction and SHALL expose its aggregate count separately from ratings and publication moderation.

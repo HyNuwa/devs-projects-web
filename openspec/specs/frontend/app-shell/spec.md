@@ -112,11 +112,11 @@ Access routes (`/auth/**`) SHALL use a reduced header with the logo and a single
 - **THEN** the compact header is shown and the bottom bar is not
 
 ### Requirement: Minimal footer
-Pages with the full shell SHALL end with a footer showing the DevsProject brand, a one-line description of the community, links to the primary destinations and `Subir material`, and the copyright year. The footer SHALL NOT link to legacy routes (Foro, Profesores, Ranking, Materiales, Finales as separate destinations).
+Pages with the full shell SHALL end with a footer showing the DevsProject brand, a one-line description of the community, links to the primary destinations, `Subir material` and `Normas`, and the copyright year. The footer SHALL NOT link to legacy routes (Foro, Profesores, Ranking, Materiales, Finales as separate destinations).
 
 #### Scenario: Footer content
 - **WHEN** a page with the full shell renders
-- **THEN** the footer links only to Inicio, Materias, Experiencias and Subir material, and contains no Foro link
+- **THEN** the footer links only to Inicio, Materias, Experiencias, Subir material and Normas (`/normas`), and contains no Foro link
 
 ### Requirement: Skip link
 Every shell variant SHALL provide a skip link as the first focusable element that moves focus to the main content.

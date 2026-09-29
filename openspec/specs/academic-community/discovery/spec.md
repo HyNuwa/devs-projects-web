@@ -18,11 +18,15 @@ The system SHALL treat a `Reseña de cursada` as evidence about one completed cu
 - **THEN** every view derives from the same source record and presents consistent academic facts and labels
 
 ### Requirement: Community publication requires only authentication
-The system SHALL require an authenticated account to publish, edit, or delete a course review or final experience, but SHALL NOT require verified email, verified enrollment, or an attestation checkbox as an additional publication gate.
+The system SHALL require an authenticated account to publish, edit, or delete a course review or final experience, but SHALL NOT require verified email, verified enrollment, or an attestation checkbox as a condition for accepting a submission. Accepted submissions from accounts that meet a revisión previa condition (see `moderation/publication`) SHALL wait for moderator approval before becoming public.
 
 #### Scenario: Authenticated account publishes
-- **WHEN** an authenticated account submits a valid review or final experience
-- **THEN** the system accepts it regardless of email-verification state and applies the configured technical anti-spam controls
+- **WHEN** an authenticated account that meets no revisión previa condition submits a valid review or final experience
+- **THEN** the system accepts and publishes it immediately and applies the configured technical anti-spam controls
+
+#### Scenario: Unverified account publishes
+- **WHEN** an authenticated account with an unverified email submits a valid review or final experience
+- **THEN** the system accepts it, keeps it in revisión previa, and tells the author why
 
 #### Scenario: Anonymous visitor attempts publication
 - **WHEN** an unauthenticated visitor attempts to publish community content
@@ -153,32 +157,6 @@ An author SHALL be able to edit or permanently delete their own review or final 
 #### Scenario: Author deletes an entry
 - **WHEN** the authenticated owner confirms permanent deletion
 - **THEN** the system deletes the entry and removes it from discovery, detail access, materia views, and aggregates
-
-### Requirement: Reports do not determine visibility automatically
-An authenticated user SHALL be able to report visible community content as spam or repeated content, insults or harassment, exposed personal data, unrelated content, potentially misleading information, or another explained reason. A report SHALL NOT automatically hide the target entry.
-
-#### Scenario: User reports an entry
-- **WHEN** a signed-in user submits a supported report reason and any required explanation
-- **THEN** the system records the report for moderator review while the target remains publicly visible until a moderator decides otherwise
-
-#### Scenario: Reporter chooses another reason
-- **WHEN** a reporter chooses `Otro`
-- **THEN** the system requires a bounded plain-language explanation before accepting the report
-
-### Requirement: Moderator removal is reversible and attributable
-An authorized moderator SHALL be able to remove a reported or directly reviewed entry from public view and later restore it. Removal evidence SHALL preserve the moderator, author, reason, and action date; the author SHALL be able to see the removal reason, and moderators SHALL be able to identify the author of an anonymously published entry.
-
-#### Scenario: Moderator removes an entry
-- **WHEN** an authorized moderator records a removal reason
-- **THEN** the entry becomes unavailable to the public and stops contributing to aggregates while its ownership and moderation evidence remain preserved
-
-#### Scenario: Moderator restores an entry
-- **WHEN** an authorized moderator reverses a prior removal
-- **THEN** the same source entry returns to public views and aggregate calculations without being recreated
-
-#### Scenario: Author inspects removed content
-- **WHEN** the owner views their removed entry through an authenticated management view
-- **THEN** the system identifies the removal state, reason, and date without exposing private moderator notes
 
 ### Requirement: Community content does not become professor ranking or a social thread
 Stars and difficulty SHALL describe the declared cursada or final experience and SHALL NOT be aggregated into professor scores, professor rankings, or valorative professor profiles. Course reviews and final experiences SHALL NOT gain `Me sirvió`, nested comments, or reply threads in this change.
