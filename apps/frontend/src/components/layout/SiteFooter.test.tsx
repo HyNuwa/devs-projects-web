@@ -27,6 +27,7 @@ describe('SiteFooter', () => {
       ['Materias', '/materias'],
       ['Experiencias', '/resenas'],
       ['Subir material', '/materiales/nuevo'],
+      ['Normas', '/normas'],
     ]);
     expect(within(footer).queryByRole('link', { name: /Foro/ })).not.toBeInTheDocument();
   });

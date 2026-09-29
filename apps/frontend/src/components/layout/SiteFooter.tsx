@@ -5,7 +5,6 @@ import { primaryDestinations, uploadDestination } from './navigation';
 const linkClassName =
   'inline-flex min-h-11 items-center rounded-sm outline-none hover:text-link focus-visible:ring-[3px] focus-visible:ring-ring';
 
-// Normas joins these links with the moderation change, which creates that page.
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t-[1.5px] border-foreground/10 font-sans text-foreground">
@@ -34,6 +33,11 @@ export function SiteFooter() {
             <li>
               <Link className={`${linkClassName} text-link`} href={uploadDestination.href}>
                 Subir material
+              </Link>
+            </li>
+            <li>
+              <Link className={linkClassName} href="/normas">
+                Normas
               </Link>
             </li>
           </ul>

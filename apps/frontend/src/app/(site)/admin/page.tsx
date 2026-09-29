@@ -1,18 +1,20 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
-import { CommunityModerationPanel } from '@/components/admin/CommunityModerationPanel';
-import { ModerationPanel } from '@/components/admin/ModerationPanel';
+import { CasesPanel } from '@/components/moderation/CasesPanel';
+import { LoadingState } from '@/components/ui/shadcn';
 
 export const metadata: Metadata = {
-  title: 'Moderación - DevsProject',
-  description: 'Panel de moderación de materiales',
+  title: 'Moderación · Casos - DevsProject',
+  description: 'Casos de moderación: ocultos, revisión previa y reportados',
 };
 
-export default function AdminPage() {
+export default function ModerationCasesPage() {
   return (
-    <div className="grid gap-8">
-      <ModerationPanel />
-      <CommunityModerationPanel />
+    <div className="mx-auto w-full max-w-[1440px] px-4 py-8 lg:px-10 xl:px-16">
+      <Suspense fallback={<LoadingState heading="Cargando moderación" />}>
+        <CasesPanel />
+      </Suspense>
     </div>
   );
 }

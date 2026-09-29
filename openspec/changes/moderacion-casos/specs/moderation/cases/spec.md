@@ -124,8 +124,8 @@ Every moderation action SHALL be recorded in one append-only history: revisión 
 The moderation panel SHALL be available only to MODERATOR, ADMIN and SUPERADMIN, and SHALL offer a Casos tab and a Historial tab. Casos SHALL list open work grouped as Ocultos preventivamente, Revisión previa and Reportados, ordered by urgency (hidden first, then by number of reportes, then oldest first), and show for each caso the content preview, its reportes with reasons, the author (or «Autor oculto» with «Ver autor»), previous casos, and the decision controls with the required reason. J and K SHALL move to the next and previous caso; V and R SHALL open the «Mantener visible» and «Retirar» actions with focus on the reason field and SHALL NOT decide on their own. The panel SHALL NOT show tabs for features that do not exist yet.
 
 #### Scenario: Moderator works the queue with the keyboard
-- **WHEN** a moderator presses K on the Casos list
-- **THEN** the next caso opens; pressing R opens «Retirar» with focus on the reason field and nothing is decided until they confirm
+- **WHEN** a moderator presses J on the Casos list
+- **THEN** the next caso opens (K goes back to the previous one); pressing R opens «Retirar» with focus on the reason field and nothing is decided until they confirm
 
 #### Scenario: Student opens the panel URL
 - **WHEN** a signed-in USER opens `/admin`
