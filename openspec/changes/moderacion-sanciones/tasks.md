@@ -73,7 +73,7 @@
 
 ## 9. Verification
 
-- [ ] 9.1 Run backend lint, build, Jest (unit and e2e), Vitest (unit and e2e) and the migration tests; and frontend lint, `verify:design-tokens`, tests and build. Keep full output in `.audit-logs/`. Verify that the summaries show zero failures.
+- [x] 9.1 Run backend lint, build, Jest (unit and e2e), Vitest (unit and e2e) and the migration tests; and frontend lint, `verify:design-tokens`, tests and build. Keep full output in `.audit-logs/`. Verify that the summaries show zero failures.
 - [ ] 9.2 In a real browser against the real backend and the seeded database, exercise these flows at 390 and 1440px, and save evidence to `docs/validation/evidence/moderacion-sanciones/`:
   - retire with «Advertir también» → the author sees the warning once and in Sanciones
   - second retiro → paso sugerido «Silenciar» → silence → the author's write actions are disabled and the API refuses them → unmute
