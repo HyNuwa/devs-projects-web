@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppealsService } from './appeals.service';
+import { DecisionsService } from './decisions.service';
+import { SanctionsService } from './sanctions.service';
 
 const NOW = new Date('2026-09-30T12:00:00.000Z');
 const daysAgo = (days: number) =>
@@ -46,7 +48,12 @@ describe('AppealsService.file', () => {
     );
     prisma.moderationCase.findUnique.mockResolvedValue(retiroCase());
     const moduleRef = await Test.createTestingModule({
-      providers: [AppealsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AppealsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: DecisionsService, useValue: {} },
+        { provide: SanctionsService, useValue: {} },
+      ],
     }).compile();
     service = moduleRef.get(AppealsService);
   });

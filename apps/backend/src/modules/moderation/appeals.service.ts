@@ -1,13 +1,16 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
-import { type AppealTarget, canAppeal } from './sanction-rules';
+import { DecisionsService } from './decisions.service';
+import { type AppealTarget, canAppeal, canReview } from './sanction-rules';
+import { type Actor, SanctionsService } from './sanctions.service';
 
 const EXPLANATION_MAX = 1000;
 
@@ -46,7 +49,96 @@ type Decision = {
 /** Apelaciones (docs/README_MODERACION.md §7, openspec moderation/appeals). */
 @Injectable()
 export class AppealsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly decisions: DecisionsService,
+    private readonly sanctions: SanctionsService,
+  ) {}
+
+  /**
+   * Accepts or rejects an appeal with a final, written answer. Only someone other
+   * than the decider and the appellant, with a role above the appellant's, answers;
+   * suspensiones need an admin.
+   */
+  async answer(
+    reviewer: Actor,
+    appealId: string,
+    input: { accept: boolean; answer: string },
+  ) {
+    const answer = input.answer?.trim();
+    if (!answer || answer.length > EXPLANATION_MAX) {
+      throw new BadRequestException(
+        `Escribí la respuesta (hasta ${EXPLANATION_MAX} caracteres)`,
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const appeal = await tx.appeal.findUnique({
+        where: { id: appealId },
+        select: {
+          id: true,
+          kind: true,
+          status: true,
+          caseId: true,
+          sanctionId: true,
+          decidedById: true,
+          appellant: { select: { id: true, role: true } },
+          sanction: { select: { type: true, case: { select: contentSelect } } },
+          case: { select: contentSelect },
+        },
+      });
+      if (!appeal) throw new NotFoundException('Apelación no encontrada');
+      const allowed = canReview(reviewer, {
+        appellant: appeal.appellant,
+        decidedById: appeal.decidedById,
+        suspension: appeal.sanction?.type === 'SUSPENSION',
+      });
+      if (!allowed) {
+        throw new ForbiddenException('No podés resolver esta apelación');
+      }
+
+      // Conditional: the first answer wins and is final.
+      const answered = await tx.appeal.updateMany({
+        where: { id: appealId, status: 'PENDING' },
+        data: {
+          status: input.accept ? 'ACCEPTED' : 'REJECTED',
+          reviewerId: reviewer.id,
+          answer,
+          answeredAt: new Date(),
+        },
+      });
+      if (answered.count === 0) {
+        throw new ConflictException('La apelación ya fue respondida');
+      }
+
+      if (input.accept && appeal.kind === 'RETIRO' && appeal.caseId) {
+        await this.decisions.restoreFromAppeal(tx, {
+          caseId: appeal.caseId,
+          appealId,
+          actorId: reviewer.id,
+          reason: answer,
+        });
+      }
+      if (input.accept && appeal.kind === 'SANCTION' && appeal.sanctionId) {
+        await this.sanctions.voidByAppeal(tx, {
+          sanctionId: appeal.sanctionId,
+          appealId,
+        });
+      }
+
+      await tx.moderationEvent.create({
+        data: {
+          actorId: reviewer.id,
+          action: input.accept ? 'APPEAL_ACCEPTED' : 'APPEAL_REJECTED',
+          targetUserId: appeal.appellant.id,
+          caseId: appeal.caseId,
+          ...(appeal.case ?? appeal.sanction?.case ?? {}),
+          reason: answer,
+          metadata: { appealId, kind: appeal.kind },
+        },
+      });
+    });
+  }
 
   async file(appellantId: string, input: AppealInput, rawExplanation: string) {
     const explanation = rawExplanation?.trim();

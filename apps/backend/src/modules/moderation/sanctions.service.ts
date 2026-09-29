@@ -90,6 +90,47 @@ export class SanctionsService {
     return this.apply(actor, userId, 'SUSPENSION', reason, endsAt, options);
   }
 
+  /**
+   * An accepted appeal voids a sanción: it stops counting for the escalera and, if
+   * still in force, stops applying now. Runs inside the answer's transaction.
+   */
+  async voidByAppeal(tx: Tx, input: { sanctionId: string; appealId: string }) {
+    const now = new Date();
+    const sanction = await tx.sanction.findUnique({
+      where: { id: input.sanctionId },
+      select: {
+        id: true,
+        userId: true,
+        type: true,
+        endsAt: true,
+        liftedAt: true,
+      },
+    });
+    if (!sanction) throw new NotFoundException('Sanción no encontrada');
+    const voided = await tx.sanction.updateMany({
+      where: { id: sanction.id, voidedAt: null },
+      data: { voidedAt: now, voidedByAppealId: input.appealId },
+    });
+    if (voided.count === 0) {
+      throw new ConflictException('La sanción ya fue anulada');
+    }
+    const inForce =
+      sanction.liftedAt === null &&
+      (sanction.endsAt === null || sanction.endsAt.getTime() > now.getTime());
+    if (inForce && sanction.type === 'MUTE') {
+      await tx.user.update({
+        where: { id: sanction.userId },
+        data: { isMuted: false, mutedUntil: null },
+      });
+    }
+    if (inForce && sanction.type === 'SUSPENSION') {
+      await tx.user.update({
+        where: { id: sanction.userId },
+        data: { isBanned: false, bannedUntil: null },
+      });
+    }
+  }
+
   unmute(actor: Actor, userId: string, reason: string) {
     return this.lift(actor, userId, 'MUTE', reason);
   }

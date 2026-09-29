@@ -9,6 +9,7 @@ import {
 import type {
   ModerationDecision,
   ModerationEventAction,
+  Prisma,
   PublicationStatus,
 } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -248,6 +249,85 @@ export class DecisionsService {
     });
 
     return { caseId: moderationCase.id, decision, status: nextStatus };
+  }
+
+  /**
+   * An accepted appeal undoes a retiro (openspec moderation/appeals): the content is
+   * published again with its points, the retiro stops counting for the escalera, and
+   * the advertencia given with it is voided. Runs inside the answer's transaction.
+   */
+  async restoreFromAppeal(
+    tx: Prisma.TransactionClient,
+    input: {
+      caseId: string;
+      appealId: string;
+      actorId: string;
+      reason: string;
+    },
+  ) {
+    const now = new Date();
+    const moderationCase = await tx.moderationCase.findUnique({
+      where: { id: input.caseId },
+      select: {
+        id: true,
+        targetType: true,
+        materialId: true,
+        courseReviewId: true,
+        examExperienceId: true,
+      },
+    });
+    if (!moderationCase) throw new NotFoundException('Caso no encontrado');
+    const target: ModerationTarget = {
+      type: moderationCase.targetType,
+      id: (moderationCase.materialId ??
+        moderationCase.courseReviewId ??
+        moderationCase.examExperienceId)!,
+    };
+    const snapshot = await loadTarget(tx, target);
+    if (!snapshot) throw new NotFoundException('El contenido ya no existe');
+
+    const changed = await updateTargetStatusFrom(tx, target, 'REMOVED', {
+      publicationStatus: 'PUBLISHED',
+      statusChangedAt: now,
+      hiddenAt: null,
+      authorFacingReason: null,
+    });
+    if (!changed) {
+      throw new ConflictException('El contenido ya no está retirado');
+    }
+    await tx.moderationCase.update({
+      where: { id: moderationCase.id },
+      data: { revertedAt: now },
+    });
+    // The retiro was a mistake: points come back even during an active sanción.
+    const points = CONTRIBUTION_POINTS[target.type];
+    await this.points.awardFor(tx, {
+      userId: snapshot.authorId,
+      amount: points.amount,
+      reason: points.reason,
+      referenceId: target.id,
+    });
+    if (target.type === 'MATERIAL') {
+      await tx.subject.update({
+        where: { id: snapshot.subjectId },
+        data: { materialCount: { increment: 1 } },
+      });
+    }
+    await tx.sanction.updateMany({
+      where: { caseId: moderationCase.id, type: 'WARNING', voidedAt: null },
+      data: { voidedAt: now, voidedByAppealId: input.appealId },
+    });
+    await tx.moderationEvent.create({
+      data: {
+        actorId: input.actorId,
+        action: 'RESTORED',
+        ...targetColumns(target),
+        targetUserId: snapshot.authorId,
+        caseId: moderationCase.id,
+        reason: input.reason,
+        metadata: { label: snapshot.label, appealId: input.appealId },
+      },
+    });
   }
 }
 
