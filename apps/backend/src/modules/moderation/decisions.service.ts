@@ -21,6 +21,7 @@ import {
   targetColumns,
 } from './publication-policy.service';
 import { loadTarget, targetWhere, updateTargetStatusFrom } from './targets';
+import { type Actor, SanctionsService } from './sanctions.service';
 import { nextStatusFor } from './transitions';
 
 const REASON_REQUIRED: ReadonlySet<ModerationDecision> = new Set([
@@ -44,9 +45,11 @@ export class DecisionsService {
     private readonly prisma: PrismaService,
     private readonly points: PointService,
     private readonly materials: MaterialsService,
+    private readonly sanctions: SanctionsService,
   ) {}
 
-  async decide(caseId: string, moderatorId: string, dto: CaseDecisionDto) {
+  async decide(caseId: string, moderator: Actor, dto: CaseDecisionDto) {
+    const moderatorId = moderator.id;
     const { decision } = dto;
     const reason = dto.reason?.trim() || null;
     if (REASON_REQUIRED.has(decision) && !reason) {
@@ -233,6 +236,15 @@ export class DecisionsService {
           metadata: { label: snapshot.label },
         },
       });
+
+      // «Advertir también»: the advertencia goes to the author's account (anonymous
+      // or not) in the same transaction as the retiro.
+      if (decision === 'REMOVE' && dto.warn && reason) {
+        await this.sanctions.warn(moderator, snapshot.authorId, reason, {
+          caseId: moderationCase.id,
+          tx,
+        });
+      }
     });
 
     return { caseId: moderationCase.id, decision, status: nextStatus };

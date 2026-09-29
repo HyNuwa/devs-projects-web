@@ -28,7 +28,7 @@
 
 - [x] 4.1 Implement `SanctionsService` warn / mute / unmute / suspend / liftSuspension test-first. Each writes the `Sanction` row, the `User` cache and the event in one transaction, refuses an empty reason, and deletes refresh tokens on suspension. Verify with Vitest service tests, including that the cache matches the rows after each operation.
 - [x] 4.2 Implement suspension proposals test-first. A proposal has no effect on the account; confirming can change the duration; rejecting requires a reason; confirming with «Retirar también sus aportes publicados» retires each `Publicado` contribution through its own closed REMOVE caso and reverts its points. Verify with Vitest service tests.
-- [ ] 4.3 Add «Advertir también» to «Retirar». `CaseDecisionDto.warn` makes `DecisionsService` warn inside the same transaction, linked to the caso, and anonymous content stays hidden. Verify with a Vitest service test and a Vitest e2e test of the decision endpoint.
+- [x] 4.3 Add «Advertir también» to «Retirar». `CaseDecisionDto.warn` makes `DecisionsService` warn inside the same transaction, linked to the caso, and anonymous content stays hidden. Verify with a Vitest service test and a Vitest e2e test of the decision endpoint.
 - [ ] 4.4 Expose the sanction endpoints under `/moderation/users/:id/…` (warn, mute, unmute, propose, suspend, lift) and `/moderation/suspension-proposals/:id/{confirm,reject}`, with role guards. Verify with Vitest e2e tests of the role matrix: a moderator cannot silence a moderator, and a moderator cannot confirm a proposal.
 
 ## 5. Enforcement

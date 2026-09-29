@@ -9,6 +9,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
 import { PointService } from '../ranking/point.service';
 import { DecisionsService } from './decisions.service';
+import { SanctionsService } from './sanctions.service';
+
+const moderator = (id: string) => ({ id, role: 'MODERATOR' as const });
 
 const NOW = new Date('2026-09-29T12:00:00.000Z');
 
@@ -109,6 +112,7 @@ describe('DecisionsService.decide', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PointService, useValue: points },
         { provide: MaterialsService, useValue: materials },
+        { provide: SanctionsService, useValue: { warn: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(DecisionsService);
@@ -120,7 +124,7 @@ describe('DecisionsService.decide', () => {
     withCase(materialCase());
     prisma.material.findUnique.mockResolvedValue(material('HIDDEN'));
 
-    const result = await service.decide('case-1', 'mod-1', {
+    const result = await service.decide('case-1', moderator('mod-1'), {
       decision: 'KEEP_VISIBLE',
     });
 
@@ -170,7 +174,7 @@ describe('DecisionsService.decide', () => {
     });
     prisma.courseReview.findUnique.mockResolvedValue(review('HIDDEN'));
 
-    await service.decide('case-2', 'mod-1', {
+    await service.decide('case-2', moderator('mod-1'), {
       decision: 'REMOVE',
       reason: 'Ataca a una persona en lugar de contar la cursada.',
     });
@@ -201,7 +205,7 @@ describe('DecisionsService.decide', () => {
     withCase(materialCase());
     prisma.material.findUnique.mockResolvedValue(material('PUBLISHED'));
 
-    await service.decide('case-1', 'mod-1', {
+    await service.decide('case-1', moderator('mod-1'), {
       decision: 'REMOVE',
       reason: 'Datos personales',
     });
@@ -227,7 +231,7 @@ describe('DecisionsService.decide', () => {
     prisma.material.findUnique.mockResolvedValue(material(status));
 
     await expect(
-      service.decide('case-1', 'mod-1', { decision, reason: '  ' }),
+      service.decide('case-1', moderator('mod-1'), { decision, reason: '  ' }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.moderationEvent.create).not.toHaveBeenCalled();
   });
@@ -236,7 +240,7 @@ describe('DecisionsService.decide', () => {
     withCase(materialCase({ status: 'CLOSED', decision: 'REMOVE' }));
     prisma.material.findUnique.mockResolvedValue(material('REMOVED'));
 
-    const result = await service.decide('case-1', 'mod-1', {
+    const result = await service.decide('case-1', moderator('mod-1'), {
       decision: 'RESTORE',
       reason: 'Los datos ya estaban tapados.',
     });
@@ -265,7 +269,7 @@ describe('DecisionsService.decide', () => {
     withCase(materialCase({ kind: 'PRIOR_REVIEW', reports: [] }));
     prisma.material.findUnique.mockResolvedValue(material('PENDING_REVIEW'));
 
-    await service.decide('case-1', 'mod-1', { decision: 'APPROVE' });
+    await service.decide('case-1', moderator('mod-1'), { decision: 'APPROVE' });
 
     expect(materials.publishStagedFile).toHaveBeenCalledWith('mat-1');
     expect(prisma.material.updateMany).toHaveBeenCalledWith({
@@ -294,7 +298,7 @@ describe('DecisionsService.decide', () => {
     withCase(materialCase({ kind: 'PRIOR_REVIEW', reports: [] }));
     prisma.material.findUnique.mockResolvedValue(material('PENDING_REVIEW'));
 
-    await service.decide('case-1', 'mod-1', {
+    await service.decide('case-1', moderator('mod-1'), {
       decision: 'REJECT',
       reason: 'Tapá los DNI y volvé a enviarlo.',
     });
@@ -318,7 +322,9 @@ describe('DecisionsService.decide', () => {
     prisma.material.findUnique.mockResolvedValue(material('HIDDEN'));
 
     await expect(
-      service.decide('case-1', moderatorId, { decision: 'KEEP_VISIBLE' }),
+      service.decide('case-1', moderator(moderatorId), {
+        decision: 'KEEP_VISIBLE',
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(prisma.material.updateMany).not.toHaveBeenCalled();
   });
@@ -328,7 +334,7 @@ describe('DecisionsService.decide', () => {
     prisma.material.findUnique.mockResolvedValue(material('PUBLISHED'));
 
     await expect(
-      service.decide('case-1', 'mod-1', {
+      service.decide('case-1', moderator('mod-1'), {
         decision: 'REMOVE',
         reason: 'tarde',
       }),
@@ -340,7 +346,7 @@ describe('DecisionsService.decide', () => {
     prisma.material.findUnique.mockResolvedValue(material('PUBLISHED'));
 
     await expect(
-      service.decide('case-1', 'mod-1', {
+      service.decide('case-1', moderator('mod-1'), {
         decision: 'RESTORE',
         reason: 'error',
       }),
@@ -354,7 +360,7 @@ describe('DecisionsService.decide', () => {
       prisma.moderationCase.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        service.decide('case-1', 'mod-1', {
+        service.decide('case-1', moderator('mod-1'), {
           decision: 'REMOVE',
           reason: 'Datos personales',
         }),
@@ -369,7 +375,7 @@ describe('DecisionsService.decide', () => {
       prisma.material.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        service.decide('case-1', 'mod-1', {
+        service.decide('case-1', moderator('mod-1'), {
           decision: 'RESTORE',
           reason: 'Error de moderación',
         }),
@@ -388,7 +394,7 @@ describe('DecisionsService.decide', () => {
     prisma.material.findUnique.mockResolvedValue(material('REMOVED'));
 
     await expect(
-      service.decide('case-1', 'mod-1', {
+      service.decide('case-1', moderator('mod-1'), {
         decision: 'RESTORE',
         reason: 'Error',
       }),

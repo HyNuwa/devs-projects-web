@@ -7,6 +7,7 @@ import { PointService } from '../ranking/point.service';
 import { DecisionsService } from './decisions.service';
 import { PublicationPolicy } from './publication-policy.service';
 import { ReportsService } from './reports.service';
+import { SanctionsService } from './sanctions.service';
 
 const NOW = new Date('2026-09-30T12:00:00.000Z');
 
@@ -143,13 +144,18 @@ describe('a restore marks the retiro as reverted', () => {
           useValue: { awardFor: vi.fn(), revertFor: vi.fn() },
         },
         { provide: MaterialsService, useValue: {} },
+        { provide: SanctionsService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 
-    await moduleRef.get(DecisionsService).decide('case-1', 'mod-1', {
-      decision: 'RESTORE',
-      reason: 'Error de moderación',
-    });
+    await moduleRef.get(DecisionsService).decide(
+      'case-1',
+      { id: 'mod-1', role: 'MODERATOR' },
+      {
+        decision: 'RESTORE',
+        reason: 'Error de moderación',
+      },
+    );
 
     expect(prisma.moderationCase.update).toHaveBeenCalledWith({
       where: { id: 'case-1' },

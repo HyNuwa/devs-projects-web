@@ -19,6 +19,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Role } from '../auth/dto/auth-response.dto';
 import { CasesService } from './cases.service';
 import { DecisionsService } from './decisions.service';
+import type { Actor } from './sanctions.service';
 import { CaseDecisionDto } from './dto/case-decision.dto';
 import { RevealAuthorDto } from './dto/reveal-author.dto';
 import { HistoryService } from './history.service';
@@ -71,10 +72,14 @@ export class CasesController {
   })
   decide(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: { user: { id: string } },
+    @Request() req: { user: Actor },
     @Body() dto: CaseDecisionDto,
   ) {
-    return this.decisions.decide(id, req.user.id, dto);
+    return this.decisions.decide(
+      id,
+      { id: req.user.id, role: req.user.role },
+      dto,
+    );
   }
 
   @Post(':id/reveal-author')

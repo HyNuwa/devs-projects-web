@@ -6,6 +6,7 @@ export const APPEAL_WINDOW_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const RANK: Record<Role, number> = {
+  VISITOR: -1,
   USER: 0,
   MODERATOR: 1,
   ADMIN: 2,

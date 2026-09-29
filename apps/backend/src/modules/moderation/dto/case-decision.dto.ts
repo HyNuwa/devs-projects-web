@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 import { ModerationDecision } from '../../../generated/prisma';
 
@@ -17,4 +23,12 @@ export class CaseDecisionDto {
   @IsString()
   @MaxLength(1000)
   reason?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Solo al retirar: advierte también al autor con la misma razón («Advertir también»).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  warn?: boolean;
 }
