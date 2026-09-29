@@ -10,6 +10,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCourseReviewDto } from './dto/create-course-review.dto';
 import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { PointService } from '../ranking/point.service';
+import { PublicationPolicy } from '../moderation/publication-policy.service';
+import { publicVisibility } from '../moderation/visibility';
+
+// Current points for a reseña or experiencia; the points change will redefine them.
+const COMMUNITY_ENTRY_POINTS = 5;
 
 @Injectable()
 export class SubjectsService {
@@ -17,6 +22,7 @@ export class SubjectsService {
     private prisma: PrismaService,
     private pointService: PointService,
     private configService: ConfigService,
+    private publicationPolicy: PublicationPolicy,
   ) {}
 
   private courseReviewWriteData(dto: CreateCourseReviewDto) {
@@ -63,10 +69,10 @@ export class SubjectsService {
     },
   >(entry: T) {
     const publicEntry: Record<string, unknown> = { ...entry };
-    delete publicEntry.isRemoved;
-    delete publicEntry.removedReason;
-    delete publicEntry.removedAt;
-    delete publicEntry.removedById;
+    delete publicEntry.publicationStatus;
+    delete publicEntry.statusChangedAt;
+    delete publicEntry.hiddenAt;
+    delete publicEntry.authorFacingReason;
     publicEntry.user = entry.isAnonymous ? { username: 'Anónimo' } : entry.user;
 
     return publicEntry;
@@ -155,18 +161,18 @@ export class SubjectsService {
 
     const [reviewStats, examCount, materialCount] = await Promise.all([
       this.prisma.courseReview.aggregate({
-        where: { subjectId: subject.id, isRemoved: false },
+        where: { subjectId: subject.id, ...publicVisibility(new Date()) },
         _avg: { recommendation: true },
         _count: true,
       }),
       this.prisma.examExperience.count({
-        where: { subjectId: subject.id, isRemoved: false },
+        where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       }),
       this.prisma.material.count({
         where: {
           subjectId: subject.id,
-          moderationStatus: 'APPROVED',
           isDeleted: false,
+          ...publicVisibility(new Date()),
         },
       }),
     ]);
@@ -185,7 +191,7 @@ export class SubjectsService {
   async getReviews(code: string) {
     const subject = await this.findByCode(code);
     const reviews = await this.prisma.courseReview.findMany({
-      where: { subjectId: subject.id, isRemoved: false },
+      where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -201,7 +207,7 @@ export class SubjectsService {
 
     const conditionBreakdown = await this.prisma.courseReview.groupBy({
       by: ['condition'],
-      where: { subjectId: subject.id, isRemoved: false },
+      where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       _count: true,
     });
 
@@ -233,22 +239,38 @@ export class SubjectsService {
       });
     }
 
-    const review = await this.prisma.courseReview.create({
-      data: {
-        userId,
-        subjectId: subject.id,
-        ...this.courseReviewWriteData(dto),
-      },
+    const priorReview = await this.publicationPolicy.priorReviewFor(userId);
+    const review = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.courseReview.create({
+        data: {
+          userId,
+          subjectId: subject.id,
+          ...this.courseReviewWriteData(dto),
+          publicationStatus: priorReview ? 'PENDING_REVIEW' : 'PUBLISHED',
+        },
+      });
+      if (priorReview) {
+        await this.publicationPolicy.openPriorReview(
+          tx,
+          { type: 'COURSE_REVIEW', id: created.id },
+          userId,
+          priorReview,
+          'Reseña de cursada',
+        );
+      } else {
+        await this.pointService.awardFor(tx, {
+          userId,
+          amount: COMMUNITY_ENTRY_POINTS,
+          reason: 'COURSE_REVIEWED',
+          referenceId: created.id,
+        });
+      }
+      return created;
     });
 
-    await this.pointService.awardPoints(
-      userId,
-      5,
-      'COURSE_REVIEWED',
-      review.id,
-    );
-
-    return review;
+    return priorReview
+      ? { review, outcome: 'PENDING_REVIEW' as const, reason: priorReview }
+      : { review, outcome: 'PUBLISHED' as const, reason: null };
   }
 
   async updateReview(
@@ -305,7 +327,7 @@ export class SubjectsService {
   async getExams(code: string) {
     const subject = await this.findByCode(code);
     const exams = await this.prisma.examExperience.findMany({
-      where: { subjectId: subject.id, isRemoved: false },
+      where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
       include: {
         user: {
@@ -331,22 +353,38 @@ export class SubjectsService {
       dto.examinerName,
     );
 
-    const exam = await this.prisma.examExperience.create({
-      data: {
-        userId,
-        subjectId: subject.id,
-        ...this.examExperienceWriteData(dto),
-      },
+    const priorReview = await this.publicationPolicy.priorReviewFor(userId);
+    const exam = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.examExperience.create({
+        data: {
+          userId,
+          subjectId: subject.id,
+          ...this.examExperienceWriteData(dto),
+          publicationStatus: priorReview ? 'PENDING_REVIEW' : 'PUBLISHED',
+        },
+      });
+      if (priorReview) {
+        await this.publicationPolicy.openPriorReview(
+          tx,
+          { type: 'EXAM_EXPERIENCE', id: created.id },
+          userId,
+          priorReview,
+          'Experiencia de final',
+        );
+      } else {
+        await this.pointService.awardFor(tx, {
+          userId,
+          amount: COMMUNITY_ENTRY_POINTS,
+          reason: 'EXAM_EXPERIENCE_SHARED',
+          referenceId: created.id,
+        });
+      }
+      return created;
     });
 
-    await this.pointService.awardPoints(
-      userId,
-      5,
-      'EXAM_EXPERIENCE_SHARED',
-      exam.id,
-    );
-
-    return exam;
+    return priorReview
+      ? { exam, outcome: 'PENDING_REVIEW' as const, reason: priorReview }
+      : { exam, outcome: 'PUBLISHED' as const, reason: null };
   }
 
   async updateExam(

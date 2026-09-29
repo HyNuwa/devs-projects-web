@@ -61,6 +61,7 @@ action: PRIOR_REVIEW_OPENED | PRIOR_REVIEW_APPROVED | PRIOR_REVIEW_REJECTED | RE
 ```
 - **Append-only at the database:** a `BEFORE UPDATE OR DELETE` trigger raises an exception, so the log is protected even from bugs.
 - **Migration:** `ModerationLog` and `CommunityModerationAction` rows migrate into it, and both tables are dropped. User-sanction actions (`BAN_USER`, `MUTE_USER`, …) exist only as enum values with no production rows; 2b re-adds them to this enum.
+- **No foreign keys to content:** events store target ids without foreign keys, plus a short label of the target in `metadata`. A cascade from an author's permanent deletion would otherwise hit the append-only trigger and block the deletion; this way the history also survives the content. Legacy log actions with no equivalent yet (for example `BAN_USER`) migrate as `LEGACY_ACTION`, with the original action in `metadata`.
 - **Revelación de autor** is an event (`AUTHOR_REVEALED` with the reason), not a separate `AuthorReveal` table. The history API filters those events out unless the viewer is ADMIN or SUPERADMIN. `README_MODERACION.md` §12.1 is updated to match.
 - **`AUTO_UNHIDDEN_OVERDUE`** is written lazily, the first time a read or the panel notices an overdue hidden case. It is idempotent by case.
 *Alternative considered:* keeping two logs and merging them in the UI. Rejected in grilling (P13).

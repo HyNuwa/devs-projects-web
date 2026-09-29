@@ -3,6 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as bcrypt from 'bcrypt';
 import { normalizeSearchKey } from '../src/common/search/search-key';
+import { seedModeration } from './seed-moderation';
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -20,6 +21,11 @@ async function hash(password: string) {
 
 async function main() {
   // Limpiar datos existentes (en orden inverso de dependencias)
+  // moderation_events is append-only (row triggers block DELETE); TRUNCATE is the
+  // development-only way to clear it.
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "moderation_events"');
+  await prisma.report.deleteMany();
+  await prisma.moderationCase.deleteMany();
   await prisma.pointTransaction.deleteMany();
   await prisma.materialRating.deleteMany();
   await prisma.material.deleteMany();
@@ -34,7 +40,6 @@ async function main() {
   await prisma.subject.deleteMany();
   await prisma.professor.deleteMany();
   await prisma.career.deleteMany();
-  await prisma.moderationLog.deleteMany();
   await prisma.userBadge.deleteMany();
   await prisma.badge.deleteMany();
   await prisma.refreshToken.deleteMany();
@@ -52,6 +57,7 @@ async function main() {
         role: Role.ADMIN,
         displayName: 'Administrador',
         emailVerified: true,
+        createdAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.user.create({
@@ -62,6 +68,7 @@ async function main() {
         role: Role.MODERATOR,
         displayName: 'Moderador',
         emailVerified: true,
+        createdAt: new Date(Date.now() - 300 * 24 * 60 * 60 * 1000),
       },
     }),
     prisma.user.create({
@@ -72,6 +79,7 @@ async function main() {
         role: Role.USER,
         displayName: 'Usuario de Prueba',
         emailVerified: true,
+        createdAt: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000),
       },
     }),
   ]);
@@ -492,6 +500,18 @@ async function main() {
   );
 
   console.log(`Creados ${createdProfessors.length} profesores`);
+
+  await seedModeration(
+    prisma,
+    {
+      adminId: adminUser.id,
+      moderatorId: moderatorUser.id,
+      userId: normalUser.id,
+    },
+    Object.values(subjects).slice(0, 2),
+    await hash('DemoPass123!'),
+  );
+  console.log('Creados datos de demo de moderación');
 }
 
 main()

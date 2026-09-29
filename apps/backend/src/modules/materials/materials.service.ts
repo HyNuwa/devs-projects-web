@@ -4,8 +4,11 @@ import {
   ForbiddenException,
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Inject,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { Prisma } from '../../generated/prisma/index';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FileStorageService, StagedFile } from './file-storage.service';
@@ -13,7 +16,6 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
 import { MaterialsQueryDto } from './dto/materials-query.dto';
-import { RejectMaterialDto } from './dto/reject-material.dto';
 import { Role } from '../auth/dto/auth-response.dto';
 import { PointService } from '../ranking/point.service';
 import { normalizeSearchKey } from '../../common/search/search-key';
@@ -22,6 +24,9 @@ import {
   RankedMaterialId,
 } from './material-ranking.query';
 import { toMaterialPreview } from './material-preview.mapper';
+import { PublicationPolicy } from '../moderation/publication-policy.service';
+import type { PriorReviewReason } from '../moderation/rules';
+import { publicVisibility } from '../moderation/visibility';
 
 const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
@@ -34,14 +39,14 @@ const authorSelect = {
   },
 } as const;
 
-const moderationEvidenceSelect = {
-  select: {
-    id: true,
-    action: true,
-    reason: true,
-    createdAt: true,
-  },
-} as const;
+// docs/README_MODERACION.md §3.2
+const DAILY_UPLOAD_LIMIT = 10;
+const UPLOAD_WINDOW_MS = 24 * 60 * 60 * 1000;
+const MATERIAL_POINTS = 10;
+
+export type MaterialSubmissionOutcome =
+  | { outcome: 'PUBLISHED'; reason: null }
+  | { outcome: 'PENDING_REVIEW'; reason: PriorReviewReason };
 
 const publicMaterialSelect = {
   id: true,
@@ -122,6 +127,7 @@ export class MaterialsService {
     private prisma: PrismaService,
     @Inject('FILE_STORAGE') private storage: FileStorageService,
     private pointService: PointService,
+    private publicationPolicy: PublicationPolicy,
   ) {}
 
   private async assertAcademicContext(
@@ -153,40 +159,141 @@ export class MaterialsService {
     }
   }
 
+  /**
+   * Publishes a material immediately, or holds it for revisión previa when its author
+   * meets a risk condition (openspec moderation/publication).
+   */
   async create(
     dto: CreateMaterialDto,
     file: Express.Multer.File,
     userId: string,
   ) {
+    if (!file.size || !file.buffer?.length) {
+      throw new BadRequestException('El archivo está vacío');
+    }
     await this.assertAcademicContext(dto.subjectId, dto.professorId);
+
+    const fileHash = createHash('sha256').update(file.buffer).digest('hex');
+    await this.assertNotDuplicate(dto.subjectId, fileHash);
+    await this.assertUploadLimit(userId);
+
+    const priorReview = await this.publicationPolicy.priorReviewFor(userId);
     const staged: StagedFile = await this.storage.stage(file);
+    const baseData = {
+      title: dto.title,
+      searchKey: normalizeSearchKey(dto.title),
+      description: dto.description,
+      fileType: staged.fileType,
+      fileSize: BigInt(staged.fileSize),
+      thumbnailUrl: staged.thumbnailUrl,
+      fileHash,
+      authorId: userId,
+      subjectId: dto.subjectId,
+      resourceType: dto.resourceType,
+      academicYear: dto.academicYear,
+      professorId: dto.professorId,
+      shift: dto.shift,
+    };
 
-    const material = await this.prisma.material.create({
-      data: {
-        title: dto.title,
-        searchKey: normalizeSearchKey(dto.title),
-        description: dto.description,
-        fileUrl: '',
+    if (priorReview) {
+      const material = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.material.create({
+          data: {
+            ...baseData,
+            fileUrl: '',
+            publicationStatus: 'PENDING_REVIEW',
+            stagedFilePath: staged.stagedPath,
+          },
+          include: { author: authorSelect, subject: true },
+        });
+        await this.publicationPolicy.openPriorReview(
+          tx,
+          { type: 'MATERIAL', id: created.id },
+          userId,
+          priorReview,
+          created.title,
+        );
+        return created;
+      });
+      return {
+        material,
+        outcome: 'PENDING_REVIEW' as const,
+        reason: priorReview,
+      };
+    }
+
+    let published;
+    try {
+      published = await this.storage.publish(staged.stagedPath, {
         fileType: staged.fileType,
-        fileSize: BigInt(staged.fileSize),
-        thumbnailUrl: staged.thumbnailUrl,
-        authorId: userId,
-        subjectId: dto.subjectId,
-        resourceType: dto.resourceType,
-        academicYear: dto.academicYear,
-        professorId: dto.professorId,
-        shift: dto.shift,
-        moderationStatus: 'PENDING',
-        stagedFilePath: staged.stagedPath,
-      },
-      include: {
-        author: authorSelect,
-        subject: true,
-      },
-    });
+      });
+    } catch (error) {
+      await this.storage.discard(staged.stagedPath).catch(() => undefined);
+      throw error;
+    }
 
-    // No se otorgan puntos hasta la aprobación.
-    return material;
+    const material = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.material.create({
+        data: {
+          ...baseData,
+          publicationStatus: 'PUBLISHED',
+          fileUrl: published.fileUrl,
+          driveFileId: published.driveFileId,
+          drivePreviewUrl: published.drivePreviewUrl,
+          driveDownloadUrl: published.driveDownloadUrl,
+          stagedFilePath: null,
+        },
+        include: { author: authorSelect, subject: true },
+      });
+      await tx.subject.update({
+        where: { id: dto.subjectId },
+        data: { materialCount: { increment: 1 } },
+      });
+      await this.pointService.awardFor(tx, {
+        userId,
+        amount: MATERIAL_POINTS,
+        reason: 'MATERIAL_PUBLISHED',
+        referenceId: created.id,
+      });
+      return created;
+    });
+    return { material, outcome: 'PUBLISHED' as const, reason: null };
+  }
+
+  private async assertNotDuplicate(subjectId: string, fileHash: string) {
+    const existing = await this.prisma.material.findFirst({
+      where: {
+        subjectId,
+        fileHash,
+        isDeleted: false,
+        publicationStatus: { in: ['PUBLISHED', 'PENDING_REVIEW', 'HIDDEN'] },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException({
+        code: 'DUPLICATE_MATERIAL',
+        materialId: existing.id,
+        message: 'Este archivo ya está publicado en esta materia',
+      });
+    }
+  }
+
+  private async assertUploadLimit(userId: string, now = new Date()) {
+    const since = new Date(now.getTime() - UPLOAD_WINDOW_MS);
+    const recent = await this.prisma.material.count({
+      where: { authorId: userId, createdAt: { gte: since } },
+    });
+    if (recent >= DAILY_UPLOAD_LIMIT) {
+      throw new HttpException(
+        {
+          code: 'UPLOAD_LIMIT',
+          retryAt: new Date(now.getTime() + UPLOAD_WINDOW_MS).toISOString(),
+          message: `Podés subir hasta ${DAILY_UPLOAD_LIMIT} materiales por día`,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
   }
 
   async findAll(query: MaterialsQueryDto) {
@@ -199,7 +306,7 @@ export class MaterialsService {
 
     const where: Prisma.MaterialWhereInput = {
       isDeleted: false,
-      moderationStatus: 'APPROVED',
+      ...publicVisibility(new Date()),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
       ...(searchKey ? { searchKey: { contains: searchKey } } : {}),
       ...(query.resourceType ? { resourceType: query.resourceType } : {}),
@@ -261,7 +368,7 @@ export class MaterialsService {
 
   async findById(id: string) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+      where: { id, isDeleted: false, ...publicVisibility(new Date()) },
       select: publicMaterialSelect,
     });
 
@@ -270,150 +377,6 @@ export class MaterialsService {
     }
 
     return toPublicMaterial(material);
-  }
-
-  async findMine(userId: string) {
-    return this.prisma.material.findMany({
-      where: { authorId: userId, isDeleted: false },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        author: authorSelect,
-        subject: true,
-        moderationLogs: moderationEvidenceSelect,
-      },
-    });
-  }
-
-  async findPending() {
-    return this.prisma.material.findMany({
-      where: { moderationStatus: 'PENDING', isDeleted: false },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        author: authorSelect,
-        subject: true,
-        moderationLogs: moderationEvidenceSelect,
-      },
-    });
-  }
-
-  async approve(id: string, moderatorId: string) {
-    const material = await this.prisma.material.findUnique({
-      where: { id },
-    });
-
-    if (!material || material.isDeleted) {
-      throw new NotFoundException('Material no encontrado');
-    }
-
-    if (material.moderationStatus === 'APPROVED') {
-      return this.findById(id);
-    }
-
-    if (material.moderationStatus !== 'PENDING') {
-      throw new ConflictException(
-        'Solo los materiales pendientes pueden aprobarse',
-      );
-    }
-
-    if (!material.stagedFilePath) {
-      throw new ConflictException(
-        'El material pendiente no conserva un archivo para publicar',
-      );
-    }
-
-    const published = await this.storage.publish(material.stagedFilePath, {
-      fileType: material.fileType,
-    });
-
-    const updated = await this.prisma.material.update({
-      where: { id },
-      data: {
-        moderationStatus: 'APPROVED',
-        isApproved: true,
-        moderationReason: null,
-        fileUrl: published.fileUrl,
-        driveFileId: published.driveFileId,
-        drivePreviewUrl: published.drivePreviewUrl,
-        driveDownloadUrl: published.driveDownloadUrl,
-        stagedFilePath: null,
-      },
-      include: {
-        author: authorSelect,
-        subject: true,
-      },
-    });
-
-    await this.prisma.subject.update({
-      where: { id: material.subjectId },
-      data: { materialCount: { increment: 1 } },
-    });
-
-    await this.prisma.moderationLog.create({
-      data: {
-        moderatorId,
-        targetMaterialId: id,
-        action: 'APPROVE_MATERIAL',
-      },
-    });
-
-    // Puntos únicamente al aprobar.
-    await this.pointService.awardPoints(
-      material.authorId,
-      10,
-      'MATERIAL_APPROVED',
-      id,
-    );
-
-    return updated;
-  }
-
-  async reject(id: string, moderatorId: string, dto: RejectMaterialDto) {
-    const material = await this.prisma.material.findUnique({
-      where: { id },
-    });
-
-    if (!material || material.isDeleted) {
-      throw new NotFoundException('Material no encontrado');
-    }
-
-    if (material.moderationStatus === 'REJECTED') {
-      return material;
-    }
-
-    if (material.moderationStatus !== 'PENDING') {
-      throw new ConflictException(
-        'Solo los materiales pendientes pueden rechazarse',
-      );
-    }
-
-    if (material.stagedFilePath) {
-      await this.storage.discard(material.stagedFilePath);
-    }
-
-    const updated = await this.prisma.material.update({
-      where: { id },
-      data: {
-        moderationStatus: 'REJECTED',
-        isApproved: false,
-        moderationReason: dto.reason,
-        stagedFilePath: null,
-      },
-      include: {
-        author: authorSelect,
-        subject: true,
-      },
-    });
-
-    await this.prisma.moderationLog.create({
-      data: {
-        moderatorId,
-        targetMaterialId: id,
-        action: 'REJECT_MATERIAL',
-        reason: dto.reason,
-      },
-    });
-
-    return updated;
   }
 
   async update(id: string, dto: UpdateMaterialDto, userId: string) {
@@ -489,7 +452,7 @@ export class MaterialsService {
 
   async download(id: string) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+      where: { id, isDeleted: false, ...publicVisibility(new Date()) },
     });
 
     if (!material) {
@@ -504,7 +467,7 @@ export class MaterialsService {
 
   async rate(id: string, userId: string, dto: RateMaterialDto) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+      where: { id, isDeleted: false, ...publicVisibility(new Date()) },
     });
 
     if (!material) {
@@ -547,7 +510,7 @@ export class MaterialsService {
   async setHelpfulness(id: string, userId: string, isHelpful: boolean) {
     return this.prisma.$transaction(async (transaction) => {
       const material = await transaction.material.findFirst({
-        where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+        where: { id, isDeleted: false, ...publicVisibility(new Date()) },
         select: { id: true },
       });
 
@@ -578,7 +541,7 @@ export class MaterialsService {
   async setSaved(id: string, userId: string, isSaved: boolean) {
     return this.prisma.$transaction(async (transaction) => {
       const material = await transaction.material.findFirst({
-        where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+        where: { id, isDeleted: false, ...publicVisibility(new Date()) },
         select: { id: true },
       });
 
@@ -604,7 +567,7 @@ export class MaterialsService {
 
   async getViewerState(id: string, userId: string) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+      where: { id, isDeleted: false, ...publicVisibility(new Date()) },
       select: { id: true },
     });
 
@@ -628,7 +591,7 @@ export class MaterialsService {
 
   async getRatings(id: string, query: { page?: number; limit?: number }) {
     const material = await this.prisma.material.findFirst({
-      where: { id, isDeleted: false, moderationStatus: 'APPROVED' },
+      where: { id, isDeleted: false, ...publicVisibility(new Date()) },
       select: { id: true },
     });
 

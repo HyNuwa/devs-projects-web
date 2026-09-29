@@ -1,23 +1,23 @@
 ## 1. Schema and migration
 
-- [ ] 1.1 Add `PublicationStatus` with `statusChangedAt`, `hiddenAt` and `authorFacingReason` to `Material`, `CourseReview` and `ExamExperience`, plus `Material.fileHash` with its `(subjectId, fileHash)` index. Map the old data (APPROVED→PUBLISHED, PENDING→PENDING_REVIEW, REJECTED→REJECTED, isRemoved→REMOVED), then drop the old columns. Verify that `prisma migrate reset` applies cleanly and that a migration test asserts the mapping on seeded rows.
-- [ ] 1.2 Add `ModerationCase`, `Report` and `ModerationEvent`. In raw SQL, add the CHECK for exactly one target, the partial unique index for one OPEN case per target and kind, the unique reporter-per-target indexes, and the append-only trigger. Migrate the `CommunityReport`, `CommunityModerationAction` and `ModerationLog` rows, then drop those tables. Verify with a database test that updating or deleting a `ModerationEvent` raises, that a second OPEN case for the same target is refused, and that migrated rows are present.
-- [ ] 1.3 Update `prisma/seed.ts` with materials in every status, one prior-review case, a reported and a hidden item, and an anonymous reseña with reports. Verify that `pnpm seed` succeeds after `migrate reset`.
+- [x] 1.1 Add `PublicationStatus` with `statusChangedAt`, `hiddenAt` and `authorFacingReason` to `Material`, `CourseReview` and `ExamExperience`, plus `Material.fileHash` with its `(subjectId, fileHash)` index. Map the old data (APPROVED→PUBLISHED, PENDING→PENDING_REVIEW, REJECTED→REJECTED, isRemoved→REMOVED), then drop the old columns. Verify that `prisma migrate reset` applies cleanly and that a migration test asserts the mapping on seeded rows.
+- [x] 1.2 Add `ModerationCase`, `Report` and `ModerationEvent`. In raw SQL, add the CHECK for exactly one target, the partial unique index for one OPEN case per target and kind, the unique reporter-per-target indexes, and the append-only trigger. Migrate the `CommunityReport`, `CommunityModerationAction` and `ModerationLog` rows, then drop those tables. Verify with a database test that updating or deleting a `ModerationEvent` raises, that a second OPEN case for the same target is refused, and that migrated rows are present.
+- [x] 1.3 Update `prisma/seed.ts` with materials in every status, one prior-review case, a reported and a hidden item, and an anonymous reseña with reports. Verify that `pnpm seed` succeeds after `migrate reset`.
 
 ## 2. Rule functions
 
-- [ ] 2.1 Implement `publicVisibility(now)` and `isOverdueHidden` test-first, with a fixed clock: PUBLISHED is visible, HIDDEN for 7 days or less is not, HIDDEN for more than 7 days is, and every other status is not. Verify the unit tests pass.
-- [ ] 2.2 Implement `priorReviewReason`, `isQualifiedReporter` and `hideDecision` test-first, covering every scenario of «Revisión previa for risky accounts» and «Ocultamiento preventivo on strong signals», including the unqualified personal-data report returning HIGH_PRIORITY. Verify the unit tests pass.
-- [ ] 2.3 Implement the `nextStatusFor` state machine test-first, covering the legal and illegal transitions for every decision and for resubmission. Verify the unit tests pass.
-- [ ] 2.4 Extend `PointService` with idempotent `awardFor`/`revertFor` test-first. Retire → restore → retire must end at a net 0, and double award must be a no-op. Verify the unit tests pass.
+- [x] 2.1 Implement `publicVisibility(now)` and `isOverdueHidden` test-first, with a fixed clock: PUBLISHED is visible, HIDDEN for 7 days or less is not, HIDDEN for more than 7 days is, and every other status is not. Verify the unit tests pass.
+- [x] 2.2 Implement `priorReviewReason`, `isQualifiedReporter` and `hideDecision` test-first, covering every scenario of «Revisión previa for risky accounts» and «Ocultamiento preventivo on strong signals», including the unqualified personal-data report returning HIGH_PRIORITY. Verify the unit tests pass.
+- [x] 2.3 Implement the `nextStatusFor` state machine test-first, covering the legal and illegal transitions for every decision and for resubmission. Verify the unit tests pass.
+- [x] 2.4 Extend `PointService` with idempotent `awardFor`/`revertFor` test-first. Retire → restore → retire must end at a net 0, and double award must be a no-op. Verify the unit tests pass.
 
 ## 3. Publication backend
 
-- [ ] 3.1 Switch every public read in `materials`, `discovery` and `subjects` (lists, search, hierarchy counts, aggregates, detail, preview, download, comments) to `publicVisibility`. Add a guard test that fails if source still filters on `moderationStatus`/`isRemoved`/`isApproved`. Verify existing discovery and materials specs pass once updated to the new statuses.
-- [ ] 3.2 Rework `MaterialsService.create` test-first: empty-file check, hash, duplicate 409 with `materialId`, 10-per-24h 429 with `retryAt`, immediate Drive publish with points, or PENDING_REVIEW with a staged file, an open case and an event. Verify with service specs for each outcome, including a Drive failure leaving nothing created.
-- [ ] 3.3 Make reseña and experiencia creation follow the same decision: publish with points, or PENDING_REVIEW with a case, and return the outcome and reason code. Verify with service specs.
+- [x] 3.1 Switch every public read in `materials`, `discovery` and `subjects` (lists, search, hierarchy counts, aggregates, detail, preview, download, comments) to `publicVisibility`. Add a guard test that fails if source still filters on `moderationStatus`/`isRemoved`/`isApproved`. Verify existing discovery and materials specs pass once updated to the new statuses.
+- [x] 3.2 Rework `MaterialsService.create` test-first: empty-file check, hash, duplicate 409 with `materialId`, 10-per-24h 429 with `retryAt`, immediate Drive publish with points, or PENDING_REVIEW with a staged file, an open case and an event. Verify with service specs for each outcome, including a Drive failure leaving nothing created.
+- [x] 3.3 Make reseña and experiencia creation follow the same decision: publish with points, or PENDING_REVIEW with a case, and return the outcome and reason code. Verify with service specs.
 - [ ] 3.4 Add `GET /me/submissions` and `POST /me/submissions/:type/:id/resubmit` test-first. The first covers all three types, including anonymous ones, and exposes no moderator identity. The second is owner-only, only from REJECTED, opens a new PRIOR_REVIEW case and records `RESUBMITTED`. Verify with controller/e2e specs, including another user getting 403.
-- [ ] 3.5 Remove `/materials/pending`, `/materials/:id/approve|reject` and `community-moderation.*` (controller, service, DTOs and their specs). Verify that the backend build and the full suite pass with no references left.
+- [x] 3.5 Remove `/materials/pending`, `/materials/:id/approve|reject` and `community-moderation.*` (controller, service, DTOs and their specs). Verify that the backend build and the full suite pass with no references left.
 
 ## 4. Cases backend
 

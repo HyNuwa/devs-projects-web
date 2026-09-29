@@ -61,7 +61,7 @@ describe('DiscoveryService exam-experience discovery', () => {
     });
 
     const where = {
-      isRemoved: false,
+      OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
       subjectId: 'subject-1',
       year: 2026,
       session: 'JULIO',
@@ -135,7 +135,12 @@ describe('DiscoveryService exam-experience discovery', () => {
     );
     expect(result).not.toHaveProperty('grade');
     expect(prisma.examExperience.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'exam-1', isRemoved: false } }),
+      expect.objectContaining({
+        where: {
+          id: 'exam-1',
+          OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
+        },
+      }),
     );
     expect(prisma.examExperience.findFirst).toHaveBeenCalledTimes(1);
     expect(prisma.examExperience.findMany).not.toHaveBeenCalled();
