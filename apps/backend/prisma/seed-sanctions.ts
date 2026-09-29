@@ -11,8 +11,8 @@ type SeedUsers = { adminId: string; moderatorId: string };
 /**
  * Demo data for sanciones and apelaciones (openspec change moderacion-sanciones),
  * matching the Usuarios and Apelaciones canvases:
- * - `juan.p`: warned for a first retiro and with an open caso, so the next step is
- *   «Silenciar 7 días».
+ * - `juan.p`: warned for a first retiro and with an open caso hidden 3 days ago, so
+ *   the next step is «Silenciar 7 días» and the caso is overdue («Vencidos»).
  * - `lu.rojas`: silenced after two retiros, and appealing it.
  * - `ofertas.fi`: a new spam-looking account with a pending suspension proposal.
  * - `fede.b`: suspended for 30 days.
@@ -174,7 +174,7 @@ export async function seedSanctions(
       isAnonymous: true,
       comment: 'La cátedra es un desastre y el JTP no sabe nada.',
       publicationStatus: 'HIDDEN',
-      hiddenAt: at(-0.2),
+      hiddenAt: at(-3),
     },
   });
   await prisma.moderationCase.create({
@@ -183,7 +183,7 @@ export async function seedSanctions(
       targetType: 'COURSE_REVIEW',
       courseReviewId: juanReview.id,
       targetAuthorId: juan.id,
-      openedAt: at(-0.2),
+      openedAt: at(-3),
     },
   });
 

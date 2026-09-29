@@ -94,6 +94,17 @@ describe('AppealsPanel', () => {
     expect(screen.getByText(/No ves apelaciones de decisiones tuyas/)).toBeInTheDocument();
   });
 
+  it('keeps the appeal open when the moderator clicks it again', async () => {
+    const user = userEvent.setup();
+    render(<AppealsPanel />);
+    await screen.findByRole('heading', { level: 2, name: /Apelación ·/ });
+
+    await user.click(screen.getByRole('button', { name: /Reseña de cursada/ }));
+
+    expect(screen.getByRole('heading', { level: 2, name: /Apelación ·/ })).toBeInTheDocument();
+    expect(screen.queryByText('Cargando la apelación')).not.toBeInTheDocument();
+  });
+
   it('requires a reason and accepts with it', async () => {
     const user = userEvent.setup();
     render(<AppealsPanel />);

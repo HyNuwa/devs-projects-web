@@ -160,6 +160,8 @@ export function UsersPanel() {
   }
 
   const select = (id: string) => {
+    // Reselecting the open account would leave it loading: its load does not re-run.
+    if (id === selectedId) return;
     setFileState({ status: 'loading' });
     setSelectedId(id);
   };

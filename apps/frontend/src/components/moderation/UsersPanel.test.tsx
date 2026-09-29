@@ -137,6 +137,16 @@ describe('UsersPanel', () => {
     expect(screen.getByText(/Paso sugerido: silenciar 7 días/)).toBeInTheDocument();
   });
 
+  it('keeps the file when the moderator clicks the account that is already open', async () => {
+    const user = userEvent.setup();
+    await openFile();
+
+    await user.click(screen.getByRole('button', { name: /@juan\.p/ }));
+
+    expect(screen.getByRole('heading', { level: 2, name: '@juan.p' })).toBeInTheDocument();
+    expect(screen.queryByText('Cargando la ficha')).not.toBeInTheDocument();
+  });
+
   it('offers only the actions the viewer may take, each with a required reason', async () => {
     const user = userEvent.setup();
     mocks.mute.mockResolvedValue(undefined);

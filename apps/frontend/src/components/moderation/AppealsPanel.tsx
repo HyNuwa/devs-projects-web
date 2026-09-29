@@ -136,6 +136,8 @@ export function AppealsPanel() {
                           : 'border-border bg-card hover:bg-muted',
                       )}
                       onClick={() => {
+                        // Reselecting the open appeal would leave it loading.
+                        if (appeal.id === selectedId) return;
                         setDetail(null);
                         setDetailError(null);
                         setSelectedId(appeal.id);
