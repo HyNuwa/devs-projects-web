@@ -87,7 +87,7 @@ describe('what a silenced account sees', () => {
 
   it('resubmitting in Mis envíos is disabled with the explanation', async () => {
     signIn(mute);
-    mocks.get.mockResolvedValue({
+    const submissions = {
       data: [
         {
           type: 'MATERIAL',
@@ -103,7 +103,10 @@ describe('what a silenced account sees', () => {
           retiro: null,
         },
       ],
-    });
+    };
+    mocks.get.mockImplementation(async (url: string) =>
+      url === '/me/sanctions' ? { data: [] } : submissions,
+    );
     render(<MySubmissions />);
 
     expect(await screen.findByRole('button', { name: 'Reenviar a revisión' })).toBeDisabled();

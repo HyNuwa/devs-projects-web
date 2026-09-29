@@ -65,7 +65,9 @@ afterEach(cleanup);
 beforeEach(() => {
   mocks.get.mockReset();
   mocks.post.mockReset();
-  mocks.get.mockResolvedValue({ data: submissions });
+  mocks.get.mockImplementation(async (url: string) =>
+    url === '/me/sanctions' ? { data: [] } : { data: submissions },
+  );
   mocks.post.mockResolvedValue({ data: {} });
 });
 
@@ -117,7 +119,9 @@ describe('MySubmissions', () => {
     );
     const body = mocks.post.mock.calls[0][1] as FormData;
     expect(body.get('file')).toBe(file);
-    await waitFor(() => expect(mocks.get).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(mocks.get.mock.calls.filter(([url]) => url === '/me/submissions')).toHaveLength(2),
+    );
   });
 
   it('sends a rejected reseña to its edit form to correct and resubmit it', async () => {
@@ -134,7 +138,9 @@ describe('MySubmissions', () => {
   });
 
   it('shows an empty state with a way to contribute', async () => {
-    mocks.get.mockResolvedValue({ data: [] });
+    mocks.get.mockImplementation(async (url: string) =>
+      url === '/me/sanctions' ? { data: [] } : { data: [] },
+    );
     render(<MySubmissions />);
 
     expect(await screen.findByText('Todavía no compartiste nada.')).toBeInTheDocument();

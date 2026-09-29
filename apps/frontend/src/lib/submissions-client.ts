@@ -14,6 +14,18 @@ export type Submission = {
   statusChangedAt: string;
   createdAt: string;
   canResubmit: boolean;
+  /** For `Retirado`: whether it can still be appealed, and the appeal's answer. */
+  retiro?: {
+    caseId: string;
+    decidedAt: string;
+    appealable: boolean;
+    appealDeadline: string | null;
+    appeal: {
+      status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+      answer: string | null;
+      answeredAt: string | null;
+    } | null;
+  } | null;
 };
 
 export async function getMySubmissions(): Promise<Submission[]> {

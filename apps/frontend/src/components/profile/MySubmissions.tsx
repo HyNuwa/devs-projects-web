@@ -24,6 +24,8 @@ import {
   type Submission,
 } from '@/lib/submissions-client';
 import { useAccountRestriction } from '@/hooks/useAccountRestriction';
+import { AppealForm, AppealOutcome } from './AppealForm';
+import { MySanctions } from './MySanctions';
 
 const STATUS: Record<
   PublicationStatus,
@@ -188,6 +190,21 @@ function SubmissionItem({
       ) : null}
       <p className="text-xs text-muted-foreground">Actualizado el {date}</p>
 
+      {submission.status === 'REMOVED' && submission.retiro ? (
+        submission.retiro.appeal ? (
+          <AppealOutcome
+            answer={submission.retiro.appeal.answer}
+            status={submission.retiro.appeal.status}
+          />
+        ) : submission.retiro.appealable ? (
+          <AppealForm
+            deadline={submission.retiro.appealDeadline}
+            onDone={onChanged}
+            target={{ kind: 'RETIRO', caseId: submission.retiro.caseId }}
+          />
+        ) : null
+      ) : null}
+
       {submission.canResubmit ? (
         submission.type === 'MATERIAL' ? (
           <ResubmitMaterial id={submission.id} onDone={onChanged} />
@@ -235,47 +252,50 @@ export function MySubmissions() {
   }, [reloadKey]);
 
   return (
-    <section className="grid gap-4 font-sans" id="mis-envios">
-      <div>
-        <h2 className="text-2xl font-extrabold tracking-[-0.03em]">Mis envíos</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Lo que compartiste se publica al instante. Acá ves qué pasó con cada aporte.
-        </p>
-      </div>
+    <>
+      <section className="grid gap-4 font-sans" id="mis-envios">
+        <div>
+          <h2 className="text-2xl font-extrabold tracking-[-0.03em]">Mis envíos</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Lo que compartiste se publica al instante. Acá ves qué pasó con cada aporte.
+          </p>
+        </div>
 
-      {state.status === 'loading' ? <LoadingState heading="Cargando tus envíos" /> : null}
-      {state.status === 'error' ? (
-        <ErrorState
-          action={
-            <Button onClick={reload} size="sm" variant="outline">
-              Reintentar
-            </Button>
-          }
-          description={state.message}
-          heading="No pudimos cargar tus envíos"
-        />
-      ) : null}
-      {state.status === 'ready' && state.submissions.length === 0 ? (
-        <EmptyState
-          action={
-            <Button asChild size="sm">
-              <Link href="/materiales/nuevo">Subir material</Link>
-            </Button>
-          }
-          heading="Todavía no compartiste nada."
-        />
-      ) : null}
-      {state.status === 'ready' && state.submissions.length > 0 ? (
-        <ul className="grid gap-3">
-          {state.submissions.map((submission) => (
-            <SubmissionItem
-              key={`${submission.type}-${submission.id}`}
-              onChanged={reload}
-              submission={submission}
-            />
-          ))}
-        </ul>
-      ) : null}
-    </section>
+        {state.status === 'loading' ? <LoadingState heading="Cargando tus envíos" /> : null}
+        {state.status === 'error' ? (
+          <ErrorState
+            action={
+              <Button onClick={reload} size="sm" variant="outline">
+                Reintentar
+              </Button>
+            }
+            description={state.message}
+            heading="No pudimos cargar tus envíos"
+          />
+        ) : null}
+        {state.status === 'ready' && state.submissions.length === 0 ? (
+          <EmptyState
+            action={
+              <Button asChild size="sm">
+                <Link href="/materiales/nuevo">Subir material</Link>
+              </Button>
+            }
+            heading="Todavía no compartiste nada."
+          />
+        ) : null}
+        {state.status === 'ready' && state.submissions.length > 0 ? (
+          <ul className="grid gap-3">
+            {state.submissions.map((submission) => (
+              <SubmissionItem
+                key={`${submission.type}-${submission.id}`}
+                onChanged={reload}
+                submission={submission}
+              />
+            ))}
+          </ul>
+        ) : null}
+      </section>
+      <MySanctions />
+    </>
   );
 }

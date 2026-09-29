@@ -16,7 +16,8 @@ export const noticeSelect = {
   reason: true,
   startsAt: true,
   endsAt: true,
-  appeal: { select: { id: true, status: true } },
+  // The answer, never who gave it.
+  appeal: { select: { id: true, status: true, answer: true } },
 } as const;
 
 /** How a sanción is shown to its account: never who applied it. */
@@ -27,7 +28,7 @@ export function describeSanction(
     reason: string;
     startsAt: Date;
     endsAt: Date | null;
-    appeal: { id: string; status: string } | null;
+    appeal: { id: string; status: string; answer: string | null } | null;
   },
   now: Date,
 ) {
@@ -52,6 +53,7 @@ export function describeSanction(
     appealable: appeal.allowed,
     appealDeadline: appeal.allowed ? appeal.deadline.toISOString() : null,
     appealStatus: sanction.appeal?.status ?? null,
+    appealAnswer: sanction.appeal?.answer ?? null,
   };
 }
 

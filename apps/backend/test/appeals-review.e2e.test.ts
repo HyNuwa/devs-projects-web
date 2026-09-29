@@ -235,6 +235,7 @@ describe('reviewing appeals (e2e)', () => {
         reason: 'Spam.',
         appealable: true,
         appealStatus: null,
+        appealAnswer: null,
       }),
     ]);
     expect(JSON.stringify(body)).not.toContain(reviewer.id);
