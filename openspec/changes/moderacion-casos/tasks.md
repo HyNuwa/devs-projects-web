@@ -47,8 +47,8 @@
 
 ## 6. Integrated verification
 
-- [ ] 6.1 Run backend lint, build, unit and e2e suites, and frontend lint, `verify:design-tokens`, tests and build, with full output in `.audit-logs/`. Verify that the summaries show zero failures.
-- [ ] 6.2 In a real browser against the real backend and the seeded database, exercise these flows at 390 and 1440px, and save evidence to `docs/validation/evidence/moderacion-casos/`:
+- [x] 6.1 Run backend lint, build, unit and e2e suites, and frontend lint, `verify:design-tokens`, tests and build, with full output in `.audit-logs/`. Verify that the summaries show zero failures.
+- [x] 6.2 In a real browser against the real backend and the seeded database, exercise these flows at 390 and 1440px, and save evidence to `docs/validation/evidence/moderacion-casos/`:
   - established upload → published
   - new-account upload → prior review → approve
   - reject → edit and resubmit
@@ -58,4 +58,4 @@
   - anonymous reseña → «Ver autor» → admin sees the reveal in Historial
 
   Verify there are no serious axe violations on the panel, Mis envíos, Subir material and `/normas`.
-- [ ] 6.3 Run `graphify update .` and verify it completes.
+- [x] 6.3 Run `graphify update .` and verify it completes.
