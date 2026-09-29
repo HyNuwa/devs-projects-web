@@ -42,7 +42,7 @@
 
 ## 6. Appeals backend
 
-- [ ] 6.1 Implement `AppealsService.file` for retiros and sanciones, and `POST /auth/suspension-appeal` with credential check, throttling and no token issued. Verify with Vitest service and e2e tests covering every «What can be appealed» and «A suspended account appeals from sign-in» scenario.
+- [x] 6.1 Implement `AppealsService.file` for retiros and sanciones, and `POST /auth/suspension-appeal` with credential check, throttling and no token issued. Verify with Vitest service and e2e tests covering every «What can be appealed» and «A suspended account appeals from sign-in» scenario.
 - [ ] 6.2 Implement answering test-first:
   - an accepted retiro restores the content, re-awards its points, sets `revertedAt` and voids the linked advertencia
   - an accepted sanción is lifted and stops counting

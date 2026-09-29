@@ -10,9 +10,12 @@ import { HistoryService } from './history.service';
 import { ModerationCoreModule } from './moderation-core.module';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
+import { AppealsService } from './appeals.service';
 import { MeSanctionsController } from './me-sanctions.controller';
 import { SanctionsController } from './sanctions.controller';
 import { SanctionsService } from './sanctions.service';
+import { SuspensionAppealController } from './suspension-appeal.controller';
+import { SuspensionAppealLimiter } from './suspension-appeal.limiter';
 import { SuspensionProposalsService } from './suspension-proposals.service';
 
 /** Reportes, casos de moderación, decisions and history (openspec moderation/cases). */
@@ -24,6 +27,7 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     HistoryController,
     SanctionsController,
     MeSanctionsController,
+    SuspensionAppealController,
   ],
   providers: [
     ReportsService,
@@ -32,6 +36,8 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     HistoryService,
     SanctionsService,
     SuspensionProposalsService,
+    AppealsService,
+    SuspensionAppealLimiter,
   ],
 })
 export class ModerationModule {}

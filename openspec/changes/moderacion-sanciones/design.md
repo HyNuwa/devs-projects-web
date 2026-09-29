@@ -107,7 +107,7 @@ See proposal.md (Why) and the specs under `specs/moderation/`. What exists after
   - The decision must be within 14 days, and must not have been lifted, voided or appealed before.
   - Eligibility is a pure `canAppeal(decision, now)`.
 - **`POST /auth/suspension-appeal { email, password, explanation }`:**
-  - Public, and behind the existing auth throttler.
+  - Public, with its own in-memory limiter (5 attempts per IP every 15 minutes). Sign-in has no throttling today, and registering the global Nest throttler a second time would override the one in the subjects module.
   - It verifies the credentials and files the appeal against the active suspension. It never issues tokens, and it answers bad credentials with the generic 401.
 - **Reviewer eligibility:** a pure `canReview(viewer, appeal)`, where the viewer is neither the decider nor the appellant, and suspensions need ADMIN+.
   - A MODERATOR sees only eligible appeals. Admins see every appeal they are not party to.

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   HttpCode,
   NotFoundException,
@@ -10,13 +11,33 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { AppealsService } from './appeals.service';
+import { FileAppealDto } from './dto/appeal.dto';
 
 /** The signed-in account's own sanciones. */
 @ApiTags('Moderation')
 @ApiBearerAuth()
 @Controller('me')
 export class MeSanctionsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly appeals: AppealsService,
+  ) {}
+
+  @Post('appeals')
+  @ApiOperation({ summary: 'Apelar un retiro o una sanción propia' })
+  fileAppeal(
+    @Request() req: { user: { id: string } },
+    @Body() dto: FileAppealDto,
+  ) {
+    return this.appeals.file(
+      req.user.id,
+      dto.kind === 'RETIRO'
+        ? { kind: 'RETIRO', caseId: dto.caseId ?? '' }
+        : { kind: 'SANCTION', sanctionId: dto.sanctionId ?? '' },
+      dto.explanation,
+    );
+  }
 
   @Post('warnings/:id/seen')
   @HttpCode(204)
