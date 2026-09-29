@@ -13,6 +13,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { UserResponseDto } from './dto/auth-response.dto';
+import { accountNotices } from '../moderation/account-notices';
 import { isSuspended } from '../moderation/sanctions.service';
 import { assertNotSuspended } from '../moderation/suspension-notice';
 
@@ -185,7 +186,10 @@ export class AuthService {
       throw new UnauthorizedException('Usuario no encontrado');
     }
 
-    return excludePassword(user);
+    return {
+      ...excludePassword(user),
+      ...(await accountNotices(this.prisma, user)),
+    };
   }
 
   async verifyEmail(token: string) {

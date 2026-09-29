@@ -10,6 +10,7 @@ import { HistoryService } from './history.service';
 import { ModerationCoreModule } from './moderation-core.module';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
+import { MeSanctionsController } from './me-sanctions.controller';
 import { SanctionsController } from './sanctions.controller';
 import { SanctionsService } from './sanctions.service';
 import { SuspensionProposalsService } from './suspension-proposals.service';
@@ -22,6 +23,7 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     CasesController,
     HistoryController,
     SanctionsController,
+    MeSanctionsController,
   ],
   providers: [
     ReportsService,

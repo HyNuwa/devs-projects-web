@@ -38,7 +38,7 @@
   - saving and downloading still work
   - once `mutedUntil` has passed, writing works again
 - [x] 5.2 Refuse login and refresh for suspended accounts with 403 `ACCOUNT_SUSPENDED` (reason, until, appealable, deadline) only after a correct password, and keep the generic 401 for a wrong one. Verify with Vitest e2e tests, including that a refresh token issued before the suspension no longer works.
-- [ ] 5.3 Add `restriction` and `unseenWarning` to `GET /auth/me`, and add `POST /me/warnings/:id/seen`. Verify with Vitest e2e tests.
+- [x] 5.3 Add `restriction` and `unseenWarning` to `GET /auth/me`, and add `POST /me/warnings/:id/seen`. Verify with Vitest e2e tests.
 
 ## 6. Appeals backend
 
