@@ -54,7 +54,7 @@ export function SuspendedAccount({
       <h1 className="text-2xl font-extrabold">Tu cuenta está suspendida</h1>
       <p>
         {notice.until
-          ? `Podés volver a ingresar desde el ${dateFormat.format(new Date(notice.until))}, hasta el que dura la suspensión.`
+          ? `La suspensión dura hasta el ${dateFormat.format(new Date(notice.until))}. Después vas a poder ingresar de nuevo.`
           : 'La suspensión es permanente.'}
       </p>
       <p>

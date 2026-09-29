@@ -74,7 +74,7 @@
 ## 9. Verification
 
 - [x] 9.1 Run backend lint, build, Jest (unit and e2e), Vitest (unit and e2e) and the migration tests; and frontend lint, `verify:design-tokens`, tests and build. Keep full output in `.audit-logs/`. Verify that the summaries show zero failures.
-- [ ] 9.2 In a real browser against the real backend and the seeded database, exercise these flows at 390 and 1440px, and save evidence to `docs/validation/evidence/moderacion-sanciones/`:
+- [x] 9.2 In a real browser against the real backend and the seeded database, exercise these flows at 390 and 1440px, and save evidence to `docs/validation/evidence/moderacion-sanciones/`:
   - retire with «Advertir también» → the author sees the warning once and in Sanciones
   - second retiro → paso sugerido «Silenciar» → silence → the author's write actions are disabled and the API refuses them → unmute
   - propose a suspension → admin confirms → the open session cannot write or refresh → the login screen shows the suspension → appeal from login
@@ -83,4 +83,4 @@
   - an overdue caso appears in Vencidos and admins see the banner
 
   Also verify no serious axe violations on Usuarios, Apelaciones, the login suspension screen and Mis envíos.
-- [ ] 9.3 Run `graphify update .` and verify it completes.
+- [x] 9.3 Run `graphify update .` and verify it completes.

@@ -93,7 +93,7 @@ describe('LoginForm', () => {
         await screen.findByRole('heading', { name: 'Tu cuenta está suspendida' }),
       ).toBeInTheDocument();
       expect(screen.getByText(/Publicaste spam en varias materias\./)).toBeInTheDocument();
-      expect(screen.getByText(/que dura la suspensión/)).toBeInTheDocument();
+      expect(screen.getByText(/La suspensión dura hasta el/)).toBeInTheDocument();
       expect(navigation.push).not.toHaveBeenCalled();
 
       await user.click(screen.getByRole('button', { name: 'Apelar esta suspensión' }));
