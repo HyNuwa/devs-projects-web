@@ -78,6 +78,26 @@ describe('HistoryPanel', () => {
     );
   });
 
+  it('shows «Autor oculto» when the actor is the hidden author of an anonymous entry', async () => {
+    mocks.history.mockResolvedValue({
+      items: [
+        {
+          ...items[1],
+          id: 'ev-3',
+          action: 'RESUBMITTED',
+          actor: { system: false, username: null, hidden: true },
+          reason: null,
+        },
+      ],
+      nextCursor: null,
+    });
+    render(<HistoryPanel />);
+
+    const table = await screen.findByRole('table', { name: 'Historial de moderación' });
+    expect(within(table).getAllByRole('row')[1]).toHaveTextContent('Autor oculto');
+    expect(table).not.toHaveTextContent('@desconocido');
+  });
+
   it('is read-only: there are no edit or delete controls', async () => {
     render(<HistoryPanel />);
     await screen.findByRole('table', { name: 'Historial de moderación' });

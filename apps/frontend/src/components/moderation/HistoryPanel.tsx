@@ -35,6 +35,12 @@ const dateFormat = new Intl.DateTimeFormat('es-AR', {
   minute: '2-digit',
 });
 
+function actorLabel(actor: HistoryItem['actor']) {
+  if (actor.system) return 'Sistema';
+  if (actor.hidden) return 'Autor oculto';
+  return `@${actor.username ?? 'desconocido'}`;
+}
+
 type HistoryState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
@@ -162,9 +168,7 @@ export function HistoryPanel() {
                   <td className="whitespace-nowrap p-3">
                     {dateFormat.format(new Date(item.createdAt))}
                   </td>
-                  <td className="p-3 font-semibold">
-                    {item.actor.system ? 'Sistema' : `@${item.actor.username ?? 'desconocido'}`}
-                  </td>
+                  <td className="p-3 font-semibold">{actorLabel(item.actor)}</td>
                   <td className="p-3">{ACTION_LABEL[item.action] ?? item.action}</td>
                   <td className="p-3">
                     {item.target?.label && item.caseId ? (

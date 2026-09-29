@@ -12,10 +12,23 @@ export const priorReviewReasonText: Record<PriorReviewReason, string> = {
     'Tuviste un aporte retirado en los últimos 90 días, así que por ahora lo revisamos antes de publicarlo.',
 };
 
+const retryFormat = new Intl.DateTimeFormat('es-AR', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 type ApiErrorShape = {
   response?: {
     status?: number;
-    data?: { code?: string; materialId?: string; message?: string | string[] };
+    data?: {
+      code?: string;
+      visible?: boolean;
+      materialId?: string;
+      retryAt?: string;
+      message?: string | string[];
+    };
   };
 };
 
@@ -23,14 +36,21 @@ type ApiErrorShape = {
 export function uploadRefusal(error: unknown): { message: string; existingId?: string } | null {
   const response = (error as ApiErrorShape | undefined)?.response;
   if (response?.status === 409 && response.data?.code === 'DUPLICATE_MATERIAL') {
-    return {
-      message: 'Este archivo ya está publicado en esta materia.',
-      existingId: response.data.materialId,
-    };
+    // Only a public copy is named; a pending or hidden one is not linked.
+    return response.data.visible && response.data.materialId
+      ? {
+          message: 'Este archivo ya está publicado en esta materia.',
+          existingId: response.data.materialId,
+        }
+      : { message: 'Este archivo ya se subió a esta materia y está en revisión.' };
   }
   if (response?.status === 429) {
+    const retryAt = response.data?.retryAt ? new Date(response.data.retryAt) : null;
     return {
-      message: 'Llegaste al límite de 10 materiales por día. Probá de nuevo mañana.',
+      message:
+        retryAt && !Number.isNaN(retryAt.getTime())
+          ? `Llegaste al límite de 10 materiales por día. Podés volver a subir desde el ${retryFormat.format(retryAt)}.`
+          : 'Llegaste al límite de 10 materiales por día. Probá de nuevo mañana.',
     };
   }
   return null;

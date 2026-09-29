@@ -78,7 +78,7 @@ export type HistoryItem = {
   id: string;
   createdAt: string;
   action: string;
-  actor: { system: true } | { system: false; username: string | null };
+  actor: { system: true } | { system: false; username: string | null; hidden?: boolean };
   target: { type: ModerationTargetType; id: string | null; label: string | null } | null;
   targetUser: { username: string | null } | null;
   caseId: string | null;

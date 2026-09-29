@@ -89,7 +89,12 @@ describe('MaterialCreateForm', () => {
     mocks.post.mockRejectedValue({
       response: {
         status: 409,
-        data: { code: 'DUPLICATE_MATERIAL', materialId: 'mat-3', message: 'Duplicado' },
+        data: {
+          code: 'DUPLICATE_MATERIAL',
+          visible: true,
+          materialId: 'mat-3',
+          message: 'Duplicado',
+        },
       },
     });
 
@@ -102,7 +107,23 @@ describe('MaterialCreateForm', () => {
     );
   });
 
-  it('explains the daily upload limit', async () => {
+  it('says a duplicate is already under review without linking to it', async () => {
+    mocks.post.mockRejectedValue({
+      response: {
+        status: 409,
+        data: { code: 'DUPLICATE_MATERIAL', visible: false, message: 'Duplicado' },
+      },
+    });
+
+    await fillAndSubmit();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Este archivo ya se subió a esta materia y está en revisión');
+    expect(alert).not.toHaveTextContent('publicado');
+    expect(screen.queryByRole('link', { name: 'Ver el que ya está' })).not.toBeInTheDocument();
+  });
+
+  it('explains the daily upload limit and when it can upload again', async () => {
     mocks.post.mockRejectedValue({
       response: {
         status: 429,
@@ -112,6 +133,14 @@ describe('MaterialCreateForm', () => {
 
     await fillAndSubmit();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('10 materiales por día');
+    const retry = new Intl.DateTimeFormat('es-AR', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date('2026-09-30T12:00:00.000Z'));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('10 materiales por día');
+    expect(alert).toHaveTextContent(`Podés volver a subir desde el ${retry}`);
   });
 });
