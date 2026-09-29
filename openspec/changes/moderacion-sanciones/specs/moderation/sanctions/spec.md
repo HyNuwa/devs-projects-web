@@ -30,7 +30,7 @@ For every account, the system SHALL compute a paso sugerido, and SHALL NOT apply
 - **Silenciamiento:** for a second retiro por normas within 90 days.
 - **Suspensión:** for a third retiro por normas within 90 days, or for a retiro por normas while the account has a silenciamiento in the last 90 days.
 
-A retiro por normas is a «Retirar» decision on a caso. It SHALL NOT count if the author deleted the content, if it was a rejection in revisión previa, or if the retiro was restored or overturned on appeal. Advertencias and silenciamientos SHALL stop raising the step after 90 days. A suspensión SHALL keep counting.
+A retiro por normas is a «Retirar» decision on a caso. It SHALL NOT count if the author deleted the content, if it was a rejection in revisión previa, or if the retiro was restored or overturned on appeal. Advertencias and silenciamientos SHALL stop raising the step after 90 days. A suspensión SHALL keep counting. Once the paso sugerido, or a harsher sanción, has been applied after the latest retiro por normas, the paso sugerido SHALL be none until the next retiro.
 
 #### Scenario: Second retiro in 90 days
 - **WHEN** an account already has one retiro por normas in the last 90 days and moderation retires another of its contributions
@@ -39,6 +39,10 @@ A retiro por normas is a «Retirar» decision on a caso. It SHALL NOT count if t
 #### Scenario: Restored retiro does not count
 - **WHEN** a retiro por normas is later restored
 - **THEN** it no longer counts towards the account's paso sugerido
+
+#### Scenario: Step already applied
+- **WHEN** an account with two retiros por normas in 90 days was silenced after the second one
+- **THEN** its paso sugerido is none until it has another retiro
 
 #### Scenario: Old advertencia
 - **WHEN** an account's only advertencia is older than 90 days and it gets a new retiro

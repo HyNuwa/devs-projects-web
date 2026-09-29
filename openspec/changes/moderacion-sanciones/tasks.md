@@ -14,7 +14,7 @@
 
 ## 3. Rule functions
 
-- [ ] 3.1 Implement `suggestedStep` test-first, with a fixed clock. Cover every scenario of «Suggested escalera»: first, second and third retiro; a retiro after a silenciamiento; warnings and mutes older than 90 days ignored; a suspension never expiring; restored retiros and voided sanciones excluded. Verify the Vitest unit tests pass.
+- [x] 3.1 Implement `suggestedStep` test-first, with a fixed clock. Cover every scenario of «Suggested escalera»: first, second and third retiro; a retiro after a silenciamiento; warnings and mutes older than 90 days ignored; a suspension never expiring; restored retiros and voided sanciones excluded. Verify the Vitest unit tests pass.
 - [ ] 3.2 Implement `canSanction`, `canAppeal` and `canReview` test-first. Cover:
   - the role matrix and self-sanction
   - sanctioning from a caso the actor reported

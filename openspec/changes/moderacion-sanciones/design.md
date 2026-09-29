@@ -67,7 +67,7 @@ See proposal.md (Why) and the specs under `specs/moderation/`. What exists after
 
 ### Escalera
 
-`suggestedStep({ retiros, mutes, suspensions }, now)` in `moderation/rules.ts` returns `NONE | WARNING | MUTE | PROPOSE_SUSPENSION`, following the sanctions spec:
+`suggestedStep({ retiros, warnings, mutes, suspensions }, now)` in `moderation/escalera.ts` returns `NONE | WARNING | MUTE | PROPOSE_SUSPENSION`, following the sanctions spec:
 - Warnings and mutes older than 90 days are ignored; a suspension never is.
 - Voided and lifted-by-appeal sanctions are excluded by the caller.
 
