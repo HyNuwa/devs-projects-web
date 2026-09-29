@@ -152,6 +152,7 @@ See proposal.md (Why) and the specs under `specs/moderation/`. What exists after
 - **[Risk] A suspended account keeps reading for up to 15 minutes.** → Accepted: reading is harmless, and writes and refresh are blocked immediately.
 - **[Risk] The login response tells a correct-password user that they are suspended.** → Intended: only someone who knows the password learns it, and wrong passwords stay generic.
 - **[Risk] `targetAuthorId` could leak anonymity if exposed.** → It is used only in the server-side counts, and the user file drops anonymous casos. A test asserts that no caso id of anonymous content appears in `GET /moderation/users/:id`.
+- **[Risk] Cross-checking the history and the user file.** An advertencia from an anonymous caso shows in the history (account hidden, caso linked) and in the account's file (caso not linked), both with the same reason and date, so a moderator comparing both could infer the link. → Accepted: both views need the reason. «Ver autor» stays the only direct link, and it is recorded.
 - **[Risk] Two runners mean two configs and two reports.** → Accepted for now (user decision). Verification runs both, and the suffixes keep them apart.
 - **[Trade-off] Retiring a suspended account's contributions creates one closed caso per item.** → A bulk decision would be one row, but every item would lose its own appealable retiro and history.
 
