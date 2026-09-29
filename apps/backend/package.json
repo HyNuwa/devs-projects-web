@@ -18,6 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:vitest": "vitest run",
+    "test:vitest:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:all": "jest --maxWorkers=2 && vitest run && jest --config ./test/jest-e2e.json && vitest run --config vitest.e2e.config.ts",
     "test:integration:material-ranking": "tsx prisma/migration-tests/material-ranking.integration-test.ts",
     "test:migration:material-context": "tsx prisma/migration-tests/material-context.migration-test.ts",
     "test:migration:community-evidence": "tsx prisma/migration-tests/community-evidence.migration-test.ts",
@@ -95,7 +98,9 @@
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^4.1.11"
   },
   "jest": {
     "moduleFileExtensions": [

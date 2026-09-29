@@ -1,6 +1,6 @@
 ## 1. Vitest in the backend
 
-- [ ] 1.1 Add Vitest with `unplugin-swc` to `apps/backend`: `vitest.config.ts` for `src/**/*.test.ts` and `vitest.e2e.config.ts` for `test/**/*.e2e.test.ts`, threads pool with at most 2 threads, plus the scripts `test:vitest`, `test:vitest:e2e` and `test:all`. Verify with a throwaway Nest-injected service test that decorators and DI work, that `pnpm test` (Jest) does not pick up `*.test.ts`, and that Vitest does not pick up `*.spec.ts`. Delete the throwaway test afterwards.
+- [x] 1.1 Add Vitest with `unplugin-swc` to `apps/backend`: `vitest.config.ts` for `src/**/*.test.ts` and `vitest.e2e.config.ts` for `test/**/*.e2e.test.ts`, threads pool with at most 2 threads, plus the scripts `test:vitest`, `test:vitest:e2e` and `test:all`. Verify with a throwaway Nest-injected service test that decorators and DI work, that `pnpm test` (Jest) does not pick up `*.test.ts`, and that Vitest does not pick up `*.spec.ts`. Delete the throwaway test afterwards.
 
 ## 2. Schema and migration
 

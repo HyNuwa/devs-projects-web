@@ -11,7 +11,13 @@ const __dirname = path.dirname(__filename);
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'src/generated/**', 'prisma/src/**'],
+    ignores: [
+      'eslint.config.mjs',
+      // Vitest configs import 'vitest/config', which commonjs resolution cannot type.
+      'vitest.*.ts',
+      'src/generated/**',
+      'prisma/src/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
