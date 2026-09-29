@@ -154,6 +154,7 @@ export class CasesService {
         topReason: topReason(record.reports),
         highPriority: record.highPriority,
         openedAt: record.openedAt,
+        hiddenAt: target.hiddenAt,
         overdueHidden: isOverdueHidden(
           { publicationStatus: target.status, hiddenAt: target.hiddenAt },
           now,
@@ -168,7 +169,7 @@ export class CasesService {
       });
     }
 
-    return groupQueue(items);
+    return groupQueue(items, now);
   }
 
   async detail(caseId: string, viewerId: string) {

@@ -56,7 +56,7 @@
 
 ## 7. Queue, users and summary
 
-- [ ] 7.1 Add the Vencidos group to `groupQueue` (48 h after `hiddenAt` for hidden content, 7 days after `openedAt` otherwise, most overdue first) and add `GET /moderation/summary`. Verify with Vitest unit tests on the grouping and an e2e test of the summary counts.
+- [x] 7.1 Add the Vencidos group to `groupQueue` (48 h after `hiddenAt` for hidden content, 7 days after `openedAt` otherwise, most overdue first) and add `GET /moderation/summary`. Verify with Vitest unit tests on the grouping and an e2e test of the summary counts.
 - [ ] 7.2 Implement `GET /moderation/users` (filters suggested, sanctioned and prior-review, search, and pending proposals for admins) and `GET /moderation/users/:id`. The file includes the masked email, counts, precision (null below 5 resolved reportes), the timeline and the paso sugerido. Verify with Vitest e2e tests, including that no id of an anonymous caso appears in the file and that its sanction shows as `anonymousCase`.
 - [ ] 7.3 Record sanctions, proposals and appeals in Historial, with 2a's masking applied to anonymous casos. Verify with a Vitest service test.
 

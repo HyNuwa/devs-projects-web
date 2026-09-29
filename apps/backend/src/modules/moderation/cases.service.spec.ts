@@ -104,11 +104,14 @@ describe('CasesService', () => {
     it('groups open casos and never exposes reporter identities', async () => {
       const queue = await service.queue();
 
-      expect(queue.hidden.map((entry) => entry.caseId)).toEqual([
+      // Hidden 9 days ago, past its 48 h response time: it moves to Vencidos.
+      expect(queue.vencidos.map((entry) => entry.caseId)).toEqual([
         'case-review',
+      ]);
+      expect(queue.hidden.map((entry) => entry.caseId)).toEqual([
         'case-hidden',
       ]);
-      expect(queue.hidden[1]).toEqual(
+      expect(queue.hidden[0]).toEqual(
         expect.objectContaining({
           label: 'Parcial 1 escaneado',
           subject,
@@ -123,7 +126,7 @@ describe('CasesService', () => {
     it('flags hidden content left unreviewed for more than 7 days and records it once', async () => {
       const queue = await service.queue();
 
-      expect(queue.hidden[0]).toEqual(
+      expect(queue.vencidos[0]).toEqual(
         expect.objectContaining({ overdueHidden: true }),
       );
       expect(prisma.moderationEvent.create).toHaveBeenCalledTimes(1);
