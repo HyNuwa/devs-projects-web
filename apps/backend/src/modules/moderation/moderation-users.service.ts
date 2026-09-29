@@ -56,18 +56,28 @@ export class ModerationUsersService {
 
   async list(viewer: Actor, input: { filter?: UsersFilter; q?: string }) {
     const now = new Date();
-    const ids = await this.candidateIds(input, now);
+    const q = input.q?.trim();
+    // A search looks at every account first, then the filter applies within it,
+    // so no match is lost to the candidate limit.
+    const within = q ? await this.searchIds(q) : undefined;
+    const ids =
+      q && !input.filter
+        ? (within ?? [])
+        : await this.candidateIds(input.filter, now, within);
+    // Alphabetical, never by the latest retiro: that order would point at the
+    // author of an anonymous entry just retired.
     const accounts = await this.prisma.user.findMany({
-      where: { id: { in: ids } },
+      where: {
+        id: { in: ids },
+        ...(q ? { username: { contains: q, mode: 'insensitive' } } : {}),
+      },
+      orderBy: { username: 'asc' },
       select: accountSelect,
     });
     const histories = await loadHistories(
       this.prisma,
       accounts.map((account) => account.id),
     );
-    // Keep the candidates' order: most recent retiro or sanción first.
-    const rank = new Map(ids.map((id, index) => [id, index]));
-    accounts.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
     const users = accounts
       .map((account) => {
         const history = histories.get(account.id) ?? emptyHistory();
@@ -79,8 +89,7 @@ export class ModerationUsersService {
       })
       .filter(
         (user) =>
-          input.q?.trim() ||
-          (input.filter !== undefined && input.filter !== 'suggested') ||
+          (input.filter ?? (q ? undefined : 'suggested')) !== 'suggested' ||
           user.suggestedStep !== 'NONE',
       )
       .slice(0, LIST_LIMIT);
@@ -253,30 +262,35 @@ export class ModerationUsersService {
     };
   }
 
+  private async searchIds(q: string): Promise<string[]> {
+    const found = await this.prisma.user.findMany({
+      where: { username: { contains: q, mode: 'insensitive' } },
+      orderBy: { username: 'asc' },
+      take: LIST_LIMIT,
+      select: { id: true },
+    });
+    return found.map((user) => user.id);
+  }
+
   private async candidateIds(
-    input: { filter?: UsersFilter; q?: string },
+    filter: UsersFilter | undefined,
     now: Date,
+    within?: string[],
   ): Promise<string[]> {
     const since = new Date(now.getTime() - ESCALERA_WINDOW_DAYS * DAY_MS);
-    const q = input.q?.trim();
-    if (q) {
-      const found = await this.prisma.user.findMany({
-        where: { username: { contains: q, mode: 'insensitive' } },
-        take: LIST_LIMIT,
-        select: { id: true },
-      });
-      return found.map((user) => user.id);
-    }
-    if (input.filter === 'sanctioned') {
+    const users = within ? { in: within } : undefined;
+    if (filter === 'sanctioned') {
       const [restricted, recent] = await Promise.all([
         this.prisma.user.findMany({
-          where: { OR: [{ isBanned: true }, { mutedUntil: { gt: now } }] },
+          where: {
+            id: users,
+            OR: [{ isBanned: true }, { mutedUntil: { gt: now } }],
+          },
           take: LIST_LIMIT,
           select: { id: true },
         }),
         this.prisma.sanction.findMany({
-          where: { voidedAt: null, startsAt: { gte: since } },
-          orderBy: { startsAt: 'desc' },
+          where: { userId: users, voidedAt: null, startsAt: { gte: since } },
           distinct: ['userId'],
           take: LIST_LIMIT,
           select: { userId: true },
@@ -289,15 +303,14 @@ export class ModerationUsersService {
         ]),
       ];
     }
-    if (input.filter === 'prior-review') {
+    if (filter === 'prior-review') {
       const cases = await this.prisma.moderationCase.findMany({
         where: {
           kind: 'PRIOR_REVIEW',
           status: 'OPEN',
-          targetAuthorId: { not: null },
+          targetAuthorId: users ?? { not: null },
           ...NOT_ANONYMOUS,
         },
-        orderBy: { openedAt: 'desc' },
         distinct: ['targetAuthorId'],
         take: LIST_LIMIT,
         select: { targetAuthorId: true },
@@ -310,9 +323,8 @@ export class ModerationUsersService {
         decision: 'REMOVE',
         revertedAt: null,
         closedAt: { gte: since },
-        targetAuthorId: { not: null },
+        targetAuthorId: users ?? { not: null },
       },
-      orderBy: { closedAt: 'desc' },
       distinct: ['targetAuthorId'],
       take: 200,
       select: { targetAuthorId: true },

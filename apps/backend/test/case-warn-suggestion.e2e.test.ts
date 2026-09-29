@@ -81,4 +81,11 @@ describe('«Advertir también» suggestion on a caso (e2e)', () => {
 
     expect((await detail(open.id)).warnSuggested).toBe(false);
   });
+
+  it('does not suggest warning an author the viewer may not sanction', async () => {
+    const staffAuthor = await createUser(prisma, 'MODERATOR');
+    const open = await caso(staffAuthor);
+
+    expect((await detail(open.id)).warnSuggested).toBe(false);
+  });
 });

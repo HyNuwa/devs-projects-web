@@ -104,7 +104,7 @@ See proposal.md (Why) and the specs under `specs/moderation/`. What exists after
 
 - **`AppealsService.file`:**
   - It accepts `{ kind: RETIRO, caseId }` when the caso was decided REMOVE on content authored by the appellant, and `{ kind: SANCTION, sanctionId }` when the sanction belongs to the appellant.
-  - The decision must be within 14 days, and must not have been lifted, voided or appealed before.
+  - The decision must be within 14 days, and must not have been voided or appealed before. A lifted sanción can still be appealed: it keeps counting for the escalera until voided.
   - Eligibility is a pure `canAppeal(decision, now)`.
 - **`POST /auth/suspension-appeal { email, password, explanation }`:**
   - Public, with its own in-memory limiter (5 attempts per IP every 15 minutes). Sign-in has no throttling today, and registering the global Nest throttler a second time would override the one in the subjects module.
@@ -145,6 +145,15 @@ See proposal.md (Why) and the specs under `specs/moderation/`. What exists after
   - `test` stays Jest.
   - A `test:all` script runs both.
 - **Scope:** every new test in this change is Vitest, and the existing Jest specs are only edited where the behavior they cover changes.
+
+### Changes after the code review
+
+- **Account lock and derived cache:** every sanción change locks the account row (`SELECT … FOR UPDATE`), then rebuilds `mutedUntil`, `isBanned` and `bannedUntil` from the sanciones still in force. Lifting or voiding one never clears another that also applies.
+- **Retired and hidden content cannot be deleted by its author:** hard-deleting a reseña or experiencia would cascade to its caso and erase the retiro from the escalera.
+- **Usuarios is alphabetical:** ordering by the latest retiro would point at the author of an anonymous entry just retired. A search narrows every filter within the matching accounts.
+- **«Advertir también» on staff:** when the author cannot be warned by the moderator, the retiro still succeeds without the advertencia, and `warnSuggested` is false. An error would reveal that an anonymous author is staff.
+- **Casos linked to sanciones must be about that account**, and a proposal's event carries the content columns so history masking applies.
+- **Appeals of retiros no longer in force:** already restored, it only voids the linked advertencia; superseded by a newer caso, it stops the old retiro counting without undoing the newer decision.
 
 ## Risks / Trade-offs
 

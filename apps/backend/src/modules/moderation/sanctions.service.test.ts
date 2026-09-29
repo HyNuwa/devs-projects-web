@@ -19,6 +19,7 @@ const admin = { id: 'admin-1', role: 'ADMIN' } as const;
 function prismaDouble() {
   const prisma = {
     $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
     user: {
       findUnique: vi.fn().mockResolvedValue({
         id: 'user-1',
@@ -32,6 +33,7 @@ function prismaDouble() {
     sanction: {
       create: vi.fn().mockResolvedValue({ id: 'sanction-1' }),
       findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
     },
     moderationEvent: { create: vi.fn() },
@@ -94,6 +96,7 @@ describe('SanctionsService', () => {
         materialId: null,
         courseReviewId: 'rev-1',
         examExperienceId: null,
+        targetAuthorId: 'user-1',
       });
 
       await service.warn(mod, 'user-1', 'Insultos', { caseId: 'case-1' });
@@ -117,6 +120,7 @@ describe('SanctionsService', () => {
         materialId: 'mat-1',
         courseReviewId: null,
         examExperienceId: null,
+        targetAuthorId: 'user-1',
       });
       prisma.report.findFirst.mockResolvedValue({ id: 'report-1' });
 
@@ -159,6 +163,9 @@ describe('SanctionsService', () => {
 
   describe('mute', () => {
     it('silences for exactly 7 days and caches it on the account in the same transaction', async () => {
+      prisma.sanction.findMany.mockResolvedValue([
+        { type: 'MUTE', endsAt: inDays(7) },
+      ]);
       await service.mute(mod, 'user-1', 'Segundo retiro en 90 días');
 
       expect(prisma.sanction.create).toHaveBeenCalledWith({
@@ -170,7 +177,7 @@ describe('SanctionsService', () => {
       });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { isMuted: true, mutedUntil: inDays(7) },
+        data: expect.objectContaining({ isMuted: true, mutedUntil: inDays(7) }),
       });
       expect(prisma.moderationEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -228,7 +235,7 @@ describe('SanctionsService', () => {
       });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { isMuted: false, mutedUntil: null },
+        data: expect.objectContaining({ isMuted: false, mutedUntil: null }),
       });
       expect(prisma.moderationEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -255,6 +262,9 @@ describe('SanctionsService', () => {
     });
 
     it('suspends for 30 days, caches it and ends every session', async () => {
+      prisma.sanction.findMany.mockResolvedValue([
+        { type: 'SUSPENSION', endsAt: inDays(30) },
+      ]);
       await service.suspend(admin, 'user-1', 'Tercer retiro', 30);
 
       expect(prisma.sanction.create).toHaveBeenCalledWith({
@@ -266,7 +276,10 @@ describe('SanctionsService', () => {
       });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { isBanned: true, bannedUntil: inDays(30) },
+        data: expect.objectContaining({
+          isBanned: true,
+          bannedUntil: inDays(30),
+        }),
       });
       expect(prisma.refreshToken.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
@@ -277,6 +290,9 @@ describe('SanctionsService', () => {
     });
 
     it('suspends permanently with no end date', async () => {
+      prisma.sanction.findMany.mockResolvedValue([
+        { type: 'SUSPENSION', endsAt: null },
+      ]);
       await service.suspend(admin, 'user-1', 'Cuenta falsa', null);
 
       expect(prisma.sanction.create).toHaveBeenCalledWith({
@@ -284,7 +300,7 @@ describe('SanctionsService', () => {
       });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { isBanned: true, bannedUntil: null },
+        data: expect.objectContaining({ isBanned: true, bannedUntil: null }),
       });
     });
 
@@ -310,7 +326,7 @@ describe('SanctionsService', () => {
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        data: { isBanned: false, bannedUntil: null },
+        data: expect.objectContaining({ isBanned: false, bannedUntil: null }),
       });
       expect(prisma.sanction.update).toHaveBeenCalledWith({
         where: { id: 'sanction-9' },
@@ -322,6 +338,38 @@ describe('SanctionsService', () => {
       await expect(
         service.liftSuspension(mod, 'user-1', 'x'),
       ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('two sanciones at once', () => {
+    it('locks the account row before reading its status', async () => {
+      await service.mute(mod, 'user-1', 'Segundo retiro');
+
+      expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        prisma.user.findUnique.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('keeps the account silenced when lifting one of two active silenciamientos', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        role: 'USER',
+        mutedUntil: inDays(5),
+        isBanned: false,
+        bannedUntil: null,
+      });
+      prisma.sanction.findFirst.mockResolvedValue({ id: 'sanction-7' });
+      // After lifting sanction-7, another silenciamiento is still in force.
+      prisma.sanction.findMany.mockResolvedValue([
+        { type: 'MUTE', endsAt: inDays(5) },
+      ]);
+
+      await service.unmute(mod, 'user-1', 'Se aclaró');
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: expect.objectContaining({ isMuted: true, mutedUntil: inDays(5) }),
+      });
     });
   });
 });

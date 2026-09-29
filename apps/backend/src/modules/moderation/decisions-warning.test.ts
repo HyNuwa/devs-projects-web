@@ -44,6 +44,7 @@ describe('«Retirar» with «Advertir también»', () => {
       report: { updateMany: vi.fn() },
       moderationEvent: { create: vi.fn() },
       subject: { update: vi.fn() },
+      user: { findUnique: vi.fn().mockResolvedValue({ role: 'USER' }) },
     };
     double.$transaction.mockImplementation(
       async (work: (tx: typeof double) => unknown) => work(double),
@@ -82,6 +83,20 @@ describe('«Retirar» with «Advertir también»', () => {
       'Insultos a una docente.',
       { caseId: 'case-1', tx: prisma },
     );
+  });
+
+  it('still retires, without warning and without an error, when the author is staff', async () => {
+    prisma.user.findUnique.mockResolvedValue({ role: 'MODERATOR' });
+
+    await expect(
+      service.decide('case-1', mod, {
+        decision: 'REMOVE',
+        reason: 'Insultos',
+        warn: true,
+      }),
+    ).resolves.toEqual(expect.objectContaining({ status: 'REMOVED' }));
+
+    expect(sanctions.warn).not.toHaveBeenCalled();
   });
 
   it('retires without warning when the moderator leaves it unchecked', async () => {

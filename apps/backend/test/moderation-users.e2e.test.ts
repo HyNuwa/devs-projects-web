@@ -201,20 +201,42 @@ describe('Usuarios tab (e2e)', () => {
 
     const ids = (body: { users: Array<{ id: string }> }) =>
       body.users.map((user) => user.id);
-    expect(
-      ids((await get(moderator, '/users?filter=suggested')).body),
-    ).toContain(suggested.id);
-    expect(
-      ids((await get(moderator, '/users?filter=sanctioned')).body),
-    ).toContain(silenced.id);
-    const found = await prisma.user.findUniqueOrThrow({
-      where: { id: silenced.id },
-    });
+    const name = async (id: string) =>
+      (await prisma.user.findUniqueOrThrow({ where: { id } })).username;
+
+    // The filter and the search combine, so the e2e database can grow freely.
+    const suggestedName = await name(suggested.id);
     expect(
       ids(
-        (await get(moderator, `/users?q=${found.username.slice(0, 10)}`)).body,
+        (await get(moderator, `/users?filter=suggested&q=${suggestedName}`))
+          .body,
       ),
+    ).toEqual([suggested.id]);
+    expect(
+      ids(
+        (await get(moderator, `/users?filter=sanctioned&q=${suggestedName}`))
+          .body,
+      ),
+    ).toEqual([]);
+    const silencedName = await name(silenced.id);
+    expect(
+      ids(
+        (await get(moderator, `/users?filter=sanctioned&q=${silencedName}`))
+          .body,
+      ),
+    ).toEqual([silenced.id]);
+    expect(
+      ids((await get(moderator, `/users?q=${silencedName.slice(0, 10)}`)).body),
     ).toContain(silenced.id);
+  });
+
+  it('does not rank accounts by their latest retiro, which would point at anonymous authors', async () => {
+    const { body } = await get(moderator, '/users?filter=suggested');
+    const names = (body as { users: Array<{ username: string }> }).users.map(
+      (user) => user.username,
+    );
+
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
   it('lists pending suspension proposals only for admins', async () => {

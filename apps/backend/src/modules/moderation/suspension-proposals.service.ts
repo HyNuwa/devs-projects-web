@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PointService } from '../ranking/point.service';
 import { retireAllPublished } from './bulk-retiro';
 import { canSanction } from './sanction-rules';
+import { caseAbout } from './sanctions.service';
 import {
   type Actor,
   isSuspended,
@@ -48,6 +49,9 @@ export class SuspensionProposalsService {
         select: { id: true, role: true, isBanned: true, bannedUntil: true },
       });
       if (!target) throw new NotFoundException('Cuenta no encontrada');
+      const source = options.caseId
+        ? await caseAbout(tx, options.caseId, userId)
+        : null;
       const reported = options.caseId
         ? await tx.report.findFirst({
             where: { caseId: options.caseId, reporterId: actor.id },
@@ -94,6 +98,7 @@ export class SuspensionProposalsService {
           action: 'SUSPENSION_PROPOSED',
           targetUserId: userId,
           caseId: options.caseId ?? null,
+          ...(source ?? {}),
           reason,
           metadata: { proposalId: proposal.id, durationDays },
         },
@@ -197,6 +202,8 @@ export class SuspensionProposalsService {
   ) {
     const reason = requireReason(rawReason);
     return this.prisma.$transaction(async (tx) => {
+      // Captured before the suspensión, so its retiros do not look newer than it.
+      const now = new Date();
       const sanction = await this.sanctions.suspend(
         actor,
         userId,
@@ -209,7 +216,7 @@ export class SuspensionProposalsService {
           authorId: userId,
           actorId: actor.id,
           reason,
-          now: new Date(),
+          now,
         });
       }
       return sanction;

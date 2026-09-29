@@ -46,9 +46,9 @@ export class CasesController {
   @ApiOperation({ summary: 'Detalle de un caso de moderación' })
   detail(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: { user: { id: string } },
+    @Request() req: { user: Actor },
   ) {
-    return this.cases.detail(id, req.user.id);
+    return this.cases.detail(id, req.user.id, req.user.role);
   }
 
   @Get(':id/file')

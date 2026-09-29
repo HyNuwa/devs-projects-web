@@ -30,7 +30,7 @@ For every account, the system SHALL compute a paso sugerido, and SHALL NOT apply
 - **Silenciamiento:** for a second retiro por normas within 90 days.
 - **Suspensión:** for a third retiro por normas within 90 days, or for a retiro por normas while the account has a silenciamiento in the last 90 days.
 
-A retiro por normas is a «Retirar» decision on a caso. It SHALL NOT count if the author deleted the content, if it was a rejection in revisión previa, or if the retiro was restored or overturned on appeal. Advertencias and silenciamientos SHALL stop raising the step after 90 days. A suspensión SHALL keep counting. Once the paso sugerido, or a harsher sanción, has been applied after the latest retiro por normas, the paso sugerido SHALL be none until the next retiro.
+A retiro por normas is a «Retirar» decision on a caso. It SHALL NOT count if the author deleted the content, if it was a rejection in revisión previa, or if the retiro was restored or overturned on appeal. The author SHALL NOT be able to delete content that is `Retirado` or `Oculto mientras se revisa`, so a retiro keeps counting and a hidden entry keeps its caso. Advertencias and silenciamientos SHALL stop raising the step after 90 days. A suspensión SHALL keep counting. Once the paso sugerido, or a harsher sanción, has been applied after the latest retiro por normas, the paso sugerido SHALL be none until the next retiro.
 
 #### Scenario: Second retiro in 90 days
 - **WHEN** an account already has one retiro por normas in the last 90 days and moderation retires another of its contributions
@@ -43,6 +43,10 @@ A retiro por normas is a «Retirar» decision on a caso. It SHALL NOT count if t
 #### Scenario: Step already applied
 - **WHEN** an account with two retiros por normas in 90 days was silenced after the second one
 - **THEN** its paso sugerido is none until it has another retiro
+
+#### Scenario: Author tries to delete a retired reseña
+- **WHEN** the author of a `Retirado` reseña tries to delete it
+- **THEN** the deletion is refused and the retiro keeps counting for the escalera
 
 #### Scenario: Old advertencia
 - **WHEN** an account's only advertencia is older than 90 days and it gets a new retiro
@@ -65,7 +69,7 @@ Nobody SHALL be able to sanction their own account. The sanctioner's role SHALL 
 - An ADMIN can sanction USER and MODERATOR accounts, and can confirm, reject or lift suspensiones.
 - Only a SUPERADMIN can sanction an ADMIN.
 
-A moderator SHALL NOT sanction an account from a caso in which they filed a reporte. Any moderator SHALL be able to lift a silenciamiento. Only an ADMIN or SUPERADMIN SHALL lift a suspensión before its end date.
+A moderator SHALL NOT sanction an account from a caso in which they filed a reporte. Any moderator SHALL be able to lift a silenciamiento of an account they could sanction. Only an ADMIN or SUPERADMIN SHALL lift a suspensión before its end date.
 
 #### Scenario: Moderator tries to silence another moderator
 - **WHEN** a MODERATOR tries to silence a MODERATOR account

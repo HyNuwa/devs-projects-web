@@ -7,9 +7,11 @@ import type {
   PublicationStatus,
   ReportReason,
 } from '../../generated/prisma';
+import type { Role } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { targetColumns } from './publication-policy.service';
 import { suggestedStep } from './escalera';
+import { canSanction } from './sanction-rules';
 import { emptyHistory, loadHistories } from './escalera-history';
 import { groupQueue } from './queue';
 import { isQualifiedReporter } from './rules';
@@ -174,7 +176,11 @@ export class CasesService {
     return groupQueue(items, now);
   }
 
-  async detail(caseId: string, viewerId: string) {
+  async detail(
+    caseId: string,
+    viewerId: string,
+    viewerRole: Role = 'MODERATOR',
+  ) {
     const record = await this.prisma.moderationCase.findUnique({
       where: { id: caseId },
       include: caseInclude,
@@ -217,7 +223,16 @@ export class CasesService {
       (await loadHistories(this.prisma, [target.authorId])).get(
         target.authorId,
       ) ?? emptyHistory();
+    const authorRole = await this.prisma.user.findUnique({
+      where: { id: target.authorId },
+      select: { id: true, role: true },
+    });
+    const mayWarn =
+      !authorRole ||
+      canSanction({ id: viewerId, role: viewerRole }, authorRole, 'WARN')
+        .allowed;
     const warnSuggested =
+      mayWarn &&
       suggestedStep(
         { ...authorHistory, retiros: [...authorHistory.retiros, now] },
         now,

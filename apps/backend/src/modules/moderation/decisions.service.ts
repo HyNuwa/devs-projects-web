@@ -22,6 +22,7 @@ import {
   targetColumns,
 } from './publication-policy.service';
 import { loadTarget, targetWhere, updateTargetStatusFrom } from './targets';
+import { canSanction } from './sanction-rules';
 import { type Actor, SanctionsService } from './sanctions.service';
 import { nextStatusFor } from './transitions';
 
@@ -241,10 +242,18 @@ export class DecisionsService {
       // «Advertir también»: the advertencia goes to the author's account (anonymous
       // or not) in the same transaction as the retiro.
       if (decision === 'REMOVE' && dto.warn && reason) {
-        await this.sanctions.warn(moderator, snapshot.authorId, reason, {
-          caseId: moderationCase.id,
-          tx,
+        // An author the moderator may not sanction (staff) is not warned, and the
+        // retiro still succeeds: failing would reveal that an anonymous author is staff.
+        const author = await tx.user.findUnique({
+          where: { id: snapshot.authorId },
+          select: { id: true, role: true },
         });
+        if (author && canSanction(moderator, author, 'WARN').allowed) {
+          await this.sanctions.warn(moderator, snapshot.authorId, reason, {
+            caseId: moderationCase.id,
+            tx,
+          });
+        }
       }
     });
 
@@ -274,9 +283,20 @@ export class DecisionsService {
         materialId: true,
         courseReviewId: true,
         examExperienceId: true,
+        revertedAt: true,
       },
     });
     if (!moderationCase) throw new NotFoundException('Caso no encontrado');
+    const voidWarning = () =>
+      tx.sanction.updateMany({
+        where: { caseId: moderationCase.id, type: 'WARNING', voidedAt: null },
+        data: { voidedAt: now, voidedByAppealId: input.appealId },
+      });
+    // Already restored: the appeal is right, and there is nothing left to undo.
+    if (moderationCase.revertedAt) {
+      await voidWarning();
+      return;
+    }
     const target: ModerationTarget = {
       type: moderationCase.targetType,
       id: (moderationCase.materialId ??
@@ -285,6 +305,22 @@ export class DecisionsService {
     };
     const snapshot = await loadTarget(tx, target);
     if (!snapshot) throw new NotFoundException('El contenido ya no existe');
+
+    // A newer caso speaks for the content now: this retiro stops counting, but the
+    // newer decision stands.
+    const latest = await tx.moderationCase.findFirst({
+      where: targetWhere(target),
+      orderBy: [{ openedAt: 'desc' }, { id: 'desc' }],
+      select: { id: true },
+    });
+    if (latest && latest.id !== moderationCase.id) {
+      await tx.moderationCase.update({
+        where: { id: moderationCase.id },
+        data: { revertedAt: now },
+      });
+      await voidWarning();
+      return;
+    }
 
     const changed = await updateTargetStatusFrom(tx, target, 'REMOVED', {
       publicationStatus: 'PUBLISHED',
@@ -313,10 +349,7 @@ export class DecisionsService {
         data: { materialCount: { increment: 1 } },
       });
     }
-    await tx.sanction.updateMany({
-      where: { caseId: moderationCase.id, type: 'WARNING', voidedAt: null },
-      data: { voidedAt: now, voidedByAppealId: input.appealId },
-    });
+    await voidWarning();
     await tx.moderationEvent.create({
       data: {
         actorId: input.actorId,

@@ -21,7 +21,10 @@ function prismaDouble() {
         materialId: 'mat-1',
         courseReviewId: null,
         examExperienceId: null,
+        revertedAt: null,
       }),
+      // The appealed caso is the content's latest one.
+      findFirst: vi.fn().mockResolvedValue({ id: 'case-1' }),
       update: vi.fn(),
     },
     material: {
@@ -37,8 +40,10 @@ function prismaDouble() {
     },
     sanction: {
       findUnique: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn(),
     },
+    $queryRaw: vi.fn(),
     user: { update: vi.fn() },
     subject: { update: vi.fn() },
     moderationEvent: { create: vi.fn() },
@@ -172,7 +177,7 @@ describe('an accepted appeal of a sanción', () => {
     });
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { isMuted: false, mutedUntil: null },
+      data: expect.objectContaining({ isMuted: false, mutedUntil: null }),
     });
   });
 
@@ -189,11 +194,11 @@ describe('an accepted appeal of a sanción', () => {
 
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
-      data: { isBanned: false, bannedUntil: null },
+      data: expect.objectContaining({ isBanned: false, bannedUntil: null }),
     });
   });
 
-  it('only voids a sanción that already ended, so it stops counting', async () => {
+  it('voids a sanción that already ended, so it stops counting', async () => {
     prisma.sanction.findUnique.mockResolvedValue({
       id: 'sanction-1',
       userId: 'user-1',
@@ -205,6 +210,10 @@ describe('an accepted appeal of a sanción', () => {
     await voidIt();
 
     expect(prisma.sanction.updateMany).toHaveBeenCalled();
-    expect(prisma.user.update).not.toHaveBeenCalled();
+    // The cache is rebuilt from what is still in force: nothing here.
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: expect.objectContaining({ isMuted: false, isBanned: false }),
+    });
   });
 });

@@ -107,6 +107,7 @@ export class SanctionsService {
       },
     });
     if (!sanction) throw new NotFoundException('Sanción no encontrada');
+    await lockAccount(tx, sanction.userId);
     const voided = await tx.sanction.updateMany({
       where: { id: sanction.id, voidedAt: null },
       data: { voidedAt: now, voidedByAppealId: input.appealId },
@@ -114,21 +115,7 @@ export class SanctionsService {
     if (voided.count === 0) {
       throw new ConflictException('La sanción ya fue anulada');
     }
-    const inForce =
-      sanction.liftedAt === null &&
-      (sanction.endsAt === null || sanction.endsAt.getTime() > now.getTime());
-    if (inForce && sanction.type === 'MUTE') {
-      await tx.user.update({
-        where: { id: sanction.userId },
-        data: { isMuted: false, mutedUntil: null },
-      });
-    }
-    if (inForce && sanction.type === 'SUSPENSION') {
-      await tx.user.update({
-        where: { id: sanction.userId },
-        data: { isBanned: false, bannedUntil: null },
-      });
-    }
+    await refreshAccountCache(tx, sanction.userId, now);
   }
 
   unmute(actor: Actor, userId: string, reason: string) {
@@ -153,9 +140,10 @@ export class SanctionsService {
 
     const run = async (tx: Tx) => {
       const now = new Date();
+      await lockAccount(tx, userId);
       const target = await this.loadTarget(tx, userId);
       const source = options.caseId
-        ? await this.loadCase(tx, options.caseId, actor.id)
+        ? await this.loadCase(tx, options.caseId, actor.id, userId)
         : null;
       assertAllowed(
         canSanction(actor, target, action, {
@@ -180,17 +168,8 @@ export class SanctionsService {
           caseId: options.caseId ?? null,
         },
       });
-      if (type === 'MUTE') {
-        await tx.user.update({
-          where: { id: userId },
-          data: { isMuted: true, mutedUntil: endsAt },
-        });
-      }
+      if (type !== 'WARNING') await refreshAccountCache(tx, userId, now);
       if (type === 'SUSPENSION') {
-        await tx.user.update({
-          where: { id: userId },
-          data: { isBanned: true, bannedUntil: endsAt },
-        });
         // End every open session; login and refresh refuse the account from now on.
         await tx.refreshToken.deleteMany({ where: { userId } });
       }
@@ -219,6 +198,7 @@ export class SanctionsService {
     const reason = requireReason(rawReason);
     return this.prisma.$transaction(async (tx) => {
       const now = new Date();
+      await lockAccount(tx, userId);
       const target = await this.loadTarget(tx, userId);
       assertAllowed(
         canSanction(
@@ -250,13 +230,8 @@ export class SanctionsService {
         where: { id: active.id },
         data: { liftedAt: now, liftedById: actor.id, liftReason: reason },
       });
-      await tx.user.update({
-        where: { id: userId },
-        data:
-          type === 'MUTE'
-            ? { isMuted: false, mutedUntil: null }
-            : { isBanned: false, bannedUntil: null },
-      });
+      // Another sanción of the same type may still be in force.
+      await refreshAccountCache(tx, userId, now);
       await tx.moderationEvent.create({
         data: {
           actorId: actor.id,
@@ -285,18 +260,13 @@ export class SanctionsService {
   }
 
   /** The caso a sanción comes from: its content columns for the event, and COI. */
-  private async loadCase(tx: Tx, caseId: string, actorId: string) {
-    const moderationCase = await tx.moderationCase.findUnique({
-      where: { id: caseId },
-      select: {
-        id: true,
-        targetType: true,
-        materialId: true,
-        courseReviewId: true,
-        examExperienceId: true,
-      },
-    });
-    if (!moderationCase) throw new NotFoundException('Caso no encontrado');
+  private async loadCase(
+    tx: Tx,
+    caseId: string,
+    actorId: string,
+    userId: string,
+  ) {
+    const moderationCase = await caseAbout(tx, caseId, userId);
     const reported = await tx.report.findFirst({
       where: { caseId, reporterId: actorId },
       select: { id: true },
@@ -305,10 +275,7 @@ export class SanctionsService {
       reportedByActor: reported !== null,
       columns: {
         caseId,
-        targetType: moderationCase.targetType,
-        materialId: moderationCase.materialId,
-        courseReviewId: moderationCase.courseReviewId,
-        examExperienceId: moderationCase.examExperienceId,
+        ...moderationCase,
       },
     };
   }
@@ -346,4 +313,71 @@ export function isSuspended(
     (account.bannedUntil === null ||
       account.bannedUntil.getTime() > now.getTime())
   );
+}
+
+/**
+ * Serializes sanción changes on one account (two moderators at once, or a
+ * confirmation racing a direct suspension), so the cache below stays exact.
+ */
+async function lockAccount(tx: Tx, userId: string) {
+  await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+}
+
+/**
+ * Rebuilds `User.isMuted/mutedUntil/isBanned/bannedUntil` from the sanciones still
+ * in force, so lifting or voiding one never clears another that also applies.
+ */
+async function refreshAccountCache(tx: Tx, userId: string, now: Date) {
+  const active = await tx.sanction.findMany({
+    where: {
+      userId,
+      type: { in: ['MUTE', 'SUSPENSION'] },
+      liftedAt: null,
+      voidedAt: null,
+      OR: [{ endsAt: null }, { endsAt: { gt: now } }],
+    },
+    select: { type: true, endsAt: true },
+  });
+  const latest = (dates: Array<Date | null>) =>
+    dates
+      .filter((date): date is Date => date !== null)
+      .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+  const mutes = active.filter((row) => row.type === 'MUTE');
+  const suspensions = active.filter((row) => row.type === 'SUSPENSION');
+  const mutedUntil = latest(mutes.map((row) => row.endsAt));
+  await tx.user.update({
+    where: { id: userId },
+    data: {
+      isMuted: mutedUntil !== null,
+      mutedUntil,
+      isBanned: suspensions.length > 0,
+      // A permanent suspensión (no end) wins over any temporary one.
+      bannedUntil: suspensions.some((row) => row.endsAt === null)
+        ? null
+        : latest(suspensions.map((row) => row.endsAt)),
+    },
+  });
+}
+
+/**
+ * The content columns of the caso a sanción comes from, after checking that the
+ * caso is about that account: a sanción never links to someone else's content.
+ */
+export async function caseAbout(tx: Tx, caseId: string, userId: string) {
+  const moderationCase = await tx.moderationCase.findUnique({
+    where: { id: caseId },
+    select: {
+      targetType: true,
+      materialId: true,
+      courseReviewId: true,
+      examExperienceId: true,
+      targetAuthorId: true,
+    },
+  });
+  if (!moderationCase) throw new NotFoundException('Caso no encontrado');
+  const { targetAuthorId, ...content } = moderationCase;
+  if (targetAuthorId !== userId) {
+    throw new BadRequestException('Ese caso no es sobre esta cuenta');
+  }
+  return content;
 }

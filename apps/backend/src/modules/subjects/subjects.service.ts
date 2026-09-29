@@ -77,6 +77,22 @@ function toManagementView(
   };
 }
 
+/**
+ * Retired and hidden content stays: deleting it would erase its caso, so a retiro
+ * would stop counting for the escalera and a hidden entry would escape its review.
+ */
+function assertNotUnderModeration(status: string) {
+  if (status === 'REMOVED' || status === 'HIDDEN') {
+    throw new ConflictException({
+      code: 'MODERATED_CONTENT',
+      message:
+        status === 'REMOVED'
+          ? 'Un aporte retirado no se puede borrar: queda en Mis envíos y lo podés apelar.'
+          : 'No se puede borrar mientras moderación lo revisa.',
+    });
+  }
+}
+
 @Injectable()
 export class SubjectsService {
   constructor(
@@ -381,6 +397,7 @@ export class SubjectsService {
       );
     }
 
+    assertNotUnderModeration(review.publicationStatus);
     await this.prisma.courseReview.delete({ where: { id: reviewId } });
     return { message: 'Reseña eliminada' };
   }
@@ -588,6 +605,7 @@ export class SubjectsService {
       );
     }
 
+    assertNotUnderModeration(exam.publicationStatus);
     await this.prisma.examExperience.delete({ where: { id: examId } });
     return { message: 'Experiencia de final eliminada' };
   }
