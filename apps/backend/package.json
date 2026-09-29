@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:vitest": "vitest run",
     "test:vitest:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:vitest:migration": "vitest run --config vitest.migration.config.ts",
     "test:all": "jest --maxWorkers=2 && vitest run && jest --config ./test/jest-e2e.json && vitest run --config vitest.e2e.config.ts",
     "test:integration:material-ranking": "tsx prisma/migration-tests/material-ranking.integration-test.ts",
     "test:migration:material-context": "tsx prisma/migration-tests/material-context.migration-test.ts",

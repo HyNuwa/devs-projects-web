@@ -4,7 +4,7 @@
 
 ## 2. Schema and migration
 
-- [ ] 2.1 Add `Sanction`, `SuspensionProposal` and `Appeal`, with their enums, the partial unique index for one PENDING proposal per user, the CHECK for exactly one appeal target, and the unique indexes on `Appeal.caseId` and `Appeal.sanctionId`. Also add `User.bannedUntil`, the new `ModerationEventAction` values, and `ModerationCase.targetAuthorId` and `revertedAt`, backfilling `targetAuthorId` from each target's author and `revertedAt` for restored casos. Verify with a Vitest migration test:
+- [x] 2.1 Add `Sanction`, `SuspensionProposal` and `Appeal`, with their enums, the partial unique index for one PENDING proposal per user, the CHECK for exactly one appeal target, and the unique indexes on `Appeal.caseId` and `Appeal.sanctionId`. Also add `User.bannedUntil`, the new `ModerationEventAction` values, and `ModerationCase.targetAuthorId` and `revertedAt`, backfilling `targetAuthorId` from each target's author and `revertedAt` for restored casos. Verify with a Vitest migration test:
   - backfilled authors, including anonymous content
   - a second appeal of the same caso is refused
   - a second PENDING proposal is refused

@@ -122,6 +122,8 @@ model User {
   isBanned      Boolean   @default(false) @map("is_banned")
   isMuted       Boolean   @default(false) @map("is_muted")
   mutedUntil    DateTime? @map("muted_until")
+  /// Null while `isBanned` means a permanent suspensión. Written only with a `Sanction`.
+  bannedUntil   DateTime? @map("banned_until")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")
@@ -141,6 +143,9 @@ model User {
   emailVerifications  EmailVerification[]
   passwordResets      PasswordResetRequest[]
   pointTransactions   PointTransaction[]
+  sanctions           Sanction[]             @relation("SanctionUser")
+  suspensionProposals SuspensionProposal[]   @relation("SuspensionProposalUser")
+  appeals             Appeal[]               @relation("AppealAppellant")
 
   @@map("users")
 }
@@ -612,6 +617,15 @@ enum ModerationEventAction {
   RESTORED
   AUTHOR_REVEALED
   LEGACY_ACTION
+  WARNED
+  MUTED
+  SUSPENDED
+  SANCTION_LIFTED
+  SUSPENSION_PROPOSED
+  SUSPENSION_REJECTED
+  APPEAL_FILED
+  APPEAL_ACCEPTED
+  APPEAL_REJECTED
 }
 
 model ModerationCase {
@@ -628,14 +642,21 @@ model ModerationCase {
   decision         ModerationDecision?
   decidedById      String?              @map("decided_by_id") @db.Uuid
   decisionReason   String?              @map("decision_reason") @db.VarChar(1000)
+  /// Author of the target when the caso opened (anonymous content included). Server-only.
+  targetAuthorId   String?              @map("target_author_id") @db.Uuid
+  /// Set when a retiro is undone by a restore or an accepted appeal.
+  revertedAt       DateTime?            @map("reverted_at")
 
   material       Material?       @relation(fields: [materialId], references: [id], onDelete: Cascade)
   courseReview   CourseReview?   @relation(fields: [courseReviewId], references: [id], onDelete: Cascade)
   examExperience ExamExperience? @relation(fields: [examExperienceId], references: [id], onDelete: Cascade)
   decidedBy      User?           @relation("ModerationCaseDecidedBy", fields: [decidedById], references: [id], onDelete: Restrict)
   reports        Report[]
+  sanctions      Sanction[]
+  appeal         Appeal?
 
   @@index([status, kind, openedAt])
+  @@index([targetAuthorId, decision, closedAt])
   @@index([materialId])
   @@index([courseReviewId])
   @@index([examExperienceId])
@@ -691,4 +712,108 @@ model ModerationEvent {
   @@index([targetUserId, createdAt])
   @@index([caseId])
   @@map("moderation_events")
+}
+
+// ─── MODERACIÓN: SANCIONES Y APELACIONES ─────────────────────
+// See docs/README_MODERACION.md §6–§7 and openspec/specs/moderation/{sanctions,appeals}.
+// Raw SQL in the migration adds: one PENDING suspension proposal per account, and the
+// exactly-one-target CHECK on appeals. Actor ids carry no foreign keys, like events.
+
+enum SanctionType {
+  WARNING
+  MUTE
+  SUSPENSION
+}
+
+enum SuspensionProposalStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum AppealKind {
+  RETIRO
+  SANCTION
+}
+
+enum AppealStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// One advertencia, silenciamiento or suspensión. `User.mutedUntil`, `isBanned` and
+/// `bannedUntil` cache the active ones and are written in the same transaction.
+model Sanction {
+  id               String       @id @default(uuid()) @db.Uuid
+  userId           String       @map("user_id") @db.Uuid
+  type             SanctionType
+  reason           String       @db.VarChar(1000)
+  startsAt         DateTime     @default(now()) @map("starts_at")
+  /// Null for advertencias and permanent suspensiones.
+  endsAt           DateTime?    @map("ends_at")
+  appliedById      String       @map("applied_by_id") @db.Uuid
+  caseId           String?      @map("case_id") @db.Uuid
+  liftedAt         DateTime?    @map("lifted_at")
+  liftedById       String?      @map("lifted_by_id") @db.Uuid
+  liftReason       String?      @map("lift_reason") @db.VarChar(1000)
+  voidedAt         DateTime?    @map("voided_at")
+  voidedByAppealId String?      @map("voided_by_appeal_id") @db.Uuid
+  /// When the account first saw an advertencia.
+  seenAt           DateTime?    @map("seen_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  user   User            @relation("SanctionUser", fields: [userId], references: [id], onDelete: Cascade)
+  case   ModerationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  appeal Appeal?
+
+  @@index([userId, startsAt])
+  @@index([caseId])
+  @@map("sanctions")
+}
+
+model SuspensionProposal {
+  id             String                   @id @default(uuid()) @db.Uuid
+  userId         String                   @map("user_id") @db.Uuid
+  proposedById   String                   @map("proposed_by_id") @db.Uuid
+  reason         String                   @db.VarChar(1000)
+  /// 7 or 30; null proposes a permanent suspensión.
+  durationDays   Int?                     @map("duration_days")
+  caseId         String?                  @map("case_id") @db.Uuid
+  status         SuspensionProposalStatus @default(PENDING)
+  decidedById    String?                  @map("decided_by_id") @db.Uuid
+  decisionReason String?                  @map("decision_reason") @db.VarChar(1000)
+  decidedAt      DateTime?                @map("decided_at")
+  sanctionId     String?                  @map("sanction_id") @db.Uuid
+  createdAt      DateTime                 @default(now()) @map("created_at")
+
+  user User @relation("SuspensionProposalUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("suspension_proposals")
+}
+
+model Appeal {
+  id          String       @id @default(uuid()) @db.Uuid
+  appellantId String       @map("appellant_id") @db.Uuid
+  kind        AppealKind
+  /// The caso whose retiro is appealed (kind RETIRO).
+  caseId      String?      @unique @map("case_id") @db.Uuid
+  /// The appealed sanción (kind SANCTION).
+  sanctionId  String?      @unique @map("sanction_id") @db.Uuid
+  explanation String       @db.VarChar(1000)
+  status      AppealStatus @default(PENDING)
+  /// Who made the appealed decision; they can never review it.
+  decidedById String       @map("decided_by_id") @db.Uuid
+  reviewerId  String?      @map("reviewer_id") @db.Uuid
+  answer      String?      @db.VarChar(1000)
+  answeredAt  DateTime?    @map("answered_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  appellant User            @relation("AppealAppellant", fields: [appellantId], references: [id], onDelete: Cascade)
+  case      ModerationCase? @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sanction  Sanction?       @relation(fields: [sanctionId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("appeals")
 }
