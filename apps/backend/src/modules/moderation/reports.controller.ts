@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CreateReportDto } from './dto/create-report.dto';
 import { ReportsService } from './reports.service';
+import { RequiresActiveAccount } from './active-account.guard';
 
 @ApiTags('Moderation')
 @ApiBearerAuth()
@@ -11,6 +12,7 @@ export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
 
   @Post()
+  @RequiresActiveAccount()
   @HttpCode(202)
   @ApiOperation({ summary: 'Reportar una publicación visible' })
   file(@Request() req: { user: { id: string } }, @Body() dto: CreateReportDto) {

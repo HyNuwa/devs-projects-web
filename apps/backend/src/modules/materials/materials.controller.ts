@@ -46,6 +46,7 @@ import {
 } from './dto/set-material-viewer-state.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { Role } from '../auth/dto/auth-response.dto';
+import { RequiresActiveAccount } from '../moderation/active-account.guard';
 
 @ApiTags('Materials')
 @ApiBearerAuth()
@@ -54,6 +55,7 @@ export class MaterialsController {
   constructor(private materialsService: MaterialsService) {}
 
   @Post()
+  @RequiresActiveAccount()
   @ApiOperation({ summary: 'Subir un nuevo material' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -119,6 +121,7 @@ export class MaterialsController {
   }
 
   @Patch(':id')
+  @RequiresActiveAccount()
   @ApiOperation({ summary: 'Actualizar material (solo autor)' })
   @ApiResponse({ status: 200, type: MaterialResponseDto })
   @ApiResponse({ status: 403, description: 'Sin permisos' })
@@ -194,6 +197,7 @@ export class MaterialsController {
   }
 
   @Put(':id/helpfulness')
+  @RequiresActiveAccount()
   @ApiOperation({ summary: 'Establecer mi estado Me sirvió' })
   @ApiResponse({ status: 200, type: MaterialHelpfulnessStateDto })
   async setHelpfulness(

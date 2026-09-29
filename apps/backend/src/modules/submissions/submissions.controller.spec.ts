@@ -5,6 +5,8 @@ import { MaterialsService } from '../materials/materials.service';
 import { SubjectsService } from '../subjects/subjects.service';
 import { SubmissionsController } from './submissions.controller';
 import { SubmissionsService } from './submissions.service';
+import { AccountStatusService } from '../moderation/account-status.service';
+import { ActiveAccountGuard } from '../moderation/active-account.guard';
 
 describe('SubmissionsController', () => {
   let controller: SubmissionsController;
@@ -23,6 +25,12 @@ describe('SubmissionsController', () => {
         { provide: SubmissionsService, useValue: submissions },
         { provide: MaterialsService, useValue: materials },
         { provide: SubjectsService, useValue: subjects },
+        // Every account is active here; restrictions are tested in the moderation e2e.
+        ActiveAccountGuard,
+        {
+          provide: AccountStatusService,
+          useValue: { assertCanContribute: jest.fn() },
+        },
       ],
     }).compile();
     controller = moduleRef.get(SubmissionsController);

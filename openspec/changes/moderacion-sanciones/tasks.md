@@ -33,7 +33,7 @@
 
 ## 5. Enforcement
 
-- [ ] 5.1 Implement `AccountStatusService.assertCanContribute` and `@RequiresActiveAccount()` test-first, and apply them to every write endpoint listed in design.md. Verify with Vitest e2e tests:
+- [x] 5.1 Implement `AccountStatusService.assertCanContribute` and `@RequiresActiveAccount()` test-first, and apply them to every write endpoint listed in design.md. Verify with Vitest e2e tests:
   - silenced and suspended accounts get 403 with their code and `until` on each endpoint
   - saving and downloading still work
   - once `mutedUntil` has passed, writing works again

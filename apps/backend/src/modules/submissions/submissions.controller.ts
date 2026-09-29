@@ -17,6 +17,7 @@ import { materialUploadOptions } from '../materials/material-upload.options';
 import { MaterialsService } from '../materials/materials.service';
 import { SubjectsService } from '../subjects/subjects.service';
 import { SubmissionsService } from './submissions.service';
+import { RequiresActiveAccount } from '../moderation/active-account.guard';
 
 type AuthenticatedRequest = { user: { id: string } };
 
@@ -37,6 +38,7 @@ export class SubmissionsController {
   }
 
   @Post(':type/:id/resubmit')
+  @RequiresActiveAccount()
   @ApiOperation({
     summary: 'Reenviar un aporte rechazado en revisión previa',
   })

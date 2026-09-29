@@ -21,6 +21,7 @@ import { CreateCourseReviewDto } from './dto/create-course-review.dto';
 import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CommunityWriteThrottlerGuard } from '../../common/guards/community-write-throttler.guard';
+import { RequiresActiveAccount } from '../moderation/active-account.guard';
 
 @ApiTags('Subjects')
 @ApiBearerAuth()
@@ -57,6 +58,7 @@ export class SubjectsController {
   }
 
   @Post(':code/reviews')
+  @RequiresActiveAccount()
   @UseGuards(CommunityWriteThrottlerGuard)
   @ApiOperation({ summary: 'Crear una reseña de cursada independiente' })
   @ApiResponse({ status: 201, description: 'Reseña creada' })
@@ -69,6 +71,7 @@ export class SubjectsController {
   }
 
   @Put('reviews/:id')
+  @RequiresActiveAccount()
   @UseGuards(CommunityWriteThrottlerGuard)
   @ApiOperation({ summary: 'Editar mi reseña de cursada' })
   @ApiResponse({ status: 200, description: 'Reseña actualizada' })
@@ -117,6 +120,7 @@ export class SubjectsController {
   }
 
   @Post(':code/exams')
+  @RequiresActiveAccount()
   @UseGuards(CommunityWriteThrottlerGuard)
   @ApiOperation({ summary: 'Crear una experiencia de final' })
   @ApiResponse({ status: 201, description: 'Experiencia creada' })
@@ -129,6 +133,7 @@ export class SubjectsController {
   }
 
   @Put('exams/:id')
+  @RequiresActiveAccount()
   @UseGuards(CommunityWriteThrottlerGuard)
   @ApiOperation({ summary: 'Editar mi experiencia de final' })
   @ApiResponse({ status: 200, description: 'Experiencia actualizada' })
