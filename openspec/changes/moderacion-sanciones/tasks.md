@@ -63,7 +63,7 @@
 ## 8. Frontend
 
 - [x] 8.1 Add the Usuarios and Apelaciones tabs to `ModerationHeader`, with counts from the summary, and the admin overdue banner. Verify with Vitest component tests.
-- [ ] 8.2 Build the Usuarios tab to match the canvas `ModeracionUsuarios`: list, filters and search; the file with status, counts, precision, timeline and paso sugerido; and the actions the viewer may take, each with a required reason. Admins also get proposal confirm and reject, the duration choice and «Retirar también sus aportes publicados». Verify with Vitest component tests.
+- [x] 8.2 Build the Usuarios tab to match the canvas `ModeracionUsuarios`: list, filters and search; the file with status, counts, precision, timeline and paso sugerido; and the actions the viewer may take, each with a required reason. Admins also get proposal confirm and reject, the duration choice and «Retirar también sus aportes publicados». Verify with Vitest component tests.
 - [ ] 8.3 Build the Apelaciones tab to match the canvas `ModeracionApelaciones`: list, detail with the appealed decision, the explanation, the content (or «Autor oculto») and the answer with a required reason. Verify with Vitest component tests.
 - [ ] 8.4 Add the Vencidos group to Casos, and add «Advertir también» to «Retirar», preselected from the paso sugerido. Verify with Vitest component tests.
 - [ ] 8.5 Add `useAccountRestriction`, the shell `SanctionBanner` (active sanction, and an unseen warning shown once), and the disabled state with the shared explanation on Subir material, the reseña and experiencia forms, Reportar, «Me sirvió» and resubmitting. Verify with Vitest component tests.
