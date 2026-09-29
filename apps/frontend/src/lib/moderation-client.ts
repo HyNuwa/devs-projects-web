@@ -76,6 +76,8 @@ export type CaseDetail = {
     closedAt: string | null;
   }>;
   viewer: { canDecide: boolean; conflict: 'OWN_CONTENT' | 'REPORTED' | null };
+  /** «Advertir también» is preselected: this retiro would call for an advertencia. */
+  warnSuggested?: boolean;
 };
 
 export type HistoryItem = {
@@ -113,10 +115,12 @@ export async function decideCase(
   caseId: string,
   decision: ModerationDecision,
   reason?: string,
+  options: { warn?: boolean } = {},
 ): Promise<void> {
   await api.post(`/moderation/cases/${encodeURIComponent(caseId)}/decision`, {
     decision,
     ...(reason ? { reason } : {}),
+    ...(options.warn !== undefined ? { warn: options.warn } : {}),
   });
 }
 

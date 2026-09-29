@@ -66,6 +66,7 @@ describe('CasesService', () => {
 
   const prisma = {
     moderationCase: { findMany: jest.fn(), findUnique: jest.fn() },
+    sanction: { findMany: jest.fn().mockResolvedValue([]) },
     moderationEvent: {
       findFirst: jest.fn(),
       create: jest.fn(),

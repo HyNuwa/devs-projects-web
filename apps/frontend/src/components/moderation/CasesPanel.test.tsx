@@ -221,6 +221,7 @@ describe('CasesPanel', () => {
         'case-hidden',
         'REMOVE',
         'Se ven datos personales.',
+        { warn: false },
       ),
     );
     await waitFor(() => expect(mocks.queue).toHaveBeenCalledTimes(2));
@@ -291,6 +292,71 @@ describe('CasesPanel', () => {
 
     await waitFor(() =>
       expect(mocks.decide).toHaveBeenCalledWith('case-prior', 'APPROVE', undefined),
+    );
+  });
+
+  it('puts overdue casos in Vencidos at the top, and J starts there', async () => {
+    const user = userEvent.setup();
+    mocks.queue.mockResolvedValue({
+      ...queue,
+      vencidos: [
+        queueItem({
+          caseId: 'case-late',
+          label: 'Guía vencida',
+          targetStatus: 'HIDDEN',
+          dueAt: '2026-09-27T00:00:00.000Z',
+        }),
+      ],
+    });
+    render(<CasesPanel />);
+
+    const late = await screen.findByRole('region', { name: /Vencidos/ });
+    expect(late).toHaveTextContent('Guía vencida');
+    expect(late).toHaveTextContent('Vencido');
+    const regions = screen
+      .getAllByRole('region')
+      .map((region) => region.getAttribute('aria-labelledby'));
+    expect(regions[0]).toBe('queue-vencidos');
+    // The most urgent caso opens first, and J moves on to the next group.
+    await waitFor(() => expect(mocks.detail).toHaveBeenCalledWith('case-late'));
+
+    await user.keyboard('j');
+    await waitFor(() => expect(mocks.detail).toHaveBeenLastCalledWith('case-hidden'));
+  });
+
+  it('offers «Advertir también» when retiring, checked when it is the suggested step', async () => {
+    const user = userEvent.setup();
+    mocks.detail.mockResolvedValue(detail({ caseId: 'case-hidden', warnSuggested: true }));
+    render(<CasesPanel />);
+    await screen.findByRole('heading', { level: 2, name: 'Parcial 1 escaneado' });
+
+    const warn = screen.getByRole('checkbox', { name: /Advertir también/ });
+    expect(warn).toBeChecked();
+    expect(screen.getByText(/primer retiro en 90 días/)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Razón para el autor'), 'Datos personales.');
+    await user.click(screen.getByRole('button', { name: 'Retirar' }));
+    await waitFor(() =>
+      expect(mocks.decide).toHaveBeenCalledWith('case-hidden', 'REMOVE', 'Datos personales.', {
+        warn: true,
+      }),
+    );
+  });
+
+  it('lets the moderator leave the advertencia out', async () => {
+    const user = userEvent.setup();
+    mocks.detail.mockResolvedValue(detail({ caseId: 'case-hidden', warnSuggested: true }));
+    render(<CasesPanel />);
+    await screen.findByRole('heading', { level: 2, name: 'Parcial 1 escaneado' });
+
+    await user.click(screen.getByRole('checkbox', { name: /Advertir también/ }));
+    await user.type(screen.getByLabelText('Razón para el autor'), 'Datos personales.');
+    await user.click(screen.getByRole('button', { name: 'Retirar' }));
+
+    await waitFor(() =>
+      expect(mocks.decide).toHaveBeenCalledWith('case-hidden', 'REMOVE', 'Datos personales.', {
+        warn: false,
+      }),
     );
   });
 

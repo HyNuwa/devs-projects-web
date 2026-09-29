@@ -64,9 +64,14 @@ function relativeHours(date: string) {
 
 function StatusBadge({
   item,
+  overdue,
 }: {
   item: Pick<QueueItem, 'kind' | 'overdueHidden' | 'openedAt' | 'targetStatus'>;
+  overdue?: boolean;
 }) {
+  if (overdue) {
+    return <Badge tone="bg-destructive/10 text-destructive-ink">Vencido</Badge>;
+  }
   if (item.kind === 'PRIOR_REVIEW') {
     return <Badge tone="bg-accent/30 text-accent-foreground">Previa</Badge>;
   }
@@ -92,12 +97,14 @@ function QueueGroup({
   id,
   items,
   onSelect,
+  overdue,
   selectedId,
   title,
 }: {
   id: string;
   items: QueueItem[];
   onSelect: (caseId: string) => void;
+  overdue?: boolean;
   selectedId: string | null;
   title: string;
 }) {
@@ -140,7 +147,7 @@ function QueueGroup({
                 </span>
               ) : null}
             </span>
-            <StatusBadge item={item} />
+            <StatusBadge item={item} overdue={overdue} />
           </button>
         );
       })}
@@ -310,6 +317,7 @@ function DecisionBar({ detail, onDecided, reasonRef }: DecisionBarProps) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<ModerationDecision | null>(null);
+  const [warn, setWarn] = useState(Boolean(detail.warnSuggested));
   const disabled = !detail.viewer.canDecide || pending !== null;
 
   const restorable = detail.status === 'CLOSED' && detail.target.status === 'REMOVED';
@@ -327,7 +335,11 @@ function DecisionBar({ detail, onDecided, reasonRef }: DecisionBarProps) {
     setError(null);
     setPending(decision);
     try {
-      await decideCase(detail.caseId, decision, trimmed || undefined);
+      if (decision === 'REMOVE') {
+        await decideCase(detail.caseId, decision, trimmed || undefined, { warn });
+      } else {
+        await decideCase(detail.caseId, decision, trimmed || undefined);
+      }
       setReason('');
       onDecided();
     } catch (decisionError) {
@@ -369,6 +381,26 @@ function DecisionBar({ detail, onDecided, reasonRef }: DecisionBarProps) {
             : 'Obligatoria para retirar: el autor la ve junto con la fecha. Para mantener visible es opcional.'}{' '}
         {reason.length} / 1000
       </p>
+      {!restorable && detail.kind === 'REPORTS' ? (
+        <label className="flex min-h-11 items-start gap-2 text-sm">
+          <input
+            checked={warn}
+            className="mt-1 size-4"
+            disabled={disabled}
+            onChange={(event) => setWarn(event.target.checked)}
+            type="checkbox"
+          />
+          <span>
+            <span className="font-bold">Advertir también</span> al autor con la misma razón, si
+            retirás.{' '}
+            <span className="text-muted-foreground">
+              {detail.warnSuggested
+                ? 'Sería su primer retiro en 90 días: el paso sugerido es advertir.'
+                : 'No es el paso sugerido para esta cuenta; revisá su ficha en Usuarios.'}
+            </span>
+          </span>
+        </label>
+      ) : null}
       {error ? (
         <p className="text-sm font-bold text-destructive" role="alert">
           {error}
@@ -560,6 +592,7 @@ export function CasesPanel() {
     () =>
       queueState.status === 'ready'
         ? [
+            ...(queueState.queue.vencidos ?? []),
             ...queueState.queue.hidden,
             ...queueState.queue.priorReview,
             ...queueState.queue.reported,
@@ -576,7 +609,12 @@ export function CasesPanel() {
         if (!active) return;
         setQueueState({ status: 'ready', queue });
         setSelectedId((current) => {
-          const all = [...queue.hidden, ...queue.priorReview, ...queue.reported];
+          const all = [
+            ...(queue.vencidos ?? []),
+            ...queue.hidden,
+            ...queue.priorReview,
+            ...queue.reported,
+          ];
           if (
             current &&
             (current === requestedCase || all.some((item) => item.caseId === current))
@@ -652,6 +690,7 @@ export function CasesPanel() {
   const counts =
     queueState.status === 'ready'
       ? {
+          overdue: queueState.queue.vencidos?.length ?? 0,
           hidden: queueState.queue.hidden.length,
           prior: queueState.queue.priorReview.length,
           reported: queueState.queue.reported.length,
@@ -662,7 +701,9 @@ export function CasesPanel() {
     <div className="grid gap-6 font-sans">
       <ModerationHeader
         active="casos"
-        caseCount={counts ? counts.hidden + counts.prior + counts.reported : undefined}
+        caseCount={
+          counts ? counts.overdue + counts.hidden + counts.prior + counts.reported : undefined
+        }
         description="Todo se publica al instante. Acá llega lo que la comunidad reportó y lo que necesita revisión previa. Cada decisión lleva su razón y queda en el historial."
       />
 
@@ -714,6 +755,14 @@ export function CasesPanel() {
             {ordered.length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay casos abiertos. ¡Todo al día!</p>
             ) : null}
+            <QueueGroup
+              id="queue-vencidos"
+              items={queueState.queue.vencidos ?? []}
+              onSelect={select}
+              overdue
+              selectedId={selectedId}
+              title="Vencidos"
+            />
             <QueueGroup
               id="queue-hidden"
               items={queueState.queue.hidden}

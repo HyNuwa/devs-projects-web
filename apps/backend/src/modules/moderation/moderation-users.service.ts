@@ -2,11 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import type { Prisma, Role } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ESCALERA_WINDOW_DAYS, suggestedStep } from './escalera';
 import {
-  ESCALERA_WINDOW_DAYS,
-  type SanctionHistory,
-  suggestedStep,
-} from './escalera';
+  emptyHistory,
+  type EscaleraHistory,
+  loadHistories,
+} from './escalera-history';
 import { canSanction, type SanctionAction } from './sanction-rules';
 import { type Actor, isSuspended } from './sanctions.service';
 
@@ -47,7 +48,6 @@ const accountSelect = {
 } satisfies Prisma.UserSelect;
 
 type Account = Prisma.UserGetPayload<{ select: typeof accountSelect }>;
-type History = SanctionHistory & { lastWarning: Date | null };
 
 /** The Usuarios tab (openspec moderation/sanctions, «Usuarios tab»). */
 @Injectable()
@@ -61,7 +61,8 @@ export class ModerationUsersService {
       where: { id: { in: ids } },
       select: accountSelect,
     });
-    const histories = await this.histories(
+    const histories = await loadHistories(
+      this.prisma,
       accounts.map((account) => account.id),
     );
     // Keep the candidates' order: most recent retiro or sanción first.
@@ -109,7 +110,9 @@ export class ModerationUsersService {
       dismissed,
       proposal,
     ] = await Promise.all([
-      this.histories([userId]).then((map) => map.get(userId) ?? emptyHistory()),
+      loadHistories(this.prisma, [userId]).then(
+        (map) => map.get(userId) ?? emptyHistory(),
+      ),
       this.publishedCount(userId),
       this.prisma.report.groupBy({
         by: ['status'],
@@ -317,50 +320,6 @@ export class ModerationUsersService {
     return cases.map((c) => c.targetAuthorId!);
   }
 
-  /** Escalera inputs for several accounts at once. */
-  private async histories(userIds: string[]) {
-    const [retiros, sanctions] = await Promise.all([
-      this.prisma.moderationCase.findMany({
-        where: {
-          targetAuthorId: { in: userIds },
-          decision: 'REMOVE',
-          revertedAt: null,
-          closedAt: { not: null },
-        },
-        select: { targetAuthorId: true, closedAt: true },
-      }),
-      this.prisma.sanction.findMany({
-        where: { userId: { in: userIds }, voidedAt: null },
-        select: { userId: true, type: true, startsAt: true },
-      }),
-    ]);
-    const map = new Map<string, History>();
-    const of = (id: string) => {
-      if (!map.has(id)) map.set(id, emptyHistory());
-      return map.get(id)!;
-    };
-    for (const retiro of retiros) {
-      of(retiro.targetAuthorId!).retiros.push(retiro.closedAt!);
-    }
-    for (const sanction of sanctions) {
-      const history = of(sanction.userId);
-      if (sanction.type === 'WARNING') {
-        history.warnings.push(sanction.startsAt);
-        if (
-          !history.lastWarning ||
-          sanction.startsAt.getTime() > history.lastWarning.getTime()
-        ) {
-          history.lastWarning = sanction.startsAt;
-        }
-      }
-      if (sanction.type === 'MUTE') history.mutes.push(sanction.startsAt);
-      if (sanction.type === 'SUSPENSION') {
-        history.suspensions.push(sanction.startsAt);
-      }
-    }
-    return map;
-  }
-
   private async publishedCount(userId: string) {
     const [materials, reviews, exams] = await Promise.all([
       this.prisma.material.count({
@@ -421,16 +380,6 @@ function caseLabel(c: {
     : 'Experiencia de final';
 }
 
-function emptyHistory(): History {
-  return {
-    retiros: [],
-    warnings: [],
-    mutes: [],
-    suspensions: [],
-    lastWarning: null,
-  };
-}
-
 function basics(account: Account, now: Date) {
   return {
     id: account.id,
@@ -444,7 +393,7 @@ function basics(account: Account, now: Date) {
   };
 }
 
-function statusOf(account: Account, history: History, now: Date) {
+function statusOf(account: Account, history: EscaleraHistory, now: Date) {
   if (isSuspended(account, now)) {
     return { kind: 'SUSPENDED' as const, until: account.bannedUntil };
   }

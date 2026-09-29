@@ -9,6 +9,8 @@ import type {
 } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { targetColumns } from './publication-policy.service';
+import { suggestedStep } from './escalera';
+import { emptyHistory, loadHistories } from './escalera-history';
 import { groupQueue } from './queue';
 import { isQualifiedReporter } from './rules';
 import { isOverdueHidden } from './visibility';
@@ -209,6 +211,17 @@ export class CasesService {
           ? ('REPORTED' as const)
           : null;
     const now = new Date();
+    // «Advertir también» is preselected when this retiro would call for an
+    // advertencia. Only that flag leaves the server, never the author's record.
+    const authorHistory =
+      (await loadHistories(this.prisma, [target.authorId])).get(
+        target.authorId,
+      ) ?? emptyHistory();
+    const warnSuggested =
+      suggestedStep(
+        { ...authorHistory, retiros: [...authorHistory.retiros, now] },
+        now,
+      ) === 'WARNING';
 
     return {
       caseId: record.id,
@@ -244,6 +257,7 @@ export class CasesService {
         closedAt: entry.closedAt,
       })),
       viewer: { canDecide: conflict === null, conflict },
+      warnSuggested,
     };
   }
 
