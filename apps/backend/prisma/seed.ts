@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import * as bcrypt from 'bcrypt';
 import { normalizeSearchKey } from '../src/common/search/search-key';
 import { seedModeration } from './seed-moderation';
+import { seedSanctions } from './seed-sanctions';
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -24,6 +25,9 @@ async function main() {
   // moderation_events is append-only (row triggers block DELETE); TRUNCATE is the
   // development-only way to clear it.
   await prisma.$executeRawUnsafe('TRUNCATE TABLE "moderation_events"');
+  await prisma.appeal.deleteMany();
+  await prisma.suspensionProposal.deleteMany();
+  await prisma.sanction.deleteMany();
   await prisma.report.deleteMany();
   await prisma.moderationCase.deleteMany();
   await prisma.pointTransaction.deleteMany();
@@ -512,6 +516,14 @@ async function main() {
     await hash('DemoPass123!'),
   );
   console.log('Creados datos de demo de moderación');
+
+  await seedSanctions(
+    prisma,
+    { adminId: adminUser.id, moderatorId: moderatorUser.id },
+    Object.values(subjects).slice(0, 2),
+    await hash('DemoPass123!'),
+  );
+  console.log('Creados datos de demo de sanciones y apelaciones');
 }
 
 main()

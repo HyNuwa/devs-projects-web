@@ -90,6 +90,7 @@ export async function seedModeration(
       kind: 'PRIOR_REVIEW',
       targetType: 'MATERIAL',
       materialId: pending.id,
+      targetAuthorId: newcomer.id,
     },
   });
   await prisma.moderationEvent.create({
@@ -118,6 +119,7 @@ export async function seedModeration(
       kind: 'REPORTS',
       targetType: 'MATERIAL',
       materialId: hidden.id,
+      targetAuthorId: users.userId,
       highPriority: true,
       openedAt: new Date(now - 5 * 60 * 60 * 1000),
     },
@@ -150,7 +152,12 @@ export async function seedModeration(
     subjectB,
   );
   const reportedCase = await prisma.moderationCase.create({
-    data: { kind: 'REPORTS', targetType: 'MATERIAL', materialId: reported.id },
+    data: {
+      kind: 'REPORTS',
+      targetType: 'MATERIAL',
+      materialId: reported.id,
+      targetAuthorId: users.userId,
+    },
   });
   for (const reporter of [reporterA, reporterC]) {
     await prisma.report.create({
@@ -182,6 +189,7 @@ export async function seedModeration(
       kind: 'REPORTS',
       targetType: 'COURSE_REVIEW',
       courseReviewId: review.id,
+      targetAuthorId: users.userId,
     },
   });
   for (const reporter of [reporterA, reporterB, reporterC]) {
