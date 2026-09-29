@@ -89,8 +89,16 @@ A reversible moderator decision that removes any publication from public view wh
 _Avoid_: Report, ocultamiento preventivo, publication rejection
 
 **Sanción**:
-A moderation measure on an account, applied by a person and never automatically: advertencia, silenciamiento (temporary, cannot publish or report), or suspensión (cannot sign in; only an admin applies it).
+A moderation measure on an account, applied by a person and never automatically: advertencia, silenciamiento (7 days without publishing, editing, reporting or «Me sirvió»), or suspensión (cannot sign in for 7 days, 30 days or permanently; a moderator proposes it and an admin confirms it). It ends on its own when its end date passes.
 _Avoid_: Automatic penalty, strike
+
+**Retiro por normas**:
+A «Retirar» decision on a caso. It is what the escalera counts. An author deleting their own entry, a rejection in revisión previa, and a retiro later restored or overturned on appeal do not count.
+_Avoid_: Strike, removal (for author deletion)
+
+**Paso sugerido**:
+The sanción the escalera proposes for an account from its retiros por normas and silenciamientos in the last 90 days. Moderation decides whether to apply it.
+_Avoid_: Automatic sanction, penalty level
 
 **Apelación**:
 A single request, within 14 days, that a different moderator review a decision. Its answer is final and always has a written reason.

@@ -146,6 +146,8 @@ Son permisos que ayudan a mantener la calidad. Todos requieren **no haber tenido
 
 Mientras una cuenta está silenciada (`isMuted`) o suspendida (`isBanned`): no gana puntos, sus «Me sirvió» no cuentan, se ocultan sus personalizaciones y pierde los privilegios de confianza. Al terminar la sanción recupera las personalizaciones, pero los privilegios vuelven recién después de 90 días sin sanciones.
 
+**Estado:** el cambio de moderación (sanciones y apelaciones) solo bloquea publicar y marcar «Me sirvió» durante la sanción. Congelar los puntos, ocultar personalizaciones y quitar privilegios se implementa en el cambio de puntos e insignias. Los puntos reotorgados por una apelación aceptada se otorgan aunque haya una sanción activa.
+
 ## 6. Insignias
 
 ### 6.1 Reglas generales
