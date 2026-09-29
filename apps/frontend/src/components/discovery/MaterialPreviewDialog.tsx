@@ -29,6 +29,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import type { Material, MaterialRating, MaterialViewerState, Paginated } from '@/types/material';
 import { ReportDialog } from '@/components/moderation/ReportDialog';
+import { useAccountRestriction } from '@/hooks/useAccountRestriction';
 
 export type MaterialPreviewDialogFile = {
   academicYear: number | null;
@@ -488,6 +489,7 @@ export function MaterialPreviewDialog({
   const isViewerError = currentViewerState.status === 'error';
   const previewFailed = failedPreviewId === file.id;
   const actionIsPending = pendingAction !== null;
+  const { blocked: restricted } = useAccountRestriction();
   const actionIsDisabled = isAuthLoading || (Boolean(user) && (!viewer || actionIsPending));
   const contextualViewerError = viewerError?.materialId === file.id ? viewerError.message : null;
 
@@ -704,7 +706,7 @@ export function MaterialPreviewDialog({
                 </Button>
                 <Button
                   aria-pressed={viewer?.isHelpful ?? false}
-                  disabled={actionIsDisabled}
+                  disabled={actionIsDisabled || restricted}
                   onClick={updateHelpfulness}
                   variant={viewer?.isHelpful ? 'secondary' : 'outline'}
                 >

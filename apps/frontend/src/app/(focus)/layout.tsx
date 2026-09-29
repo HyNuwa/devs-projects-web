@@ -1,4 +1,5 @@
 import { MainContent } from '@/components/layout/MainContent';
+import { SanctionBanner } from '@/components/layout/SanctionBanner';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 
@@ -7,6 +8,7 @@ export default function FocusLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex flex-1 flex-col">
       <SiteHeader />
+      <SanctionBanner />
       <MainContent>{children}</MainContent>
       <SiteFooter />
     </div>

@@ -23,6 +23,7 @@ import {
   resubmit,
   type Submission,
 } from '@/lib/submissions-client';
+import { useAccountRestriction } from '@/hooks/useAccountRestriction';
 
 const STATUS: Record<
   PublicationStatus,
@@ -84,6 +85,7 @@ function editHref(submission: Submission) {
 function ResubmitMaterial({ id, onDone }: { id: string; onDone: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { blocked: restricted, message: restrictionMessage } = useAccountRestriction();
   const [isSending, setIsSending] = useState(false);
   const inputId = `resubmit-file-${id}`;
 
@@ -113,7 +115,7 @@ function ResubmitMaterial({ id, onDone }: { id: string; onDone: () => void }) {
           type="file"
         />
       </div>
-      <Button disabled={isSending} onClick={send} size="sm">
+      <Button disabled={isSending || restricted} onClick={send} size="sm">
         {isSending ? (
           <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
         ) : (
@@ -122,6 +124,11 @@ function ResubmitMaterial({ id, onDone }: { id: string; onDone: () => void }) {
         Reenviar a revisión
       </Button>
       <FieldError className="sm:col-span-2">{error}</FieldError>
+      {restrictionMessage ? (
+        <p className="text-xs font-semibold text-destructive-ink sm:col-span-2">
+          {restrictionMessage}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -40,6 +40,8 @@ import { PriorReviewNotice, PublicationRulesNote } from '@/components/moderation
 import { getCommunityManagement } from '@/lib/community-management-client';
 import type { PriorReviewReason, PublicationOutcome } from '@/lib/publication-outcome';
 import { resubmit } from '@/lib/submissions-client';
+import { useAccountRestriction } from '@/hooks/useAccountRestriction';
+import { RestrictionNotice } from '@/components/moderation/RestrictionNotice';
 
 const MIN_ACADEMIC_YEAR = 1900;
 const MAX_ACADEMIC_YEAR = new Date().getUTCFullYear() + 1;
@@ -229,6 +231,7 @@ function DuplicateConfirmation({
 }
 
 export function ReviewForm() {
+  const { blocked: restricted } = useAccountRestriction();
   const params = useParams<{ codigo: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -497,288 +500,300 @@ export function ReviewForm() {
         noValidate
         onSubmit={handleSubmit((values) => submit(values))}
       >
-        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
-          <div className="flex items-center gap-3">
-            <Sparkles aria-hidden="true" className="size-5 text-primary" strokeWidth={1.6} />
-            <h2 className="font-sans text-2xl font-bold text-foreground">Tu cursada</h2>
-          </div>
+        <RestrictionNotice />
+        <fieldset aria-label="Datos de la reseña" className="contents" disabled={restricted}>
+          <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
+            <div className="flex items-center gap-3">
+              <Sparkles aria-hidden="true" className="size-5 text-primary" strokeWidth={1.6} />
+              <h2 className="font-sans text-2xl font-bold text-foreground">Tu cursada</h2>
+            </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="academicYear">Ciclo lectivo</FieldLabel>
-              <Input
-                aria-describedby={errors.academicYear ? 'academicYear-error' : undefined}
-                aria-invalid={Boolean(errors.academicYear)}
-                id="academicYear"
-                inputMode="numeric"
-                max={MAX_ACADEMIC_YEAR}
-                min={MIN_ACADEMIC_YEAR}
-                placeholder="Ej.: 2026"
-                type="number"
-                {...register('academicYear')}
-              />
-              <FieldDescription>No se guarda cuatrimestre.</FieldDescription>
-              <FieldError id="academicYear-error">{errors.academicYear?.message}</FieldError>
-            </Field>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="academicYear">Ciclo lectivo</FieldLabel>
+                <Input
+                  aria-describedby={errors.academicYear ? 'academicYear-error' : undefined}
+                  aria-invalid={Boolean(errors.academicYear)}
+                  id="academicYear"
+                  inputMode="numeric"
+                  max={MAX_ACADEMIC_YEAR}
+                  min={MIN_ACADEMIC_YEAR}
+                  placeholder="Ej.: 2026"
+                  type="number"
+                  {...register('academicYear')}
+                />
+                <FieldDescription>No se guarda cuatrimestre.</FieldDescription>
+                <FieldError id="academicYear-error">{errors.academicYear?.message}</FieldError>
+              </Field>
+
+              <fieldset
+                className="grid gap-2"
+                aria-describedby={errors.condition ? 'condition-error' : undefined}
+              >
+                <legend className="font-sans text-sm font-bold text-foreground">Resultado</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  {CONDITIONS.map((condition) => (
+                    <label className="cursor-pointer" key={condition}>
+                      <input
+                        className="sr-only"
+                        type="radio"
+                        value={condition}
+                        {...register('condition')}
+                      />
+                      <ChoiceLabel>{courseConditionLabels[condition]}</ChoiceLabel>
+                    </label>
+                  ))}
+                </div>
+                <FieldError id="condition-error">{errors.condition?.message}</FieldError>
+              </fieldset>
+            </div>
 
             <fieldset
               className="grid gap-2"
-              aria-describedby={errors.condition ? 'condition-error' : undefined}
+              aria-describedby={errors.attempt ? 'attempt-error' : undefined}
             >
-              <legend className="font-sans text-sm font-bold text-foreground">Resultado</legend>
-              <div className="grid grid-cols-3 gap-2">
-                {CONDITIONS.map((condition) => (
-                  <label className="cursor-pointer" key={condition}>
+              <legend className="font-sans text-sm font-bold text-foreground">
+                Situación de cursada
+              </legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {ATTEMPTS.map((attempt) => (
+                  <label className="cursor-pointer" key={attempt}>
                     <input
                       className="sr-only"
                       type="radio"
-                      value={condition}
-                      {...register('condition')}
+                      value={attempt}
+                      {...register('attempt')}
                     />
-                    <ChoiceLabel>{courseConditionLabels[condition]}</ChoiceLabel>
+                    <ChoiceLabel>{courseAttemptLabels[attempt]}</ChoiceLabel>
                   </label>
                 ))}
               </div>
-              <FieldError id="condition-error">{errors.condition?.message}</FieldError>
+              <FieldError id="attempt-error">{errors.attempt?.message}</FieldError>
             </fieldset>
-          </div>
+          </section>
 
-          <fieldset
-            className="grid gap-2"
-            aria-describedby={errors.attempt ? 'attempt-error' : undefined}
-          >
-            <legend className="font-sans text-sm font-bold text-foreground">
-              Situación de cursada
-            </legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {ATTEMPTS.map((attempt) => (
-                <label className="cursor-pointer" key={attempt}>
-                  <input
-                    className="sr-only"
-                    type="radio"
-                    value={attempt}
-                    {...register('attempt')}
-                  />
-                  <ChoiceLabel>{courseAttemptLabels[attempt]}</ChoiceLabel>
-                </label>
-              ))}
+          <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
+            <div>
+              <h2 className="font-sans text-2xl font-bold text-foreground">
+                Recomendación y relato
+              </h2>
+              <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
+                Las estrellas son una opinión sobre la cursada; tu relato aporta el contexto.
+              </p>
             </div>
-            <FieldError id="attempt-error">{errors.attempt?.message}</FieldError>
-          </fieldset>
-        </section>
 
-        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
-          <div>
-            <h2 className="font-sans text-2xl font-bold text-foreground">Recomendación y relato</h2>
-            <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
-              Las estrellas son una opinión sobre la cursada; tu relato aporta el contexto.
-            </p>
-          </div>
-
-          <fieldset
-            className="grid gap-3"
-            aria-describedby={errors.recommendation ? 'recommendation-error' : undefined}
-          >
-            <legend className="font-sans text-sm font-bold text-foreground">¿La recomendás?</legend>
-            <div className="flex flex-wrap gap-2" role="radiogroup">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <label className="cursor-pointer" key={star}>
-                  <input
-                    aria-label={`${star} ${star === 1 ? 'estrella' : 'estrellas'}`}
-                    className="sr-only"
-                    type="radio"
-                    value={star}
-                    {...register('recommendation')}
-                  />
-                  <ChoiceLabel checked={Number(recommendation) === star} className="min-w-11 px-2">
-                    <Star
-                      aria-hidden="true"
-                      className={Number(recommendation) >= star ? 'size-6 fill-current' : 'size-6'}
-                      strokeWidth={1.7}
-                    />
-                  </ChoiceLabel>
-                </label>
-              ))}
-            </div>
-            <FieldError id="recommendation-error">{errors.recommendation?.message}</FieldError>
-          </fieldset>
-
-          <Field>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <FieldLabel htmlFor="comment">Tu experiencia</FieldLabel>
-              <span className="font-mono text-xs text-muted-foreground">
-                {comment?.length ?? 0}/4.000
-              </span>
-            </div>
-            <textarea
-              aria-describedby={errors.comment ? 'comment-error' : undefined}
-              aria-invalid={Boolean(errors.comment)}
-              className="min-h-44 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
-              id="comment"
-              maxLength={4000}
-              placeholder="Contá cómo fue la cursada, cómo se trabajó y qué le recomendarías a otra persona."
-              {...register('comment')}
-            />
-            <FieldDescription>Entre 30 y 4.000 caracteres.</FieldDescription>
-            <FieldError id="comment-error">{errors.comment?.message}</FieldError>
-          </Field>
-        </section>
-
-        <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
-          <div>
-            <h2 className="font-sans text-2xl font-bold text-foreground">Contexto opcional</h2>
-            <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
-              Agregá solo datos que recuerdes con seguridad.
-            </p>
-          </div>
-
-          <Field>
-            <FieldLabel>Franja horaria</FieldLabel>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {SHIFTS.map((shiftOption) => (
-                <label className="cursor-pointer" key={shiftOption}>
-                  <input
-                    className="sr-only"
-                    type="radio"
-                    value={shiftOption}
-                    {...register('shift')}
-                  />
-                  <ChoiceLabel checked={shift === shiftOption}>
-                    {shiftLabels[shiftOption]}
-                  </ChoiceLabel>
-                </label>
-              ))}
-            </div>
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="difficulty">Dificultad general</FieldLabel>
-            <select
-              className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              id="difficulty"
-              {...register('difficulty')}
+            <fieldset
+              className="grid gap-3"
+              aria-describedby={errors.recommendation ? 'recommendation-error' : undefined}
             >
-              <option value="">No la indico</option>
-              {DIFFICULTIES.map((difficulty) => (
-                <option key={difficulty} value={difficulty}>
-                  {communityDifficultyLabels[difficulty]}
-                </option>
-              ))}
-            </select>
-          </Field>
+              <legend className="font-sans text-sm font-bold text-foreground">
+                ¿La recomendás?
+              </legend>
+              <div className="flex flex-wrap gap-2" role="radiogroup">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <label className="cursor-pointer" key={star}>
+                    <input
+                      aria-label={`${star} ${star === 1 ? 'estrella' : 'estrellas'}`}
+                      className="sr-only"
+                      type="radio"
+                      value={star}
+                      {...register('recommendation')}
+                    />
+                    <ChoiceLabel
+                      checked={Number(recommendation) === star}
+                      className="min-w-11 px-2"
+                    >
+                      <Star
+                        aria-hidden="true"
+                        className={
+                          Number(recommendation) >= star ? 'size-6 fill-current' : 'size-6'
+                        }
+                        strokeWidth={1.7}
+                      />
+                    </ChoiceLabel>
+                  </label>
+                ))}
+              </div>
+              <FieldError id="recommendation-error">{errors.recommendation?.message}</FieldError>
+            </fieldset>
 
-          <fieldset
-            className="grid gap-3"
-            aria-describedby={
-              errors.professorId || errors.professorName ? 'professor-error' : undefined
-            }
-          >
-            <legend className="font-sans text-sm font-bold text-foreground">
-              Profesor principal
-            </legend>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {[
-                ['none', 'No lo indico'],
-                ['catalog', 'Del catálogo'],
-                ['manual', 'Nombre manual'],
-              ].map(([mode, label]) => (
-                <label className="cursor-pointer" key={mode}>
-                  <input
-                    className="sr-only"
-                    type="radio"
-                    value={mode}
-                    {...professorModeRegistration}
-                    onChange={(event) => {
-                      professorModeRegistration.onChange(event);
-                      setValue('professorId', '');
-                      setValue('professorName', '');
-                    }}
-                  />
-                  <ChoiceLabel checked={professorMode === mode}>{label}</ChoiceLabel>
-                </label>
-              ))}
-            </div>
-            {professorMode === 'catalog' ? (
-              <>
-                <label className="sr-only" htmlFor="professorId">
-                  Profesor del catálogo
-                </label>
-                <select
-                  aria-invalid={Boolean(errors.professorId)}
-                  className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
-                  id="professorId"
-                  {...register('professorId')}
-                >
-                  <option value="">Elegí un profesor</option>
-                  {professors.map((professor) => (
-                    <option key={professor.id} value={professor.id}>
-                      {professor.name}
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : null}
-            {professorMode === 'manual' ? (
-              <Input
-                aria-invalid={Boolean(errors.professorName)}
-                aria-label="Nombre manual del profesor"
-                placeholder="Ej.: Ing. Laura Quiroga"
-                {...register('professorName')}
+            <Field>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <FieldLabel htmlFor="comment">Tu experiencia</FieldLabel>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {comment?.length ?? 0}/4.000
+                </span>
+              </div>
+              <textarea
+                aria-describedby={errors.comment ? 'comment-error' : undefined}
+                aria-invalid={Boolean(errors.comment)}
+                className="min-h-44 w-full resize-y border border-input bg-background px-3 py-3 font-sans text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+                id="comment"
+                maxLength={4000}
+                placeholder="Contá cómo fue la cursada, cómo se trabajó y qué le recomendarías a otra persona."
+                {...register('comment')}
               />
-            ) : null}
-            <FieldError id="professor-error">
-              {errors.professorId?.message ?? errors.professorName?.message}
-            </FieldError>
-          </fieldset>
+              <FieldDescription>Entre 30 y 4.000 caracteres.</FieldDescription>
+              <FieldError id="comment-error">{errors.comment?.message}</FieldError>
+            </Field>
+          </section>
 
-          <label className="flex cursor-pointer items-start gap-3 border border-border bg-secondary p-4 text-sm text-secondary-foreground">
-            <input
-              className="mt-1 size-4 accent-[var(--primary)]"
-              type="checkbox"
-              {...register('isAnonymous')}
-            />
-            <span>
-              <span className="block font-bold text-foreground">Publicar como Anónimo</span>
-              <span className="mt-1 block leading-relaxed">
-                La reseña no mostrará tu nombre, avatar ni un alias permanente. La cuenta sigue
-                siendo responsable de la publicación.
+          <section className="grid gap-6 border border-border bg-card p-5 sm:p-7">
+            <div>
+              <h2 className="font-sans text-2xl font-bold text-foreground">Contexto opcional</h2>
+              <p className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
+                Agregá solo datos que recuerdes con seguridad.
+              </p>
+            </div>
+
+            <Field>
+              <FieldLabel>Franja horaria</FieldLabel>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {SHIFTS.map((shiftOption) => (
+                  <label className="cursor-pointer" key={shiftOption}>
+                    <input
+                      className="sr-only"
+                      type="radio"
+                      value={shiftOption}
+                      {...register('shift')}
+                    />
+                    <ChoiceLabel checked={shift === shiftOption}>
+                      {shiftLabels[shiftOption]}
+                    </ChoiceLabel>
+                  </label>
+                ))}
+              </div>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="difficulty">Dificultad general</FieldLabel>
+              <select
+                className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                id="difficulty"
+                {...register('difficulty')}
+              >
+                <option value="">No la indico</option>
+                {DIFFICULTIES.map((difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {communityDifficultyLabels[difficulty]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <fieldset
+              className="grid gap-3"
+              aria-describedby={
+                errors.professorId || errors.professorName ? 'professor-error' : undefined
+              }
+            >
+              <legend className="font-sans text-sm font-bold text-foreground">
+                Profesor principal
+              </legend>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[
+                  ['none', 'No lo indico'],
+                  ['catalog', 'Del catálogo'],
+                  ['manual', 'Nombre manual'],
+                ].map(([mode, label]) => (
+                  <label className="cursor-pointer" key={mode}>
+                    <input
+                      className="sr-only"
+                      type="radio"
+                      value={mode}
+                      {...professorModeRegistration}
+                      onChange={(event) => {
+                        professorModeRegistration.onChange(event);
+                        setValue('professorId', '');
+                        setValue('professorName', '');
+                      }}
+                    />
+                    <ChoiceLabel checked={professorMode === mode}>{label}</ChoiceLabel>
+                  </label>
+                ))}
+              </div>
+              {professorMode === 'catalog' ? (
+                <>
+                  <label className="sr-only" htmlFor="professorId">
+                    Profesor del catálogo
+                  </label>
+                  <select
+                    aria-invalid={Boolean(errors.professorId)}
+                    className="min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-[invalid=true]:border-destructive"
+                    id="professorId"
+                    {...register('professorId')}
+                  >
+                    <option value="">Elegí un profesor</option>
+                    {professors.map((professor) => (
+                      <option key={professor.id} value={professor.id}>
+                        {professor.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
+              {professorMode === 'manual' ? (
+                <Input
+                  aria-invalid={Boolean(errors.professorName)}
+                  aria-label="Nombre manual del profesor"
+                  placeholder="Ej.: Ing. Laura Quiroga"
+                  {...register('professorName')}
+                />
+              ) : null}
+              <FieldError id="professor-error">
+                {errors.professorId?.message ?? errors.professorName?.message}
+              </FieldError>
+            </fieldset>
+
+            <label className="flex cursor-pointer items-start gap-3 border border-border bg-secondary p-4 text-sm text-secondary-foreground">
+              <input
+                className="mt-1 size-4 accent-[var(--primary)]"
+                type="checkbox"
+                {...register('isAnonymous')}
+              />
+              <span>
+                <span className="block font-bold text-foreground">Publicar como Anónimo</span>
+                <span className="mt-1 block leading-relaxed">
+                  La reseña no mostrará tu nombre, avatar ni un alias permanente. La cuenta sigue
+                  siendo responsable de la publicación.
+                </span>
               </span>
-            </span>
-          </label>
-        </section>
+            </label>
+          </section>
 
-        {serverError ? (
-          <p
-            aria-live="assertive"
-            className="border border-destructive bg-destructive/10 p-4 font-sans text-sm font-bold text-destructive-ink"
-            role="alert"
-          >
-            {serverError}
-          </p>
-        ) : null}
+          {serverError ? (
+            <p
+              aria-live="assertive"
+              className="border border-destructive bg-destructive/10 p-4 font-sans text-sm font-bold text-destructive-ink"
+              role="alert"
+            >
+              {serverError}
+            </p>
+          ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-          <Link
-            className="font-sans text-sm font-bold text-muted-foreground underline underline-offset-4"
-            href={`/materias/${code}`}
-          >
-            Cancelar
-          </Link>
-          <Button disabled={isSubmitting} type="submit">
-            {isSubmitting ? (
-              <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-            ) : (
-              <Check aria-hidden="true" className="size-4" />
-            )}
-            {isSubmitting
-              ? 'Guardando…'
-              : isRejected
-                ? 'Guardar y reenviar'
-                : isEditing
-                  ? 'Guardar cambios'
-                  : 'Publicar reseña'}
-          </Button>
-        </div>
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+            <Link
+              className="font-sans text-sm font-bold text-muted-foreground underline underline-offset-4"
+              href={`/materias/${code}`}
+            >
+              Cancelar
+            </Link>
+            <Button disabled={isSubmitting} type="submit">
+              {isSubmitting ? (
+                <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+              ) : (
+                <Check aria-hidden="true" className="size-4" />
+              )}
+              {isSubmitting
+                ? 'Guardando…'
+                : isRejected
+                  ? 'Guardar y reenviar'
+                  : isEditing
+                    ? 'Guardar cambios'
+                    : 'Publicar reseña'}
+            </Button>
+          </div>
+        </fieldset>
       </form>
 
       <DuplicateConfirmation

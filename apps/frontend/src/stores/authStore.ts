@@ -11,6 +11,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (payload: LoginPayload) => {
     const { data } = await api.post('/auth/login', payload);
     set({ user: data.user });
+    // /auth/me adds the account's active restriction and unseen advertencia.
+    try {
+      const me = await api.get('/auth/me');
+      set({ user: me.data });
+    } catch {
+      // Keep the sign-in user; the shell checks /auth/me again on load.
+    }
   },
 
   register: async (payload: RegisterPayload) => {

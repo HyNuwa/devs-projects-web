@@ -17,6 +17,8 @@ import {
 import { Subject } from '@/types/subject';
 import { Button, Input, useToast } from '@/components/ui';
 import styles from './MaterialCreateForm.module.css';
+import { useAccountRestriction } from '@/hooks/useAccountRestriction';
+import { RestrictionNotice } from '@/components/moderation/RestrictionNotice';
 
 const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'pptx', 'xls', 'txt', 'md', 'jpg', 'png', 'webp'];
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
@@ -57,6 +59,7 @@ export function MaterialCreateForm() {
   const [step, setStep] = useState(1);
   const [result, setResult] = useState<SubmissionResult | null>(null);
   const [refusal, setRefusal] = useState<{ message: string; existingId?: string } | null>(null);
+  const { blocked: restricted } = useAccountRestriction();
 
   const {
     register,
@@ -216,151 +219,154 @@ export function MaterialCreateForm() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
-          {/* Step 1: File */}
-          {step === 1 && (
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>Archivo *</label>
-              <label className={styles.dropzone}>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.pptx,.xls,.txt,.md,.jpg,.png,.webp"
-                  className={styles.fileInput}
-                  onChange={handleFileChange}
-                />
-                <Upload size={28} className={styles.dropzoneIcon} />
-                <span className={styles.dropzoneTitle}>Arrastrá tu archivo o hacé clic</span>
-                <span className={styles.dropzoneHint}>
-                  PDF, DOC, DOCX, PPTX, XLS, TXT, MD, JPG, PNG, WEBP · máx. 25MB
-                </span>
-              </label>
-              {fileError && <span className={styles.fieldError}>{fileError}</span>}
-            </div>
-          )}
+          <RestrictionNotice />
+          <fieldset aria-label="Datos del material" className="contents" disabled={restricted}>
+            {/* Step 1: File */}
+            {step === 1 && (
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Archivo *</label>
+                <label className={styles.dropzone}>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.pptx,.xls,.txt,.md,.jpg,.png,.webp"
+                    className={styles.fileInput}
+                    onChange={handleFileChange}
+                  />
+                  <Upload size={28} className={styles.dropzoneIcon} />
+                  <span className={styles.dropzoneTitle}>Arrastrá tu archivo o hacé clic</span>
+                  <span className={styles.dropzoneHint}>
+                    PDF, DOC, DOCX, PPTX, XLS, TXT, MD, JPG, PNG, WEBP · máx. 25MB
+                  </span>
+                </label>
+                {fileError && <span className={styles.fieldError}>{fileError}</span>}
+              </div>
+            )}
 
-          {/* Step 2: Data */}
-          {step === 2 && (
-            <>
-              {file && (
-                <div className={styles.fileSelected}>
-                  <div className={styles.fileSelectedIcon}>
-                    <FileUp size={22} />
+            {/* Step 2: Data */}
+            {step === 2 && (
+              <>
+                {file && (
+                  <div className={styles.fileSelected}>
+                    <div className={styles.fileSelectedIcon}>
+                      <FileUp size={22} />
+                    </div>
+                    <div className={styles.fileSelectedInfo}>
+                      <span className={styles.fileSelectedName}>{file.name}</span>
+                      <span className={styles.fileSelectedSize}>{formatFileSize(file.size)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.fileRemoveBtn}
+                      onClick={clearFile}
+                      aria-label="Quitar archivo"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                  <div className={styles.fileSelectedInfo}>
-                    <span className={styles.fileSelectedName}>{file.name}</span>
-                    <span className={styles.fileSelectedSize}>{formatFileSize(file.size)}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.fileRemoveBtn}
-                    onClick={clearFile}
-                    aria-label="Quitar archivo"
+                )}
+
+                <Input
+                  label="Título *"
+                  placeholder="Ej: Apuntes de Cálculo I - Primer parcial"
+                  error={errors.title?.message}
+                  {...register('title')}
+                />
+
+                <div className={styles.field}>
+                  <label htmlFor="material-description" className={styles.fieldLabel}>
+                    Descripción
+                  </label>
+                  <textarea
+                    id="material-description"
+                    className={styles.textarea}
+                    placeholder="Describe el contenido del material, temas que cubre, etc."
+                    {...register('description')}
+                  />
+                  {errors.description && (
+                    <span className={styles.fieldError}>{errors.description.message}</span>
+                  )}
+                </div>
+
+                <div className={styles.field}>
+                  <label htmlFor="material-subject" className={styles.fieldLabel}>
+                    Materia *
+                  </label>
+                  <select
+                    id="material-subject"
+                    className={styles.select}
+                    defaultValue=""
+                    {...register('subjectId')}
                   >
-                    <X size={18} />
-                  </button>
-                </div>
-              )}
-
-              <Input
-                label="Título *"
-                placeholder="Ej: Apuntes de Cálculo I - Primer parcial"
-                error={errors.title?.message}
-                {...register('title')}
-              />
-
-              <div className={styles.field}>
-                <label htmlFor="material-description" className={styles.fieldLabel}>
-                  Descripción
-                </label>
-                <textarea
-                  id="material-description"
-                  className={styles.textarea}
-                  placeholder="Describe el contenido del material, temas que cubre, etc."
-                  {...register('description')}
-                />
-                {errors.description && (
-                  <span className={styles.fieldError}>{errors.description.message}</span>
-                )}
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="material-subject" className={styles.fieldLabel}>
-                  Materia *
-                </label>
-                <select
-                  id="material-subject"
-                  className={styles.select}
-                  defaultValue=""
-                  {...register('subjectId')}
-                >
-                  <option value="" disabled>
-                    Selecciona una materia
-                  </option>
-                  {subjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name}
+                    <option value="" disabled>
+                      Selecciona una materia
                     </option>
-                  ))}
-                </select>
-                {errors.subjectId && (
-                  <span className={styles.fieldError}>{errors.subjectId.message}</span>
-                )}
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="material-resource-type" className={styles.fieldLabel}>
-                  Tipo de recurso *
-                </label>
-                <select
-                  id="material-resource-type"
-                  className={styles.select}
-                  defaultValue=""
-                  {...register('resourceType')}
-                >
-                  <option value="" disabled>
-                    Elegí el tipo de recurso
-                  </option>
-                  {RESOURCE_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {resourceTypeLabel(type)}
-                    </option>
-                  ))}
-                </select>
-                {errors.resourceType && (
-                  <span className={styles.fieldError}>{errors.resourceType.message}</span>
-                )}
-              </div>
-
-              {refusal ? (
-                <div className={styles.fieldError} role="alert">
-                  {refusal.message}{' '}
-                  {refusal.existingId ? (
-                    <Link href={`/materiales/${refusal.existingId}`}>Ver el que ya está</Link>
-                  ) : null}
+                    {subjects.map((subject) => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.subjectId && (
+                    <span className={styles.fieldError}>{errors.subjectId.message}</span>
+                  )}
                 </div>
-              ) : null}
 
-              <div className={styles.formActions}>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  isLoading={isSubmitting}
-                  leftIcon={<Upload size={18} />}
-                >
-                  Publicar material
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="lg"
-                  onClick={() => setStep(1)}
-                  disabled={isSubmitting}
-                >
-                  Volver
-                </Button>
-              </div>
-            </>
-          )}
+                <div className={styles.field}>
+                  <label htmlFor="material-resource-type" className={styles.fieldLabel}>
+                    Tipo de recurso *
+                  </label>
+                  <select
+                    id="material-resource-type"
+                    className={styles.select}
+                    defaultValue=""
+                    {...register('resourceType')}
+                  >
+                    <option value="" disabled>
+                      Elegí el tipo de recurso
+                    </option>
+                    {RESOURCE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {resourceTypeLabel(type)}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.resourceType && (
+                    <span className={styles.fieldError}>{errors.resourceType.message}</span>
+                  )}
+                </div>
+
+                {refusal ? (
+                  <div className={styles.fieldError} role="alert">
+                    {refusal.message}{' '}
+                    {refusal.existingId ? (
+                      <Link href={`/materiales/${refusal.existingId}`}>Ver el que ya está</Link>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className={styles.formActions}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    isLoading={isSubmitting}
+                    leftIcon={<Upload size={18} />}
+                  >
+                    Publicar material
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => setStep(1)}
+                    disabled={isSubmitting}
+                  >
+                    Volver
+                  </Button>
+                </div>
+              </>
+            )}
+          </fieldset>
         </form>
       </div>
     </div>
