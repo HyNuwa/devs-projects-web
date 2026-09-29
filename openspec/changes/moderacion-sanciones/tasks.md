@@ -52,7 +52,7 @@
   - events are written
 
   Verify with Vitest service tests.
-- [ ] 6.3 Expose `GET /moderation/appeals`, `GET /moderation/appeals/:id` and `POST /moderation/appeals/:id/answer`, filtered by `canReview`, with «Autor oculto» for anonymous content. Also expose the author's appeals in `GET /me/submissions` and `GET /me/sanctions`. Verify with Vitest e2e tests: a moderator never sees appeals of their own decisions or of suspensiones, and the appellant never sees the reviewer.
+- [x] 6.3 Expose `GET /moderation/appeals`, `GET /moderation/appeals/:id` and `POST /moderation/appeals/:id/answer`, filtered by `canReview`, with «Autor oculto» for anonymous content. Also expose the author's appeals in `GET /me/submissions` and `GET /me/sanctions`. Verify with Vitest e2e tests: a moderator never sees appeals of their own decisions or of suspensiones, and the appellant never sees the reviewer.
 
 ## 7. Queue, users and summary
 

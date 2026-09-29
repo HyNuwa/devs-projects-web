@@ -10,6 +10,8 @@ import { HistoryService } from './history.service';
 import { ModerationCoreModule } from './moderation-core.module';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
+import { AppealsQueryService } from './appeals-query.service';
+import { AppealsController } from './appeals.controller';
 import { AppealsService } from './appeals.service';
 import { MeSanctionsController } from './me-sanctions.controller';
 import { SanctionsController } from './sanctions.controller';
@@ -28,6 +30,7 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     SanctionsController,
     MeSanctionsController,
     SuspensionAppealController,
+    AppealsController,
   ],
   providers: [
     ReportsService,
@@ -37,6 +40,7 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     SanctionsService,
     SuspensionProposalsService,
     AppealsService,
+    AppealsQueryService,
     SuspensionAppealLimiter,
   ],
 })

@@ -10,6 +10,7 @@ describe('SubmissionsService.list', () => {
     material: { findMany: jest.fn() },
     courseReview: { findMany: jest.fn() },
     examExperience: { findMany: jest.fn() },
+    moderationCase: { findMany: jest.fn().mockResolvedValue([]) },
   };
   const subject = { id: 'sub-1', code: 'ED-01', name: 'Estructura de Datos' };
 

@@ -10,7 +10,7 @@ type Account = {
   mutedUntil: Date | null;
 };
 
-const noticeSelect = {
+export const noticeSelect = {
   id: true,
   type: true,
   reason: true,
@@ -20,7 +20,7 @@ const noticeSelect = {
 } as const;
 
 /** How a sanción is shown to its account: never who applied it. */
-function describe(
+export function describeSanction(
   sanction: {
     id: string;
     type: string;
@@ -95,7 +95,7 @@ export async function accountNotices(
   ]);
 
   return {
-    restriction: active ? describe(active, now) : null,
-    unseenWarning: warning ? describe(warning, now) : null,
+    restriction: active ? describeSanction(active, now) : null,
+    unseenWarning: warning ? describeSanction(warning, now) : null,
   };
 }

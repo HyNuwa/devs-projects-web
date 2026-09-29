@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsString,
@@ -27,6 +28,20 @@ export class FileAppealDto {
   @IsString()
   @MaxLength(1000)
   explanation: string;
+}
+
+export class AnswerAppealDto {
+  @ApiProperty({ description: 'true acepta la apelación; false la rechaza' })
+  @IsBoolean()
+  accept: boolean;
+
+  @ApiProperty({
+    maxLength: 1000,
+    description: 'Respuesta final, con su razón',
+  })
+  @IsString()
+  @MaxLength(1000)
+  answer: string;
 }
 
 export class SuspensionAppealDto {
