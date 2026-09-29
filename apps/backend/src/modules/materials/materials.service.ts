@@ -351,6 +351,31 @@ export class MaterialsService {
     return updated;
   }
 
+  /**
+   * Uploads the staged file of a material approved in revisión previa to its final
+   * storage and returns the published file fields. The caller writes them.
+   */
+  async publishStagedFile(id: string) {
+    const material = await this.prisma.material.findUnique({
+      where: { id },
+      select: { stagedFilePath: true, fileType: true },
+    });
+    if (!material?.stagedFilePath) {
+      throw new ConflictException(
+        'El material pendiente no conserva un archivo para publicar',
+      );
+    }
+    const published = await this.storage.publish(material.stagedFilePath, {
+      fileType: material.fileType,
+    });
+    return {
+      fileUrl: published.fileUrl,
+      driveFileId: published.driveFileId,
+      drivePreviewUrl: published.drivePreviewUrl,
+      driveDownloadUrl: published.driveDownloadUrl,
+    };
+  }
+
   private async assertUploadLimit(userId: string, now = new Date()) {
     const since = new Date(now.getTime() - UPLOAD_WINDOW_MS);
     const recent = await this.prisma.material.count({

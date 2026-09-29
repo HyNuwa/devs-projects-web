@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Role } from '../auth/dto/auth-response.dto';
 import { CasesController } from './cases.controller';
+import { HistoryController } from './history.controller';
 
 function contextFor(
   handler: (...args: never[]) => unknown,
@@ -21,7 +22,7 @@ function contextFor(
 describe('CasesController authorization', () => {
   const guard = new RolesGuard(new Reflector());
 
-  it.each(['queue', 'detail', 'file'] as const)(
+  it.each(['queue', 'detail', 'file', 'decide', 'revealAuthor'] as const)(
     'restricts %s to moderators, admins and superadmins',
     (method) => {
       const handler = CasesController.prototype[method] as (
@@ -39,4 +40,34 @@ describe('CasesController authorization', () => {
       );
     },
   );
+});
+
+describe('HistoryController authorization', () => {
+  const guard = new RolesGuard(new Reflector());
+  const handler = Object.getOwnPropertyDescriptor(
+    HistoryController.prototype,
+    'list',
+  )!.value as (...args: never[]) => unknown;
+  const context = (role?: Role) =>
+    ({
+      getHandler: () => handler,
+      getClass: () => HistoryController,
+      switchToHttp: () => ({
+        getRequest: () => (role ? { user: { role } } : {}),
+      }),
+    }) as unknown as ExecutionContext;
+
+  it('is only for moderators, admins and superadmins', () => {
+    expect(guard.canActivate(context(Role.MODERATOR))).toBe(true);
+    expect(() => guard.canActivate(context(Role.USER))).toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('offers no way to edit or delete records', () => {
+    const methods = Object.getOwnPropertyNames(
+      HistoryController.prototype,
+    ).filter((name) => name !== 'constructor');
+    expect(methods).toEqual(['list']);
+  });
 });

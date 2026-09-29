@@ -1,8 +1,10 @@
 import {
+  Body,
   Controller,
   Get,
   NotFoundException,
   Param,
+  Post,
   ParseUUIDPipe,
   Request,
   Res,
@@ -16,6 +18,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Role } from '../auth/dto/auth-response.dto';
 import { CasesService } from './cases.service';
+import { DecisionsService } from './decisions.service';
+import { CaseDecisionDto } from './dto/case-decision.dto';
+import { RevealAuthorDto } from './dto/reveal-author.dto';
+import { HistoryService } from './history.service';
 
 @ApiTags('Moderation')
 @ApiBearerAuth()
@@ -23,7 +29,11 @@ import { CasesService } from './cases.service';
 @UseGuards(RolesGuard)
 @Roles(Role.MODERATOR, Role.ADMIN, Role.SUPERADMIN)
 export class CasesController {
-  constructor(private readonly cases: CasesService) {}
+  constructor(
+    private readonly cases: CasesService,
+    private readonly decisions: DecisionsService,
+    private readonly history: HistoryService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Cola de casos abiertos, agrupada y ordenada' })
@@ -52,5 +62,30 @@ export class CasesController {
       throw new NotFoundException('Archivo no encontrado en el servidor');
     }
     return res.sendFile(file.localPath);
+  }
+
+  @Post(':id/decision')
+  @ApiOperation({
+    summary:
+      'Decidir un caso: mantener, retirar, restaurar, aprobar o rechazar',
+  })
+  decide(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+    @Body() dto: CaseDecisionDto,
+  ) {
+    return this.decisions.decide(id, req.user.id, dto);
+  }
+
+  @Post(':id/reveal-author')
+  @ApiOperation({
+    summary: 'Ver el autor de una publicación anónima (queda registrado)',
+  })
+  revealAuthor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+    @Body() dto: RevealAuthorDto,
+  ) {
+    return this.history.revealAuthor(id, req.user.id, dto.reason);
   }
 }

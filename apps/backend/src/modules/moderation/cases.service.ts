@@ -181,7 +181,7 @@ export class CasesService {
     const target = caseTarget(record);
     const columns = targetColumns(target);
     const [author, history] = await Promise.all([
-      target.isAnonymous ? null : this.authorRecord(target.authorId),
+      target.isAnonymous ? null : this.authorSummary(target.authorId),
       this.prisma.moderationCase.findMany({
         where: {
           status: 'CLOSED',
@@ -276,7 +276,7 @@ export class CasesService {
     };
   }
 
-  private async authorRecord(authorId: string) {
+  async authorSummary(authorId: string) {
     const [user, publishedMaterials, removalsLast90Days] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: authorId },
