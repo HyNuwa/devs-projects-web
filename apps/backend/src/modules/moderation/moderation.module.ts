@@ -16,6 +16,8 @@ import { AppealsService } from './appeals.service';
 import { MeSanctionsController } from './me-sanctions.controller';
 import { SanctionsController } from './sanctions.controller';
 import { SanctionsService } from './sanctions.service';
+import { ModerationUsersController } from './moderation-users.controller';
+import { ModerationUsersService } from './moderation-users.service';
 import { ModerationSummaryController } from './summary.controller';
 import { SuspensionAppealController } from './suspension-appeal.controller';
 import { SuspensionAppealLimiter } from './suspension-appeal.limiter';
@@ -33,6 +35,7 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     SuspensionAppealController,
     AppealsController,
     ModerationSummaryController,
+    ModerationUsersController,
   ],
   providers: [
     ReportsService,
@@ -43,6 +46,7 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     SuspensionProposalsService,
     AppealsService,
     AppealsQueryService,
+    ModerationUsersService,
     SuspensionAppealLimiter,
   ],
 })
