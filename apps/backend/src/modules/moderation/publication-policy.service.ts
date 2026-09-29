@@ -71,7 +71,7 @@ export class PublicationPolicy {
   ) {
     const columns = targetColumns(target);
     const moderationCase = await tx.moderationCase.create({
-      data: { kind: 'PRIOR_REVIEW', ...columns },
+      data: { kind: 'PRIOR_REVIEW', ...columns, targetAuthorId: authorId },
     });
     await tx.moderationEvent.create({
       data: {

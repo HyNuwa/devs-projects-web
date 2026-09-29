@@ -31,6 +31,7 @@ describe('DecisionsService.decide', () => {
     moderationCase: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      update: jest.fn(),
       updateMany: jest.fn(),
     },
     report: { updateMany: jest.fn() },

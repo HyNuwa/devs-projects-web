@@ -176,6 +176,13 @@ export class DecisionsService {
           'El contenido cambió mientras decidías; volvé a abrir el caso',
         );
       }
+      // The retiro no longer counts for the escalera once it is undone.
+      if (restoresRetiro) {
+        await tx.moderationCase.update({
+          where: { id: moderationCase.id },
+          data: { revertedAt: now },
+        });
+      }
       if (decision === 'KEEP_VISIBLE' || decision === 'REMOVE') {
         await tx.report.updateMany({
           where: { caseId: moderationCase.id, status: 'OPEN' },

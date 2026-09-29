@@ -106,7 +106,12 @@ describe('ReportsService.file', () => {
 
     expect(result).toEqual({ status: 'RECEIVED' });
     expect(prisma.moderationCase.create).toHaveBeenCalledWith({
-      data: { kind: 'REPORTS', targetType: 'MATERIAL', materialId: 'mat-1' },
+      data: {
+        kind: 'REPORTS',
+        targetType: 'MATERIAL',
+        materialId: 'mat-1',
+        targetAuthorId: 'author-1',
+      },
     });
     expect(prisma.report.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -278,6 +283,8 @@ describe('ReportsService.file', () => {
         kind: 'REPORTS',
         targetType: 'COURSE_REVIEW',
         courseReviewId: 'rev-1',
+        // Kept server-side for the escalera; never returned to moderators.
+        targetAuthorId: 'author-2',
       },
     });
   });

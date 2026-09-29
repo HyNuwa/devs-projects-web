@@ -52,7 +52,11 @@ export class ReportsService {
           select: { id: true, highPriority: true },
         })) ??
         (await tx.moderationCase.create({
-          data: { kind: 'REPORTS', ...columns },
+          data: {
+            kind: 'REPORTS',
+            ...columns,
+            targetAuthorId: snapshot.authorId,
+          },
         }));
 
       await tx.report.create({

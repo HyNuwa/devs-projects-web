@@ -9,7 +9,7 @@
   - a second appeal of the same caso is refused
   - a second PENDING proposal is refused
   - no account has an active sanction after the migration
-- [ ] 2.2 Set `targetAuthorId` wherever casos are opened (reports and revisión previa) and `revertedAt` on restore. Verify with Vitest service tests on both paths.
+- [x] 2.2 Set `targetAuthorId` wherever casos are opened (reports and revisión previa) and `revertedAt` on restore. Verify with Vitest service tests on both paths.
 - [ ] 2.3 Extend the seed with accounts at each escalera step, one silenced account, one suspension proposal, one suspended account, and pending appeals of a retiro and of a silenciamiento. Verify that the seed runs after `migrate reset`.
 
 ## 3. Rule functions
