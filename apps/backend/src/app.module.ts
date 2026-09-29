@@ -11,6 +11,7 @@ import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { GuidesModule } from './modules/guides/guides.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MaterialsModule } from './modules/materials/materials.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
 import { ProfessorsModule } from './modules/professors/professors.module';
 import { RankingModule } from './modules/ranking/ranking.module';
 import { SubjectsModule } from './modules/subjects/subjects.module';
@@ -73,6 +74,7 @@ import { validate } from './config/env.validation';
     GuidesModule,
     MailModule,
     MaterialsModule,
+    ModerationModule,
     ProfessorsModule,
     RankingModule,
     SubjectsModule,

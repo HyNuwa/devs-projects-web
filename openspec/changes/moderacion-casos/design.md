@@ -92,6 +92,7 @@ The response tells the client which of the two happened and the reason code, so 
 New `ModerationModule` (`src/modules/moderation`):
 - `POST /reports` `{ targetType, targetId, reason, explanation? }`: any signed-in user.
 - `GET /moderation/cases?group=hidden|prior-review|reported`, `GET /moderation/cases/:id`: moderators and up. The detail includes the target preview data, reports (reporter identity never exposed; «Estudiante con buena precisión» is out of scope), the author or `{ hidden: true }`, and earlier cases for the same target.
+- `GET /moderation/cases/:id/file`: moderators and up. Serves the material's file, including the staged copy of a material waiting for revisión previa, which is not on Drive yet.
 - `POST /moderation/cases/:id/decision` `{ decision: KEEP_VISIBLE | REMOVE | RESTORE | APPROVE | REJECT, reason? }`: enforces the conflict-of-interest rule and reason requirements.
 - `POST /moderation/cases/:id/reveal-author` `{ reason }`.
 - `GET /moderation/history?action&actor&target&from&to&cursor`.

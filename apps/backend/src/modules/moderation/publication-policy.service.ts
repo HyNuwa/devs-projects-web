@@ -4,15 +4,12 @@ import type { ModerationTargetType, Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { type PriorReviewReason, priorReviewReason } from './rules';
 
-export type ModerationTarget =
-  | { type: 'MATERIAL'; id: string }
-  | { type: 'COURSE_REVIEW'; id: string }
-  | { type: 'EXAM_EXPERIENCE'; id: string };
+export type ModerationTarget = { type: ModerationTargetType; id: string };
 
 /** Foreign-key columns shared by moderation cases, reports and events. */
 export function targetColumns(target: ModerationTarget) {
   return {
-    targetType: target.type satisfies ModerationTargetType,
+    targetType: target.type,
     materialId: target.type === 'MATERIAL' ? target.id : undefined,
     courseReviewId: target.type === 'COURSE_REVIEW' ? target.id : undefined,
     examExperienceId: target.type === 'EXAM_EXPERIENCE' ? target.id : undefined,

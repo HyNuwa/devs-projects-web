@@ -21,8 +21,8 @@
 
 ## 4. Cases backend
 
-- [ ] 4.1 Implement `POST /reports` test-first: signed-in only, not own content, only visible content, once per account, joins or opens the case, and applies `hideDecision` inside a transaction (HIDDEN + `AUTO_HIDDEN` event, no points change) or marks the case high priority. Verify with the spec scenarios as service and e2e tests.
-- [ ] 4.2 Implement the case queue and detail test-first: grouping (hidden, prior review, reported), ordering (hidden first, then report count, then oldest), author or `{ hidden: true }` for anonymous entries, earlier cases, reporter identities never exposed, the lazy `AUTO_UNHIDDEN_OVERDUE` event, and moderator-only access. Verify with service and e2e specs.
+- [x] 4.1 Implement `POST /reports` test-first: signed-in only, not own content, only visible content, once per account, joins or opens the case, and applies `hideDecision` inside a transaction (HIDDEN + `AUTO_HIDDEN` event, no points change) or marks the case high priority. Verify with the spec scenarios as service and e2e tests.
+- [x] 4.2 Implement the case queue and detail test-first: grouping (hidden, prior review, reported), ordering (hidden first, then report count, then oldest), author or `{ hidden: true }` for anonymous entries, earlier cases, reporter identities never exposed, the lazy `AUTO_UNHIDDEN_OVERDUE` event, and moderator-only access. Verify with service and e2e specs.
 - [ ] 4.3 Implement `POST /moderation/cases/:id/decision` test-first:
   - KEEP_VISIBLE, REMOVE (reason required, author-facing, points reverted, aggregates exclude), RESTORE (reason required, points re-awarded), APPROVE and REJECT (reason required) for prior review
   - reports confirmed or dismissed, case closed, event written
