@@ -69,6 +69,50 @@ describe('sign-in of a suspended account (e2e)', () => {
     );
   });
 
+  it('tells a suspended account how its appeal went', async () => {
+    const student = await createUser(prisma, 'USER', { passwordHash });
+    await request(app.getHttpServer())
+      .post(`/api/v1/moderation/users/${student.id}/suspend`)
+      .set('Authorization', bearer(app, admin))
+      .send({ reason: 'Spam.', duration: 'PERMANENT' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/suspension-appeal')
+      .send({
+        email: student.email,
+        password: PASSWORD,
+        explanation: 'No fui yo.',
+      })
+      .expect(201);
+
+    const pending = await login(student.email).expect(403);
+    expect(pending.body).toEqual(
+      expect.objectContaining({
+        appealable: false,
+        appealStatus: 'PENDING',
+        appealAnswer: null,
+      }),
+    );
+
+    const appeal = await prisma.appeal.findFirstOrThrow({
+      where: { appellantId: student.id },
+    });
+    const otherAdmin = await createUser(prisma, 'ADMIN');
+    await request(app.getHttpServer())
+      .post(`/api/v1/moderation/appeals/${appeal.id}/answer`)
+      .set('Authorization', bearer(app, otherAdmin))
+      .send({ accept: false, answer: 'Las publicaciones son spam.' })
+      .expect(201);
+
+    const rejected = await login(student.email).expect(403);
+    expect(rejected.body).toEqual(
+      expect.objectContaining({
+        appealStatus: 'REJECTED',
+        appealAnswer: 'Las publicaciones son spam.',
+      }),
+    );
+  });
+
   it('keeps the generic refusal for a wrong password, revealing nothing', async () => {
     const student = await createUser(prisma, 'USER', {
       passwordHash,

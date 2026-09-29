@@ -36,3 +36,32 @@ export async function getMySanctions() {
   return (await api.get<Array<OwnSanction & { lifted: boolean; voided: boolean }>>('/me/sanctions'))
     .data;
 }
+
+/** The 403 body of a sign-in refused because of a suspensión. */
+export type SuspensionNotice = {
+  code: 'ACCOUNT_SUSPENDED';
+  message: string;
+  reason: string | null;
+  until: string | null;
+  appealable: boolean;
+  appealDeadline: string | null;
+  appealStatus: 'PENDING' | 'ACCEPTED' | 'REJECTED' | null;
+  appealAnswer: string | null;
+};
+
+export function suspensionNoticeOf(error: unknown): SuspensionNotice | null {
+  const response = (error as { response?: { status?: number; data?: { code?: string } } })
+    ?.response;
+  return response?.status === 403 && response.data?.code === 'ACCOUNT_SUSPENDED'
+    ? (response.data as SuspensionNotice)
+    : null;
+}
+
+/** «Apelar esta suspensión» from sign-in: checks the credentials, never signs in. */
+export async function appealSuspension(input: {
+  email: string;
+  password: string;
+  explanation: string;
+}) {
+  await api.post('/auth/suspension-appeal', input);
+}

@@ -28,7 +28,8 @@ export async function suspensionNotice(
       id: true,
       reason: true,
       startsAt: true,
-      appeal: { select: { id: true } },
+      // The answer, never who gave it.
+      appeal: { select: { id: true, status: true, answer: true } },
     },
   });
   const appeal = sanction
@@ -54,6 +55,8 @@ export async function suspensionNotice(
     appealable: appeal?.allowed ?? false,
     appealDeadline:
       appeal?.allowed === true ? appeal.deadline.toISOString() : null,
+    appealStatus: sanction?.appeal?.status ?? null,
+    appealAnswer: sanction?.appeal?.answer ?? null,
   };
 }
 
