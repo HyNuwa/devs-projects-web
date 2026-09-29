@@ -69,7 +69,7 @@
 - [x] 8.5 Add `useAccountRestriction`, the shell `SanctionBanner` (active sanction, and an unseen warning shown once), and the disabled state with the shared explanation on Subir material, the reseña and experiencia forms, Reportar, «Me sirvió» and resubmitting. Verify with Vitest component tests.
 - [x] 8.6 Add the suspension screen to the login page from the 403 body, with the «Apelar esta suspensión» form. The client also signs out and shows that screen on any 403 `ACCOUNT_SUSPENDED`. Verify with Vitest component tests.
 - [x] 8.7 In Mis envíos, add «Apelar» on retiros within 14 days with an appeal dialog, the appeal status and answer, and the Sanciones section. Verify with Vitest component tests.
-- [ ] 8.8 Add the sanciones and apelaciones sections to `/normas`, removing the 2a restriction. Verify with the page test.
+- [x] 8.8 Add the sanciones and apelaciones sections to `/normas`, removing the 2a restriction. Verify with the page test.
 
 ## 9. Verification
 

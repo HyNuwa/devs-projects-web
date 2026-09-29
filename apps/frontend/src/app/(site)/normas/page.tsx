@@ -27,7 +27,19 @@ const steps = [
   ],
   [
     'Si se retira, ves la razón',
-    'Te llega la razón y la fecha en Mis envíos. Los puntos de ese aporte se descuentan, y se devuelven si se restaura.',
+    'Te llega la razón y la fecha en Mis envíos, donde podés apelar. Los puntos de ese aporte se descuentan, y se devuelven si se restaura.',
+  ],
+] as const;
+
+const sanctions = [
+  ['Advertencia', 'Un aviso, en general junto con el primer retiro. No limita la cuenta.'],
+  [
+    'Silenciamiento',
+    '7 días sin publicar, editar, reportar ni marcar «Me sirvió». Podés leer, descargar y guardar.',
+  ],
+  [
+    'Suspensión',
+    '7 días, 30 días o permanente, sin poder ingresar. La confirma un admin. El spam y las cuentas falsas pueden suspenderse de entrada.',
   ],
 ] as const;
 
@@ -154,6 +166,35 @@ export default function NormasPage() {
           >
             Ver mis envíos
           </Link>
+        </p>
+      </Section>
+
+      <Section title="Sanciones">
+        <p className="leading-relaxed">
+          Si alguien incumple las normas varias veces, moderación puede sancionar su cuenta. El
+          sistema sugiere el paso según los retiros de los últimos 90 días, pero una sanción nunca
+          se aplica sola: siempre la decide una persona y lleva su razón.
+        </p>
+        <ol className="grid gap-3 sm:grid-cols-3">
+          {sanctions.map(([title, detail]) => (
+            <li className="rounded-xl border-[1.5px] border-border bg-card p-4" key={title}>
+              <h3 className="font-extrabold">{title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{detail}</p>
+            </li>
+          ))}
+        </ol>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Mientras dura una sanción la ves arriba de cada página, con la razón y hasta cuándo. Un
+          retiro que se restaura o se anula por apelación deja de contar.
+        </p>
+      </Section>
+
+      <Section title="Apelaciones">
+        <p className="leading-relaxed">
+          Podés apelar un retiro o una sanción una vez, dentro de los 14 días, desde Mis envíos (o
+          desde la pantalla de ingreso, si tu cuenta está suspendida). La revisa otra persona de
+          moderación, nunca quien decidió, y su respuesta es final: siempre lleva una razón. Si la
+          acepta, el contenido vuelve con sus puntos o la sanción se levanta.
         </p>
       </Section>
     </article>
