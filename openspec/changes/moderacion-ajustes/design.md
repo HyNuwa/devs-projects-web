@@ -35,18 +35,37 @@
 - **Alternative rejected:** keep `@nestjs/throttler` with a Redis storage package. It adds a dependency and doesn't fit «count only failed sign-ins».
 
 ### Failed sign-in counting: consume first, forgive on success
-The guard hits both `login:<emailHmac>:<ip>` and `login-ip:<ip>` before `AuthGuard('local')` runs. After a successful sign-in, the controller calls `reset` on the email+IP key and `refund` on the IP key. Net effect: only failures stay counted.
+The guard reserves the attempt on both `login:<emailHmac>:<ip>` and `login-ip:<ip>` before `AuthGuard('local')` runs, atomically per key. When the password is correct:
+- `reset` deletes the whole email+IP counter, so it goes back to zero.
+- `refund` undoes only this attempt on the IP counter. Earlier failures and the TTL are kept, and the counter never goes below zero.
+
+Net effect: only failures stay counted, and a correct password never adds to `login-ip`.
 - **Alternative rejected:** peek first and increment on failure. It is racy, because parallel guesses all pass the peek.
-- **Suspended accounts:** a 403 for a suspended account (correct password) is forgiven like a success. It is not a guess, and the 403 is already revealed today.
+- **Suspended accounts:** a 403 for a suspended account proves the password was correct, so it gets the same `reset` + `refund` as a success. It is not a guess, and the 403 is already revealed today. `validateUser` throws before the controller runs, so the forgiveness happens where the suspension is detected: the local strategy catches `ACCOUNT_SUSPENDED`, forgives, and rethrows.
+
+### Why not `@nestjs/throttler` with a custom storage
+Checked against `@nestjs/throttler` 6.5.0 (guard source and typings) before removing it. It would keep only the decorator and loop plumbing. Everything else would still be ours, and several agreed behaviors would fight its abstraction:
+- **Storage:** `ThrottlerStorage` has only `increment(key, ttl, limit, blockDuration, name)`. `reset` and `refund` for sign-in would be extra adapter methods called outside the throttler. Atomic Lua, the memory backend, fallback, transition logs and `/health` would live in that adapter, which is exactly the code written here.
+- **Coordinated counters:** `canActivate` runs named throttlers in sequence and throws at the first blocked one. The ones before it stay incremented and the ones after it are never counted. Handing back hits on keys within their limit would mean overriding `canActivate`, the guard's core.
+- **Window semantics:** exceeding a limit starts a separate `blockDuration` block. `Retry-After` counts from that moment, not from the fixed window's end, and named throttlers send `Retry-After-<name>`. Both differ from the spec.
+- **Per-route policies:** every named throttler applies to every guarded route. Seven counters across five policies would need `@SkipThrottle` for all the others on each route, or one guard subclass per policy.
+- **What it would give:** HMAC keys and per-endpoint keys fit `getTracker` and `generateKey`, but the policy table already does that in a few lines.
+
+Decision: keep `@RateLimit(policy)` + `RateLimiterService` and remove the package. The agreed behavior is not bent to reuse it.
 
 ### Declarative policies
 `@RateLimit('signup' | 'recovery' | 'login' | 'appeal' | 'communityWrite')` plus `RateLimitGuard`. A policy table maps each name to a list of `{ key(req), limit, windowMs }`:
-- **Keys:** from `req.ip` and a normalized `req.body.email`. The community-write key uses the authenticated `req.user.id`, available because the global JWT guard runs first.
-- **Order of checks:** every key of a policy is hit, then any key over its limit refuses with the longest `retryAfter`, so both counters advance together.
-- **Replaces:** `CommunityWriteThrottlerGuard` (with `ThrottlerModule`) and `SuspensionAppealLimiter`.
+- **Keys:** from `req.ip` and a normalized `req.body.email`. The community-write key is `community:<Controller.handler>:<userId>`, per account and per endpoint as `@nestjs/throttler` counted it. `req.user.id` is available because the global JWT guard runs first.
+- **Order of checks:** every key of a policy is hit, then any key over its limit refuses with the longest `retryAfter`.
+- **Refunds on refusal:** a refused request is not an attempt, so keys still within their limit get their hit back. Otherwise an email blocked on `login:<emailHmac>:<ip>` would keep using up `login-ip:<ip>`.
+- **Before validation:** guards run before the validation pipe, so invalid bodies count too, as they did with the throttler.
+- **Replaces:** `CommunityWriteThrottlerGuard` (with `ThrottlerModule`; `@nestjs/throttler` is removed) and `SuspensionAppealLimiter`.
 
 ### 429 response
-The guard sets `Retry-After = ceil(retryAfterMs / 1000)` and throws `HttpException(429)`. The body carries `error: 'TOO_MANY_REQUESTS'` and the message «Demasiados intentos. Probá de nuevo en X minutos», with X = `ceil(seconds / 60)`, minimum 1. It passes through the existing exception filter. The frontend already shows the backend `message` on these forms; tasks verify each one and fix any that swallows it.
+The guard sets `Retry-After = ceil(retryAfterMs / 1000)` and throws `HttpException(429)`. The body carries `code: 'TOO_MANY_REQUESTS'` (the filter's convention for machine-readable refusals), `retryAfter` in seconds, and the message «Demasiados intentos. Probá de nuevo en X minutos», with X = `ceil(seconds / 60)`, minimum 1 («1 minuto» in singular). It passes through the existing exception filter. The frontend already shows the backend `message` on these forms; tasks verify each one and fix any that swallows it.
+
+### Testing Redis without Redis
+`ioredis-mock` (a dev dependency) runs the Lua scripts, so the unit tests exercise the real scripts. There is no Docker in development.
 
 ### Email keys
 `emailHmac = HMAC_SHA256(RATE_LIMIT_SECRET, email.trim().toLowerCase())`, hex. In development and tests, `RATE_LIMIT_SECRET` defaults to a fixed string.
@@ -61,12 +80,16 @@ In `env.validation.ts`, when `NODE_ENV=production`, `REDIS_URL` and `RATE_LIMIT_
 
 ### TRUST_PROXY
 `configureApp` calls `app.set('trust proxy', n)` when `TRUST_PROXY` is a positive integer (hop count) and leaves it unset otherwise. `req.ip` is then the only IP source; `@Ip()` in the appeal controller is replaced by the guard's `req.ip`.
+`ConfigModule` validates the environment when `AppModule` is imported, so an e2e test cannot turn `TRUST_PROXY` on afterwards. `configureApp` is covered by a unit test, and the e2e test sets `trust proxy` on the app directly.
 
 ### Health
 A `HealthController` at `GET /api/v1/health`, `@Public()` and exempt from `ActiveAccountGuard`, returns `{ status, rateLimiter }` from the limiter's current mode.
 
 ### History reason masking
-In `history.service.ts`, the anonymity decision today uses the event's content id. Sanction events from a caso may carry only `caseId`, so anonymity also resolves through the caso's content. For a MODERATOR viewer, an event whose action is in {WARNED, MUTED, SUSPENDED, SUSPENSION_PROPOSED} and whose caso or content is anonymous returns `reason: null` and no `targetUser`. REMOVED and other actions keep their reason. ADMIN and SUPERADMIN are unchanged.
+In `history.service.ts`, the anonymity decision today uses the event's content id. Sanction events from a caso may carry only `caseId`, so anonymity also resolves through the caso's content. This is not a new rule: it completes the existing «autor oculto» rule (no identifiable account or author-as-actor) for events that lack a direct content id. The only new masking is the reason:
+- **For a MODERATOR viewer:** an event whose action is in {WARNED, MUTED, SUSPENDED, SUSPENSION_PROPOSED} and whose caso or content is anonymous also returns `reason: null`.
+- **Other actions**, REMOVED included, keep their reason.
+- **ADMIN and SUPERADMIN** see everything.
 
 ### Read-only appeals
 `AppealsQueryService.list` keeps the rows `canReview` accepts, plus, for MODERATOR, rows refused only because of the appellant's role. For those it calls `canReview` again with the appellant role treated as USER, and still excludes the viewer's own decisions and suspensions. Each summary gains `canAnswer`.
@@ -82,7 +105,7 @@ In `sanctions.service.ts`, a check runs for warn, mute and propose when there is
 - **[Shared IPs (university networks) hit `login-ip` and `signup` together]** → Limits are sized for that: 20 failures per 15 minutes, 3 sign-ups per hour. They can be tuned in the policy table.
 - **[A misconfigured `TRUST_PROXY` lets clients spoof their IP]** → Off by default, documented as `1` behind Nginx only; an e2e test covers the spoofing scenario.
 - **[Recovery limits enable email-based lockout of a victim's recovery]** → Capped at one hour; the victim can still sign in.
-- **[Read-only appeals still disclose that an appeal exists]** → Intended: that disclosure is the same for any appellant, so it reveals nothing about role.
+- **[The «La resuelve un admin» mark itself tells a moderator that the appellant outranks them]** → On an anonymous retiro, that says its author is staff: the same fact the missing appeal revealed, now explicit. The UI does not state the reason. The remedy (for example, sending every appeal of anonymous content to admins) changes who answers appeals, so it is left to a product decision.
 
 ## Migration Plan
 

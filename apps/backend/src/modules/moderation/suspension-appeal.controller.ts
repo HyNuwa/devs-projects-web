@@ -2,18 +2,18 @@ import {
   Body,
   ConflictException,
   Controller,
-  Ip,
   Post,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import * as bcrypt from 'bcrypt';
 
 import { Public } from '../../common/decorators/public.decorator';
+import { RateLimit, RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppealsService } from './appeals.service';
 import { SuspensionAppealDto } from './dto/appeal.dto';
-import { SuspensionAppealLimiter } from './suspension-appeal.limiter';
 import { suspensionNotice } from './suspension-notice';
 
 /**
@@ -26,14 +26,14 @@ export class SuspensionAppealController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly appeals: AppealsService,
-    private readonly limiter: SuspensionAppealLimiter,
   ) {}
 
   @Public()
+  @RateLimit('appeal')
+  @UseGuards(RateLimitGuard)
   @Post('suspension-appeal')
   @ApiOperation({ summary: 'Apelar una suspensión desde el ingreso' })
-  async appeal(@Body() dto: SuspensionAppealDto, @Ip() ip: string) {
-    this.limiter.hit(ip ?? 'unknown');
+  async appeal(@Body() dto: SuspensionAppealDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       select: {

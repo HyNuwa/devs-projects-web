@@ -17,6 +17,8 @@ type SeedUsers = { adminId: string; moderatorId: string };
  * - `ofertas.fi`: a new spam-looking account with a pending suspension proposal.
  * - `fede.b`: suspended for 30 days.
  * - `sofi.c`: a retired material under appeal.
+ * - `vale.mod`: a moderator appealing the retiro of their anonymous reseña, which
+ *   the demo moderator sees read-only («La resuelve un admin»).
  *
  * Decisions that the demo moderator should review are made by the admin, since
  * nobody reviews an appeal of their own decision.
@@ -260,6 +262,47 @@ export async function seedSanctions(
         'No es el mismo: el otro resume la unidad 1 (conjuntos) y este la unidad 2 (lógica proposicional).',
       decidedById: users.adminId,
       createdAt: at(-1),
+    },
+  });
+
+  // vale.mod: a moderator whose anonymous reseña was retired, appealing it. The
+  // demo moderator sees it read-only, «La resuelve un admin» (moderacion-ajustes).
+  const vale = await account('vale.mod', 400, { role: Role.MODERATOR });
+  const review = await prisma.courseReview.create({
+    data: {
+      userId: vale.id,
+      subjectId: subjectB,
+      recommendation: 1,
+      isAnonymous: true,
+      comment: 'La cátedra no responde consultas y los parciales son injustos.',
+      publicationStatus: 'REMOVED',
+      statusChangedAt: at(-4),
+      authorFacingReason: 'Ataque a docentes sin datos concretos.',
+    },
+  });
+  const valeRetiro = await prisma.moderationCase.create({
+    data: {
+      kind: 'REPORTS',
+      targetType: 'COURSE_REVIEW',
+      courseReviewId: review.id,
+      targetAuthorId: vale.id,
+      status: 'CLOSED',
+      openedAt: at(-5),
+      closedAt: at(-4),
+      decision: 'REMOVE',
+      decidedById: users.adminId,
+      decisionReason: 'Ataque a docentes sin datos concretos.',
+    },
+  });
+  await prisma.appeal.create({
+    data: {
+      appellantId: vale.id,
+      kind: 'RETIRO',
+      caseId: valeRetiro.id,
+      explanation:
+        'Es mi experiencia de la cursada: las consultas quedaron sin respuesta todo el cuatrimestre.',
+      decidedById: users.adminId,
+      createdAt: at(-2),
     },
   });
 }

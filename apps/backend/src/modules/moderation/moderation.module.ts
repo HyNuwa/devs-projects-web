@@ -20,7 +20,6 @@ import { ModerationUsersController } from './moderation-users.controller';
 import { ModerationUsersService } from './moderation-users.service';
 import { ModerationSummaryController } from './summary.controller';
 import { SuspensionAppealController } from './suspension-appeal.controller';
-import { SuspensionAppealLimiter } from './suspension-appeal.limiter';
 import { SuspensionProposalsService } from './suspension-proposals.service';
 
 /** Reportes, casos de moderación, decisions and history (openspec moderation/cases). */
@@ -47,7 +46,6 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
     AppealsService,
     AppealsQueryService,
     ModerationUsersService,
-    SuspensionAppealLimiter,
   ],
 })
 export class ModerationModule {}

@@ -15,7 +15,7 @@ These close before change 3, so 2b and this change merge together.
   - **Sign-up:** 3 per hour per IP.
   - **Recovery:** 3 per hour per email and 3 per hour per IP, whether or not the account exists.
   - **Appeal from sign-in:** 5 per email + IP every 15 minutes.
-  - **Community writes:** 6 per minute per account, as today.
+  - **Community writes:** 6 per minute per account on each action, as today, now also on filing reportes.
 - **Storage:**
   - Redis when `REDIS_URL` is set; memory otherwise (development and tests).
   - **BREAKING (deployment):** production refuses to start without `REDIS_URL` and `RATE_LIMIT_SECRET`.

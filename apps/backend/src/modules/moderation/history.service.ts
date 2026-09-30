@@ -21,6 +21,14 @@ import { loadTarget } from './targets';
 const PAGE_SIZE = 50;
 const REVEAL_REASON_MAX = 300;
 const ADMIN_ROLES: ReadonlySet<Role> = new Set(['ADMIN', 'SUPERADMIN']);
+// Their reason is also in the account's file: matching it would link the
+// account to an anonymous caso (README_MODERACION §9).
+const SANCTION_ACTIONS: ReadonlySet<ModerationEventAction> = new Set([
+  'WARNED',
+  'MUTED',
+  'SUSPENDED',
+  'SUSPENSION_PROPOSED',
+]);
 
 export type HistoryFilters = {
   action?: ModerationEventAction;
@@ -100,7 +108,9 @@ export class HistoryService {
       const contentId =
         event.materialId ?? event.courseReviewId ?? event.examExperienceId;
       const hideAuthor =
-        !isAdmin && contentId !== null && anonymous.has(contentId);
+        !isAdmin &&
+        ((contentId !== null && anonymous.contents.has(contentId)) ||
+          (event.caseId !== null && anonymous.cases.has(event.caseId)));
       // The author acting on their own anonymous entry (a resubmission) must
       // stay hidden too, or the actor column would reveal them.
       const actorIsHiddenAuthor =
@@ -127,7 +137,10 @@ export class HistoryService {
             ? { username: users.get(event.targetUserId) ?? null }
             : null,
         caseId: event.caseId,
-        reason: event.reason,
+        reason:
+          hideAuthor && SANCTION_ACTIONS.has(event.action)
+            ? null
+            : event.reason,
       };
     });
     // Filtering by that actor would link them to the entry just the same.
@@ -188,19 +201,34 @@ export class HistoryService {
     return author;
   }
 
+  /**
+   * Anonymous content among the events, and casos about anonymous content for
+   * events that carry only their caso.
+   */
   private async anonymousTargets(
     events: Array<{
+      caseId: string | null;
+      materialId: string | null;
       courseReviewId: string | null;
       examExperienceId: string | null;
     }>,
   ) {
+    const caseIds = events
+      .filter(
+        (event) =>
+          event.caseId !== null &&
+          !event.materialId &&
+          !event.courseReviewId &&
+          !event.examExperienceId,
+      )
+      .map((event) => event.caseId as string);
     const reviewIds = events
       .map((event) => event.courseReviewId)
       .filter((id): id is string => id !== null);
     const examIds = events
       .map((event) => event.examExperienceId)
       .filter((id): id is string => id !== null);
-    const [reviews, exams] = await Promise.all([
+    const [reviews, exams, cases] = await Promise.all([
       this.prisma.courseReview.findMany({
         where: { id: { in: reviewIds }, isAnonymous: true },
         select: { id: true },
@@ -209,7 +237,22 @@ export class HistoryService {
         where: { id: { in: examIds }, isAnonymous: true },
         select: { id: true },
       }),
+      caseIds.length === 0
+        ? []
+        : this.prisma.moderationCase.findMany({
+            where: {
+              id: { in: caseIds },
+              OR: [
+                { courseReview: { isAnonymous: true } },
+                { examExperience: { isAnonymous: true } },
+              ],
+            },
+            select: { id: true },
+          }),
     ]);
-    return new Set([...reviews, ...exams].map((entry) => entry.id));
+    return {
+      contents: new Set([...reviews, ...exams].map((entry) => entry.id)),
+      cases: new Set(cases.map((entry) => entry.id)),
+    };
   }
 }

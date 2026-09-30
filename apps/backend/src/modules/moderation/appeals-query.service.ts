@@ -58,8 +58,10 @@ const TARGET_LABEL = {
 } as const;
 
 /**
- * The Apelaciones tab (openspec moderation/appeals): only appeals the viewer may
- * answer, and anonymous appellants stay «Autor oculto».
+ * The Apelaciones tab (openspec moderation/appeals): appeals the viewer may
+ * answer, plus, read-only, those a moderator cannot answer only because the
+ * appellant is staff (hiding them would reveal that). Anonymous appellants stay
+ * «Autor oculto».
  */
 @Injectable()
 export class AppealsQueryService {
@@ -72,11 +74,16 @@ export class AppealsQueryService {
       take: 200,
       select: appealSelect,
     });
-    const eligible = rows.filter((row) => reviewable(viewer, row));
+    const visible = rows
+      .map((row) => ({ row, access: access(viewer, row) }))
+      .filter(({ access }) => access !== null);
     const deciders = await this.usernames(
-      eligible.map((row) => row.decidedById),
+      visible.map(({ row }) => row.decidedById),
     );
-    return eligible.map((row) => summary(row, deciders));
+    return visible.map(({ row, access }) => ({
+      ...summary(row, deciders),
+      canAnswer: access === 'answer',
+    }));
   }
 
   async detail(viewer: Actor, appealId: string) {
@@ -85,11 +92,19 @@ export class AppealsQueryService {
       select: appealSelect,
     });
     if (!row) throw new NotFoundException('Apelación no encontrada');
-    const allowed = reviewable(viewer, row);
+    const allowed = access(viewer, row);
     if (!allowed) {
       throw new ForbiddenException('No podés ver esta apelación');
     }
     const deciders = await this.usernames([row.decidedById]);
+    if (allowed === 'read') {
+      // «La resuelve un admin»: what was decided, not what the appellant wrote.
+      return {
+        ...summary(row, deciders),
+        status: row.status,
+        canAnswer: false,
+      };
+    }
     const anonymous = isAnonymousRetiro(row);
     return {
       ...summary(row, deciders),
@@ -97,7 +112,7 @@ export class AppealsQueryService {
       explanation: row.explanation,
       answer: row.answer,
       answeredAt: row.answeredAt,
-      canAnswer: row.status === 'PENDING',
+      canAnswer: row.status === 'PENDING' && allowed === 'answer',
       content:
         row.kind === 'RETIRO' && row.case
           ? {
@@ -123,12 +138,25 @@ export class AppealsQueryService {
   }
 }
 
-function reviewable(viewer: Actor, row: AppealRow) {
-  return canReview(viewer, {
+function access(viewer: Actor, row: AppealRow): 'answer' | 'read' | null {
+  const appeal = {
     appellant: row.appellant,
     decidedById: row.decidedById,
     suspension: row.sanction?.type === 'SUSPENSION',
-  });
+  };
+  if (canReview(viewer, appeal)) return 'answer';
+  // Refused only for the appellant's role: the same check as if a USER appealed.
+  // Own decisions and suspensiones stay out, as for any appellant.
+  if (
+    viewer.role === 'MODERATOR' &&
+    canReview(viewer, {
+      ...appeal,
+      appellant: { ...row.appellant, role: 'USER' },
+    })
+  ) {
+    return 'read';
+  }
+  return null;
 }
 
 function isAnonymousRetiro(row: AppealRow) {

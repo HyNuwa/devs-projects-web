@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { Prisma } from '../../generated/prisma';
+import { assertNoReportConflict } from './conflict-of-interest';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PointService } from '../ranking/point.service';
 import { retireAllPublished } from './bulk-retiro';
@@ -65,6 +66,9 @@ export class SuspensionProposalsService {
         throw new ForbiddenException(
           'No podés proponer una suspensión para esa cuenta',
         );
+      }
+      if (!options.caseId) {
+        await assertNoReportConflict(tx, actor.id, userId);
       }
       if (isSuspended(target, new Date())) {
         throw new ConflictException('La cuenta ya está suspendida');

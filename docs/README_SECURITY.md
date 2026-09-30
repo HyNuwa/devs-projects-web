@@ -25,7 +25,7 @@ Estado: ✅ hecho · 🟡 parcial · ⬜ pendiente.
 | SQL injection | ✅ | Prisma (consultas parametrizadas) |
 | Helmet | ✅ | `config/http-security.ts`, configuración por defecto |
 | CORS con lista de orígenes | ✅ | `CORS_ORIGIN` separado por comas, `credentials: true` |
-| Rate limit de escrituras de la comunidad | ✅ | 6 por minuto por usuario (`COMMUNITY_WRITE_RATE_LIMIT`, `…_TTL_MS`) en reseñas, experiencias y reportes. Pasa al mismo limitador en Redis que auth (cambio `moderacion-ajustes`) |
+| Rate limit de escrituras de la comunidad | ✅ | 6 por minuto por usuario y por acción (`COMMUNITY_WRITE_RATE_LIMIT`, `…_TTL_MS`): publicar y editar reseñas y experiencias, y reportar. Usa el mismo limitador en Redis que auth |
 | Rate limit general y de subidas | ⬜ | Sin límite en `POST /materials` ni en lecturas |
 | CSP propia | ⬜ | Solo la que trae helmet por defecto; revisar para el frontend |
 | Swagger fuera de producción | ✅ | `/docs` solo si `NODE_ENV !== production` |

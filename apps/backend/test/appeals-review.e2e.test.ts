@@ -132,6 +132,55 @@ describe('reviewing appeals (e2e)', () => {
     expect(JSON.stringify(body)).not.toContain(author.id);
   });
 
+  it('lists a staff appellant’s appeal read-only for other moderators', async () => {
+    const staffAuthor = await createUser(prisma, 'MODERATOR');
+    const { appeal } = await appealedAnonymousRetiro(staffAuthor);
+
+    const list = await as(reviewer).get('/moderation/appeals').expect(200);
+    const item = (list.body as Array<AppealItem & { canAnswer: boolean }>).find(
+      (entry) => entry.id === appeal.id,
+    );
+    expect(item).toEqual(
+      expect.objectContaining({
+        canAnswer: false,
+        appellant: { hidden: true, username: null },
+      }),
+    );
+    expect(JSON.stringify(list.body)).not.toContain(staffAuthor.id);
+
+    const { body } = await as(reviewer)
+      .get(`/moderation/appeals/${appeal.id}`)
+      .expect(200);
+    expect(body.canAnswer).toBe(false);
+    expect(body).not.toHaveProperty('explanation');
+    expect(body.content ?? null).toBeNull();
+
+    await as(reviewer)
+      .post(`/moderation/appeals/${appeal.id}/answer`, {
+        accept: true,
+        answer: 'Se restituye la reseña.',
+      })
+      .expect(403);
+
+    const forAdmin = await as(admin).get('/moderation/appeals').expect(200);
+    expect(
+      (forAdmin.body as Array<{ id: string; canAnswer: boolean }>).find(
+        (entry) => entry.id === appeal.id,
+      )?.canAnswer,
+    ).toBe(true);
+  });
+
+  it('marks the appeals a moderator may answer', async () => {
+    const author = await createUser(prisma);
+    const { appeal } = await appealedAnonymousRetiro(author);
+    const list = await as(reviewer).get('/moderation/appeals').expect(200);
+    expect(
+      (list.body as Array<{ id: string; canAnswer: boolean }>).find(
+        (entry) => entry.id === appeal.id,
+      )?.canAnswer,
+    ).toBe(true);
+  });
+
   it('keeps appeals of suspensiones for admins', async () => {
     const student = await createUser(prisma);
     await as(admin)

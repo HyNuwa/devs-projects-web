@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import type { User } from '@/types/auth';
 import type { ExamExperience, SubjectHub } from '@/types/subject';
+import { TOO_MANY_REQUESTS_MESSAGE, tooManyRequests } from '@/test/too-many-requests';
 import { ExamForm } from './ExamForm';
 
 const navigation = vi.hoisted(() => ({
@@ -169,6 +170,18 @@ describe('ExamForm', () => {
     ).toBeInTheDocument();
     expect(oral).toBeChecked();
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('shows how long to wait when publishing too often', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.post).mockRejectedValue(tooManyRequests());
+
+    render(<ExamForm />);
+    await completeRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: 'Publicar experiencia' }));
+
+    expect(await screen.findByText(TOO_MANY_REQUESTS_MESSAGE)).toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
   });
 
   it('submits repeated final attempts as separate creates', async () => {

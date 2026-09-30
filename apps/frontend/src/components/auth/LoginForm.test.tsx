@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '@/stores/authStore';
+import { TOO_MANY_REQUESTS_MESSAGE, tooManyRequests } from '@/test/too-many-requests';
 import { LoginForm } from './LoginForm';
 
 const navigation = vi.hoisted(() => ({
@@ -55,6 +56,19 @@ describe('LoginForm', () => {
     expect(navigation.push).toHaveBeenCalledWith(
       '/materiales/ingenieria-informatica?archivo=material-2',
     );
+  });
+
+  it('shows how long to wait after too many attempts', async () => {
+    login.mockRejectedValue(tooManyRequests());
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    await user.type(screen.getByLabelText('Email'), 'estudiante@example.com');
+    await user.type(screen.getByLabelText('Contraseña'), 'segura');
+    await user.click(screen.getByRole('button', { name: 'Iniciar Sesión' }));
+
+    expect(await screen.findByText(TOO_MANY_REQUESTS_MESSAGE)).toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
   });
 
   describe('a suspended account', () => {
@@ -111,6 +125,19 @@ describe('LoginForm', () => {
         }),
       );
       expect(await screen.findByText(/Recibimos tu apelación/)).toBeInTheDocument();
+    });
+
+    it('is told how long to wait when appealing too many times', async () => {
+      login.mockRejectedValue(suspended());
+      appeals.appeal.mockRejectedValue(tooManyRequests());
+      const user = await signIn();
+
+      await screen.findByRole('heading', { name: 'Tu cuenta está suspendida' });
+      await user.type(screen.getByLabelText('Por qué apelás'), 'No publiqué nada de eso.');
+      await user.click(screen.getByRole('button', { name: 'Apelar esta suspensión' }));
+
+      expect(await screen.findByText(TOO_MANY_REQUESTS_MESSAGE)).toBeInTheDocument();
+      expect(screen.queryByText(/Recibimos tu apelación/)).not.toBeInTheDocument();
     });
 
     it('sees how its appeal went instead of the form', async () => {

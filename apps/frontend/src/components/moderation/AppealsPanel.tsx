@@ -152,6 +152,11 @@ export function AppealsPanel() {
                       <span className="text-xs text-muted-foreground">
                         Apelada {ago(appeal.createdAt)}
                       </span>
+                      {appeal.canAnswer ? null : (
+                        <span className="text-xs font-bold text-muted-foreground">
+                          La resuelve un admin
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))}
@@ -246,14 +251,16 @@ function AppealView({ appeal, onAnswered }: { appeal: AppealDetail; onAnswered: 
         </p>
       </section>
 
-      <section className="grid gap-1 text-sm">
-        <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
-          Lo que dice quien apela
-        </h3>
-        <blockquote className="rounded-xl border-[1.5px] border-line p-4 leading-relaxed">
-          «{appeal.explanation}»
-        </blockquote>
-      </section>
+      {appeal.explanation === undefined ? null : (
+        <section className="grid gap-1 text-sm">
+          <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            Lo que dice quien apela
+          </h3>
+          <blockquote className="rounded-xl border-[1.5px] border-line p-4 leading-relaxed">
+            «{appeal.explanation}»
+          </blockquote>
+        </section>
+      )}
 
       {appeal.content ? (
         <section className="grid gap-2 text-sm">
@@ -272,6 +279,13 @@ function AppealView({ appeal, onAnswered }: { appeal: AppealDetail; onAnswered: 
             Abrir el caso
           </Link>
         </section>
+      ) : null}
+
+      {!appeal.canAnswer && appeal.status === 'PENDING' ? (
+        <p className="rounded-xl bg-muted p-4 text-sm">
+          <span className="font-bold">La resuelve un admin</span>. Desde tu cuenta no se puede
+          responder.
+        </p>
       ) : null}
 
       {appeal.canAnswer ? (

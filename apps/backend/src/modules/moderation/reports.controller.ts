@@ -1,6 +1,14 @@
-import { Body, Controller, HttpCode, Post, Request } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { RateLimit, RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import { CreateReportDto } from './dto/create-report.dto';
 import { ReportsService } from './reports.service';
 import { RequiresActiveAccount } from './active-account.guard';
@@ -13,6 +21,8 @@ export class ReportsController {
 
   @Post()
   @RequiresActiveAccount()
+  @RateLimit('communityWrite')
+  @UseGuards(RateLimitGuard)
   @HttpCode(202)
   @ApiOperation({ summary: 'Reportar una publicación visible' })
   file(@Request() req: { user: { id: string } }, @Body() dto: CreateReportDto) {

@@ -30,7 +30,7 @@ An exceeded limit SHALL be answered with status 429, a `Retry-After` header in s
 - **THEN** the fourth request is refused with 429 exactly as for an existing account
 
 ### Requirement: Community write limit
-Publishing or editing reseñas and experiencias, and filing reportes, SHALL be limited to 6 per account per minute by the same limiter, answering 429 with `Retry-After` and the same message.
+Publishing a reseña, editing a reseña, publishing an experiencia, editing an experiencia and filing a reporte SHALL each be limited to 6 requests per account per minute, counted by the same limiter, including requests refused as invalid. An exceeded limit SHALL be answered with 429, `Retry-After` and the same message.
 
 #### Scenario: Burst of reportes
 - **WHEN** an account files a seventh reporte within a minute

@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import type { User } from '@/types/auth';
 import type { CourseReview, SubjectHub } from '@/types/subject';
+import { TOO_MANY_REQUESTS_MESSAGE, tooManyRequests } from '@/test/too-many-requests';
 import { ReviewForm } from './ReviewForm';
 
 const navigation = vi.hoisted(() => ({
@@ -158,6 +159,18 @@ describe('ReviewForm', () => {
     expect(screen.getByText(/al menos 30 caracteres/i)).toBeInTheDocument();
     expect(fourStars).toBeChecked();
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('shows how long to wait when publishing too often', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.post).mockRejectedValue(tooManyRequests());
+
+    render(<ReviewForm />);
+    await completeRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: 'Publicar reseña' }));
+
+    expect(await screen.findByText(TOO_MANY_REQUESTS_MESSAGE)).toBeInTheDocument();
+    expect(navigation.push).not.toHaveBeenCalled();
   });
 
   it('requires an explicit confirmation before publishing a probable duplicate', async () => {

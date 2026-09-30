@@ -25,6 +25,10 @@ const cookieParser =
  */
 export function configureApp(app: NestExpressApplication) {
   const configService = app.get(ConfigService);
+  // Behind Nginx (TRUST_PROXY=1) `req.ip` is the client from X-Forwarded-For;
+  // unset, forwarded headers are ignored so clients cannot pick their own IP.
+  const trustProxy = Number(configService.get('TRUST_PROXY', 0));
+  if (trustProxy > 0) app.set('trust proxy', trustProxy);
   app.setGlobalPrefix(configService.get<string>('app.apiPrefix', 'api/v1'));
   configureGlobalExceptionFilters(app);
   app.useGlobalPipes(

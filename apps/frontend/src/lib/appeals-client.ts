@@ -18,16 +18,18 @@ export type AppealSummary = {
   createdAt: string;
   appellant: { hidden: boolean; username: string | null };
   decidedBy: { username: string | null };
+  /** False for an appeal only an admin can answer: listed read-only. */
+  canAnswer: boolean;
   decision: AppealDecision;
 };
 
+/** Read-only appeals come without what the appellant wrote or the content. */
 export type AppealDetail = AppealSummary & {
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
-  explanation: string;
-  answer: string | null;
-  answeredAt: string | null;
-  canAnswer: boolean;
-  content: {
+  explanation?: string;
+  answer?: string | null;
+  answeredAt?: string | null;
+  content?: {
     caseId: string;
     type: string;
     label: string | null;
@@ -36,7 +38,7 @@ export type AppealDetail = AppealSummary & {
   } | null;
 };
 
-/** Pending appeals the signed-in moderator may answer. */
+/** Pending appeals the signed-in moderator may answer, and read-only ones for admins. */
 export async function getAppeals() {
   return (await api.get<AppealSummary[]>('/moderation/appeals')).data;
 }

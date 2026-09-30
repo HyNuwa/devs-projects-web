@@ -12,6 +12,7 @@ import type {
   Role,
   SanctionType,
 } from '../../generated/prisma';
+import { assertNoReportConflict } from './conflict-of-interest';
 import { PrismaService } from '../../prisma/prisma.service';
 import { canSanction, type SanctionAction } from './sanction-rules';
 
@@ -150,6 +151,9 @@ export class SanctionsService {
           reportedInCase: source?.reportedByActor ?? false,
         }),
       );
+      if (!source && type !== 'SUSPENSION') {
+        await assertNoReportConflict(tx, actor.id, userId, now);
+      }
       if (type === 'MUTE' && isFuture(target.mutedUntil, now)) {
         throw new ConflictException('La cuenta ya está silenciada');
       }

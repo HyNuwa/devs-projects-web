@@ -14,6 +14,7 @@ vi.mock('@/stores/authStore', () => ({
     selector({ user: mocks.user, isLoading: mocks.isLoading }),
 }));
 
+import { TOO_MANY_REQUESTS_MESSAGE, tooManyRequests } from '@/test/too-many-requests';
 import { ReportDialog } from './ReportDialog';
 
 afterEach(cleanup);
@@ -66,6 +67,20 @@ describe('ReportDialog', () => {
       }),
     );
     expect(onReported).toHaveBeenCalledWith('Gracias. Moderación va a revisarlo.');
+  });
+
+  it('shows how long to wait after too many reportes', async () => {
+    mocks.post.mockRejectedValue(tooManyRequests());
+    const user = userEvent.setup();
+    const onReported = vi.fn();
+    renderDialog(onReported);
+
+    await user.click(screen.getByRole('button', { name: 'Reportar' }));
+    await user.selectOptions(screen.getByLabelText('Motivo'), 'DATOS_PERSONALES');
+    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }));
+
+    expect(await screen.findByText(TOO_MANY_REQUESTS_MESSAGE)).toBeInTheDocument();
+    expect(onReported).not.toHaveBeenCalled();
   });
 
   it('requires an explanation for «Otro motivo»', async () => {

@@ -35,6 +35,7 @@ const summary: AppealSummary = {
   createdAt: '2026-09-29T12:00:00.000Z',
   appellant: { hidden: true, username: null },
   decidedBy: { username: 'caro.m' },
+  canAnswer: true,
   decision: {
     kind: 'RETIRO',
     label: 'Reseña de cursada',
@@ -49,7 +50,6 @@ const detail: AppealDetail = {
   explanation: 'Criticaba cómo se dictaba la materia, no a la docente.',
   answer: null,
   answeredAt: null,
-  canAnswer: true,
   content: {
     caseId: 'case-1',
     type: 'COURSE_REVIEW',
@@ -143,6 +143,25 @@ describe('AppealsPanel', () => {
         answer: 'Hay insultos explícitos.',
       }),
     );
+  });
+
+  it('shows an appeal only an admin can answer, read-only', async () => {
+    mocks.list.mockResolvedValue([{ ...summary, canAnswer: false }]);
+    mocks.detail.mockResolvedValue({
+      ...summary,
+      canAnswer: false,
+      status: 'PENDING',
+    } satisfies AppealDetail);
+    render(<AppealsPanel />);
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Apelación · «Reseña de cursada»' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('La resuelve un admin')).toHaveLength(2);
+    expect(screen.getByText('Autor oculto')).toBeInTheDocument();
+    expect(screen.queryByText('Lo que dice quien apela')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Tu respuesta')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aceptar y restaurar' })).not.toBeInTheDocument();
   });
 
   it('says when there is nothing to resolve', async () => {
