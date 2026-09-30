@@ -91,8 +91,14 @@ In `history.service.ts`, the anonymity decision today uses the event's content i
 - **Other actions**, REMOVED included, keep their reason.
 - **ADMIN and SUPERADMIN** see everything.
 
+### Anonymous-content appeals go to admins
+An appeal of a retiro of an anonymous reseña or experiencia is answered only by ADMIN or SUPERADMIN, whatever the appellant's role. `canReview` gains an `anonymousContent` flag that raises the minimum rank to ADMIN, like `suspension`. It is enforced where `canReview` is called: the Apelaciones list and detail, answering, and the pending-appeals count.
+- **Why:** if a moderator could answer a student's anonymous-content appeal but only see a staff member's read-only, the mark itself would reveal that the anonymous author is staff. Sending all of them to admins makes every such appeal look the same to a moderator (product decision on 2026-09-30, accepting the extra admin workload).
+- **Scope:** retiro appeals only. A sanción appeal already shows the appellant's username, and a sanción from an anonymous caso is shown «por un caso sobre una publicación anónima», without linking the caso, so moderators keep answering those.
+- **Alternative rejected:** keeping moderators on anonymous-content appeals and documenting the leak as an accepted risk.
+
 ### Read-only appeals
-`AppealsQueryService.list` keeps the rows `canReview` accepts, plus, for MODERATOR, rows refused only because of the appellant's role. For those it calls `canReview` again with the appellant role treated as USER, and still excludes the viewer's own decisions and suspensions. Each summary gains `canAnswer`.
+`AppealsQueryService.list` keeps the rows `canReview` accepts, plus, for MODERATOR, rows refused only because of the appellant's role or because they are about anonymous content. For those it calls `canReview` again with the appellant role treated as USER and the content treated as signed, and still excludes the viewer's own decisions and suspensions. Each summary gains `canAnswer`.
 - **For these rows:** `detail` returns the summary without the explanation, answer controls or content comment, and `answer` still goes through `canReview`, so it stays 403.
 - **Frontend:** renders «La resuelve un admin» instead of the controls.
 
@@ -105,7 +111,7 @@ In `sanctions.service.ts`, a check runs for warn, mute and propose when there is
 - **[Shared IPs (university networks) hit `login-ip` and `signup` together]** → Limits are sized for that: 20 failures per 15 minutes, 3 sign-ups per hour. They can be tuned in the policy table.
 - **[A misconfigured `TRUST_PROXY` lets clients spoof their IP]** → Off by default, documented as `1` behind Nginx only; an e2e test covers the spoofing scenario.
 - **[Recovery limits enable email-based lockout of a victim's recovery]** → Capped at one hour; the victim can still sign in.
-- **[The «La resuelve un admin» mark itself tells a moderator that the appellant outranks them]** → On an anonymous retiro, that says its author is staff: the same fact the missing appeal revealed, now explicit. The UI does not state the reason. The remedy (for example, sending every appeal of anonymous content to admins) changes who answers appeals, so it is left to a product decision.
+- **[Admins answer every appeal about anonymous content]** → More admin workload, accepted because anonymity is the stronger constraint. The Apelaciones count for moderators still includes those read-only items.
 
 ## Migration Plan
 

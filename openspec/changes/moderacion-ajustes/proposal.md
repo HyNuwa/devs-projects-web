@@ -24,7 +24,7 @@ These close before change 3, so 2b and this change merge together.
 - **`TRUST_PROXY`:** configures which client IP is trusted behind a proxy; off by default.
 - **`GET /health`:** public, reports `status` (`ok` | `degraded`) and which limiter backend is active.
 - **History:** a MODERATOR no longer sees the reason of sanction events (advertencia, silenciamiento, suspensión, proposal) that came from an anonymous caso. An ADMIN still does.
-- **Apelaciones:** appeals a MODERATOR cannot answer only because of the appellant's role appear read-only as «La resuelve un admin».
+- **Apelaciones:** appeals of retiros of anonymous content are answered only by admins, whatever the appellant's role. A MODERATOR sees them, and appeals they cannot answer only because of the appellant's role, read-only as «La resuelve un admin».
 - **Conflict of interest from Usuarios:** a moderator cannot sanction or propose a suspensión for an account whose non-anonymous content they reported in the last 90 days, with a neutral message. Anonymous content never blocks, because the refusal would reveal authorship.
 - **Accepted risk, documented:** the paso sugerido and retiro count in Usuarios include anonymous retiros.
 - **Out of scope:**
