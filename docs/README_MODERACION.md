@@ -167,7 +167,7 @@ Las acciones bloqueadas se muestran deshabilitadas con la explicación («Estás
 - Se puede apelar **una vez por decisión**, dentro de los **14 días**, desde *Mis envíos* o desde el aviso de la sanción.
 - Una cuenta suspendida apela desde la pantalla de ingreso: al rechazar el ingreso se muestran la razón, hasta cuándo y el formulario «Apelar esta suspensión», que exige las credenciales correctas y sirve solo para esa suspensión.
 - La apelación incluye una explicación de quien apela (obligatoria).
-- La revisa **otro** moderador, nunca quien tomó la decisión. Una apelación sobre una suspensión la revisa un `ADMIN`. Si no hay nadie habilitado (por ejemplo, un solo moderador), espera a un `ADMIN`.
+- La revisa **otro** moderador, nunca quien tomó la decisión. Una apelación sobre una suspensión la revisa un `ADMIN`. Las apelaciones que un `MODERATOR` no puede resolver solo por su rol (por ejemplo, de otro moderador) le aparecen en solo lectura con «La resuelve un admin», para que su ausencia no revele quién apeló. Si no hay nadie habilitado (por ejemplo, un solo moderador), espera a un `ADMIN`.
 - La respuesta es **final** y siempre lleva una razón escrita.
 - Apelar no revela al autor de una publicación anónima: quien revisa ve «Autor oculto» y, si lo necesita, usa **Ver autor** con un motivo, que queda registrado (§9).
 - Si se acepta un **retiro**: el contenido se restaura, los puntos se reotorgan, el retiro deja de contar para la escalera y se anula la advertencia que se haya dado junto con ese retiro.
@@ -183,7 +183,7 @@ Las acciones bloqueadas se muestran deshabilitadas con la explicación («Estás
 | `ADMIN` | Todas las facultades | Todo lo anterior, suspender, verificar organizadores, asignar moderadores y su facultad |
 | `SUPERADMIN` | Toda la plataforma | Todo lo anterior, gestionar admins y la configuración (umbrales de §4.4, límites de §3.2) |
 
-**Quién sanciona a quién:** nadie se sanciona a sí mismo. Un `MODERATOR` no sanciona a otro `MODERATOR`, `ADMIN` ni `SUPERADMIN`: a un moderador lo sanciona un `ADMIN`, y a un `ADMIN` solo un `SUPERADMIN`. Tampoco se sanciona a una cuenta desde un caso que uno reportó.
+**Quién sanciona a quién:** nadie se sanciona a sí mismo. Un `MODERATOR` no sanciona a otro `MODERATOR`, `ADMIN` ni `SUPERADMIN`: a un moderador lo sanciona un `ADMIN`, y a un `ADMIN` solo un `SUPERADMIN`. Tampoco se sanciona a una cuenta desde un caso que uno reportó, ni desde *Usuarios* a una cuenta cuyo contenido **no anónimo** uno reportó en los últimos 90 días («Reportaste contenido de esta cuenta: lo resuelve otra persona de moderación»). Con contenido anónimo no se bloquea: el bloqueo mismo revelaría la autoría.
 
 Hoy DevsProject solo tiene la FI UNJu, así que en la práctica todos los moderadores cubren la misma facultad. La asignación por facultad evita rehacer el modelo cuando se sumen otras.
 
@@ -194,6 +194,11 @@ Hoy DevsProject solo tiene la FI UNJu, así que en la práctica todos los modera
 Moderación puede saber quién escribió una publicación anónima, pero **no lo ve por defecto**. En el caso aparece «Autor oculto» y un botón **Ver autor**, que pide un motivo (por ejemplo, «evaluar reincidencia para una sanción») y **queda registrado** en el historial. Así el anonimato también se protege frente a moderadores que son compañeros de cursada.
 
 Las sanciones sobre una publicación anónima se aplican a la cuenta del autor sin revelar públicamente quién es.
+
+**Riesgos aceptados y reglas para no reabrir canales** (cambio `moderacion-ajustes`):
+
+- El **paso sugerido** y los **retiros en 90 días** de la ficha de un usuario incluyen los retiros de publicaciones anónimas: si no, el anonimato protegería al que reincide. Quien acaba de retirar una publicación anónima podría notar qué cuenta cambió; se acepta, porque la lista es alfabética y **Ver autor** sigue siendo la única relación directa y queda registrada.
+- En el **historial**, un `MODERATOR` no ve la **razón** de las sanciones (advertencia, silenciamiento, suspensión, propuesta de suspensión) que vienen de un caso anónimo; un `ADMIN` sí. Así no se puede cruzar el texto con la ficha del usuario, que sí muestra la razón. La razón del retiro sigue visible: la ficha no lista retiros anónimos con los que compararla. Cualquier vista nueva que muestre sanciones debe respetar esta regla.
 
 ## 10. Organizadores verificados (Eventos)
 

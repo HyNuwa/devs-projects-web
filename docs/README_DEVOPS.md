@@ -22,10 +22,15 @@ Nginx (:80/:443, TLS con Let's Encrypt)
  ├── frontend   Next.js    (:3000)
  └── backend    NestJS     (:3001, prefijo /api/v1)
        ├── postgres        (:5432, volumen pg_data)
+       ├── redis           (:6379, solo red interna; límites de frecuencia)
        └── uploads         (volumen, si no se usa Drive)
 ```
 
-Sin Redis: sesiones, tokens y límites de frecuencia viven en Postgres o en memoria. Si más adelante hace falta un límite compartido entre varias instancias del backend, se evalúa en ese momento.
+**Redis** guarda solo los contadores de los límites de frecuencia (login, registro, recuperación, apelación desde el ingreso y escrituras de la comunidad); consume muy poca memoria. Sesiones y tokens siguen en Postgres. Ver `README_SECURITY.md`, «Límites de frecuencia».
+
+Variables obligatorias en producción, además de las actuales: `REDIS_URL`, `RATE_LIMIT_SECRET` y `TRUST_PROXY=1` (la API corre detrás de Nginx). La API no arranca sin las dos primeras.
+
+**Monitoreo**: `GET /api/v1/health` es público y responde `{ status: 'ok' | 'degraded', rateLimiter: 'redis' | 'memory' | 'memory-fallback' }`. `degraded` significa que Redis no responde y los límites corren en memoria de cada instancia.
 
 - Servidor: 2 vCPU, 4 GB de RAM (8 GB recomendados), 40 GB de SSD, Ubuntu LTS.
 - Endurecimiento: usuario sin root, SSH solo con clave, UFW con los puertos 22, 80 y 443, swap de 2 GB y logrotate.
