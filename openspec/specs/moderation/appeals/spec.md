@@ -40,7 +40,7 @@ When sign-in is refused because of a suspensión, the account SHALL be able to a
 - **THEN** the appeal is refused without saying whether the account exists or is suspended
 
 ### Requirement: Someone else reviews the appeal
-An appeal SHALL be reviewed by a moderator other than the one who made the appealed decision, never by the appellant, and only by someone whose role is above the appellant's (a moderator's appeal goes to an admin, as with sanciones). Appeals of a suspensión SHALL be reviewed by an ADMIN or SUPERADMIN. When no moderator other than the decider is eligible, the appeal SHALL wait for an ADMIN. The reviewer of an appeal about anonymous content SHALL see «Autor oculto» and SHALL need «Ver autor», with a recorded reason, to see who it is.
+An appeal SHALL be reviewed by someone other than the one who made the appealed decision, never by the appellant, and only by someone whose role is above the appellant's (a moderator's appeal goes to an admin, as with sanciones). Appeals of a suspensión SHALL be reviewed by an ADMIN or SUPERADMIN. Appeals of a retiro of anonymous content SHALL be reviewed by an ADMIN or SUPERADMIN, whatever the appellant's role: if moderators answered those appeals from regular users but not from staff, which ones a moderator could answer would reveal that an anonymous author is staff. When no moderator other than the decider is eligible, the appeal SHALL wait for an ADMIN. The reviewer of an appeal about anonymous content SHALL see «Autor oculto» and SHALL need «Ver autor», with a recorded reason, to see who it is.
 
 #### Scenario: Moderator opens an appeal of their own retiro
 - **WHEN** the moderator who retired a material opens the appeal against that retiro
@@ -51,8 +51,8 @@ An appeal SHALL be reviewed by a moderator other than the one who made the appea
 - **THEN** only an ADMIN or SUPERADMIN can answer it
 
 #### Scenario: Appeal of an anonymous reseña's retiro
-- **WHEN** a moderator reviews the appeal of a retired anonymous reseña
-- **THEN** the appellant is shown as «Autor oculto»
+- **WHEN** a student appeals the retiro of their anonymous reseña
+- **THEN** only an ADMIN or SUPERADMIN can answer it, and they see the appellant as «Autor oculto»
 
 ### Requirement: The answer is final and undoes accepted decisions
 The reviewer SHALL accept or reject an appeal with a written reason of at most 1000 characters, and the answer SHALL be final. The effects of accepting SHALL depend on what was appealed:
@@ -78,12 +78,23 @@ Rejecting SHALL keep the decision unchanged. The appellant SHALL see the answer 
 - **THEN** the answer is refused
 
 ### Requirement: Apelaciones tab
-The moderation panel SHALL offer an Apelaciones tab. It SHALL list pending appeals that the viewer is allowed to resolve, oldest first, with how long ago each was filed. The viewer's own decisions SHALL NOT be listed; for MODERATOR, appeals of suspensiones SHALL NOT be listed either. Each appeal SHALL show:
+The moderation panel SHALL offer an Apelaciones tab. It SHALL list pending appeals, oldest first, with how long ago each was filed:
+- Appeals the viewer may resolve, with the answer controls.
+- For MODERATOR, appeals of retiros of anonymous content, as read-only items marked «La resuelve un admin», without answer controls. Every such appeal SHALL look the same whatever the appellant's role, so neither the mark nor its absence says anything about who wrote the content.
+- For MODERATOR, appeals of signed content they cannot resolve only because of the appellant's role, as the same read-only items.
+
+The viewer's own decisions SHALL NOT be listed, and for MODERATOR appeals of suspensiones SHALL NOT be listed either. Each resolvable appeal SHALL show:
 - the appealed decision, its reason, date and decider
 - what the appellant wrote
 - the content (with «Autor oculto» for anonymous content)
 - the answer controls with the required reason and a note that the answer is final
 
+A read-only appeal SHALL show only the appealed decision, its reason, date and decider, and the appellant as the list shows them, with «La resuelve un admin» and no reason why.
+
 #### Scenario: Moderator opens Apelaciones
 - **WHEN** a moderator opens Apelaciones
-- **THEN** it lists only appeals of decisions made by other people, excluding suspensiones, and each shows the decision, the appellant's explanation and the answer controls
+- **THEN** it lists appeals of decisions made by other people, excluding suspensiones, and each resolvable one shows the decision, the appellant's explanation and the answer controls
+
+#### Scenario: Appeals about anonymous content
+- **WHEN** a student and a MODERATOR each appeal the retiro of their anonymous reseña, and another moderator opens Apelaciones
+- **THEN** both are listed identically as «La resuelve un admin» with «Autor oculto», neither can be answered from that account, and an ADMIN can answer both

@@ -38,11 +38,11 @@
 
 ## 7. Anonymous-content appeals go to admins (decision after 6.2)
 
-- [ ] 7.1 Add an `anonymousContent` flag to `canReview` (minimum ADMIN) and pass it from every caller for retiro appeals of anonymous reseñas and experiencias: the Apelaciones list and detail, answering, and the pending-appeals count. Verify with Vitest unit tests on `canReview` and e2e tests: a student's and a moderator's anonymous-content appeals are listed identically read-only for another moderator, answering either is 403 for a moderator, and an ADMIN answers both
-- [ ] 7.2 Update existing tests that expect a moderator to answer an anonymous-content appeal (`appeals-review.e2e.test.ts`, `appeals-answer.test.ts`, the frontend `AppealsPanel` fixtures if needed), plus the demo data (`seed-sanctions.ts`) if a demo step relies on it; verify backend Vitest (unit, e2e), Jest and frontend tests pass
-- [ ] 7.3 Browser check as `moderator`: both anonymous-content appeals read-only and identical; as `admin`: both answerable. Update `docs/validation/evidence/moderacion-ajustes/`, then stop the servers
+- [x] 7.1 Add an `anonymousContent` flag to `canReview` (minimum ADMIN) and pass it from every caller for retiro appeals of anonymous reseñas and experiencias: the Apelaciones list and detail, answering, and the pending-appeals count. Verify with Vitest unit tests on `canReview` and e2e tests: a student's and a moderator's anonymous-content appeals are listed identically read-only for another moderator, answering either is 403 for a moderator, and an ADMIN answers both
+- [x] 7.2 Update existing tests that expect a moderator to answer an anonymous-content appeal (`appeals-review.e2e.test.ts`, `appeals-answer.test.ts`, the frontend `AppealsPanel` fixtures if needed), plus the demo data (`seed-sanctions.ts`) if a demo step relies on it; verify backend Vitest (unit, e2e), Jest and frontend tests pass
+- [x] 7.3 Browser check as `moderator`: both anonymous-content appeals read-only and identical; as `admin`: both answerable. Update `docs/validation/evidence/moderacion-ajustes/`, then stop the servers
 
 ## 8. Review and archive
 
-- [ ] 8.1 Fresh code review by an Opus subagent (security focus: rate-limit bypass and races, Redis/memory fallback, reset/refund, IP spoofing and `TRUST_PROXY`, account enumeration, anonymity inference, authorization regressions, spec/implementation mismatches). Fix what it finds and rerun the relevant tests
-- [ ] 8.2 Rerun the full verification (6.1) and `graphify update .`; verify all pass
+- [x] 8.1 Fresh code review by an Opus subagent (security focus: rate-limit bypass and races, Redis/memory fallback, reset/refund, IP spoofing and `TRUST_PROXY`, account enumeration, anonymity inference, authorization regressions, spec/implementation mismatches). Fix what it finds and rerun the relevant tests
+- [x] 8.2 Rerun the full verification (6.1) and `graphify update .`; verify all pass

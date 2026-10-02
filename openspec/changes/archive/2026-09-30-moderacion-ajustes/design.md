@@ -27,7 +27,7 @@
 
 ### Limiter core
 `RateLimiterService.hit(key, limit, windowMs)` returns `{ count, retryAfterMs }`, and the request is allowed while `count <= limit`.
-- **Redis backend:** one Lua script. It runs `INCR`; when the result is 1 it runs `PEXPIRE`; then it runs `PTTL`, and returns count and TTL. The script is atomic, so concurrent requests cannot exceed the limit, and a key never loses its expiry.
+- **Redis backend:** one Lua script. It runs `INCR` and `PTTL`; when the key has no expiry (new, or left without one) it runs `PEXPIRE`; it returns count and TTL. Starting the window on «no expiry» rather than on «count is 1» keeps the window of a key refunded to zero, as the memory backend does. The script is atomic, so concurrent requests cannot exceed the limit, and a key never loses its expiry.
 - **Memory backend:** a `Map<key, { count, resetAt }>` with the same rules, and a lazy sweep of expired entries on access so the map cannot grow without bound.
 - **Two more operations:**
   - `reset(key)`: deletes a counter.
@@ -55,10 +55,11 @@ Decision: keep `@RateLimit(policy)` + `RateLimiterService` and remove the packag
 
 ### Declarative policies
 `@RateLimit('signup' | 'recovery' | 'login' | 'appeal' | 'communityWrite')` plus `RateLimitGuard`. A policy table maps each name to a list of `{ key(req), limit, windowMs }`:
-- **Keys:** from `req.ip` and a normalized `req.body.email`. The community-write key is `community:<Controller.handler>:<userId>`, per account and per endpoint as `@nestjs/throttler` counted it. `req.user.id` is available because the global JWT guard runs first.
+- **Keys:** from `req.ip` and a normalized `req.body.email`. An IPv4-mapped address is keyed as its IPv4, and an IPv6 address by its /64 (found in the final review: a subscriber holds a whole /64 and could rotate addresses in it). The community-write key is `community:<Controller.handler>:<userId>`, per account and per endpoint as `@nestjs/throttler` counted it. `req.user.id` is available because the global JWT guard runs first.
 - **Order of checks:** every key of a policy is hit, then any key over its limit refuses with the longest `retryAfter`.
 - **Refunds on refusal:** a refused request is not an attempt, so keys still within their limit get their hit back. Otherwise an email blocked on `login:<emailHmac>:<ip>` would keep using up `login-ip:<ip>`.
 - **Before validation:** guards run before the validation pipe, so invalid bodies count too, as they did with the throttler.
+- **Appeal from sign-in:** it answers 401 for a wrong password and 409 for a right one on an active account, so it is a password check too. Besides its own `appeal:<emailHmac>:<ip>` key it hits `login-ip:<ip>`, and a correct password refunds that hit, as a sign-in does. Found in the final review: with only the email+IP key it was a guessing channel without a per-IP cap.
 - **Replaces:** `CommunityWriteThrottlerGuard` (with `ThrottlerModule`; `@nestjs/throttler` is removed) and `SuspensionAppealLimiter`.
 
 ### 429 response
@@ -73,10 +74,11 @@ The guard sets `Retry-After = ceil(retryAfterMs / 1000)` and throws `HttpExcepti
 ### Backend selection and fallback
 `RATE_LIMIT_BACKEND` is derived, not configured: `redis` if `REDIS_URL` is set, `memory` otherwise.
 - **The client:** ioredis with `enableOfflineQueue: false` and a short `commandTimeout`, so a dead Redis fails fast instead of queuing.
-- **On a Redis error:** the service switches to its memory backend, logs `error` once, and stays in `memory-fallback`. ioredis keeps reconnecting, and its `ready` event switches back and logs `info` once. The memory counters are dropped at recovery; Redis is the source of truth again.
+- **On a Redis error:** the service switches to its memory backend, logs `error` once, and stays in `memory-fallback`. ioredis keeps reconnecting, and its `ready` event switches back and logs `info` once. A command can also fail on a live connection (a timeout), where no `ready` comes, so while degraded and connected the service retries Redis every 5 seconds and recovers on the first success. The memory counters are dropped at recovery; Redis is the source of truth again.
+- **Accepted:** around a transition, one request's operations can land on different backends (a hit in Redis and its refund in memory). The effect is one extra or one missing count for one window.
 
 ### Boot validation
-In `env.validation.ts`, when `NODE_ENV=production`, `REDIS_URL` and `RATE_LIMIT_SECRET` are required, and startup fails with the variable name.
+In `env.validation.ts`, when `NODE_ENV=production`, `REDIS_URL` and `RATE_LIMIT_SECRET` are required, and startup fails with the variable name. The secret must have at least 32 characters and differ from the development default.
 
 ### TRUST_PROXY
 `configureApp` calls `app.set('trust proxy', n)` when `TRUST_PROXY` is a positive integer (hop count) and leaves it unset otherwise. `req.ip` is then the only IP source; `@Ip()` in the appeal controller is replaced by the guard's `req.ip`.
@@ -88,6 +90,7 @@ A `HealthController` at `GET /api/v1/health`, `@Public()` and exempt from `Activ
 ### History reason masking
 In `history.service.ts`, the anonymity decision today uses the event's content id. Sanction events from a caso may carry only `caseId`, so anonymity also resolves through the caso's content. This is not a new rule: it completes the existing «autor oculto» rule (no identifiable account or author-as-actor) for events that lack a direct content id. The only new masking is the reason:
 - **For a MODERATOR viewer:** an event whose action is in {WARNED, MUTED, SUSPENDED, SUSPENSION_PROPOSED} and whose caso or content is anonymous also returns `reason: null`.
+- **Found in the final review:** the reason alone was not enough. The event's time, caso and content still matched the account's file and the Apelaciones tab. So for a MODERATOR, an event about the account (the sanción actions, SANCTION_LIFTED, SUSPENSION_REJECTED, and APPEAL_* of a sanción) from an anonymous caso loses its reason, `caseId` and target, and a `contentId` filter drops it. APPEAL_* of a retiro of anonymous content keeps its content but not its reason, as the read-only appeal hides the explanation.
 - **Other actions**, REMOVED included, keep their reason.
 - **ADMIN and SUPERADMIN** see everything.
 
@@ -103,7 +106,7 @@ An appeal of a retiro of an anonymous reseña or experiencia is answered only by
 - **Frontend:** renders «La resuelve un admin» instead of the controls.
 
 ### Conflict of interest from Usuarios
-In `sanctions.service.ts`, a check runs for warn, mute and propose when there is no `caseId`. It looks for a `Report` with `reporterId = actor`, `createdAt >= now - COI_WINDOW_DAYS` (constant 90) and `case.targetAuthorId = target`, whose content is a material, a non-anonymous reseña or a non-anonymous experiencia. If one exists, the request is refused with 403 `CONFLICT_OF_INTEREST` and the neutral message. From a caso, the existing reporter check keeps applying.
+In `sanctions.service.ts`, a check runs for warn, mute and propose, with or without `caseId`: the final review found that naming any caso about the account skipped it. Only the advertencia of a caso's decision («Advertir también», `decidingCase`) is exempt; refusing it for another report could reveal that the anonymous author is the account the moderator reported. It looks for a `Report` with `reporterId = actor`, `createdAt >= now - COI_WINDOW_DAYS` (constant 90) and `case.targetAuthorId = target`, whose content is a material, a non-anonymous reseña or a non-anonymous experiencia. If one exists, the request is refused with 403 `CONFLICT_OF_INTEREST` and the neutral message. From a caso, the existing reporter check keeps applying.
 
 ## Risks / Trade-offs
 
