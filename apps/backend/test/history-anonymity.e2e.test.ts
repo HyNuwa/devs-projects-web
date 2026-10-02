@@ -16,6 +16,7 @@ type HistoryItem = {
   action: string;
   caseId: string | null;
   reason: string | null;
+  target: { id: string | null } | null;
   targetUser: { username: string | null } | null;
 };
 
@@ -70,14 +71,24 @@ describe('history of sanctions from anonymous casos (e2e)', () => {
       .send({ reason, caseId })
       .expect(201);
 
-  async function history(viewer: E2eUser, caseId: string) {
+  async function list(viewer: E2eUser, query: Record<string, string>) {
     const response = await request(app.getHttpServer())
       .get('/api/v1/moderation/history')
-      .query({ action: 'WARNED' })
+      .query(query)
       .set('Authorization', bearer(app, viewer))
       .expect(200);
-    const items = response.body.items as HistoryItem[];
-    const item = items.find((entry) => entry.caseId === caseId);
+    return response.body.items as HistoryItem[];
+  }
+
+  /** The history row of the `action` event about `caseId`, as `viewer` sees it. */
+  async function history(viewer: E2eUser, caseId: string, action = 'WARNED') {
+    const event = await prisma.moderationEvent.findFirstOrThrow({
+      where: { caseId, action: action as 'WARNED' },
+      orderBy: { createdAt: 'desc' },
+    });
+    const item = (await list(viewer, { action })).find(
+      (entry) => entry.id === event.id,
+    );
     expect(item).toBeDefined();
     return item!;
   }
@@ -94,6 +105,83 @@ describe('history of sanctions from anonymous casos (e2e)', () => {
     const seenByAdmin = await history(admin, caso.id);
     expect(seenByAdmin.reason).toBe('Advertencia por un insulto anónimo.');
     expect(seenByAdmin.targetUser).not.toBeNull();
+  });
+
+  it('does not link a sanción to the anonymous caso or its content for moderators', async () => {
+    const author = await createUser(prisma);
+    const caso = await reviewCase(author, true);
+    await warn(author, caso.id, 'Advertencia por otro insulto anónimo.');
+
+    const seenByModerator = await history(otherModerator, caso.id);
+    expect(seenByModerator.caseId).toBeNull();
+    expect(seenByModerator.target).toBeNull();
+    const byContent = await list(otherModerator, {
+      contentId: caso.courseReviewId!,
+    });
+    expect(byContent.some((entry) => entry.id === seenByModerator.id)).toBe(
+      false,
+    );
+
+    const seenByAdmin = await history(admin, caso.id);
+    expect(seenByAdmin.caseId).toBe(caso.id);
+    expect(
+      (await list(admin, { contentId: caso.courseReviewId! })).some(
+        (entry) => entry.id === seenByAdmin.id,
+      ),
+    ).toBe(true);
+  });
+
+  it('hides what the appellant wrote about a sanción from an anonymous caso', async () => {
+    const author = await createUser(prisma);
+    const caso = await reviewCase(author, true);
+    await warn(author, caso.id, 'Advertencia apelada.');
+    const sanction = await prisma.sanction.findFirstOrThrow({
+      where: { userId: author.id },
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/me/appeals')
+      .set('Authorization', bearer(app, author))
+      .send({
+        kind: 'SANCTION',
+        sanctionId: sanction.id,
+        explanation: 'Texto único de la apelación e2e.',
+      })
+      .expect(201);
+
+    const seenByModerator = await history(
+      otherModerator,
+      caso.id,
+      'APPEAL_FILED',
+    );
+    expect(seenByModerator.reason).toBeNull();
+    expect(seenByModerator.caseId).toBeNull();
+    expect(seenByModerator.target).toBeNull();
+    expect(seenByModerator.targetUser).toBeNull();
+
+    const seenByAdmin = await history(admin, caso.id, 'APPEAL_FILED');
+    expect(seenByAdmin.reason).toBe('Texto único de la apelación e2e.');
+  });
+
+  it('hides the explanation of an appeal about anonymous content, as the read-only appeal does', async () => {
+    const author = await createUser(prisma);
+    const caso = await reviewCase(author, true);
+    await prisma.moderationEvent.create({
+      data: {
+        actorId: author.id,
+        action: 'APPEAL_FILED',
+        caseId: caso.id,
+        targetType: 'COURSE_REVIEW',
+        courseReviewId: caso.courseReviewId,
+        targetUserId: author.id,
+        reason: 'No insulté a nadie.',
+        metadata: { kind: 'RETIRO' },
+      },
+    });
+
+    const seen = await history(otherModerator, caso.id, 'APPEAL_FILED');
+    expect(seen.reason).toBeNull();
+    expect(seen.caseId).toBe(caso.id);
+    expect(seen.targetUser).toBeNull();
   });
 
   it('resolves anonymity through the caso when the event has no content', async () => {

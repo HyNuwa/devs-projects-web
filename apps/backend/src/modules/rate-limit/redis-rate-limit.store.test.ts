@@ -64,6 +64,15 @@ describe('RedisRateLimitStore', () => {
     expect(ttl).toBeLessThanOrEqual(30_000);
   });
 
+  it('a hit after a refund to zero keeps the window, as in memory', async () => {
+    await store.hit('k', WINDOW);
+    await redis.pexpire('k', 30_000);
+    await store.refund('k');
+    const next = await store.hit('k', WINDOW);
+    expect(next.count).toBe(1);
+    expect(next.retryAfterMs).toBeLessThanOrEqual(30_000);
+  });
+
   it('refund never goes below zero nor creates a key', async () => {
     await store.hit('k', WINDOW);
     await store.refund('k');

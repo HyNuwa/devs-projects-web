@@ -81,7 +81,7 @@ describe('«Retirar» with «Advertir también»', () => {
       mod,
       'author-2',
       'Insultos a una docente.',
-      { caseId: 'case-1', tx: prisma },
+      { caseId: 'case-1', tx: prisma, decidingCase: true },
     );
   });
 

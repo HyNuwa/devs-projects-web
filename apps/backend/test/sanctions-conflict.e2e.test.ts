@@ -132,6 +132,50 @@ describe('conflict of interest when sanctioning from Usuarios (e2e)', () => {
     );
   });
 
+  it('refuses it too when a different caso about the account is named', async () => {
+    const author = await createUser(prisma);
+    await reportMaterial(author, 10);
+    // A caso about the account that the moderator did not report.
+    const material = await prisma.material.create({
+      data: {
+        title: 'Otro material e2e',
+        fileUrl: 'https://drive.example.com/e2e-otro',
+        fileType: 'pdf',
+        fileSize: BigInt(1000),
+        authorId: author.id,
+        subjectId,
+      },
+    });
+    const other = await prisma.moderationCase.create({
+      data: {
+        kind: 'PRIOR_REVIEW',
+        targetType: 'MATERIAL',
+        materialId: material.id,
+        targetAuthorId: author.id,
+      },
+    });
+
+    expectConflict(
+      await post(`/users/${author.id}/warn`, {
+        reason: 'Advertencia.',
+        caseId: other.id,
+      }),
+    );
+    expectConflict(
+      await post(`/users/${author.id}/mute`, {
+        reason: 'Silencio.',
+        caseId: other.id,
+      }),
+    );
+    expectConflict(
+      await post(`/users/${author.id}/suspension-proposals`, {
+        reason: 'Propuesta.',
+        duration: '30_DAYS',
+        caseId: other.id,
+      }),
+    );
+  });
+
   it('does not let a report on anonymous content block, so it reveals nothing', async () => {
     const author = await createUser(prisma);
     await reportAnonymousReview(author);

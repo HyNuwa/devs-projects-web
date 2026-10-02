@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { isIPv6 } from 'node:net';
 
 import { emailHmac } from './email-key';
 
@@ -47,7 +48,7 @@ export class RateLimitPolicies {
     req: RateLimitRequest,
     action = '',
   ): RateLimitRule[] {
-    const ip = req.ip ?? 'unknown';
+    const ip = clientKey(req.ip);
     const email = this.email(req);
     switch (policy) {
       case 'login':
@@ -60,8 +61,10 @@ export class RateLimitPolicies {
           { key: `recovery-ip:${ip}`, limit: 3, windowMs: HOUR },
         ];
       case 'appeal':
+        // It checks the password too, so it shares the sign-in cap per client.
         return [
           { key: `appeal:${email}:${ip}`, limit: 5, windowMs: 15 * MINUTE },
+          this.loginRules(email, ip)[1],
         ];
       case 'communityWrite':
         return [
@@ -82,6 +85,11 @@ export class RateLimitPolicies {
     ];
   }
 
+  /** The client part of the keys, from `req.ip`. */
+  clientKey(ip: string | undefined) {
+    return clientKey(ip);
+  }
+
   emailKey(email: string) {
     return emailHmac(this.secret, email);
   }
@@ -90,4 +98,29 @@ export class RateLimitPolicies {
     const email = req.body?.email;
     return this.emailKey(typeof email === 'string' ? email : '');
   }
+}
+
+/**
+ * An IPv4-mapped address counts as its IPv4 client, and an IPv6 client by its
+ * /64: one subscriber usually holds a whole /64 and could rotate addresses in it.
+ */
+function clientKey(ip: string | undefined) {
+  if (!ip) return 'unknown';
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (mapped) return mapped[1];
+  if (!isIPv6(ip)) return ip;
+  const [head, tail = ''] = ip.toLowerCase().split('::');
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const groups = ip.includes('::')
+    ? [
+        ...left,
+        ...Array<string>(8 - left.length - right.length).fill('0'),
+        ...right,
+      ]
+    : left;
+  return `${groups
+    .slice(0, 4)
+    .map((group) => group.replace(/^0+(?=.)/, ''))
+    .join(':')}::/64`;
 }

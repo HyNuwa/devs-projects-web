@@ -21,13 +21,21 @@ import { loadTarget } from './targets';
 const PAGE_SIZE = 50;
 const REVEAL_REASON_MAX = 300;
 const ADMIN_ROLES: ReadonlySet<Role> = new Set(['ADMIN', 'SUPERADMIN']);
-// Their reason is also in the account's file: matching it would link the
-// account to an anonymous caso (README_MODERACION §9).
+// Events about the account. Its file and the Apelaciones tab show the account
+// with the same reason, text and time, so for a moderator an event from an
+// anonymous caso keeps no reason, caso or content (README_MODERACION §9).
 const SANCTION_ACTIONS: ReadonlySet<ModerationEventAction> = new Set([
   'WARNED',
   'MUTED',
   'SUSPENDED',
+  'SANCTION_LIFTED',
   'SUSPENSION_PROPOSED',
+  'SUSPENSION_REJECTED',
+]);
+const APPEAL_ACTIONS: ReadonlySet<ModerationEventAction> = new Set([
+  'APPEAL_FILED',
+  'APPEAL_ACCEPTED',
+  'APPEAL_REJECTED',
 ]);
 
 export type HistoryFilters = {
@@ -117,10 +125,23 @@ export class HistoryService {
         hideAuthor &&
         event.actorId !== null &&
         event.actorId === event.targetUserId;
-      const label =
-        (event.metadata as { label?: string } | null)?.label ?? null;
+      const metadata = event.metadata as {
+        label?: string;
+        kind?: string;
+      } | null;
+      const label = metadata?.label ?? null;
+      // A sanción, or an appeal of one, is about the account: unlinked from the
+      // anonymous caso. An appeal of a retiro keeps its content but, as the
+      // read-only appeal, not what the appellant wrote.
+      const aboutAccount =
+        hideAuthor &&
+        (SANCTION_ACTIONS.has(event.action) ||
+          (APPEAL_ACTIONS.has(event.action) && metadata?.kind !== 'RETIRO'));
+      const hideReason =
+        aboutAccount || (hideAuthor && APPEAL_ACTIONS.has(event.action));
       return {
         actorIsHiddenAuthor,
+        aboutAccount,
         id: event.id,
         createdAt: event.createdAt,
         action: event.action,
@@ -129,24 +150,27 @@ export class HistoryService {
           : event.actorId
             ? { system: false, username: users.get(event.actorId) ?? null }
             : { system: true },
-        target: event.targetType
-          ? { type: event.targetType, id: contentId, label }
-          : null,
+        target:
+          event.targetType && !aboutAccount
+            ? { type: event.targetType, id: contentId, label }
+            : null,
         targetUser:
           event.targetUserId && !hideAuthor
             ? { username: users.get(event.targetUserId) ?? null }
             : null,
-        caseId: event.caseId,
-        reason:
-          hideAuthor && SANCTION_ACTIONS.has(event.action)
-            ? null
-            : event.reason,
+        caseId: aboutAccount ? null : event.caseId,
+        reason: hideReason ? null : event.reason,
       };
     });
-    // Filtering by that actor would link them to the entry just the same.
+    // Filtering by that actor, or an account event by that content, would link
+    // them to the entry just the same.
     const items = visible
       .filter((item) => !(filters.actorId && item.actorIsHiddenAuthor))
-      .map(({ actorIsHiddenAuthor: _hidden, ...item }) => item);
+      .filter((item) => !(filters.contentId && item.aboutAccount))
+      .map(
+        ({ actorIsHiddenAuthor: _hidden, aboutAccount: _account, ...item }) =>
+          item,
+      );
 
     return {
       items,

@@ -3,7 +3,7 @@ import RedisMock from 'ioredis-mock';
 import type Redis from 'ioredis';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RateLimiterService } from './rate-limiter.service';
+import { RETRY_REDIS_MS, RateLimiterService } from './rate-limiter.service';
 
 const WINDOW = 60_000;
 
@@ -72,6 +72,43 @@ describe('RateLimiterService', () => {
       expect(infoLog).toHaveBeenCalledTimes(1);
       await limiter.hit('k', WINDOW);
       expect(await redis.get('k')).toBe('1');
+    });
+
+    it('tries Redis again while degraded, so a failed command does not pin it to memory', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      // The connection is up (ioredis-mock has no status of its own).
+      Object.defineProperty(redis, 'status', { value: 'ready' });
+      const evalSpy = vi
+        .spyOn(redis, 'eval')
+        .mockRejectedValueOnce(new Error('timeout'));
+      await limiter.hit('k', WINDOW);
+      expect(limiter.mode()).toBe('memory-fallback');
+      // Within the retry interval it stays in memory.
+      await limiter.hit('k', WINDOW);
+      expect(evalSpy).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(RETRY_REDIS_MS);
+      evalSpy.mockRestore();
+      expect((await limiter.hit('k', WINDOW)).count).toBe(1);
+      expect(limiter.mode()).toBe('redis');
+      expect(await redis.get('k')).toBe('1');
+      expect(infoLog).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
+    it('keeps limiting in memory when the retry fails too', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      Object.defineProperty(redis, 'status', { value: 'ready' });
+      const evalSpy = vi
+        .spyOn(redis, 'eval')
+        .mockRejectedValue(new Error('timeout'));
+      await limiter.hit('k', WINDOW);
+      vi.advanceTimersByTime(RETRY_REDIS_MS);
+      expect((await limiter.hit('k', WINDOW)).count).toBe(2);
+      expect(evalSpy).toHaveBeenCalledTimes(2);
+      expect(limiter.mode()).toBe('memory-fallback');
+      expect(errorLog).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
     });
 
     it('drops the fallback counters on recovery', async () => {

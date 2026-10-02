@@ -17,8 +17,10 @@ type SeedUsers = { adminId: string; moderatorId: string };
  * - `ofertas.fi`: a new spam-looking account with a pending suspension proposal.
  * - `fede.b`: suspended for 30 days.
  * - `sofi.c`: a retired material under appeal.
- * - `vale.mod`: a moderator appealing the retiro of their anonymous reseña, which
- *   the demo moderator sees read-only («La resuelve un admin»).
+ * - `vale.mod` (a moderator) and `nico.r` (a student): each appealing the retiro of
+ *   their anonymous reseña, decided by the moderator `caro.m`. Only admins answer
+ *   those, so the demo moderator sees both read-only and identical («La resuelve
+ *   un admin») and the demo admin answers them.
  *
  * Decisions that the demo moderator should review are made by the admin, since
  * nobody reviews an appeal of their own decision.
@@ -265,44 +267,75 @@ export async function seedSanctions(
     },
   });
 
-  // vale.mod: a moderator whose anonymous reseña was retired, appealing it. The
-  // demo moderator sees it read-only, «La resuelve un admin» (moderacion-ajustes).
-  const vale = await account('vale.mod', 400, { role: Role.MODERATOR });
-  const review = await prisma.courseReview.create({
-    data: {
-      userId: vale.id,
-      subjectId: subjectB,
-      recommendation: 1,
-      isAnonymous: true,
-      comment: 'La cátedra no responde consultas y los parciales son injustos.',
-      publicationStatus: 'REMOVED',
-      statusChangedAt: at(-4),
-      authorFacingReason: 'Ataque a docentes sin datos concretos.',
-    },
-  });
-  const valeRetiro = await prisma.moderationCase.create({
-    data: {
-      kind: 'REPORTS',
-      targetType: 'COURSE_REVIEW',
-      courseReviewId: review.id,
-      targetAuthorId: vale.id,
-      status: 'CLOSED',
-      openedAt: at(-5),
-      closedAt: at(-4),
-      decision: 'REMOVE',
-      decidedById: users.adminId,
-      decisionReason: 'Ataque a docentes sin datos concretos.',
-    },
-  });
-  await prisma.appeal.create({
-    data: {
-      appellantId: vale.id,
-      kind: 'RETIRO',
-      caseId: valeRetiro.id,
-      explanation:
-        'Es mi experiencia de la cursada: las consultas quedaron sin respuesta todo el cuatrimestre.',
-      decidedById: users.adminId,
-      createdAt: at(-2),
-    },
-  });
+  /** An anonymous reseña by `authorId`, retired by `deciderId` and appealed. */
+  const appealAnonymousRetiro = async (
+    deciderId: string,
+    authorId: string,
+    comment: string,
+    reason: string,
+    explanation: string,
+    daysAgo: number,
+  ) => {
+    const review = await prisma.courseReview.create({
+      data: {
+        userId: authorId,
+        subjectId: subjectB,
+        recommendation: 1,
+        isAnonymous: true,
+        comment,
+        publicationStatus: 'REMOVED',
+        statusChangedAt: at(-daysAgo - 2),
+        authorFacingReason: reason,
+      },
+    });
+    const retiro = await prisma.moderationCase.create({
+      data: {
+        kind: 'REPORTS',
+        targetType: 'COURSE_REVIEW',
+        courseReviewId: review.id,
+        targetAuthorId: authorId,
+        status: 'CLOSED',
+        openedAt: at(-daysAgo - 3),
+        closedAt: at(-daysAgo - 2),
+        decision: 'REMOVE',
+        decidedById: deciderId,
+        decisionReason: reason,
+      },
+    });
+    await prisma.appeal.create({
+      data: {
+        appellantId: authorId,
+        kind: 'RETIRO',
+        caseId: retiro.id,
+        explanation,
+        decidedById: deciderId,
+        createdAt: at(-daysAgo),
+      },
+    });
+  };
+
+  // vale.mod and nico.r: anonymous reseñas retired by caro.m and appealed. Only
+  // admins answer appeals about anonymous content, so the demo moderator sees both
+  // read-only and alike, whatever the appellant's role (moderacion-ajustes).
+  const [caro, vale, nico] = await Promise.all([
+    account('caro.m', 600, { role: Role.MODERATOR }),
+    account('vale.mod', 400, { role: Role.MODERATOR }),
+    account('nico.r', 200),
+  ]);
+  await appealAnonymousRetiro(
+    caro.id,
+    vale.id,
+    'La cátedra no responde consultas y los parciales son injustos.',
+    'Ataque a docentes sin datos concretos.',
+    'Es mi experiencia de la cursada: las consultas quedaron sin respuesta todo el cuatrimestre.',
+    2,
+  );
+  await appealAnonymousRetiro(
+    caro.id,
+    nico.id,
+    'El docente de práctica es un desastre, no vayan a sus clases.',
+    'Ataque a docentes sin datos concretos.',
+    'Describo cómo fueron las clases, no quise atacar a nadie.',
+    1,
+  );
 }

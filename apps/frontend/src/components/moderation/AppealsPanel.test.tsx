@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   detail: vi.fn(),
   answer: vi.fn(),
-  user: { id: 'mod-2', role: 'MODERATOR' } as { id: string; role: string } | null,
+  user: { id: 'admin-1', role: 'ADMIN' } as { id: string; role: string } | null,
 }));
 
 vi.mock('@/lib/appeals-client', async (importOriginal) => ({
@@ -63,7 +63,8 @@ afterEach(cleanup);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.user = { id: 'mod-2', role: 'MODERATOR' };
+  // Appeals about anonymous content are answered only by admins.
+  mocks.user = { id: 'admin-1', role: 'ADMIN' };
   mocks.list.mockResolvedValue([summary]);
   mocks.detail.mockResolvedValue(detail);
   mocks.answer.mockResolvedValue(undefined);
@@ -94,7 +95,7 @@ describe('AppealsPanel', () => {
     expect(screen.getByText(/No ves apelaciones de decisiones tuyas/)).toBeInTheDocument();
   });
 
-  it('keeps the appeal open when the moderator clicks it again', async () => {
+  it('keeps the appeal open when the reviewer clicks it again', async () => {
     const user = userEvent.setup();
     render(<AppealsPanel />);
     await screen.findByRole('heading', { level: 2, name: /Apelación ·/ });
@@ -146,6 +147,7 @@ describe('AppealsPanel', () => {
   });
 
   it('shows an appeal only an admin can answer, read-only', async () => {
+    mocks.user = { id: 'mod-2', role: 'MODERATOR' };
     mocks.list.mockResolvedValue([{ ...summary, canAnswer: false }]);
     mocks.detail.mockResolvedValue({
       ...summary,
@@ -162,6 +164,9 @@ describe('AppealsPanel', () => {
     expect(screen.queryByText('Lo que dice quien apela')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Tu respuesta')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Aceptar y restaurar' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Las de suspensiones y de contenido anónimo las resuelve un admin\./),
+    ).toBeInTheDocument();
   });
 
   it('says when there is nothing to resolve', async () => {

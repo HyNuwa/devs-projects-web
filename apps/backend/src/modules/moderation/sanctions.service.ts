@@ -27,7 +27,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type Actor = { id: string; role: Role };
 type Tx = Prisma.TransactionClient;
-type Options = { caseId?: string; tx?: Tx };
+/**
+ * `decidingCase`: the advertencia of a caso's decision («Advertir también»). Only
+ * then is the report conflict skipped: the reporter check covers that caso, and
+ * refusing for another report could reveal who wrote anonymous content.
+ */
+type Options = { caseId?: string; tx?: Tx; decidingCase?: boolean };
 
 const EVENT_FOR: Record<SanctionType, ModerationEventAction> = {
   WARNING: 'WARNED',
@@ -151,7 +156,9 @@ export class SanctionsService {
           reportedInCase: source?.reportedByActor ?? false,
         }),
       );
-      if (!source && type !== 'SUSPENSION') {
+      // Naming a caso from Usuarios does not skip it: any caso about the
+      // account would do.
+      if (!options.decidingCase && type !== 'SUSPENSION') {
         await assertNoReportConflict(tx, actor.id, userId, now);
       }
       if (type === 'MUTE' && isFuture(target.mutedUntil, now)) {

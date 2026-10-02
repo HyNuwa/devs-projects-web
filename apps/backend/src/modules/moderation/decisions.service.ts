@@ -252,6 +252,7 @@ export class DecisionsService {
           await this.sanctions.warn(moderator, snapshot.authorId, reason, {
             caseId: moderationCase.id,
             tx,
+            decidingCase: true,
           });
         }
       }

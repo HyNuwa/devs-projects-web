@@ -15,11 +15,15 @@ export const RATE_LIMIT_REDIS = Symbol('RATE_LIMIT_REDIS');
 
 export type RateLimiterMode = 'redis' | 'memory' | 'memory-fallback';
 
+/** How often a degraded limiter tries Redis again while the connection is up. */
+export const RETRY_REDIS_MS = 5_000;
+
 /**
  * The one limiter behind every limit (openspec security/rate-limiting). Counts
  * in Redis when `REDIS_URL` is set, in memory otherwise. When Redis fails it
- * keeps limiting in memory, per instance, until ioredis reconnects, and it logs
- * each transition once instead of once per request.
+ * keeps limiting in memory, per instance, until ioredis reconnects or, when a
+ * command failed on a live connection (a timeout), until a retry every
+ * `RETRY_REDIS_MS` succeeds. It logs each transition once, not once per request.
  */
 @Injectable()
 export class RateLimiterService implements OnModuleInit, OnModuleDestroy {
@@ -27,6 +31,7 @@ export class RateLimiterService implements OnModuleInit, OnModuleDestroy {
   private readonly redisStore: RedisRateLimitStore | null;
   private memory = new MemoryRateLimitStore();
   private degraded = false;
+  private retryRedisAt = 0;
 
   constructor(@Inject(RATE_LIMIT_REDIS) private readonly redis: Redis | null) {
     this.redisStore = redis ? new RedisRateLimitStore(redis) : null;
@@ -65,16 +70,30 @@ export class RateLimiterService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async run<T>(operation: (store: RateLimitStore) => Promise<T>) {
-    if (!this.redisStore || this.degraded) return operation(this.memory);
+    if (!this.redisStore) return operation(this.memory);
+    if (this.degraded && !this.shouldRetryRedis()) {
+      return operation(this.memory);
+    }
     try {
-      return await operation(this.redisStore);
+      const result = await operation(this.redisStore);
+      this.recover();
+      return result;
     } catch (error) {
       this.degrade(error as Error);
       return operation(this.memory);
     }
   }
 
+  private shouldRetryRedis() {
+    if (this.redis?.status !== 'ready' || Date.now() < this.retryRedisAt) {
+      return false;
+    }
+    this.retryRedisAt = Date.now() + RETRY_REDIS_MS;
+    return true;
+  }
+
   private degrade(error: Error) {
+    this.retryRedisAt = Date.now() + RETRY_REDIS_MS;
     if (this.degraded) return;
     this.degraded = true;
     this.logger.error(

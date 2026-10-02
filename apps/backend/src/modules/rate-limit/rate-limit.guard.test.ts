@@ -46,7 +46,14 @@ describe('RateLimitPolicies', () => {
       [3, 3],
       [3_600_000, 3_600_000],
     ],
-    ['appeal', [`appeal:${hmac}:1.2.3.4`], [5], [900_000]],
+    // Its password check shares the sign-in cap per client, or it would be a
+    // second guessing channel without one.
+    [
+      'appeal',
+      [`appeal:${hmac}:1.2.3.4`, 'login-ip:1.2.3.4'],
+      [5, 20],
+      [900_000, 900_000],
+    ],
   ])('%s keys, limits and windows', (policy, keys, limits, windows) => {
     const rules = policies.rules(policy, req);
     expect(rules.map((r) => r.key)).toEqual(keys);
@@ -64,6 +71,22 @@ describe('RateLimitPolicies', () => {
     ).toEqual([
       { key: 'community:Reports.file:u1', limit: 6, windowMs: 60_000 },
     ]);
+  });
+
+  it('keys an IPv4-mapped address as the IPv4 client', () => {
+    expect(policies.rules('signup', { ip: '::ffff:1.2.3.4' })[0].key).toBe(
+      'signup:1.2.3.4',
+    );
+  });
+
+  it('keys IPv6 clients by their /64, so rotating addresses in it does not help', () => {
+    const keyFor = (ip: string) => policies.rules('signup', { ip })[0].key;
+    expect(keyFor('2001:db8:1:2:aaaa::1')).toBe('signup:2001:db8:1:2::/64');
+    expect(keyFor('2001:DB8:1:2:bbbb:cccc:dddd:9')).toBe(
+      'signup:2001:db8:1:2::/64',
+    );
+    expect(keyFor('2001:db8::1')).toBe('signup:2001:db8:0:0::/64');
+    expect(keyFor('::1')).toBe('signup:0:0:0:0::/64');
   });
 
   it('never puts the email in a key', () => {

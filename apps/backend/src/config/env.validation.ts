@@ -10,6 +10,9 @@ import {
   validateSync,
 } from 'class-validator';
 
+const DEV_RATE_LIMIT_SECRET = 'devsproject-dev-rate-limit-secret';
+const RATE_LIMIT_SECRET_MIN = 32;
+
 enum Environment {
   Development = 'development',
   Production = 'production',
@@ -62,7 +65,7 @@ export class EnvironmentVariables {
 
   /** Keys limit counters by email without storing the address. */
   @IsString()
-  RATE_LIMIT_SECRET: string = 'devsproject-dev-rate-limit-secret';
+  RATE_LIMIT_SECRET: string = DEV_RATE_LIMIT_SECRET;
 
   /** Proxy hops whose X-Forwarded-For is trusted; 0 trusts none. */
   @IsInt()
@@ -105,6 +108,16 @@ export function validate(config: Record<string, unknown>) {
   if (validatedConfig.NODE_ENV === Environment.Production) {
     for (const name of ['REDIS_URL', 'RATE_LIMIT_SECRET']) {
       if (!config[name]) messages.push(`  - ${name}: required in production`);
+    }
+    const secret = config.RATE_LIMIT_SECRET;
+    if (
+      typeof secret === 'string' &&
+      (secret === DEV_RATE_LIMIT_SECRET ||
+        secret.length < RATE_LIMIT_SECRET_MIN)
+    ) {
+      messages.push(
+        `  - RATE_LIMIT_SECRET: at least ${RATE_LIMIT_SECRET_MIN} characters, not the development one`,
+      );
     }
   }
 

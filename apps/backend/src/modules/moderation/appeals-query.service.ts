@@ -59,9 +59,9 @@ const TARGET_LABEL = {
 
 /**
  * The Apelaciones tab (openspec moderation/appeals): appeals the viewer may
- * answer, plus, read-only, those a moderator cannot answer only because the
- * appellant is staff (hiding them would reveal that). Anonymous appellants stay
- * «Autor oculto».
+ * answer, plus, read-only for a moderator, those only admins answer because the
+ * appellant is staff or the content is anonymous (hiding them would reveal the
+ * appellant's role). Anonymous appellants stay «Autor oculto».
  */
 @Injectable()
 export class AppealsQueryService {
@@ -143,15 +143,18 @@ function access(viewer: Actor, row: AppealRow): 'answer' | 'read' | null {
     appellant: row.appellant,
     decidedById: row.decidedById,
     suspension: row.sanction?.type === 'SUSPENSION',
+    anonymousContent: row.kind === 'RETIRO' && isAnonymousRetiro(row),
   };
   if (canReview(viewer, appeal)) return 'answer';
-  // Refused only for the appellant's role: the same check as if a USER appealed.
-  // Own decisions and suspensiones stay out, as for any appellant.
+  // Refused only for the appellant's role or because the content is anonymous:
+  // the same check as if a USER appealed signed content, so every such appeal
+  // looks the same. Own decisions and suspensiones stay out, as for any appellant.
   if (
     viewer.role === 'MODERATOR' &&
     canReview(viewer, {
       ...appeal,
       appellant: { ...row.appellant, role: 'USER' },
+      anonymousContent: false,
     })
   ) {
     return 'read';

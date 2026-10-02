@@ -164,7 +164,7 @@ export function AppealsPanel() {
             )}
             <p className="text-xs text-muted-foreground">
               No ves apelaciones de decisiones tuyas.
-              {isAdmin ? '' : ' Las de suspensiones las resuelve un admin.'}
+              {isAdmin ? '' : ' Las de suspensiones y de contenido anónimo las resuelve un admin.'}
             </p>
           </section>
 

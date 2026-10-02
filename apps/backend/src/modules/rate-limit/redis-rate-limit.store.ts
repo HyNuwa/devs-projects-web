@@ -3,11 +3,11 @@ import type Redis from 'ioredis';
 import type { HitResult, RateLimitStore } from './rate-limit.store';
 
 // Redis runs a script without interleaving other commands, so counting,
-// starting the window and reading its end happen as one step. A key left
-// without expiry (it should not happen) gets a new window instead of living on.
+// starting the window and reading its end happen as one step. The window starts
+// when the key has no expiry: a new key, or one left without it. A key refunded
+// to zero keeps its expiry, so the next hit stays in the same window.
 const HIT = `
 local count = redis.call('INCR', KEYS[1])
-if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
 local ttl = redis.call('PTTL', KEYS[1])
 if ttl < 0 then
   redis.call('PEXPIRE', KEYS[1], ARGV[1])

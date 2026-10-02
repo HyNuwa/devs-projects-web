@@ -3,6 +3,7 @@ import {
   ConflictException,
   Controller,
   Post,
+  Req,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import * as bcrypt from 'bcrypt';
 
 import { Public } from '../../common/decorators/public.decorator';
+import { LoginAttempts } from '../rate-limit/login-attempts';
 import { RateLimit, RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppealsService } from './appeals.service';
@@ -26,6 +28,7 @@ export class SuspensionAppealController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly appeals: AppealsService,
+    private readonly loginAttempts: LoginAttempts,
   ) {}
 
   @Public()
@@ -33,7 +36,7 @@ export class SuspensionAppealController {
   @UseGuards(RateLimitGuard)
   @Post('suspension-appeal')
   @ApiOperation({ summary: 'Apelar una suspensión desde el ingreso' })
-  async appeal(@Body() dto: SuspensionAppealDto) {
+  async appeal(@Body() dto: SuspensionAppealDto, @Req() req: { ip?: string }) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       select: {
@@ -47,6 +50,8 @@ export class SuspensionAppealController {
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
+    // It shares the sign-in cap per client; a right password is not a guess.
+    await this.loginAttempts.forgiveClient(req.ip);
     const notice = await suspensionNotice(this.prisma, user);
     if (!notice?.sanctionId) {
       throw new ConflictException('La cuenta no está suspendida');

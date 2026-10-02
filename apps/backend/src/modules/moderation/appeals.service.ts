@@ -58,7 +58,7 @@ export class AppealsService {
   /**
    * Accepts or rejects an appeal with a final, written answer. Only someone other
    * than the decider and the appellant, with a role above the appellant's, answers;
-   * suspensiones need an admin.
+   * suspensiones and retiros of anonymous content need an admin.
    */
   async answer(
     reviewer: Actor,
@@ -84,14 +84,25 @@ export class AppealsService {
           decidedById: true,
           appellant: { select: { id: true, role: true } },
           sanction: { select: { type: true, case: { select: contentSelect } } },
-          case: { select: contentSelect },
+          case: {
+            select: {
+              ...contentSelect,
+              courseReview: { select: { isAnonymous: true } },
+              examExperience: { select: { isAnonymous: true } },
+            },
+          },
         },
       });
       if (!appeal) throw new NotFoundException('Apelación no encontrada');
+      const { courseReview, examExperience, ...retiroContent } =
+        appeal.case ?? {};
       const allowed = canReview(reviewer, {
         appellant: appeal.appellant,
         decidedById: appeal.decidedById,
         suspension: appeal.sanction?.type === 'SUSPENSION',
+        anonymousContent:
+          appeal.kind === 'RETIRO' &&
+          Boolean(courseReview?.isAnonymous || examExperience?.isAnonymous),
       });
       if (!allowed) {
         throw new ForbiddenException('No podés resolver esta apelación');
@@ -132,7 +143,7 @@ export class AppealsService {
           action: input.accept ? 'APPEAL_ACCEPTED' : 'APPEAL_REJECTED',
           targetUserId: appeal.appellant.id,
           caseId: appeal.caseId,
-          ...(appeal.case ?? appeal.sanction?.case ?? {}),
+          ...(appeal.case ? retiroContent : (appeal.sanction?.case ?? {})),
           reason: answer,
           metadata: { appealId, kind: appeal.kind },
         },

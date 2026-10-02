@@ -20,11 +20,20 @@ export class LoginAttempts {
   async forgive(email: string, ip: string | undefined) {
     const [perEmail, perIp] = this.policies.loginRules(
       this.policies.emailKey(email),
-      ip ?? 'unknown',
+      this.policies.clientKey(ip),
     );
     await Promise.all([
       this.limiter.reset(perEmail.key),
       this.limiter.refund(perIp.key),
     ]);
+  }
+
+  /**
+   * The appeal from sign-in shares the per-client cap: a correct password there
+   * gives back its attempt, as a successful sign-in does.
+   */
+  async forgiveClient(ip: string | undefined) {
+    const [, perIp] = this.policies.loginRules('', this.policies.clientKey(ip));
+    await this.limiter.refund(perIp.key);
   }
 }

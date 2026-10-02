@@ -99,16 +99,25 @@ export function canAppeal(
 
 /**
  * Whether `viewer` may answer an appeal: someone other than the decider and the
- * appellant, with a role above the appellant's; suspensiones need an admin.
+ * appellant, with a role above the appellant's. Suspensiones and retiros of
+ * anonymous content need an admin: if moderators answered anonymous-content
+ * appeals from students but not from staff, which ones they could answer would
+ * reveal that the author is staff.
  */
 export function canReview(
   viewer: Account,
-  appeal: { appellant: Account; decidedById: string; suspension: boolean },
+  appeal: {
+    appellant: Account;
+    decidedById: string;
+    suspension: boolean;
+    anonymousContent: boolean;
+  },
 ): boolean {
   if (viewer.id === appeal.decidedById || viewer.id === appeal.appellant.id) {
     return false;
   }
-  const minimum = appeal.suspension ? RANK.ADMIN : RANK.MODERATOR;
+  const minimum =
+    appeal.suspension || appeal.anonymousContent ? RANK.ADMIN : RANK.MODERATOR;
   return (
     RANK[viewer.role] >= minimum &&
     RANK[viewer.role] > RANK[appeal.appellant.role]

@@ -176,6 +176,7 @@ describe('canReview', () => {
     appellant: user,
     decidedById: mod.id,
     suspension: false,
+    anonymousContent: false,
   };
 
   it('lets a moderator other than the decider review it', () => {
@@ -199,6 +200,20 @@ describe('canReview', () => {
   it('keeps appeals of suspensiones for admins', () => {
     expect(canReview(otherMod, { ...appeal, suspension: true })).toBe(false);
     expect(canReview(admin, { ...appeal, suspension: true })).toBe(true);
+  });
+
+  it('keeps appeals about anonymous content for admins, whoever appeals', () => {
+    const anonymous = { ...appeal, anonymousContent: true };
+    expect(canReview(otherMod, anonymous)).toBe(false);
+    expect(canReview(admin, anonymous)).toBe(true);
+    expect(canReview(superadmin, anonymous)).toBe(true);
+
+    const byModerator = {
+      ...anonymous,
+      appellant: { id: 'mod-3', role: 'MODERATOR' },
+    } as const;
+    expect(canReview(otherMod, byModerator)).toBe(false);
+    expect(canReview(admin, byModerator)).toBe(true);
   });
 
   it('needs a role above the appellant, so moderators do not review each other', () => {

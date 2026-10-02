@@ -67,9 +67,8 @@ export class SuspensionProposalsService {
           'No podés proponer una suspensión para esa cuenta',
         );
       }
-      if (!options.caseId) {
-        await assertNoReportConflict(tx, actor.id, userId);
-      }
+      // Also with a caso: any caso about the account would skip it otherwise.
+      await assertNoReportConflict(tx, actor.id, userId);
       if (isSuspended(target, new Date())) {
         throw new ConflictException('La cuenta ya está suspendida');
       }

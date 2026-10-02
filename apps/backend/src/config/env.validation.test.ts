@@ -8,7 +8,7 @@ const production = {
   ...base,
   NODE_ENV: 'production',
   REDIS_URL: 'redis://localhost:6379',
-  RATE_LIMIT_SECRET: 'a-real-secret',
+  RATE_LIMIT_SECRET: 'b3f1c9a27e584d0c9a1f6e2d7c4b8a90',
 };
 
 describe('validate (rate limiting variables)', () => {
@@ -31,6 +31,14 @@ describe('validate (rate limiting variables)', () => {
   it('refuses production without RATE_LIMIT_SECRET, naming it', () => {
     const { RATE_LIMIT_SECRET: _omit, ...config } = production;
     expect(() => validate(config)).toThrow(/RATE_LIMIT_SECRET/);
+  });
+
+  it('refuses the development secret or a short one in production', () => {
+    for (const secret of ['devsproject-dev-rate-limit-secret', 'corto']) {
+      expect(() =>
+        validate({ ...production, RATE_LIMIT_SECRET: secret }),
+      ).toThrow(/RATE_LIMIT_SECRET/);
+    }
   });
 
   it('reads TRUST_PROXY as a hop count', () => {

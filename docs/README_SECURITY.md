@@ -80,10 +80,10 @@ Todo cambio que toque autenticación, subida de archivos, permisos o datos perso
 Decisiones del cambio `moderacion-ajustes`:
 
 - **Un solo limitador** para auth, apelación desde el ingreso y escrituras de la comunidad.
-- **Redis** cuando hay `REDIS_URL`; en memoria cuando no (desarrollo y tests). En producción la API no arranca sin `REDIS_URL` ni `RATE_LIMIT_SECRET` (`env.validation.ts`).
-- **Ventana fija**: incrementar, fijar la expiración en el primer hit y leer contador y TTL en una sola operación atómica (script Lua). La versión en memoria reproduce la misma semántica. `Retry-After` sale del TTL restante.
-- **Claves**: `login:<emailHmac>:<ip>`, `login-ip:<ip>`, `signup:<ip>`, `recovery:<emailHmac>`, `recovery-ip:<ip>`, más las de apelación y comunidad. `emailHmac` es `HMAC_SHA256(RATE_LIMIT_SECRET, email.trim().toLowerCase())`: Redis nunca guarda emails. Sin normalizaciones por proveedor.
-- **Redis caído**: se usa el limitador en memoria (por instancia) en vez de dejar pasar todo; se registra un `error` al degradarse y un `info` al recuperarse, una vez por transición. `GET /health` informa `status` (`ok` | `degraded`) y `rateLimiter` (`redis` | `memory` | `memory-fallback`).
+- **Redis** cuando hay `REDIS_URL`; en memoria cuando no (desarrollo y tests). En producción la API no arranca sin `REDIS_URL` ni `RATE_LIMIT_SECRET`, que debe tener al menos 32 caracteres y no ser el de desarrollo (`env.validation.ts`).
+- **Ventana fija**: incrementar, fijar la expiración cuando la clave no la tiene y leer contador y TTL en una sola operación atómica (script Lua). Una clave devuelta a cero conserva su ventana. La versión en memoria reproduce la misma semántica. `Retry-After` sale del TTL restante.
+- **Claves**: `login:<emailHmac>:<ip>`, `login-ip:<ip>`, `signup:<ip>`, `recovery:<emailHmac>`, `recovery-ip:<ip>`, más las de apelación y comunidad. La apelación desde el ingreso también verifica la contraseña, así que además de `appeal:<emailHmac>:<ip>` suma a `login-ip:<ip>`. En IPv6 la IP de la clave es el prefijo /64, y una IPv4 mapeada cuenta como IPv4. `emailHmac` es `HMAC_SHA256(RATE_LIMIT_SECRET, email.trim().toLowerCase())`: Redis nunca guarda emails. Sin normalizaciones por proveedor.
+- **Redis caído**: se usa el limitador en memoria (por instancia) en vez de dejar pasar todo; se registra un `error` al degradarse y un `info` al recuperarse, una vez por transición. Si falla un comando con la conexión viva (un timeout), reintenta Redis cada 5 segundos. `GET /health` informa `status` (`ok` | `degraded`) y `rateLimiter` (`redis` | `memory` | `memory-fallback`).
 - **IP real**: `TRUST_PROXY` (desactivado por defecto). Detrás de Nginx se configura `TRUST_PROXY=1`; sin proxy no se confía en `X-Forwarded-For`, que permitiría falsear la IP.
 - **Mensaje**: «Demasiados intentos. Probá de nuevo en X minutos», que los formularios existentes ya muestran.
 

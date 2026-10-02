@@ -28,7 +28,7 @@ Nginx (:80/:443, TLS con Let's Encrypt)
 
 **Redis** guarda solo los contadores de los límites de frecuencia (login, registro, recuperación, apelación desde el ingreso y escrituras de la comunidad); consume muy poca memoria. Sesiones y tokens siguen en Postgres. Ver `README_SECURITY.md`, «Límites de frecuencia».
 
-Variables obligatorias en producción, además de las actuales: `REDIS_URL`, `RATE_LIMIT_SECRET` y `TRUST_PROXY=1` (la API corre detrás de Nginx). La API no arranca sin las dos primeras.
+Variables obligatorias en producción, además de las actuales: `REDIS_URL`, `RATE_LIMIT_SECRET` (al menos 32 caracteres, por ejemplo `openssl rand -hex 32`) y `TRUST_PROXY=1` (la API corre detrás de Nginx). La API no arranca sin las dos primeras.
 
 **Monitoreo**: `GET /api/v1/health` es público y responde `{ status: 'ok' | 'degraded', rateLimiter: 'redis' | 'memory' | 'memory-fallback' }`. `degraded` significa que Redis no responde y los límites corren en memoria de cada instancia.
 

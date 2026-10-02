@@ -178,6 +178,34 @@ describe('rate limiting (e2e)', () => {
     expectTooManyRequests(await post('/auth/suspension-appeal', ip, body));
   });
 
+  it('counts wrong passwords on the suspension appeal against the client’s sign-in cap', async () => {
+    const ip = clientIp();
+    const admin = await createUser(prisma, 'ADMIN');
+    const suspended = await createUser(prisma, 'USER', { passwordHash });
+    await request(app.getHttpServer())
+      .post(`/api/v1/moderation/users/${suspended.id}/suspend`)
+      .set('Authorization', bearer(app, admin))
+      .send({ reason: 'Tercer retiro por insultos.', duration: '30_DAYS' })
+      .expect(201);
+    const appeal = (email: string, password: string) =>
+      post('/auth/suspension-appeal', ip, {
+        email,
+        password,
+        explanation: 'Quiero explicar lo que pasó con mi cuenta.',
+      });
+
+    for (let i = 0; i < 19; i += 1) {
+      await appeal(`nadie_${randomUUID()}@x.test`, 'Incorrecta1!').expect(401);
+    }
+    // The right password gives its attempt back, as a sign-in does.
+    await appeal(suspended.email, PASSWORD).expect(201);
+    await login(ip, `nadie_${randomUUID()}@x.test`, 'Incorrecta1!').expect(401);
+    expectTooManyRequests(
+      await appeal(`nadie_${randomUUID()}@x.test`, 'Incorrecta1!'),
+    );
+    expectTooManyRequests(await login(ip, suspended.email, PASSWORD));
+  });
+
   it('refuses a seventh reporte within a minute', async () => {
     const student: E2eUser = await createUser(prisma);
     const report = () =>

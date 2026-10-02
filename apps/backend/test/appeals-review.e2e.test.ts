@@ -18,6 +18,17 @@ type AppealItem = {
   decidedBy: { username: string | null };
 };
 
+/** An appeal as the viewer sees it, without its id and timestamps. */
+function withoutTimes(item: {
+  id: string;
+  createdAt: string;
+  decision: { decidedAt: string };
+}) {
+  const { id: _id, createdAt: _createdAt, decision, ...rest } = item;
+  const { decidedAt: _decidedAt, ...decisionRest } = decision;
+  return { ...rest, decision: decisionRest };
+}
+
 describe('reviewing appeals (e2e)', () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
@@ -50,14 +61,14 @@ describe('reviewing appeals (e2e)', () => {
         .send(body),
   });
 
-  /** An anonymous reseña by `author`, retired by `decider` and appealed. */
-  async function appealedAnonymousRetiro(author: E2eUser) {
+  /** A reseña by `author`, anonymous unless `signed`, retired by `decider` and appealed. */
+  async function appealedRetiro(author: E2eUser, { signed = false } = {}) {
     const review = await prisma.courseReview.create({
       data: {
         userId: author.id,
         subjectId,
         recommendation: 2,
-        isAnonymous: true,
+        isAnonymous: !signed,
         comment: 'Reseña e2e',
         publicationStatus: 'REMOVED',
         authorFacingReason: 'Insultos',
@@ -89,9 +100,9 @@ describe('reviewing appeals (e2e)', () => {
     return { review, appeal };
   }
 
-  it('lists only appeals the viewer may answer, and hides anonymous appellants', async () => {
+  it('hides anonymous appellants and never lists the viewer’s own decisions', async () => {
     const author = await createUser(prisma);
-    const { appeal } = await appealedAnonymousRetiro(author);
+    const { appeal } = await appealedRetiro(author);
 
     const forReviewer = await as(reviewer)
       .get('/moderation/appeals')
@@ -111,9 +122,9 @@ describe('reviewing appeals (e2e)', () => {
 
   it('shows the appealed decision, the explanation and the content in the detail', async () => {
     const author = await createUser(prisma);
-    const { appeal } = await appealedAnonymousRetiro(author);
+    const { appeal } = await appealedRetiro(author);
 
-    const { body } = await as(reviewer)
+    const { body } = await as(admin)
       .get(`/moderation/appeals/${appeal.id}`)
       .expect(200);
 
@@ -132,47 +143,94 @@ describe('reviewing appeals (e2e)', () => {
     expect(JSON.stringify(body)).not.toContain(author.id);
   });
 
-  it('lists a staff appellant’s appeal read-only for other moderators', async () => {
-    const staffAuthor = await createUser(prisma, 'MODERATOR');
-    const { appeal } = await appealedAnonymousRetiro(staffAuthor);
+  it('sends every appeal about anonymous content to admins, whoever appeals', async () => {
+    const student = await createUser(prisma);
+    const staff = await createUser(prisma, 'MODERATOR');
+    const fromStudent = (await appealedRetiro(student)).appeal;
+    const fromStaff = (await appealedRetiro(staff)).appeal;
 
+    type ListItem = AppealItem & {
+      canAnswer: boolean;
+      createdAt: string;
+      decision: { decidedAt: string };
+    };
     const list = await as(reviewer).get('/moderation/appeals').expect(200);
-    const item = (list.body as Array<AppealItem & { canAnswer: boolean }>).find(
-      (entry) => entry.id === appeal.id,
-    );
-    expect(item).toEqual(
+    const items = list.body as ListItem[];
+    const shape = (id: string) => {
+      const item = items.find((entry) => entry.id === id);
+      expect(item).toBeDefined();
+      return withoutTimes(item!);
+    };
+    expect(shape(fromStudent.id)).toEqual(
       expect.objectContaining({
         canAnswer: false,
         appellant: { hidden: true, username: null },
       }),
     );
-    expect(JSON.stringify(list.body)).not.toContain(staffAuthor.id);
+    expect(shape(fromStaff.id)).toEqual(shape(fromStudent.id));
+    expect(JSON.stringify(list.body)).not.toContain(student.id);
+    expect(JSON.stringify(list.body)).not.toContain(staff.id);
 
-    const { body } = await as(reviewer)
-      .get(`/moderation/appeals/${appeal.id}`)
-      .expect(200);
-    expect(body.canAnswer).toBe(false);
-    expect(body).not.toHaveProperty('explanation');
-    expect(body.content ?? null).toBeNull();
+    // The pending count is the same list, read-only items included.
+    const summary = await as(reviewer).get('/moderation/summary').expect(200);
+    expect(summary.body.pendingAppeals).toBe(items.length);
 
+    const details: Record<string, unknown>[] = [];
+    for (const appeal of [fromStudent, fromStaff]) {
+      const { body } = await as(reviewer)
+        .get(`/moderation/appeals/${appeal.id}`)
+        .expect(200);
+      expect(body.canAnswer).toBe(false);
+      expect(body).not.toHaveProperty('explanation');
+      expect(body.content ?? null).toBeNull();
+      details.push(withoutTimes(body));
+
+      const refused = await as(reviewer)
+        .post(`/moderation/appeals/${appeal.id}/answer`, {
+          accept: true,
+          answer: 'Se restituye la reseña.',
+        })
+        .expect(403);
+      expect(refused.body.message).toBe('No podés resolver esta apelación');
+    }
+    expect(details[1]).toEqual(details[0]);
+
+    const forAdmin = await as(admin).get('/moderation/appeals').expect(200);
+    for (const appeal of [fromStudent, fromStaff]) {
+      expect(
+        (forAdmin.body as ListItem[]).find((entry) => entry.id === appeal.id)
+          ?.canAnswer,
+      ).toBe(true);
+      await as(admin)
+        .post(`/moderation/appeals/${appeal.id}/answer`, {
+          accept: true,
+          answer: 'Se restituye la reseña.',
+        })
+        .expect(201);
+    }
+  });
+
+  it('lists a staff appellant’s appeal of signed content read-only for other moderators', async () => {
+    const staffAuthor = await createUser(prisma, 'MODERATOR');
+    const { appeal } = await appealedRetiro(staffAuthor, { signed: true });
+
+    const list = await as(reviewer).get('/moderation/appeals').expect(200);
+    expect(
+      (list.body as Array<{ id: string; canAnswer: boolean }>).find(
+        (entry) => entry.id === appeal.id,
+      )?.canAnswer,
+    ).toBe(false);
     await as(reviewer)
       .post(`/moderation/appeals/${appeal.id}/answer`, {
         accept: true,
         answer: 'Se restituye la reseña.',
       })
       .expect(403);
-
-    const forAdmin = await as(admin).get('/moderation/appeals').expect(200);
-    expect(
-      (forAdmin.body as Array<{ id: string; canAnswer: boolean }>).find(
-        (entry) => entry.id === appeal.id,
-      )?.canAnswer,
-    ).toBe(true);
   });
 
   it('marks the appeals a moderator may answer', async () => {
     const author = await createUser(prisma);
-    const { appeal } = await appealedAnonymousRetiro(author);
+    const { appeal } = await appealedRetiro(author, { signed: true });
     const list = await as(reviewer).get('/moderation/appeals').expect(200);
     expect(
       (list.body as Array<{ id: string; canAnswer: boolean }>).find(
@@ -223,7 +281,7 @@ describe('reviewing appeals (e2e)', () => {
 
   it('answers an appeal: accepting restores the retired reseña', async () => {
     const author = await createUser(prisma);
-    const { review, appeal } = await appealedAnonymousRetiro(author);
+    const { review, appeal } = await appealedRetiro(author, { signed: true });
 
     await as(reviewer)
       .post(`/moderation/appeals/${appeal.id}/answer`, {
@@ -246,8 +304,8 @@ describe('reviewing appeals (e2e)', () => {
 
   it('tells the author the appeal status and answer, never who reviewed it', async () => {
     const author = await createUser(prisma);
-    const { review, appeal } = await appealedAnonymousRetiro(author);
-    await as(reviewer)
+    const { review, appeal } = await appealedRetiro(author);
+    await as(admin)
       .post(`/moderation/appeals/${appeal.id}/answer`, {
         accept: false,
         answer: 'Hay insultos a la docente.',
@@ -267,7 +325,7 @@ describe('reviewing appeals (e2e)', () => {
         }),
       }),
     );
-    expect(JSON.stringify(body)).not.toContain(reviewer.id);
+    expect(JSON.stringify(body)).not.toContain(admin.id);
   });
 
   it('lists the account’s own sanciones without who applied them', async () => {
