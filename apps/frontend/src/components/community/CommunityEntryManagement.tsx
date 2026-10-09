@@ -70,10 +70,10 @@ function DeleteEntryDialog({
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-[1px]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(34rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto border border-border bg-card p-5 text-card-foreground shadow-surface outline-none sm:p-6">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(34rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto border border-border bg-card p-5 text-card-foreground outline-none sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Dialog.Title className="font-serif text-2xl font-bold leading-tight">
+              <Dialog.Title className="font-sans text-2xl font-bold leading-tight">
                 ¿Eliminar esta {entryLabel}?
               </Dialog.Title>
               <Dialog.Description className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
@@ -113,13 +113,13 @@ function OwnerRemovalEvidence({ management }: { management: CommunityManagementV
   return (
     <section
       aria-labelledby="removed-entry-title"
-      className="border border-destructive bg-destructive/10 p-5 shadow-surface"
+      className="border border-destructive bg-destructive/10 p-5"
       role="status"
     >
       <div className="flex items-start gap-3">
         <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-destructive" />
         <div className="grid gap-2">
-          <h1 className="font-serif text-2xl font-bold text-foreground" id="removed-entry-title">
+          <h1 className="font-sans text-2xl font-bold text-foreground" id="removed-entry-title">
             Tu publicación fue retirada de la vista pública
           </h1>
           <p className="font-sans text-sm leading-relaxed text-foreground">
@@ -186,7 +186,7 @@ export function CommunityEntryManagement({
     return (
       <div className="grid gap-4">
         <OwnerRemovalEvidence management={state.management} />
-        <aside className="grid content-start gap-3 border border-border bg-card p-4 shadow-surface">
+        <aside className="grid content-start gap-3 border border-border bg-card p-4">
           <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.08em] text-muted-foreground">
             Gestión de tu publicación
           </p>
@@ -205,7 +205,7 @@ export function CommunityEntryManagement({
   }
 
   return (
-    <aside className="grid content-start gap-3 border border-border bg-card p-4 shadow-surface">
+    <aside className="grid content-start gap-3 border border-border bg-card p-4">
       <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.08em] text-muted-foreground">
         Gestión de tu publicación
       </p>

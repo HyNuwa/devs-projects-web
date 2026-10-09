@@ -36,7 +36,7 @@ const sessions: ExamSession[] = [
 const formats: ExamFormat[] = ['ESCRITO', 'ORAL', 'MIXTO'];
 const outcomes: ExamOutcome[] = ['APROBADO', 'DESAPROBADO', 'PREFIERO_NO_DECIR'];
 const filterControlClassName =
-  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none shadow-field focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 type ExperienceRequestState =
   | { status: 'loading' }
@@ -314,10 +314,10 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-background/70">
               Faro cobalto
             </p>
-            <h1 className="mt-4 max-w-[10ch] font-serif text-[clamp(3.1rem,6vw,5.4rem)] font-bold leading-[0.9] tracking-[-0.045em]">
+            <h1 className="mt-4 max-w-[10ch] font-sans text-[clamp(3.1rem,6vw,5.4rem)] font-bold leading-[0.9] tracking-[-0.045em]">
               Mesas que ya pasaron.
             </h1>
-            <p className="mt-6 max-w-[56ch] font-serif text-lg leading-relaxed text-background/85 sm:text-xl">
+            <p className="mt-6 max-w-[56ch] font-sans text-lg leading-relaxed text-background/85 sm:text-xl">
               Leé qué tomaron, en qué período y cómo fue la experiencia antes de preparar tu final.
             </p>
           </div>
@@ -340,7 +340,7 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
               Archivo de finales
             </p>
-            <h2 className="mt-2 font-serif text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+            <h2 className="mt-2 font-sans text-3xl font-bold leading-tight text-foreground sm:text-4xl">
               {results ? `${results.meta.total} experiencias publicadas` : 'Explorá experiencias'}
             </h2>
           </div>
@@ -353,7 +353,7 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
 
         <section aria-label="Filtros de finales" className="mt-7">
           <div className="flex items-center justify-between gap-4 lg:hidden">
-            <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Filtros</h2>
             <FilterSheet
               description="Refiná las experiencias por el contexto de la mesa."
               onApply={applyFilters}
@@ -381,7 +381,7 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
             <div className="mb-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal aria-hidden="true" className="size-4 text-primary" />
-                <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
+                <h2 className="font-sans text-2xl font-bold text-foreground">Filtros</h2>
               </div>
               <div className="flex gap-2">
                 <Button onClick={clearDraftFilters} size="sm" variant="outline">
@@ -487,7 +487,7 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
         <section aria-labelledby="exam-results" className="mt-10">
           <h2
             id="exam-results"
-            className="border-b border-line pb-4 font-serif text-3xl font-bold text-foreground"
+            className="border-b border-line pb-4 font-sans text-3xl font-bold text-foreground"
           >
             Experiencias de final
           </h2>

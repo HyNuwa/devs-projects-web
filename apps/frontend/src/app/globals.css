@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '../styles/pixel-notebook-tokens.css';
+@import '../styles/tokens.css';
 
 @theme inline {
   --color-background: var(--background);
@@ -18,94 +18,57 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-ink: var(--destructive-ink);
   --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
   --color-border: var(--border);
-  --color-line: var(--pn-line);
+  --color-line: var(--line);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-link: var(--link);
   --font-sans: var(--ui-font-sans);
-  --font-serif: var(--ui-font-serif);
+  --font-hand: var(--ui-font-hand);
   --font-mono: var(--ui-font-mono);
-  --radius-sm: var(--radius);
-  --radius-md: var(--radius);
-  --radius-lg: var(--radius);
-  --radius-xl: var(--radius);
-  --shadow-control: var(--elevation-control);
-  --shadow-field: var(--elevation-field);
-  --shadow-surface: var(--elevation-surface);
+  --radius-sm: var(--dp-radius-sm);
+  --radius-md: var(--dp-radius-md);
+  --radius-lg: var(--dp-radius-lg);
+  --radius-xl: var(--dp-radius-xl);
+  --shadow-pop: var(--elevation-pop);
 }
 
 :root {
-  /* Pixel Notebook semantic roles consumed by Tailwind and source-owned shadcn components. */
-  --background: var(--pn-canvas);
-  --foreground: var(--pn-ink);
-  --card: var(--pn-surface);
-  --card-foreground: var(--pn-ink);
-  --popover: var(--pn-canvas);
-  --popover-foreground: var(--pn-ink);
-  --primary: var(--pn-cobalt);
-  --primary-foreground: var(--pn-canvas);
-  --secondary: var(--pn-paper);
-  --secondary-foreground: var(--pn-cobalt-deep);
-  --muted: var(--pn-paper);
-  --muted-foreground: var(--pn-muted);
-  --accent: var(--pn-gold);
-  --accent-foreground: var(--pn-ink);
-  --destructive: var(--pn-orange);
-  --destructive-foreground: var(--pn-ink);
-  --success: var(--pn-green);
-  --border: var(--pn-border);
-  --input: var(--pn-border);
-  --ring: var(--pn-cobalt);
-  --radius: 0px;
-  --ui-font-sans: var(--pn-font-body);
-  --ui-font-serif: var(--pn-font-display);
-  --ui-font-mono: var(--pn-font-mono);
-  --elevation-control: 2px 2px 0 var(--pn-ink);
-  --elevation-field: 4px 4px 0 var(--pn-line);
-  --elevation-surface: 3px 3px 0 var(--pn-line);
-
-  /* Colores principales - tema RPG azul */
-  --color-primary-50: #e8f4fd;
-  --color-primary-100: #b8def8;
-  --color-primary-200: #88c8f3;
-  --color-primary-500: #2196f3;
-  --color-primary-600: #1976d2;
-  --color-primary-700: #1565c0;
-  --color-primary-900: #0d47a1;
-
-  /* Acentos */
-  --color-accent-gold: #ffd700;
-  --color-accent-silver: #c0c7d1;
-  --color-accent-bronze: #cd7f32;
-  --color-accent-green: #4caf50;
-  --color-accent-orange: #ff9800;
-  --color-accent-red: #f44336;
-
-  /* Neutrales: legacy aliases resolve to Pixel Notebook paper and ink roles. */
-  --color-bg-primary: var(--background);
-  --color-bg-secondary: #ffffff;
-  --color-bg-dark: #0f1923;
-  --color-text-primary: var(--foreground);
-  --color-text-secondary: var(--muted-foreground);
-
-  /* Tipografía: legacy aliases for the canonical stacks. `--font-pixel` has a
-     single source in app/layout.tsx (next/font), so it is not redeclared here. */
-  --font-heading: var(--ui-font-serif);
-  --font-body: var(--ui-font-sans);
-
-  /* Ruled notebook paper: cream canvas with one notebook line every 32px. */
-  --paper-rule-gap: 32px;
-  --paper-ruled: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(var(--paper-rule-gap) - 1px),
-    var(--pn-line) var(--paper-rule-gap)
-  );
+  color-scheme: light;
+  --background: var(--dp-page);
+  --foreground: var(--dp-ink);
+  --card: var(--dp-surface);
+  --card-foreground: var(--dp-ink);
+  --popover: var(--dp-surface);
+  --popover-foreground: var(--dp-ink);
+  --primary: var(--dp-blue);
+  --primary-foreground: var(--dp-surface);
+  --secondary: var(--dp-blue-tint);
+  --secondary-foreground: var(--dp-ink);
+  --muted: var(--dp-sand);
+  --muted-foreground: var(--dp-muted);
+  --accent: var(--dp-gold);
+  --accent-foreground: var(--dp-ink);
+  --destructive: var(--dp-red);
+  --destructive-foreground: var(--dp-surface);
+  --destructive-ink: var(--dp-red-ink);
+  --success: var(--dp-green);
+  --success-ink: var(--dp-green-ink);
+  --border: var(--dp-ink);
+  --line: var(--dp-line);
+  --input: var(--dp-ink);
+  --ring: var(--dp-blue);
+  --link: var(--dp-link);
+  --radius: var(--dp-radius-md);
+  --ui-font-sans: var(--dp-font-sans);
+  --ui-font-hand: var(--dp-font-hand);
+  --ui-font-mono: var(--dp-font-mono);
+  --elevation-pop: var(--dp-shadow-pop);
 }
 
-/* Defaults must stay below Tailwind utilities and legacy CSS Modules. Unlayered
-   resets override even explicit spacing, font and screen-reader utilities. */
 @layer base {
   html {
     height: 100%;
@@ -125,11 +88,21 @@
     /* Preserve the legacy UA-derived rhythm while CSS Modules are migrated incrementally. */
     line-height: normal;
     background-color: var(--background);
-    background-image: var(--paper-ruled);
+    /* Faint navy grid from the canvas: 32px on compact screens, 44px from lg up. */
+    background-image:
+      linear-gradient(var(--dp-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--dp-grid-line) 1px, transparent 1px);
+    background-size: var(--dp-grid-size-compact) var(--dp-grid-size-compact);
     color: var(--foreground);
     font-family: var(--ui-font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  @media (width >= 64rem) {
+    body {
+      background-size: var(--dp-grid-size) var(--dp-grid-size);
+    }
   }
 
   * {
@@ -198,12 +171,9 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-heading);
+    font-family: var(--ui-font-sans);
+    letter-spacing: -0.03em;
   }
-}
-
-.font-pixel {
-  font-family: var(--font-pixel);
 }
 
 @keyframes spin {

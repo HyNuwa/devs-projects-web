@@ -7,12 +7,19 @@ import {
 } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ThrottlerModule } from '@nestjs/throttler';
 import * as request from 'supertest';
 import { App } from 'supertest/types';
-import { CommunityWriteThrottlerGuard } from '../../common/guards/community-write-throttler.guard';
+import { ConfigService } from '@nestjs/config';
+import { RateLimitGuard } from '../rate-limit/rate-limit.guard';
+import { RateLimitPolicies } from '../rate-limit/rate-limit.policies';
+import {
+  RATE_LIMIT_REDIS,
+  RateLimiterService,
+} from '../rate-limit/rate-limiter.service';
 import { SubjectsController } from './subjects.controller';
 import { SubjectsService } from './subjects.service';
+import { AccountStatusService } from '../moderation/account-status.service';
+import { ActiveAccountGuard } from '../moderation/active-account.guard';
 
 const REVIEW_ID = '30000000-0000-4000-8000-000000000001';
 const EXAM_ID = '30000000-0000-4000-8000-000000000002';
@@ -58,14 +65,25 @@ describe('Subjects community write API rate limit', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        ThrottlerModule.forRoot([
-          { name: 'communityWrite', ttl: 60_000, limit: 3 },
-        ]),
-      ],
       controllers: [SubjectsController],
       providers: [
-        CommunityWriteThrottlerGuard,
+        RateLimitGuard,
+        RateLimitPolicies,
+        RateLimiterService,
+        { provide: RATE_LIMIT_REDIS, useValue: null },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (name: string, fallback?: unknown) =>
+              name === 'COMMUNITY_WRITE_RATE_LIMIT' ? 3 : fallback,
+          },
+        },
+        // Every account is active here; restrictions are tested in the moderation e2e.
+        ActiveAccountGuard,
+        {
+          provide: AccountStatusService,
+          useValue: { assertCanContribute: jest.fn() },
+        },
         { provide: SubjectsService, useValue: subjectsService },
         {
           provide: APP_GUARD,

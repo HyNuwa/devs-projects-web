@@ -41,12 +41,12 @@ export function FilterSheet({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-[1px]" />
         <Dialog.Content
-          className="fixed inset-x-0 bottom-0 z-50 grid max-h-[min(85dvh,48rem)] grid-rows-[auto_minmax(0,1fr)_auto] border border-border bg-card text-card-foreground shadow-surface outline-none lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-full lg:max-w-lg"
+          className="fixed inset-x-0 bottom-0 z-50 grid max-h-[min(85dvh,48rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-t-2xl border-[1.5px] border-border bg-card text-card-foreground outline-none lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-full lg:max-w-lg lg:rounded-none lg:rounded-l-2xl"
           data-slot="filter-sheet"
         >
           <header className="flex items-start justify-between gap-4 border-b border-border px-4 py-4">
             <div className="grid gap-1">
-              <Dialog.Title className="font-serif text-2xl font-bold text-card-foreground">
+              <Dialog.Title className="font-sans text-2xl font-bold text-card-foreground">
                 {title}
               </Dialog.Title>
               <Dialog.Description className="font-sans text-sm text-muted-foreground">

@@ -2,11 +2,16 @@ import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from '
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api';
-import { loginHrefForCurrentLocation, redirectToLogin } from '@/lib/auth-return-path';
+import {
+  loginHrefForCurrentLocation,
+  redirectSuspended,
+  redirectToLogin,
+} from '@/lib/auth-return-path';
 
 vi.mock('@/lib/auth-return-path', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/auth-return-path')>()),
   redirectToLogin: vi.fn(),
+  redirectSuspended: vi.fn(),
 }));
 
 const unauthorized: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
@@ -63,5 +68,39 @@ describe('api 401 interceptor', () => {
     });
 
     expect(redirectToLogin).not.toHaveBeenCalled();
+  });
+});
+
+const forbidden =
+  (code: string): AxiosAdapter =>
+  async (config: InternalAxiosRequestConfig) => {
+    throw new AxiosError('Forbidden', AxiosError.ERR_BAD_REQUEST, config, null, {
+      config,
+      data: { statusCode: 403, code },
+      headers: {},
+      status: 403,
+      statusText: 'Forbidden',
+    });
+  };
+
+describe('api 403 ACCOUNT_SUSPENDED interceptor', () => {
+  beforeEach(() => {
+    vi.mocked(redirectSuspended).mockReset();
+  });
+
+  it('ends the session of an account suspended while signed in', async () => {
+    await expect(
+      api.post('/reports', {}, { adapter: forbidden('ACCOUNT_SUSPENDED') }),
+    ).rejects.toMatchObject({ response: { status: 403 } });
+
+    expect(redirectSuspended).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves other refusals to the page', async () => {
+    await expect(
+      api.post('/reports', {}, { adapter: forbidden('ACCOUNT_MUTED') }),
+    ).rejects.toMatchObject({ response: { status: 403 } });
+
+    expect(redirectSuspended).not.toHaveBeenCalled();
   });
 });

@@ -97,7 +97,7 @@ Cada reporte queda como **confirmado** (el contenido se retiró) o **desestimado
 El sistema oculta un contenido hasta que moderación lo revise cuando:
 
 - recibe **3 reportes de cuentas distintas en 48 horas**, contando solo cuentas con email verificado y más de 7 días de antigüedad; o
-- recibe **1 reporte por datos personales**, porque el daño es inmediato.
+- recibe **1 reporte por datos personales** de una cuenta con email verificado y más de 7 días de antigüedad, porque el daño es inmediato. Si lo hace una cuenta que no cumple esas condiciones, el reporte se suma al caso con prioridad alta pero no oculta el contenido.
 
 Los reportes de cuentas con *Reportes prioritarios* valen doble para este cálculo. El autor ve su contenido como «Oculto mientras se revisa» y no se le descuentan puntos hasta que haya una decisión.
 
@@ -125,25 +125,54 @@ La cola ordena primero: ocultos preventivamente, luego casos con más reportes, 
 
 | Paso | Cuándo | Quién la aplica | Efecto |
 |---|---|---|---|
-| Advertencia | Primer retiro por normas | Se envía junto con el aviso del retiro | Solo aviso; queda en el historial |
-| Silenciamiento | Segundo retiro por normas en 90 días (el panel lo **sugiere**) | `MODERATOR` | 7 días sin poder publicar ni reportar; puede seguir leyendo y guardando (`isMuted`, `mutedUntil`) |
-| Suspensión | Tercer retiro por normas en 90 días, o reincidencia después de un silenciamiento | Solo `ADMIN` | No puede iniciar sesión (`isBanned`); temporal o permanente |
+| Advertencia | Primer retiro por normas en 90 días | `MODERATOR`: al retirar, la pantalla ofrece «Advertir también» (marcado cuando es el paso sugerido, nunca en publicaciones anónimas) | Solo aviso; queda en el historial |
+| Silenciamiento | Segundo retiro por normas en 90 días (el panel lo **sugiere**) | `MODERATOR` | 7 días fijos (§6.3) (`isMuted`, `mutedUntil`) |
+| Suspensión | Tercer retiro por normas en 90 días, o un retiro nuevo con un silenciamiento en los últimos 90 días | `MODERATOR` la **propone**; la confirma un `ADMIN` | No puede iniciar sesión (§6.4); 7 días, 30 días o permanente (`isBanned`, `bannedUntil`) |
 
 **Excepción:** spam y cuentas falsas pueden suspenderse de entrada, sin pasar por los pasos anteriores.
 
 El sistema **nunca** aplica una sanción solo: calcula el paso sugerido y moderación decide.
 
+**Qué cuenta como retiro por normas:** la decisión «Retirar» sobre un caso. No cuentan el borrado que hace el propio autor, el rechazo en revisión previa, ni un retiro que después se restauró o se revirtió por apelación.
+
+**Sanciones sin caso:** desde *Usuarios* se puede advertir o silenciar cualquier cuenta con una razón obligatoria. El paso sugerido es solo una ayuda. Esas acciones **no nombran un caso**: un pedido que nombra uno se rechaza como inválido, igual para cualquier cuenta, así que su resultado nunca depende de quién escribió el contenido de un caso. La única sanción ligada a un caso es la advertencia que se da al decidirlo («Advertir también»).
+
+**Fin de una sanción:** no hace falta ningún proceso periódico. Una cuenta está silenciada mientras `mutedUntil` sea posterior a ahora, y una suspensión temporal dura mientras `bannedUntil` lo sea. Al pasar la fecha, deja de aplicarse sola.
+
+**Publicaciones anónimas:** desde un caso se puede advertir al autor sin verlo («Advertir también»), y el caso sigue mostrando «Autor oculto». El servidor resuelve la cuenta desde el caso; quien modera no la elige ni la ve, y la respuesta de la decisión es la misma se haya registrado o no la advertencia. En un caso anónimo la opción **nunca viene marcada**: marcarla según el historial del autor diría algo sobre él. Un `ADMIN` ve la sanción en la ficha del usuario como «por un caso sobre una publicación anónima», con la razón y la fecha pero **sin enlace** al caso; un `MODERATOR` no la ve (§13.1). Relacionar la cuenta con la publicación sigue exigiendo **Ver autor** (§9).
+
 ### 6.2 Efectos sobre puntos y privilegios
 
 Mientras dura una sanción, la cuenta no gana puntos, sus «Me sirvió» no cuentan, se ocultan sus personalizaciones y pierde los privilegios de confianza (detalle en `README_PUNTOS_E_INSIGNIAS.md` §5.2).
 
+Por ahora solo se aplica lo que la sanción bloquea directamente (publicar y «Me sirvió», §6.3). Congelar puntos, ocultar personalizaciones y quitar privilegios llega con el cambio de puntos e insignias. Los puntos que se reotorgan por una apelación aceptada se otorgan igual, porque el retiro fue un error.
+
+### 6.3 Silenciamiento
+
+Dura **7 días fijos**. Mientras dura, la cuenta no puede publicar, editar ni reenviar sus aportes, reportar ni marcar «Me sirvió». Puede leer, buscar, descargar y guardar. Cualquier `MODERATOR` puede **quitar el silencio** antes de tiempo.
+
+Las acciones bloqueadas se muestran deshabilitadas con la explicación («Estás silenciado hasta el 6 oct: no podés publicar, reportar ni marcar Me sirvió»), para que nadie complete un formulario que no va a poder enviar. El servidor las rechaza igual.
+
+### 6.4 Suspensión
+
+- La propone un `MODERATOR` con una razón. No afecta a la cuenta hasta que un `ADMIN` la confirma o la rechaza, también con una razón.
+- Duración: 7 días, 30 días o permanente.
+- Al confirmarla se cierran todas las sesiones de la cuenta. El ingreso y la renovación de sesión se rechazan mostrando la razón y hasta cuándo. Mientras vence el acceso ya emitido (hasta 15 minutos), las acciones que escriben (publicar, reportar, «Me sirvió») igual verifican el estado de la cuenta.
+- Sus aportes publicados **siguen visibles**. Al confirmar, el `ADMIN` puede marcar «Retirar también sus aportes publicados» (pensado para spam): se retiran con la misma razón y se revierten sus puntos.
+- Solo un `ADMIN` puede levantar una suspensión antes de tiempo.
+
 ## 7. Apelaciones
 
-- Se puede apelar **una vez por decisión**, dentro de los **14 días**, desde *Mis aportes* o desde el aviso de la sanción.
+- Se pueden apelar los **retiros** y las **sanciones** (advertencia, silenciamiento, suspensión). No se apelan el rechazo en revisión previa (se corrige y se reenvía) ni «Mantener visible» (quien reporta no apela).
+- Se puede apelar **una vez por decisión**, dentro de los **14 días**, desde *Mis envíos* o desde el aviso de la sanción.
+- Una cuenta suspendida apela desde la pantalla de ingreso: al rechazar el ingreso se muestran la razón, hasta cuándo y el formulario «Apelar esta suspensión», que exige las credenciales correctas y sirve solo para esa suspensión.
 - La apelación incluye una explicación de quien apela (obligatoria).
-- La revisa **otro** moderador, nunca quien tomó la decisión. Una apelación sobre una suspensión la revisa un `ADMIN`.
+- La revisa **otro** moderador, nunca quien tomó la decisión. Una apelación sobre una suspensión la revisa un `ADMIN`. Las apelaciones **sobre contenido anónimo** las resuelve siempre un `ADMIN`, sea quien sea quien apela: las de retiros de publicaciones anónimas y las de sanciones que vienen de un caso sobre una publicación anónima. Si un moderador pudiera responder las de estudiantes y no las de otros moderadores, esa diferencia revelaría que el autor anónimo es del equipo; y ver quién apela una advertencia junto a la razón y la fecha del retiro revelaría quién lo escribió. Un `MODERATOR` las ve en solo lectura con «La resuelve un admin» y quien apela como «Autor oculto» (por ejemplo, «Advertencia · Autor oculto»), todas iguales, junto con las que no puede resolver solo por su rol (por ejemplo, de otro moderador), para que su ausencia no revele quién apeló. Si no hay nadie habilitado (por ejemplo, un solo moderador), espera a un `ADMIN`.
 - La respuesta es **final** y siempre lleva una razón escrita.
-- Si se acepta, el contenido se restaura, los puntos se reotorgan y la sanción deja de contar para la escalera.
+- Apelar no revela al autor de una publicación anónima: quien revisa ve «Autor oculto» y, si lo necesita, usa **Ver autor** con un motivo, que queda registrado (§9).
+- Si se acepta un **retiro**: el contenido se restaura, los puntos se reotorgan, el retiro deja de contar para la escalera y se anula la advertencia que se haya dado junto con ese retiro.
+- Si se acepta una **sanción**: se levanta en el momento y deja de contar.
+- Si se rechaza, la decisión se mantiene y no hay otra apelación.
 
 ## 8. Roles y alcance
 
@@ -154,6 +183,8 @@ Mientras dura una sanción, la cuenta no gana puntos, sus «Me sirvió» no cuen
 | `ADMIN` | Todas las facultades | Todo lo anterior, suspender, verificar organizadores, asignar moderadores y su facultad |
 | `SUPERADMIN` | Toda la plataforma | Todo lo anterior, gestionar admins y la configuración (umbrales de §4.4, límites de §3.2) |
 
+**Quién sanciona a quién:** nadie se sanciona a sí mismo. Un `MODERATOR` no sanciona a otro `MODERATOR`, `ADMIN` ni `SUPERADMIN`: a un moderador lo sanciona un `ADMIN`, y a un `ADMIN` solo un `SUPERADMIN`. Tampoco se sanciona a una cuenta desde un caso que uno reportó, ni desde *Usuarios* a una cuenta cuyo contenido **no anónimo** uno reportó en los últimos 90 días («Reportaste contenido de esta cuenta: lo resuelve otra persona de moderación»). Solo la advertencia al decidir un caso («Advertir también») queda afuera de esta regla: ahí aplica la del caso, y rechazarla por otro reporte podría revelar quién escribió una publicación anónima. Con contenido anónimo no se bloquea: el bloqueo mismo revelaría la autoría.
+
 Hoy DevsProject solo tiene la FI UNJu, así que en la práctica todos los moderadores cubren la misma facultad. La asignación por facultad evita rehacer el modelo cuando se sumen otras.
 
 **Cómo se llega a moderar:** por invitación de un `ADMIN`. Cumplir los requisitos de *Invitación a moderar* (`README_PUNTOS_E_INSIGNIAS.md` §5) solo hace elegible.
@@ -163,6 +194,12 @@ Hoy DevsProject solo tiene la FI UNJu, así que en la práctica todos los modera
 Moderación puede saber quién escribió una publicación anónima, pero **no lo ve por defecto**. En el caso aparece «Autor oculto» y un botón **Ver autor**, que pide un motivo (por ejemplo, «evaluar reincidencia para una sanción») y **queda registrado** en el historial. Así el anonimato también se protege frente a moderadores que son compañeros de cursada.
 
 Las sanciones sobre una publicación anónima se aplican a la cuenta del autor sin revelar públicamente quién es.
+
+**Reglas para no reabrir canales** (cambios `moderacion-ajustes` y `endurecer-auth-anonimato`):
+
+- Las decisiones sobre una publicación anónima (retiro, restauración, aprobación de la revisión previa, apelación aceptada) **no mueven puntos**: los puntos y el nivel son públicos, y verlos cambiar con la decisión nombraría al autor. Una anónima retirada conserva sus puntos hasta que el cambio de puntos quite los de todas las anónimas a la vez (`README_PUNTOS_E_INSIGNIAS.md` §3.4).
+- Para un `MODERATOR`, *Usuarios* **ignora** los retiros de publicaciones anónimas y las sanciones de casos sobre publicaciones anónimas: la lista, sus filtros, los conteos (aportes publicados y retiros en 90 días), el estado, el paso sugerido y la línea de tiempo. Lo mismo la ficha del autor en un caso firmado (retiros en 90 días) y la preselección de «Advertir también». Si no, decidir un caso anónimo y mirar después qué cuenta cambió revelaría quién lo escribió. Un `ADMIN` ve todo. Esto reemplaza el riesgo aceptado de `moderacion-ajustes`: la reincidencia anónima sigue contando en la escalera de las decisiones, y un `MODERATOR` que la necesite usa **Ver autor**, que queda registrado, o la deja a un `ADMIN` (cambio `endurecer-auth-anonimato`).
+- En el **historial**, un `MODERATOR` **no ve** los eventos sobre una cuenta que vienen de un caso anónimo, con ningún filtro: sanciones (advertencia, silenciamiento, suspensión, levantamiento, propuesta de suspensión y su rechazo) y apelaciones de esas sanciones con su respuesta. Un `ADMIN` ve todo. Así no se puede cruzar el texto o la hora con la cuenta, y tampoco sirve que la fila exista o no: «Advertir también» no advierte en silencio a un autor del equipo, así que una advertencia después de un retiro anónimo diría que el autor no es del equipo. De las apelaciones de retiros anónimos tampoco ve la razón, igual que en la apelación de solo lectura. La razón del retiro sigue visible: la ficha no lista retiros anónimos con los que compararla. Cualquier vista nueva que muestre sanciones o apelaciones debe respetar esta regla.
 
 ## 10. Organizadores verificados (Eventos)
 
@@ -186,8 +223,8 @@ El historial es de solo lectura: nadie puede editar ni borrar un registro.
 - **Reportes:** generalizar `CommunityReport` para cualquier contenido (materiales, reseñas, experiencias, eventos, avisos) y agregar estado del reporte (`OPEN`, `CONFIRMED`, `DISMISSED`).
 - **Nuevo `ModerationCase`:** agrupa los reportes de un contenido, con estado, facultad y quién lo resolvió.
 - **Nuevo `Appeal`:** decisión apelada, explicación, estado, quién la revisó y razón.
-- **Nuevo `ModeratorScope`:** qué facultades cubre cada moderador.
-- **Nuevo `AuthorReveal`:** cada uso de «Ver autor» (moderador, publicación, motivo, fecha).
+- **Nuevo `ModeratorScope`:** qué facultades cubre cada moderador. Llega con el modelo de Facultad (cambio Universidad/Facultad); hasta entonces todo moderador ve todos los casos.
+- **Revelación de autor:** cada uso de «Ver autor» (moderador, publicación, motivo, fecha) se guarda como un evento `AUTHOR_REVEALED` del historial único, visible solo para `ADMIN`.
 - **Advertencias:** agregar `WARN_USER` a `ModerationAction`.
 - **Organizadores:** nuevos `Organization` (verificada o no) y `OrganizationMember`.
 
@@ -207,12 +244,14 @@ Un moderador ve:
 
 - **Datos básicos:** usuario, carrera, antigüedad de la cuenta y si verificó el email.
 - **Estado:** activo, advertido, silenciado hasta una fecha o suspendido.
-- **Números:** aportes publicados, retiros por normas en los últimos 90 días y precisión de sus reportes.
+- **Números:** aportes publicados, retiros por normas en los últimos 90 días y precisión de sus reportes (confirmados sobre confirmados más desestimados; se muestra solo con al menos 5 reportes resueltos, para no etiquetar a nadie por uno o dos).
 - **Línea de tiempo** de decisiones sobre esa cuenta y el **paso sugerido** de la escalera (§6.1).
+
+La lista se filtra por «Con sugerencias», «Sancionados» y «Revisión previa», y se busca por usuario. Los `ADMIN` ven además las suspensiones propuestas.
 
 Acciones: advertir, silenciar o quitar el silencio, y **proponer** una suspensión, que confirma un `ADMIN`.
 
-No ve el email completo ni cuáles publicaciones anónimas son de esa persona, salvo con **Ver autor** (§9).
+No ve el email completo ni cuáles publicaciones anónimas son de esa persona, salvo con **Ver autor** (§9). Para un `MODERATOR`, nada de la ficha ni de la lista depende de contenido anónimo: ni los aportes publicados (cuentan solo los firmados), ni los retiros, ni las sanciones de casos anónimos, ni el estado ni el paso sugerido que salen de ellos (§9). Un `ADMIN` ve todo, y por eso puede ver un paso sugerido distinto para la misma cuenta.
 
 ### 13.2 Historial
 
@@ -229,7 +268,7 @@ Advertencias y silenciamientos cuentan **90 días** para calcular el paso sugeri
 ### 14.2 Tiempo de respuesta
 
 - **Objetivo:** 48 horas para casos con contenido oculto y 7 días para el resto.
-- **Si se pasa el plazo:** el caso sube al primer lugar de la cola y se avisa a los `ADMIN`.
+- **Si se pasa el plazo:** el caso pasa al grupo «Vencidos», arriba de todo en la cola (los más atrasados primero) y con la marca «Vencido», y los `ADMIN` ven en el panel un aviso con la cantidad de casos vencidos (sin email por ahora, §15).
 - **Contenido oculto sin revisar a los 7 días:** vuelve a verse automáticamente y queda marcado para revisión, para que un grupo no pueda dejar algo oculto indefinidamente con reportes.
 
 ### 14.3 Conservación
@@ -239,3 +278,15 @@ Advertencias y silenciamientos cuentan **90 días** para calcular el paso sugeri
 | Casos y decisiones | Mientras exista la cuenta del autor (son evidencia) |
 | Reportes desestimados | 12 meses; después se borra quién reportó y queda solo el motivo |
 | Registros de «Ver autor» | 2 años |
+
+**Pendiente:** estas purgas se implementan en un cambio posterior. El historial empezó en septiembre de 2026, así que nada vence antes de septiembre de 2027. Borrar registros de «Ver autor» va a requerir una excepción controlada al historial de solo lectura.
+
+## 15. Pendiente: notificaciones
+
+Hoy DevsProject no tiene notificaciones. Mientras tanto, moderación avisa **dentro de la app**:
+
+- **Sanciones:** un aviso en la barra superior mientras la sanción está activa (razón, hasta cuándo y «Apelar»), y la sección *Sanciones* en Mis envíos.
+- **Retiros, rechazos y respuestas a apelaciones:** el estado y la razón en Mis envíos.
+- **Casos vencidos (§14.2):** un aviso para los `ADMIN` en el panel de moderación.
+
+Cuando se sume un sistema de notificaciones (centro de notificaciones en la app y email), estos avisos pasan a enviarse también por ahí. Los avisos dentro de la app se mantienen.

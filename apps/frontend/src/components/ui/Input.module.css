@@ -9,10 +9,10 @@
 }
 
 .label {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .inputWrapper {
@@ -24,25 +24,25 @@
 .input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background-color: #F8FAFC;
-  font-family: var(--font-body);
+  background-color: #f8fafc;
+  font-family: var(--ui-font-sans);
   font-size: 0.95rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   transition: all 0.2s ease;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary-400);
-  background-color: #FFFFFF;
-  box-shadow: 0 0 0 3px var(--color-primary-50);
+  border-color: var(--primary);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px var(--secondary);
 }
 
 .input:disabled {
-  background-color: #F1F5F9;
-  color: var(--color-text-secondary);
+  background-color: #f1f5f9;
+  color: var(--muted-foreground);
   cursor: not-allowed;
 }
 
@@ -55,7 +55,7 @@
 }
 
 .hasError {
-  border-color: var(--color-accent-red);
+  border-color: var(--destructive);
 }
 
 .hasError:focus {
@@ -65,7 +65,7 @@
 .iconLeft {
   position: absolute;
   left: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -74,13 +74,13 @@
 .iconRight {
   position: absolute;
   right: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   display: flex;
   align-items: center;
 }
 
 .errorMessage {
   font-size: 0.8rem;
-  color: var(--color-accent-red);
+  color: var(--destructive);
   margin-top: 0.2rem;
 }

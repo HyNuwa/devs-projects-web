@@ -1,18 +1,15 @@
 'use client';
 
-import * as Dialog from '@radix-ui/react-dialog';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   CalendarDays,
-  Flag,
   GraduationCap,
   LoaderCircle,
   Share2,
   UserRound,
-  X,
 } from 'lucide-react';
 
 import {
@@ -21,16 +18,8 @@ import {
   StarRecommendation,
 } from '@/components/community/CommunitySummaryCards';
 import { CommunityEntryManagement } from '@/components/community/CommunityEntryManagement';
-import { Button, Chip, Field, FieldError, FieldLabel } from '@/components/ui/shadcn';
-import { cn } from '@/components/ui/shadcn/utils';
-import {
-  communityReportReasons,
-  createCommunityReport,
-  type CommunityReportReason,
-  type CommunityReportTarget,
-} from '@/lib/community-report-client';
-import { getApiError } from '@/lib/apiHelpers';
-import { loginHrefForReturnPath } from '@/lib/auth-return-path';
+import { ReportDialog } from '@/components/moderation/ReportDialog';
+import { Button, Chip } from '@/components/ui/shadcn';
 import { getCourseReviewDetail, getExamExperienceDetail } from '@/lib/discovery-client';
 import {
   courseAttemptLabel,
@@ -41,7 +30,6 @@ import {
   examPeriodLabel,
   shiftLabel,
 } from '@/lib/presentation-labels';
-import { useAuthStore } from '@/stores/authStore';
 import type { DiscoveryCourseReviewDetail, DiscoveryExamExperienceDetail } from '@/types/discovery';
 
 type CommunityDetailKind = 'course-review' | 'exam-experience';
@@ -52,18 +40,6 @@ type DetailState =
   | { detail: CommunityDetail; status: 'ready' }
   | { status: 'unavailable' }
   | { status: 'error' };
-
-const reportReasonLabels: Record<CommunityReportReason, string> = {
-  SPAM_O_REPETIDO: 'Spam o contenido repetido',
-  INSULTOS_O_ACOSO: 'Insultos o acoso',
-  DATOS_PERSONALES: 'Expone datos personales',
-  NO_RELACIONADO: 'No está relacionado con la materia',
-  POSIBLEMENTE_ENGANOSO: 'Información posiblemente engañosa',
-  OTRO: 'Otro motivo',
-};
-
-const reportSelectClassName =
-  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none shadow-field focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 function isUnavailableError(error: unknown) {
   const status = (error as { response?: { status?: number } } | undefined)?.response?.status;
@@ -123,147 +99,6 @@ function DetailFacts({ detail, kind }: { detail: CommunityDetail; kind: Communit
   );
 }
 
-function ReportDialog({
-  id,
-  onReported,
-  target,
-}: {
-  id: string;
-  onReported: () => void;
-  target: CommunityReportTarget;
-}) {
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState<CommunityReportReason>('SPAM_O_REPETIDO');
-  const [explanation, setExplanation] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const clearForm = () => {
-    setReason('SPAM_O_REPETIDO');
-    setExplanation('');
-    setError(null);
-  };
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
-    if (!nextOpen) clearForm();
-  };
-
-  const submitReport = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const normalizedExplanation = explanation.trim();
-
-    if (reason === 'OTRO' && normalizedExplanation.length < 3) {
-      setError('Explicá el motivo en al menos 3 caracteres.');
-      return;
-    }
-
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      await createCommunityReport(target, id, {
-        reason,
-        ...(reason === 'OTRO' ? { explanation: normalizedExplanation } : {}),
-      });
-      setOpen(false);
-      clearForm();
-      onReported();
-    } catch (submissionError) {
-      setError(getApiError(submissionError));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog.Root onOpenChange={handleOpenChange} open={open}>
-      <Dialog.Trigger asChild>
-        <Button variant="outline">
-          <Flag aria-hidden="true" className="size-4" strokeWidth={1.8} />
-          Reportar
-        </Button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-[1px]" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 grid w-[min(34rem,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto border border-border bg-card p-5 text-card-foreground shadow-surface outline-none sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Dialog.Title className="font-serif text-2xl font-bold leading-tight">
-                Reportar publicación
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 font-sans text-sm leading-relaxed text-muted-foreground">
-                El reporte será revisado por moderación. Esta publicación sigue visible hasta que
-                haya una decisión.
-              </Dialog.Description>
-            </div>
-            <Dialog.Close asChild>
-              <Button aria-label="Cerrar reporte" size="icon" variant="ghost">
-                <X aria-hidden="true" className="size-5" />
-              </Button>
-            </Dialog.Close>
-          </div>
-
-          <form className="grid gap-5" onSubmit={submitReport}>
-            <Field>
-              <FieldLabel htmlFor="community-report-reason">Motivo</FieldLabel>
-              <select
-                className={reportSelectClassName}
-                id="community-report-reason"
-                onChange={(event) => setReason(event.target.value as CommunityReportReason)}
-                value={reason}
-              >
-                {communityReportReasons.map((value) => (
-                  <option key={value} value={value}>
-                    {reportReasonLabels[value]}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            {reason === 'OTRO' ? (
-              <Field>
-                <FieldLabel htmlFor="community-report-explanation">Explicación</FieldLabel>
-                <textarea
-                  aria-describedby="community-report-explanation-help community-report-error"
-                  aria-invalid={Boolean(error)}
-                  className={cn(reportSelectClassName, 'min-h-28 resize-y py-3')}
-                  id="community-report-explanation"
-                  maxLength={1000}
-                  aria-required="true"
-                  onChange={(event) => setExplanation(event.target.value)}
-                  placeholder="Contá qué debería revisar moderación."
-                  value={explanation}
-                />
-                <p
-                  className="font-sans text-sm text-muted-foreground"
-                  id="community-report-explanation-help"
-                >
-                  Entre 3 y 1.000 caracteres, sin datos sensibles propios o ajenos.
-                </p>
-              </Field>
-            ) : null}
-
-            <FieldError id="community-report-error">{error}</FieldError>
-            <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-4">
-              <Dialog.Close asChild>
-                <Button disabled={isSubmitting} variant="outline">
-                  Cancelar
-                </Button>
-              </Dialog.Close>
-              <Button disabled={isSubmitting} type="submit">
-                {isSubmitting ? (
-                  <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-                ) : null}
-                Enviar reporte
-              </Button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
 function DetailActions({
   id,
   kind,
@@ -273,8 +108,6 @@ function DetailActions({
   kind: CommunityDetailKind;
   title: string;
 }) {
-  const user = useAuthStore((state) => state.user);
-  const isAuthLoading = useAuthStore((state) => state.isLoading);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [reportFeedback, setReportFeedback] = useState<string | null>(null);
   const route = kind === 'course-review' ? `/resenas/${id}` : `/finales/${id}`;
@@ -305,7 +138,7 @@ function DetailActions({
   };
 
   return (
-    <aside className="grid content-start gap-3 border border-border bg-card p-4 shadow-surface min-[820px]:sticky min-[820px]:top-24">
+    <aside className="grid content-start gap-3 border border-border bg-card p-4 min-[820px]:sticky min-[820px]:top-24">
       <p className="font-mono text-[0.68rem] font-bold uppercase tracking-[0.08em] text-muted-foreground">
         Acciones
       </p>
@@ -313,22 +146,12 @@ function DetailActions({
         <Share2 aria-hidden="true" className="size-4" strokeWidth={1.8} />
         Compartir
       </Button>
-      {isAuthLoading ? (
-        <Button disabled variant="outline">
-          <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-          Cargando cuenta
-        </Button>
-      ) : user ? (
-        <ReportDialog
-          id={id}
-          onReported={() => setReportFeedback('Reporte enviado. La publicación sigue visible.')}
-          target={kind}
-        />
-      ) : (
-        <Button asChild variant="outline">
-          <Link href={loginHrefForReturnPath(route)}>Iniciá sesión para reportar</Link>
-        </Button>
-      )}
+      <ReportDialog
+        onReported={setReportFeedback}
+        returnPath={route}
+        targetId={id}
+        targetType={kind === 'course-review' ? 'COURSE_REVIEW' : 'EXAM_EXPERIENCE'}
+      />
       <p aria-live="polite" className="min-h-5 font-sans text-sm text-muted-foreground">
         {shareFeedback ?? reportFeedback}
       </p>
@@ -342,8 +165,8 @@ function UnavailableDetail({ id, kind }: { id: string; kind: CommunityDetailKind
 
   return (
     <section className="mx-auto grid w-full max-w-3xl gap-5 px-3 py-12 sm:px-6 sm:py-16">
-      <div className="border border-border bg-card p-6 text-center shadow-surface sm:p-8">
-        <h1 className="font-serif text-3xl font-bold text-card-foreground">
+      <div className="border border-border bg-card p-6 text-center sm:p-8">
+        <h1 className="font-sans text-3xl font-bold text-card-foreground">
           Esta publicación no está disponible
         </h1>
         <p className="mx-auto mt-3 max-w-xl font-sans leading-relaxed text-muted-foreground">
@@ -397,13 +220,13 @@ function CommunityDetailContent({
       </nav>
 
       <div className="grid gap-6 min-[820px]:grid-cols-[minmax(0,1fr)_16rem] min-[820px]:items-start">
-        <article className="min-w-0 border border-border bg-card p-5 shadow-surface sm:p-8">
+        <article className="min-w-0 border border-border bg-card p-5 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="min-w-0">
               <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
                 {sectionLabel}
               </p>
-              <h1 className="mt-2 font-serif text-4xl font-bold leading-[0.95] text-card-foreground sm:text-5xl">
+              <h1 className="mt-2 font-sans text-4xl font-bold leading-[0.95] text-card-foreground sm:text-5xl">
                 {detail.subject.name}
               </h1>
               <Link
@@ -439,13 +262,13 @@ function CommunityDetailContent({
 
           <section aria-labelledby="community-narrative" className="mt-8 max-w-[75ch]">
             <h2
-              className="font-serif text-2xl font-bold text-card-foreground"
+              className="font-sans text-2xl font-bold text-card-foreground"
               id="community-narrative"
             >
               Relato completo
             </h2>
             {detail.comment ? (
-              <p className="mt-4 whitespace-pre-wrap font-serif text-lg leading-relaxed text-foreground">
+              <p className="mt-4 whitespace-pre-wrap font-sans text-lg leading-relaxed text-foreground">
                 {detail.comment}
               </p>
             ) : (
@@ -519,10 +342,10 @@ export function CommunityDetailPage({
       <section className="mx-auto grid w-full max-w-3xl gap-5 px-3 py-12 sm:px-6 sm:py-16">
         <div
           aria-live="assertive"
-          className="border border-destructive bg-card p-6 text-center shadow-surface"
+          className="border border-destructive bg-card p-6 text-center"
           role="alert"
         >
-          <h1 className="font-serif text-3xl font-bold text-card-foreground">
+          <h1 className="font-sans text-3xl font-bold text-card-foreground">
             No pudimos cargar la publicación
           </h1>
           <p className="mt-3 font-sans text-muted-foreground">

@@ -24,6 +24,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth-actions.dto';
+import { RateLimit, RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import { Public } from '../../common/decorators/public.decorator';
 
 const ACCESS_TOKEN_MAX_AGE = 15 * 60 * 1000; // 15 minutos
@@ -70,6 +71,8 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit('signup')
+  @UseGuards(RateLimitGuard)
   @Post('register')
   @ApiOperation({ summary: 'Registrar un nuevo usuario' })
   @ApiResponse({
@@ -90,7 +93,9 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(AuthGuard('local'))
+  @RateLimit('login')
+  // The limit reserves the attempt before the password is checked.
+  @UseGuards(RateLimitGuard, AuthGuard('local'))
   @Post('login')
   @ApiOperation({ summary: 'Iniciar sesión' })
   @ApiResponse({ status: 200, description: 'Login exitoso' })
@@ -119,6 +124,8 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit('recovery')
+  @UseGuards(RateLimitGuard)
   @Post('forgot-password')
   @ApiOperation({ summary: 'Solicitar recuperación de contraseña' })
   @ApiResponse({ status: 200, description: 'Solicitud procesada' })

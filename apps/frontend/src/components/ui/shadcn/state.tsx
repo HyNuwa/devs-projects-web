@@ -24,7 +24,7 @@ function StatePanel({
       data-status={status}
       data-slot="state-panel"
       className={cn(
-        'flex min-h-40 flex-col items-center justify-center gap-3 border border-border bg-card px-6 py-8 text-center shadow-surface',
+        'flex min-h-40 flex-col items-center justify-center gap-3 rounded-xl border-[1.5px] border-border bg-card px-6 py-8 text-center',
         className,
       )}
       {...props}
@@ -33,7 +33,7 @@ function StatePanel({
         {icon}
       </span>
       <div className="grid gap-1">
-        <h2 className="font-serif text-xl font-bold text-card-foreground">{heading}</h2>
+        <h2 className="font-sans text-xl font-bold text-card-foreground">{heading}</h2>
         {description ? (
           <p className="font-sans text-sm text-muted-foreground">{description}</p>
         ) : null}

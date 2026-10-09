@@ -1,0 +1,33 @@
+:root {
+  --dp-ink: #021238;
+  --dp-ink-soft: #3d4459;
+  --dp-muted: #5a6178;
+  --dp-blue: #0261fe;
+  --dp-link: #0a4de8;
+  --dp-blue-tint: #ecf2fe;
+  --dp-page: #fdf3e5;
+  --dp-sand: #f1eee4;
+  --dp-surface: #ffffff;
+  --dp-line: #e2d9c7;
+  --dp-pink: #fd4f8d;
+  --dp-red: #e01f63;
+  --dp-orange: #fa6304;
+  --dp-gold: #e9b949;
+  --dp-green: #187a5b;
+
+  --dp-radius-sm: 8px;
+  --dp-radius-md: 11px;
+  --dp-radius-lg: 14px;
+  --dp-radius-xl: 16px;
+  --dp-radius-pill: 999px;
+  --dp-outline: 1.5px;
+  --dp-shadow-pop: 3px 3px 0 var(--dp-ink);
+
+  --dp-grid-line: rgba(2, 18, 56, 0.032);
+  --dp-grid-size: 44px;
+  --dp-grid-size-compact: 32px;
+
+  --dp-font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --dp-font-hand: var(--font-caveat), 'Segoe Script', cursive;
+  --dp-font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+}

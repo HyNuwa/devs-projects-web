@@ -1,106 +1,301 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  CircleCheck,
+  CircleSlash,
+  Clock,
+  EyeOff,
+  LoaderCircle,
+  Pencil,
+  RotateCcw,
+  Undo2,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
-import { Clock, CheckCircle2, XCircle, FileText, Loader2 } from 'lucide-react';
-import { api } from '@/lib/api';
-import { getApiError, getData } from '@/lib/apiHelpers';
-import { ModeratedMaterial } from '@/types/material';
-import styles from './MySubmissions.module.css';
+import { useEffect, useState } from 'react';
 
-const STATUS_META: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
-  PENDING: {
-    label: 'En revisión',
-    icon: <Clock size={14} />,
-    className: 'pending',
+import { Button, EmptyState, ErrorState, FieldError, LoadingState } from '@/components/ui/shadcn';
+import { cn } from '@/components/ui/shadcn/utils';
+import { getApiError } from '@/lib/apiHelpers';
+import {
+  getMySubmissions,
+  type PublicationStatus,
+  resubmit,
+  type Submission,
+} from '@/lib/submissions-client';
+import { useAccountRestriction } from '@/hooks/useAccountRestriction';
+import { AppealForm, AppealOutcome } from './AppealForm';
+import { MySanctions } from './MySanctions';
+
+const STATUS: Record<
+  PublicationStatus,
+  { label: string; icon: LucideIcon; tone: string; explanation?: string }
+> = {
+  PUBLISHED: { label: 'Publicado', icon: CircleCheck, tone: 'bg-success/12 text-success-ink' },
+  PENDING_REVIEW: {
+    label: 'En revisión previa',
+    icon: Clock,
+    tone: 'bg-accent/30 text-accent-foreground',
+    explanation:
+      'Moderación lo revisa antes de publicarlo. Te avisamos acá cuando haya una decisión.',
   },
-  APPROVED: {
-    label: 'Aprobado',
-    icon: <CheckCircle2 size={14} />,
-    className: 'approved',
+  HIDDEN: {
+    label: 'Oculto mientras se revisa',
+    icon: EyeOff,
+    tone: 'bg-muted text-foreground',
+    explanation:
+      'Lo reportaron y está oculto mientras moderación lo revisa. Es temporal: si nadie lo revisa en 7 días vuelve a verse, y no se descuentan puntos.',
   },
   REJECTED: {
     label: 'Rechazado',
-    icon: <XCircle size={14} />,
-    className: 'rejected',
+    icon: CircleSlash,
+    tone: 'bg-destructive/10 text-destructive-ink',
+    explanation: 'No se publicó. Podés corregirlo y reenviarlo.',
+  },
+  REMOVED: {
+    label: 'Retirado',
+    icon: Undo2,
+    tone: 'bg-destructive/10 text-destructive-ink',
+    explanation: 'Moderación lo sacó de la vista pública.',
   },
 };
 
-export function MySubmissions() {
-  const [materials, setMaterials] = useState<ModeratedMaterial[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const TYPE_LABEL: Record<Submission['type'], string> = {
+  MATERIAL: 'Material',
+  COURSE_REVIEW: 'Reseña de cursada',
+  EXAM_EXPERIENCE: 'Experiencia de final',
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await api.get('/materials/mine');
-        if (!cancelled) setMaterials(getData<ModeratedMaterial[]>(res));
-      } catch (err) {
-        if (!cancelled) setError(getApiError(err));
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+const dateFormat = new Intl.DateTimeFormat('es-AR', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+function publicHref(submission: Submission) {
+  if (submission.status !== 'PUBLISHED') return null;
+  if (submission.type === 'MATERIAL') return `/materiales/${submission.id}`;
+  return `${submission.type === 'COURSE_REVIEW' ? '/resenas' : '/finales'}/${submission.id}`;
+}
+
+function editHref(submission: Submission) {
+  const subject = submission.subject.code ?? submission.subject.id;
+  const form = submission.type === 'COURSE_REVIEW' ? 'resenar' : 'final';
+  return `/materias/${encodeURIComponent(subject)}/${form}?editar=${encodeURIComponent(submission.id)}`;
+}
+
+function ResubmitMaterial({ id, onDone }: { id: string; onDone: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { blocked: restricted, message: restrictionMessage } = useAccountRestriction();
+  const [isSending, setIsSending] = useState(false);
+  const inputId = `resubmit-file-${id}`;
+
+  const send = async () => {
+    setError(null);
+    setIsSending(true);
+    try {
+      await resubmit('MATERIAL', id, file);
+      onDone();
+    } catch (sendError) {
+      setError(getApiError(sendError));
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
-    <section className={styles.section}>
-      <h2 className={styles.title}>Mis subidas</h2>
+    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      <div className="grid gap-1">
+        <label className="text-sm font-semibold" htmlFor={inputId}>
+          Archivo corregido (opcional)
+        </label>
+        <input
+          className="text-sm file:mr-3 file:rounded-md file:border-[1.5px] file:border-line file:bg-card file:px-3 file:py-2 file:font-semibold"
+          id={inputId}
+          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          type="file"
+        />
+      </div>
+      <Button disabled={isSending || restricted} onClick={send} size="sm">
+        {isSending ? (
+          <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+        ) : (
+          <RotateCcw aria-hidden="true" className="size-4" />
+        )}
+        Reenviar a revisión
+      </Button>
+      <FieldError className="sm:col-span-2">{error}</FieldError>
+      {restrictionMessage ? (
+        <p className="text-xs font-semibold text-destructive-ink sm:col-span-2">
+          {restrictionMessage}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
-      {isLoading ? (
-        <div className={styles.state}>
-          <Loader2 size={24} className={styles.spinner} />
-          <p>Cargando tus aportes...</p>
+function SubmissionItem({
+  onChanged,
+  submission,
+}: {
+  onChanged: () => void;
+  submission: Submission;
+}) {
+  const status = STATUS[submission.status];
+  const StatusIcon = status.icon;
+  const href = publicHref(submission);
+  const title =
+    submission.type === 'MATERIAL'
+      ? submission.title
+      : `${submission.title}${submission.isAnonymous ? ' · anónima' : ''}`;
+  const date = dateFormat.format(new Date(submission.statusChangedAt));
+
+  return (
+    <li className="grid gap-3 rounded-xl border-[1.5px] border-border bg-card p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            {TYPE_LABEL[submission.type]} · {submission.subject.name}
+          </p>
+          <h3 className="mt-1 text-lg font-extrabold tracking-[-0.02em]">
+            {href ? (
+              <Link className="hover:text-link" href={href}>
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
+          </h3>
         </div>
-      ) : error ? (
-        <div className={styles.state}>
-          <p className={styles.errorText}>{error}</p>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-extrabold',
+            status.tone,
+          )}
+        >
+          <StatusIcon aria-hidden="true" className="size-3.5" />
+          {status.label}
+        </span>
+      </div>
+
+      {status.explanation ? (
+        <p className="text-sm text-muted-foreground">{status.explanation}</p>
+      ) : null}
+      {submission.reason ? (
+        <blockquote className="rounded-lg border-l-4 border-foreground/20 bg-muted px-3 py-2 text-sm">
+          <span className="font-semibold">Motivo de moderación: </span>
+          {submission.reason}
+        </blockquote>
+      ) : null}
+      <p className="text-xs text-muted-foreground">Actualizado el {date}</p>
+
+      {submission.status === 'REMOVED' && submission.retiro ? (
+        submission.retiro.appeal ? (
+          <AppealOutcome
+            answer={submission.retiro.appeal.answer}
+            status={submission.retiro.appeal.status}
+          />
+        ) : submission.retiro.appealable ? (
+          <AppealForm
+            deadline={submission.retiro.appealDeadline}
+            onDone={onChanged}
+            target={{ kind: 'RETIRO', caseId: submission.retiro.caseId }}
+          />
+        ) : null
+      ) : null}
+
+      {submission.canResubmit ? (
+        submission.type === 'MATERIAL' ? (
+          <ResubmitMaterial id={submission.id} onDone={onChanged} />
+        ) : (
+          <div>
+            <Button asChild size="sm" variant="outline">
+              <Link href={editHref(submission)}>
+                <Pencil aria-hidden="true" className="size-4" />
+                Editar y reenviar
+              </Link>
+            </Button>
+          </div>
+        )
+      ) : null}
+    </li>
+  );
+}
+
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; submissions: Submission[] };
+
+/** Mis envíos: what happened to each of the author's contributions. */
+export function MySubmissions() {
+  const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = () => {
+    setState({ status: 'loading' });
+    setReloadKey((key) => key + 1);
+  };
+
+  useEffect(() => {
+    let active = true;
+    getMySubmissions()
+      .then((submissions) => {
+        if (active) setState({ status: 'ready', submissions });
+      })
+      .catch((loadError: unknown) => {
+        if (active) setState({ status: 'error', message: getApiError(loadError) });
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
+
+  return (
+    <>
+      <section className="grid gap-4 font-sans" id="mis-envios">
+        <div>
+          <h2 className="text-2xl font-extrabold tracking-[-0.03em]">Mis envíos</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Lo que compartiste se publica al instante. Acá ves qué pasó con cada aporte.
+          </p>
         </div>
-      ) : materials.length === 0 ? (
-        <div className={styles.state}>
-          <FileText size={28} className={styles.emptyIcon} />
-          <p>Aún no subiste ningún material.</p>
-          <Link href="/materiales/nuevo" className={styles.cta}>
-            Subir mi primer aporte
-          </Link>
-        </div>
-      ) : (
-        <div className={styles.list}>
-          {materials.map((m) => {
-            const meta = STATUS_META[m.moderationStatus] ?? STATUS_META.PENDING;
-            return (
-              <div key={m.id} className={styles.item}>
-                <div className={styles.itemIcon}>
-                  <FileText size={20} />
-                </div>
-                <div className={styles.itemBody}>
-                  <div className={styles.itemTop}>
-                    <span className={styles.itemTitle}>{m.title}</span>
-                    <span className={`${styles.status} ${styles[meta.className]}`}>
-                      {meta.icon}
-                      {meta.label}
-                    </span>
-                  </div>
-                  <span className={styles.itemMeta}>{m.subject?.name ?? 'Sin materia'}</span>
-                  {m.moderationStatus === 'REJECTED' && m.moderationReason && (
-                    <p className={styles.reason}>Motivo: {m.moderationReason}</p>
-                  )}
-                  {m.moderationStatus === 'APPROVED' && (
-                    <Link href={`/materiales/${m.id}`} className={styles.viewLink}>
-                      Ver material
-                    </Link>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
+
+        {state.status === 'loading' ? <LoadingState heading="Cargando tus envíos" /> : null}
+        {state.status === 'error' ? (
+          <ErrorState
+            action={
+              <Button onClick={reload} size="sm" variant="outline">
+                Reintentar
+              </Button>
+            }
+            description={state.message}
+            heading="No pudimos cargar tus envíos"
+          />
+        ) : null}
+        {state.status === 'ready' && state.submissions.length === 0 ? (
+          <EmptyState
+            action={
+              <Button asChild size="sm">
+                <Link href="/materiales/nuevo">Subir material</Link>
+              </Button>
+            }
+            heading="Todavía no compartiste nada."
+          />
+        ) : null}
+        {state.status === 'ready' && state.submissions.length > 0 ? (
+          <ul className="grid gap-3">
+            {state.submissions.map((submission) => (
+              <SubmissionItem
+                key={`${submission.type}-${submission.id}`}
+                onChanged={reload}
+                submission={submission}
+              />
+            ))}
+          </ul>
+        ) : null}
+      </section>
+      <MySanctions />
+    </>
   );
 }

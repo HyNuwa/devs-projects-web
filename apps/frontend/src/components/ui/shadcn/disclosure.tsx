@@ -12,7 +12,7 @@ export function Disclosure({ children, className, title, ...props }: DisclosureP
     <details
       data-slot="disclosure"
       className={cn(
-        'group border border-border bg-card text-card-foreground shadow-surface',
+        'group overflow-hidden rounded-lg border-[1.5px] border-border bg-card text-card-foreground',
         className,
       )}
       {...props}

@@ -116,7 +116,7 @@ export const LevelsTable = () => {
               }`}
             >
               <span className={styles.colLevel}>
-                <span className={`${styles.levelNum} font-pixel`}>LV.{lvl.level}</span>
+                <span className={`${styles.levelNum} font-sans`}>LV.{lvl.level}</span>
               </span>
               <span className={styles.colName}>
                 {lvl.name}

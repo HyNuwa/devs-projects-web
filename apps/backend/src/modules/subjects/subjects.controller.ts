@@ -20,7 +20,8 @@ import { SubjectsService } from './subjects.service';
 import { CreateCourseReviewDto } from './dto/create-course-review.dto';
 import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { Public } from '../../common/decorators/public.decorator';
-import { CommunityWriteThrottlerGuard } from '../../common/guards/community-write-throttler.guard';
+import { RateLimit, RateLimitGuard } from '../rate-limit/rate-limit.guard';
+import { RequiresActiveAccount } from '../moderation/active-account.guard';
 
 @ApiTags('Subjects')
 @ApiBearerAuth()
@@ -57,7 +58,9 @@ export class SubjectsController {
   }
 
   @Post(':code/reviews')
-  @UseGuards(CommunityWriteThrottlerGuard)
+  @RequiresActiveAccount()
+  @RateLimit('communityWrite')
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: 'Crear una reseña de cursada independiente' })
   @ApiResponse({ status: 201, description: 'Reseña creada' })
   createReview(
@@ -69,7 +72,9 @@ export class SubjectsController {
   }
 
   @Put('reviews/:id')
-  @UseGuards(CommunityWriteThrottlerGuard)
+  @RequiresActiveAccount()
+  @RateLimit('communityWrite')
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: 'Editar mi reseña de cursada' })
   @ApiResponse({ status: 200, description: 'Reseña actualizada' })
   updateReview(
@@ -78,6 +83,24 @@ export class SubjectsController {
     @Body() dto: CreateCourseReviewDto,
   ) {
     return this.subjectsService.updateReview(id, req.user.id, dto);
+  }
+
+  @Get('reviews/:id/management')
+  @ApiOperation({ summary: 'Vista privada de mi reseña (estado y motivo)' })
+  getReviewManagement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.subjectsService.getReviewManagementView(id, req.user.id);
+  }
+
+  @Get('exams/:id/management')
+  @ApiOperation({ summary: 'Vista privada de mi experiencia de final' })
+  getExamManagement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.subjectsService.getExamManagementView(id, req.user.id);
   }
 
   @Delete('reviews/:id')
@@ -99,7 +122,9 @@ export class SubjectsController {
   }
 
   @Post(':code/exams')
-  @UseGuards(CommunityWriteThrottlerGuard)
+  @RequiresActiveAccount()
+  @RateLimit('communityWrite')
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: 'Crear una experiencia de final' })
   @ApiResponse({ status: 201, description: 'Experiencia creada' })
   createExam(
@@ -111,7 +136,9 @@ export class SubjectsController {
   }
 
   @Put('exams/:id')
-  @UseGuards(CommunityWriteThrottlerGuard)
+  @RequiresActiveAccount()
+  @RateLimit('communityWrite')
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: 'Editar mi experiencia de final' })
   @ApiResponse({ status: 200, description: 'Experiencia actualizada' })
   updateExam(

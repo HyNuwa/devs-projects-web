@@ -54,7 +54,7 @@ type FilterDraft = Pick<
 >;
 
 const filterControlClassName =
-  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none shadow-field focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  'min-h-11 w-full border border-input bg-background px-3 font-sans text-sm text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 function filterDraftFrom(state: MaterialSearchState): FilterDraft {
   return {
@@ -233,7 +233,7 @@ function PartialContextNotice({
       className="mt-8 flex flex-col gap-3 border border-border bg-secondary/55 p-5 sm:flex-row sm:items-center sm:justify-between"
     >
       <div>
-        <h2 className="font-serif text-xl font-bold text-foreground">Contexto parcial</h2>
+        <h2 className="font-sans text-xl font-bold text-foreground">Contexto parcial</h2>
         <p className="mt-1 text-sm text-secondary-foreground">
           {suggestionsUnavailable
             ? 'No pudimos cargar las coincidencias de materias. Los recursos publicados siguen disponibles.'
@@ -412,7 +412,7 @@ function SearchContent({
               <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
                 Materia
               </p>
-              <h1 className="mt-3 font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-6xl">
+              <h1 className="mt-3 font-sans text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-6xl">
                 {strongSubject.name}
               </h1>
               <p className="mt-4 text-base leading-relaxed text-secondary-foreground sm:text-lg">
@@ -432,7 +432,7 @@ function SearchContent({
               <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
                 Búsqueda de materiales
               </p>
-              <h1 className="mt-3 font-serif text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-6xl">
+              <h1 className="mt-3 font-sans text-4xl font-bold leading-[0.94] tracking-[-0.035em] text-foreground sm:text-6xl">
                 {state.q ? `Resultados para “${state.q}”` : 'Buscá materiales'}
               </h1>
               <p className="mt-4 max-w-[60ch] text-base leading-relaxed text-secondary-foreground sm:text-lg">
@@ -443,7 +443,7 @@ function SearchContent({
 
           <form
             aria-label="Buscar materiales"
-            className="mt-8 grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] gap-3 border border-border bg-card p-2 pl-4 shadow-field sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+            className="mt-8 grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] gap-3 border border-border bg-card p-2 pl-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
             onSubmit={handleSubmit}
             role="search"
           >
@@ -473,7 +473,7 @@ function SearchContent({
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
               Recursos
             </p>
-            <h2 className="mt-2 font-serif text-3xl font-bold leading-tight text-foreground">
+            <h2 className="mt-2 font-sans text-3xl font-bold leading-tight text-foreground">
               {resultTotal === null
                 ? 'Resultados de la búsqueda'
                 : `${resultTotal} ${resultTotal === 1 ? 'resultado' : 'resultados'}`}
@@ -502,7 +502,7 @@ function SearchContent({
 
         <section aria-label="Filtros de materiales" className="mt-6">
           <div className="flex items-center justify-between gap-4 lg:hidden">
-            <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
+            <h2 className="font-sans text-2xl font-bold text-foreground">Filtros</h2>
             <FilterSheet
               onApply={applyFilters}
               onClear={clearDraftFilters}
@@ -521,7 +521,7 @@ function SearchContent({
           </div>
           <div className="hidden border-y border-line py-5 lg:block">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="font-serif text-2xl font-bold text-foreground">Filtros</h2>
+              <h2 className="font-sans text-2xl font-bold text-foreground">Filtros</h2>
               <div className="flex gap-2">
                 <Button onClick={clearDraftFilters} size="sm" variant="outline">
                   Limpiar
@@ -634,7 +634,7 @@ function SearchContent({
           <section aria-labelledby="matching-subjects" className="mt-10">
             <div className="flex items-center gap-3">
               <BookOpenText aria-hidden="true" className="size-5 text-primary" strokeWidth={1.8} />
-              <h2 id="matching-subjects" className="font-serif text-2xl font-bold text-foreground">
+              <h2 id="matching-subjects" className="font-sans text-2xl font-bold text-foreground">
                 Materias coincidentes
               </h2>
             </div>
@@ -651,7 +651,7 @@ function SearchContent({
                   })}
                   key={subject.id}
                 >
-                  <span className="block font-serif text-xl font-bold leading-tight text-foreground group-hover:text-primary">
+                  <span className="block font-sans text-xl font-bold leading-tight text-foreground group-hover:text-primary">
                     {subject.name}
                   </span>
                   <span className="mt-3 block text-sm text-secondary-foreground">
@@ -678,7 +678,7 @@ function SearchContent({
                     <span className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
                       {resourceTypeLabel(material.resourceType)}
                     </span>
-                    <h3 className="mt-2 font-serif text-2xl font-bold leading-tight text-foreground">
+                    <h3 className="mt-2 font-sans text-2xl font-bold leading-tight text-foreground">
                       {material.title}
                     </h3>
                     <p className="mt-2 text-sm text-secondary-foreground">

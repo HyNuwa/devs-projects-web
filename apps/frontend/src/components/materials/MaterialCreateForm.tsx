@@ -4,23 +4,43 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, Clock, FileUp, Sparkles, Upload, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
+import { resourceTypeLabel } from '@/lib/presentation-labels';
+import {
+  type PublicationOutcome,
+  priorReviewReasonText,
+  uploadRefusal,
+} from '@/lib/publication-outcome';
 import { Subject } from '@/types/subject';
 import { Button, Input, useToast } from '@/components/ui';
 import styles from './MaterialCreateForm.module.css';
+import { useAccountRestriction } from '@/hooks/useAccountRestriction';
+import { RestrictionNotice } from '@/components/moderation/RestrictionNotice';
 
 const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'pptx', 'xls', 'txt', 'md', 'jpg', 'png', 'webp'];
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+
+const RESOURCE_TYPES = [
+  'PARCIAL',
+  'FINAL',
+  'APUNTE',
+  'RESUMEN',
+  'TRABAJO_PRACTICO',
+  'GUIA_EJERCICIOS',
+  'OTRO',
+] as const;
 
 const materialSchema = z.object({
   title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
   description: z.string().optional(),
   subjectId: z.string().min(1, 'Selecciona una materia'),
+  resourceType: z.enum(RESOURCE_TYPES, { message: 'Elegí el tipo de recurso' }),
 });
+
+type SubmissionResult = PublicationOutcome & { material: { id: string } };
 
 type MaterialFormData = z.infer<typeof materialSchema>;
 
@@ -31,14 +51,15 @@ function formatFileSize(bytes: number) {
 }
 
 export function MaterialCreateForm() {
-  const router = useRouter();
   const { addToast } = useToast();
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
+  const [result, setResult] = useState<SubmissionResult | null>(null);
+  const [refusal, setRefusal] = useState<{ message: string; existingId?: string } | null>(null);
+  const { blocked: restricted } = useAccountRestriction();
 
   const {
     register,
@@ -102,39 +123,50 @@ export function MaterialCreateForm() {
         formData.append('description', data.description);
       }
       formData.append('subjectId', data.subjectId);
+      formData.append('resourceType', data.resourceType);
 
+      setRefusal(null);
       const res = await api.post('/materials', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      getData<unknown>(res);
-      setSubmitted(true);
-      addToast('Material enviado a revisión', 'success');
+      setResult(getData<SubmissionResult>(res));
     } catch (err) {
+      const known = uploadRefusal(err);
+      if (known) {
+        setRefusal(known);
+        return;
+      }
       addToast(getApiError(err), 'error');
     }
   };
 
-  if (submitted) {
+  if (result) {
+    const published = result.outcome === 'PUBLISHED';
     return (
       <div className={styles.page}>
         <div className={styles.container}>
           <div className={styles.successCard}>
             <div className={styles.successIcon}>
-              <CheckCircle2 size={48} />
+              {published ? <CheckCircle2 size={48} /> : <Clock size={48} />}
             </div>
-            <h1 className={styles.successTitle}>¡Aporte enviado!</h1>
+            <h1 className={styles.successTitle}>
+              {published ? '¡Ya está publicado!' : 'En revisión previa'}
+            </h1>
             <p className={styles.successText}>
-              Tu material está <strong>en revisión</strong>. Un moderador lo va a revisar y, si está
-              todo bien, se publicará para la comunidad.
+              {published
+                ? 'Tu material ya se puede ver y descargar en su materia. Gracias por compartirlo.'
+                : priorReviewReasonText[result.reason]}
             </p>
-            <div className={styles.successBadge}>
-              <Clock size={16} />
-              Estado: En revisión
-            </div>
             <div className={styles.successActions}>
-              <Link href="/profile/me" className={styles.successBtn}>
-                Ver mis subidas
-              </Link>
+              {published ? (
+                <Link href={`/materiales/${result.material.id}`} className={styles.successBtn}>
+                  Ver el material
+                </Link>
+              ) : (
+                <Link href="/profile/me#mis-envios" className={styles.successBtn}>
+                  Ver mis envíos
+                </Link>
+              )}
               <Link href="/materiales" className={styles.successLink}>
                 Volver a materiales
               </Link>
@@ -151,12 +183,20 @@ export function MaterialCreateForm() {
         <header className={styles.header}>
           <div className={styles.headerBadge}>
             <Sparkles size={16} />
-            <span className={`${styles.headerLabel} font-pixel`}>NUEVO RECURSO</span>
+            <span className={`${styles.headerLabel} font-sans`}>NUEVO RECURSO</span>
             <Sparkles size={16} />
           </div>
-          <h1 className={`${styles.title} font-pixel`}>AÑADE AL BAÚL</h1>
+          <h1 className={`${styles.title} font-sans`}>AÑADE AL BAÚL</h1>
           <p className={styles.subtitle}>
             Compartí apuntes, libros o presentaciones con la comunidad
+          </p>
+          <p className={styles.subtitle}>
+            Se publica al instante. Que esté publicado no significa que esté bien resuelto: si algo
+            no cumple las{' '}
+            <Link className="font-semibold text-link underline underline-offset-4" href="/normas">
+              Normas de la comunidad
+            </Link>
+            , la comunidad lo puede reportar.
           </p>
         </header>
 
@@ -174,123 +214,159 @@ export function MaterialCreateForm() {
           <div className={`${styles.stepLine} ${step >= 3 ? styles.stepLineActive : ''}`} />
           <div className={`${styles.step} ${step >= 3 ? styles.stepActive : ''}`}>
             <span className={styles.stepNum}>3</span>
-            <span className={styles.stepLabel}>Revisión</span>
+            <span className={styles.stepLabel}>Publicar</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className={styles.form} noValidate>
-          {/* Step 1: File */}
-          {step === 1 && (
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>Archivo *</label>
-              <label className={styles.dropzone}>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.pptx,.xls,.txt,.md,.jpg,.png,.webp"
-                  className={styles.fileInput}
-                  onChange={handleFileChange}
-                />
-                <Upload size={28} className={styles.dropzoneIcon} />
-                <span className={styles.dropzoneTitle}>Arrastrá tu archivo o hacé clic</span>
-                <span className={styles.dropzoneHint}>
-                  PDF, DOC, DOCX, PPTX, XLS, TXT, MD, JPG, PNG, WEBP · máx. 25MB
-                </span>
-              </label>
-              {fileError && <span className={styles.fieldError}>{fileError}</span>}
-            </div>
-          )}
+          <RestrictionNotice />
+          <fieldset aria-label="Datos del material" className="contents" disabled={restricted}>
+            {/* Step 1: File */}
+            {step === 1 && (
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Archivo *</label>
+                <label className={styles.dropzone}>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.pptx,.xls,.txt,.md,.jpg,.png,.webp"
+                    className={styles.fileInput}
+                    onChange={handleFileChange}
+                  />
+                  <Upload size={28} className={styles.dropzoneIcon} />
+                  <span className={styles.dropzoneTitle}>Arrastrá tu archivo o hacé clic</span>
+                  <span className={styles.dropzoneHint}>
+                    PDF, DOC, DOCX, PPTX, XLS, TXT, MD, JPG, PNG, WEBP · máx. 25MB
+                  </span>
+                </label>
+                {fileError && <span className={styles.fieldError}>{fileError}</span>}
+              </div>
+            )}
 
-          {/* Step 2: Data */}
-          {step === 2 && (
-            <>
-              {file && (
-                <div className={styles.fileSelected}>
-                  <div className={styles.fileSelectedIcon}>
-                    <FileUp size={22} />
+            {/* Step 2: Data */}
+            {step === 2 && (
+              <>
+                {file && (
+                  <div className={styles.fileSelected}>
+                    <div className={styles.fileSelectedIcon}>
+                      <FileUp size={22} />
+                    </div>
+                    <div className={styles.fileSelectedInfo}>
+                      <span className={styles.fileSelectedName}>{file.name}</span>
+                      <span className={styles.fileSelectedSize}>{formatFileSize(file.size)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.fileRemoveBtn}
+                      onClick={clearFile}
+                      aria-label="Quitar archivo"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
-                  <div className={styles.fileSelectedInfo}>
-                    <span className={styles.fileSelectedName}>{file.name}</span>
-                    <span className={styles.fileSelectedSize}>{formatFileSize(file.size)}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.fileRemoveBtn}
-                    onClick={clearFile}
-                    aria-label="Quitar archivo"
-                  >
-                    <X size={18} />
-                  </button>
+                )}
+
+                <Input
+                  label="Título *"
+                  placeholder="Ej: Apuntes de Cálculo I - Primer parcial"
+                  error={errors.title?.message}
+                  {...register('title')}
+                />
+
+                <div className={styles.field}>
+                  <label htmlFor="material-description" className={styles.fieldLabel}>
+                    Descripción
+                  </label>
+                  <textarea
+                    id="material-description"
+                    className={styles.textarea}
+                    placeholder="Describe el contenido del material, temas que cubre, etc."
+                    {...register('description')}
+                  />
+                  {errors.description && (
+                    <span className={styles.fieldError}>{errors.description.message}</span>
+                  )}
                 </div>
-              )}
 
-              <Input
-                label="Título *"
-                placeholder="Ej: Apuntes de Cálculo I - Primer parcial"
-                error={errors.title?.message}
-                {...register('title')}
-              />
-
-              <div className={styles.field}>
-                <label htmlFor="material-description" className={styles.fieldLabel}>
-                  Descripción
-                </label>
-                <textarea
-                  id="material-description"
-                  className={styles.textarea}
-                  placeholder="Describe el contenido del material, temas que cubre, etc."
-                  {...register('description')}
-                />
-                {errors.description && (
-                  <span className={styles.fieldError}>{errors.description.message}</span>
-                )}
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="material-subject" className={styles.fieldLabel}>
-                  Materia *
-                </label>
-                <select
-                  id="material-subject"
-                  className={styles.select}
-                  defaultValue=""
-                  {...register('subjectId')}
-                >
-                  <option value="" disabled>
-                    Selecciona una materia
-                  </option>
-                  {subjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name}
+                <div className={styles.field}>
+                  <label htmlFor="material-subject" className={styles.fieldLabel}>
+                    Materia *
+                  </label>
+                  <select
+                    id="material-subject"
+                    className={styles.select}
+                    defaultValue=""
+                    {...register('subjectId')}
+                  >
+                    <option value="" disabled>
+                      Selecciona una materia
                     </option>
-                  ))}
-                </select>
-                {errors.subjectId && (
-                  <span className={styles.fieldError}>{errors.subjectId.message}</span>
-                )}
-              </div>
+                    {subjects.map((subject) => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.subjectId && (
+                    <span className={styles.fieldError}>{errors.subjectId.message}</span>
+                  )}
+                </div>
 
-              <div className={styles.formActions}>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  isLoading={isSubmitting}
-                  leftIcon={<Upload size={18} />}
-                >
-                  Enviar a revisión
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="lg"
-                  onClick={() => setStep(1)}
-                  disabled={isSubmitting}
-                >
-                  Volver
-                </Button>
-              </div>
-            </>
-          )}
+                <div className={styles.field}>
+                  <label htmlFor="material-resource-type" className={styles.fieldLabel}>
+                    Tipo de recurso *
+                  </label>
+                  <select
+                    id="material-resource-type"
+                    className={styles.select}
+                    defaultValue=""
+                    {...register('resourceType')}
+                  >
+                    <option value="" disabled>
+                      Elegí el tipo de recurso
+                    </option>
+                    {RESOURCE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {resourceTypeLabel(type)}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.resourceType && (
+                    <span className={styles.fieldError}>{errors.resourceType.message}</span>
+                  )}
+                </div>
+
+                {refusal ? (
+                  <div className={styles.fieldError} role="alert">
+                    {refusal.message}{' '}
+                    {refusal.existingId ? (
+                      <Link href={`/materiales/${refusal.existingId}`}>Ver el que ya está</Link>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className={styles.formActions}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    isLoading={isSubmitting}
+                    leftIcon={<Upload size={18} />}
+                  >
+                    Publicar material
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => setStep(1)}
+                    disabled={isSubmitting}
+                  >
+                    Volver
+                  </Button>
+                </div>
+              </>
+            )}
+          </fieldset>
         </form>
       </div>
     </div>

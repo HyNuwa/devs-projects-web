@@ -116,7 +116,7 @@ function SummaryShell({
   return (
     <article
       className={cn(
-        'row-span-4 grid grid-rows-subgrid gap-y-4 border border-border bg-card p-5 shadow-surface sm:p-6',
+        'row-span-4 grid grid-rows-subgrid gap-y-4 border border-border bg-card p-5 sm:p-6',
         className,
       )}
       data-community-summary=""
@@ -125,7 +125,7 @@ function SummaryShell({
         <div className="min-w-0">
           {subject ? (
             <Link
-              className="font-serif text-xl font-bold leading-tight text-foreground underline decoration-primary/35 underline-offset-4 outline-none transition-colors hover:text-primary focus-visible:text-primary"
+              className="font-sans text-xl font-bold leading-tight text-foreground underline decoration-primary/35 underline-offset-4 outline-none transition-colors hover:text-primary focus-visible:text-primary"
               href={subject.href}
             >
               {subject.name}
@@ -150,7 +150,7 @@ function SummaryShell({
 
       <div className="min-w-0 self-start">
         {excerpt ? (
-          <p className="line-clamp-4 max-w-[70ch] font-serif text-lg leading-relaxed text-foreground">
+          <p className="line-clamp-4 max-w-[70ch] font-sans text-lg leading-relaxed text-foreground">
             {excerpt}
           </p>
         ) : null}

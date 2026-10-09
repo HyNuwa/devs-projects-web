@@ -6,7 +6,7 @@
 }
 
 .membersCard {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
@@ -14,10 +14,10 @@
 }
 
 .title {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   margin: 0 0 1.5rem 0;
   letter-spacing: 0.5px;
   text-align: center;
@@ -39,7 +39,7 @@
 }
 
 .memberItem:hover {
-  background-color: #F8FAFC;
+  background-color: #f8fafc;
 }
 
 .avatarWrapper {
@@ -48,7 +48,7 @@
   border-radius: 8px;
   overflow: hidden;
   position: relative;
-  background-color: #E2E8F0;
+  background-color: #e2e8f0;
 }
 
 .avatarFallback {
@@ -58,8 +58,8 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: var(--color-primary-600);
-  background-color: #E0F2FE;
+  color: var(--primary);
+  background-color: #e0f2fe;
 }
 
 .memberInfo {
@@ -69,7 +69,7 @@
 
 .memberName {
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   font-size: 0.95rem;
 }
 
@@ -81,16 +81,16 @@
 
 .points {
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .diamondIcon {
-  color: #3B82F6;
-  fill: #BFDBFE;
+  color: #3b82f6;
+  fill: #bfdbfe;
 }
 
 .quoteCard {
-  background: linear-gradient(to bottom, #F8FAFC, #E2E8F0);
+  background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
   border-radius: 16px;
   padding: 2rem 1.5rem;
   display: flex;
@@ -105,10 +105,10 @@
 }
 
 .quoteText {
-  font-family: var(--font-pixel);
+  font-family: var(--ui-font-sans);
   font-size: 0.75rem;
   line-height: 1.8;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   margin: 0 0 2rem 0;
   z-index: 1;
 }

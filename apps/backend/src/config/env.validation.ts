@@ -1,12 +1,17 @@
 import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
+  IsInt,
   IsNumber,
+  IsOptional,
   IsString,
   Max,
   Min,
   validateSync,
 } from 'class-validator';
+
+const DEV_RATE_LIMIT_SECRET = 'devsproject-dev-rate-limit-secret';
+const RATE_LIMIT_SECRET_MIN = 32;
 
 enum Environment {
   Development = 'development',
@@ -53,6 +58,20 @@ export class EnvironmentVariables {
   @Min(1)
   COMMUNITY_DUPLICATE_WINDOW_DAYS: number = 180;
 
+  /** Shared rate-limit counters; memory when unset (development and tests). */
+  @IsOptional()
+  @IsString()
+  REDIS_URL?: string;
+
+  /** Keys limit counters by email without storing the address. */
+  @IsString()
+  RATE_LIMIT_SECRET: string = DEV_RATE_LIMIT_SECRET;
+
+  /** Proxy hops whose X-Forwarded-For is trusted; 0 trusts none. */
+  @IsInt()
+  @Min(0)
+  TRUST_PROXY: number = 0;
+
   @IsString()
   SMTP_HOST: string = 'localhost';
 
@@ -78,15 +97,32 @@ export function validate(config: Record<string, unknown>) {
     skipMissingProperties: false,
   });
 
-  if (errors.length > 0) {
-    const errorMessages = errors
-      .map((err) => {
-        const constraints = err.constraints
-          ? Object.values(err.constraints).join(', ')
-          : 'unknown error';
-        return `  - ${err.property}: ${constraints}`;
-      })
-      .join('\n');
+  const messages = errors.map((err) => {
+    const constraints = err.constraints
+      ? Object.values(err.constraints).join(', ')
+      : 'unknown error';
+    return `  - ${err.property}: ${constraints}`;
+  });
+  // Production must share limits between instances and must not use the
+  // development secret, so both come from the environment, not the defaults.
+  if (validatedConfig.NODE_ENV === Environment.Production) {
+    for (const name of ['REDIS_URL', 'RATE_LIMIT_SECRET']) {
+      if (!config[name]) messages.push(`  - ${name}: required in production`);
+    }
+    const secret = config.RATE_LIMIT_SECRET;
+    if (
+      typeof secret === 'string' &&
+      (secret === DEV_RATE_LIMIT_SECRET ||
+        secret.length < RATE_LIMIT_SECRET_MIN)
+    ) {
+      messages.push(
+        `  - RATE_LIMIT_SECRET: at least ${RATE_LIMIT_SECRET_MIN} characters, not the development one`,
+      );
+    }
+  }
+
+  if (messages.length > 0) {
+    const errorMessages = messages.join('\n');
 
     throw new Error(
       `\n❌ Environment validation failed:\n${errorMessages}\n\n` +

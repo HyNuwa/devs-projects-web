@@ -64,6 +64,14 @@ _Avoid_: Approved, verified, reviewed content
 The exception to publicación inmediata: a moderator must approve a publication before it becomes public because its author or content is considered risky (new or unverified account, recent retiro, content flagged as spam, organizer with retired events).
 _Avoid_: Aprobación para publicación, mandatory approval, verification
 
+**Rechazo en revisión previa**:
+The outcome of a revisión previa that a moderator did not approve. The publication stays private with a written reason, and its author can correct and resubmit it. It never was public, so it is distinct from a retiro.
+_Avoid_: Retiro, rejection of a published item, deletion
+
+**Revelación de autor**:
+A moderator's act of seeing who wrote a publicación anónima during moderation. It requires a stated reason, is recorded, and only admins review those records.
+_Avoid_: Unmasking, doxxing, author lookup
+
 **Reporte**:
 A signed-in student's claim, with one of the fixed reasons, that a publication breaks the community rules. A reporte never removes anything by itself; it opens or joins a caso de moderación and ends up confirmed or dismissed.
 _Avoid_: Flag, vote, automatic removal
@@ -81,8 +89,16 @@ A reversible moderator decision that removes any publication from public view wh
 _Avoid_: Report, ocultamiento preventivo, publication rejection
 
 **Sanción**:
-A moderation measure on an account, applied by a person and never automatically: advertencia, silenciamiento (temporary, cannot publish or report), or suspensión (cannot sign in; only an admin applies it).
+A moderation measure on an account, applied by a person and never automatically: advertencia, silenciamiento (7 days without publishing, editing, reporting or «Me sirvió»), or suspensión (cannot sign in for 7 days, 30 days or permanently; a moderator proposes it and an admin confirms it). It ends on its own when its end date passes.
 _Avoid_: Automatic penalty, strike
+
+**Retiro por normas**:
+A «Retirar» decision on a caso. It is what the escalera counts. An author deleting their own entry, a rejection in revisión previa, and a retiro later restored or overturned on appeal do not count.
+_Avoid_: Strike, removal (for author deletion)
+
+**Paso sugerido**:
+The sanción the escalera proposes for an account from its retiros por normas and silenciamientos in the last 90 days. Moderation decides whether to apply it.
+_Avoid_: Automatic sanction, penalty level
 
 **Apelación**:
 A single request, within 14 days, that a different moderator review a decision. Its answer is final and always has a written reason.

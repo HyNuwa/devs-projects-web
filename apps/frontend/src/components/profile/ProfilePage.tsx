@@ -138,10 +138,10 @@ export function ProfilePage() {
           <header className={styles.header}>
             <div className={styles.headerBadge}>
               <Sparkles size={16} />
-              <span className={`${styles.headerLabel} font-pixel`}>PERFIL</span>
+              <span className={`${styles.headerLabel} font-sans`}>PERFIL</span>
               <Sparkles size={16} />
             </div>
-            <h1 className={`${styles.title} font-pixel`}>FICHA DE AVENTURERO</h1>
+            <h1 className={`${styles.title} font-sans`}>FICHA DE AVENTURERO</h1>
             <p className={styles.subtitle}>Gestiona tu identidad en DevsProject</p>
           </header>
 
@@ -149,7 +149,7 @@ export function ProfilePage() {
             <div className={styles.verifyBanner} role="status">
               <AlertTriangle size={20} className={styles.verifyIcon} aria-hidden="true" />
               <div className={styles.verifyContent}>
-                <span className={`${styles.verifyTitle} font-pixel`}>EMAIL SIN VERIFICAR</span>
+                <span className={`${styles.verifyTitle} font-sans`}>EMAIL SIN VERIFICAR</span>
                 <p className={styles.verifyText}>
                   Verificá tu email para desbloquear todas las funciones. Revisá tu bandeja de
                   entrada.

@@ -245,7 +245,7 @@ function HierarchyLink({
   return (
     <li>
       <Link
-        className="group grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border border-border bg-card p-4 shadow-surface outline-none transition-colors hover:bg-secondary focus-visible:bg-secondary sm:p-5"
+        className="group grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border border-border bg-card p-4 outline-none transition-colors hover:bg-secondary focus-visible:bg-secondary sm:p-5"
         href={href}
       >
         <span
@@ -260,7 +260,7 @@ function HierarchyLink({
               {eyebrow}
             </span>
           ) : null}
-          <span className="mt-1 block font-serif text-xl font-bold leading-tight text-foreground group-hover:text-primary">
+          <span className="mt-1 block font-sans text-xl font-bold leading-tight text-foreground group-hover:text-primary">
             {title}
           </span>
           {description ? (
@@ -329,7 +329,7 @@ function ScopeIdentity({
       <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
         {context.career.name} · {yearLabel(context.year)}
       </p>
-      <h1 className="mt-3 font-serif text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
+      <h1 className="mt-3 font-sans text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
         {subject.name}
       </h1>
       <p className="mt-3 text-sm text-secondary-foreground">
@@ -421,7 +421,7 @@ function ResourceFileList({
                   while exposing a single interactive control. */}
               <article
                 className={cn(
-                  'relative grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-4 border p-4 shadow-surface transition-colors focus-within:bg-secondary hover:bg-secondary sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:p-5',
+                  'relative grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-4 border p-4 transition-colors focus-within:bg-secondary hover:bg-secondary sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:p-5',
                   selectedFileId === file.id
                     ? 'border-primary bg-secondary'
                     : 'border-border bg-card',
@@ -439,7 +439,7 @@ function ResourceFileList({
                     {resourceType ? resourceTypeLabel(resourceType) : notInformedLabel}
                     {file.fileType ? ` · ${file.fileType.toUpperCase()}` : ''}
                   </p>
-                  <h3 className="mt-1 break-words font-serif text-xl font-bold leading-tight text-foreground">
+                  <h3 className="mt-1 break-words font-sans text-xl font-bold leading-tight text-foreground">
                     {file.title}
                   </h3>
                   <p className="mt-1 text-sm text-secondary-foreground">
@@ -495,7 +495,7 @@ function ReadyHierarchy({
           <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
             Materiales
           </p>
-          <h1 className="mt-3 font-serif text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
+          <h1 className="mt-3 font-sans text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
             Elegí tu carrera
           </h1>
           <p className="mt-4 max-w-2xl text-base text-secondary-foreground">
@@ -539,7 +539,7 @@ function ReadyHierarchy({
           <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
             {view.career.code}
           </p>
-          <h1 className="mt-3 font-serif text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
+          <h1 className="mt-3 font-sans text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
             {view.career.name}
           </h1>
           <p className="mt-4 text-base text-secondary-foreground">
@@ -589,7 +589,7 @@ function ReadyHierarchy({
           <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary">
             {view.context.career.name} · {view.context.studyPlan.name}
           </p>
-          <h1 className="mt-3 font-serif text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
+          <h1 className="mt-3 font-sans text-4xl font-bold leading-[0.95] tracking-[-0.035em] text-foreground sm:text-6xl">
             Materias de {yearLabel(view.context.year)}
           </h1>
         </header>
@@ -634,7 +634,7 @@ function ReadyHierarchy({
         <ScopedSearch query={query} route={scopedRoute} subjectName={view.subject.name} />
         {view.categories.length > 0 ? (
           <section className="mt-9" aria-labelledby="resource-categories">
-            <h2 id="resource-categories" className="font-serif text-2xl font-bold text-foreground">
+            <h2 id="resource-categories" className="font-sans text-2xl font-bold text-foreground">
               Elegí el tipo de recurso
             </h2>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -670,7 +670,7 @@ function ReadyHierarchy({
       <>
         <BreadcrumbTrail route={route} view={view} />
         <ScopeIdentity context={view.context} subject={view.subject} />
-        <h2 className="mt-7 font-serif text-2xl font-bold text-foreground">
+        <h2 className="mt-7 font-sans text-2xl font-bold text-foreground">
           {resourceTypeLabel(view.resourceType, 'plural')}
         </h2>
         <ScopedSearch query={query} route={scopedRoute} subjectName={view.subject.name} />
@@ -700,7 +700,7 @@ function ReadyHierarchy({
       <ScopedSearch query={query} route={scopedRoute} subjectName={view.subject.name} />
       <section className="mt-9" aria-labelledby="subject-search-results">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="subject-search-results" className="font-serif text-2xl font-bold text-foreground">
+          <h2 id="subject-search-results" className="font-sans text-2xl font-bold text-foreground">
             {view.results.meta.total} {view.results.meta.total === 1 ? 'resultado' : 'resultados'}{' '}
             para “{query}”
           </h2>

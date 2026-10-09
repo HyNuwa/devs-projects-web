@@ -238,7 +238,7 @@ const RankRow = ({ user, position }: RankRowProps) => {
       </div>
 
       <div className={styles.levelBadge}>
-        <span className={`${styles.levelText} font-pixel`}>LV.{user.level}</span>
+        <span className={`${styles.levelText} font-sans`}>LV.{user.level}</span>
       </div>
 
       <div className={styles.points}>

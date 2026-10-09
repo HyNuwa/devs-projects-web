@@ -26,20 +26,6 @@ enum StudyPlanStatus {
   DROPPED
 }
 
-enum ModerationAction {
-  BAN_USER
-  UNBAN_USER
-  MUTE_USER
-  UNMUTE_USER
-  REMOVE_MATERIAL
-  APPROVE_MATERIAL
-  REJECT_MATERIAL
-  REMOVE_GUIDE
-  APPROVE_GUIDE
-  PROMOTE_MODERATOR
-  DEMOTE_MODERATOR
-}
-
 enum Shift {
   MANANA
   TARDE
@@ -90,7 +76,7 @@ enum ExamOutcome {
   PREFIERO_NO_DECIR
 }
 
-enum CommunityReportReason {
+enum ReportReason {
   SPAM_O_REPETIDO
   INSULTOS_O_ACOSO
   DATOS_PERSONALES
@@ -99,15 +85,14 @@ enum CommunityReportReason {
   OTRO
 }
 
-enum CommunityModerationActionType {
-  REMOVE
-  RESTORE
-}
-
-enum MaterialModerationStatus {
-  PENDING
-  APPROVED
+// Shared by every contribution type (materials, reseñas, experiencias). See
+// docs/README_MODERACION.md and openspec/specs/moderation/publication.
+enum PublicationStatus {
+  PUBLISHED
+  PENDING_REVIEW
   REJECTED
+  HIDDEN
+  REMOVED
 }
 
 enum MaterialResourceType {
@@ -137,30 +122,30 @@ model User {
   isBanned      Boolean   @default(false) @map("is_banned")
   isMuted       Boolean   @default(false) @map("is_muted")
   mutedUntil    DateTime? @map("muted_until")
+  /// Null while `isBanned` means a permanent suspensión. Written only with a `Sanction`.
+  bannedUntil   DateTime? @map("banned_until")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")
 
-  studyPlans                 UserStudyPlan[]
-  materials                  Material[]
-  materialRatings            MaterialRating[]
-  materialHelpfulness        MaterialHelpfulness[]
-  savedMaterials             SavedMaterial[]
-  guides                     Guide[]
-  courseReviews              CourseReview[]              @relation("CourseReviewAuthor")
-  examExperiences            ExamExperience[]            @relation("ExamExperienceAuthor")
-  removedCourseReviews       CourseReview[]              @relation("CourseReviewRemovedBy")
-  removedExamExperiences     ExamExperience[]            @relation("ExamExperienceRemovedBy")
-  communityReports           CommunityReport[]           @relation("CommunityReportReporter")
-  communityModerations       CommunityModerationAction[] @relation("CommunityModerationModerator")
-  communityModerationAuthors CommunityModerationAction[] @relation("CommunityModerationAuthor")
-  moderationActions          ModerationLog[]             @relation("ModeratorAction")
-  moderationTargets          ModerationLog[]             @relation("ModerationTargetUser")
-  badges                     UserBadge[]
-  refreshTokens              RefreshToken[]
-  emailVerifications         EmailVerification[]
-  passwordResets             PasswordResetRequest[]
-  pointTransactions          PointTransaction[]
+  studyPlans          UserStudyPlan[]
+  materials           Material[]
+  materialRatings     MaterialRating[]
+  materialHelpfulness MaterialHelpfulness[]
+  savedMaterials      SavedMaterial[]
+  guides              Guide[]
+  courseReviews       CourseReview[]         @relation("CourseReviewAuthor")
+  examExperiences     ExamExperience[]       @relation("ExamExperienceAuthor")
+  reports             Report[]               @relation("ReportReporter")
+  decidedCases        ModerationCase[]       @relation("ModerationCaseDecidedBy")
+  badges              UserBadge[]
+  refreshTokens       RefreshToken[]
+  emailVerifications  EmailVerification[]
+  passwordResets      PasswordResetRequest[]
+  pointTransactions   PointTransaction[]
+  sanctions           Sanction[]             @relation("SanctionUser")
+  suspensionProposals SuspensionProposal[]   @relation("SuspensionProposalUser")
+  appeals             Appeal[]               @relation("AppealAppellant")
 
   @@map("users")
 }
@@ -279,49 +264,52 @@ model SubjectProfessor {
 // ─── MATERIALES ────────────────────────────────────────────────
 
 model Material {
-  id               String                   @id @default(uuid()) @db.Uuid
-  title            String                   @db.VarChar(200)
-  searchKey        String                   @default("") @map("search_key") @db.VarChar(200)
-  description      String?                  @db.Text
-  fileUrl          String                   @map("file_url") @db.VarChar(500)
-  fileType         String                   @map("file_type") @db.VarChar(20)
-  fileSize         BigInt                   @map("file_size")
-  thumbnailUrl     String?                  @map("thumbnail_url") @db.VarChar(500)
-  authorId         String                   @map("author_id") @db.Uuid
-  subjectId        String                   @map("subject_id") @db.Uuid
-  resourceType     MaterialResourceType     @default(OTRO) @map("resource_type")
-  academicYear     Int?                     @map("academic_year") @db.SmallInt
-  professorId      String?                  @map("professor_id") @db.Uuid
-  shift            Shift?
-  downloadCount    Int                      @default(0) @map("download_count")
-  avgRating        Decimal                  @default(0.00) @map("avg_rating") @db.Decimal(3, 2)
-  ratingCount      Int                      @default(0) @map("rating_count")
-  moderationStatus MaterialModerationStatus @default(PENDING) @map("moderation_status")
-  moderationReason String?                  @map("moderation_reason") @db.Text
-  driveFileId      String?                  @map("drive_file_id") @db.VarChar(200)
-  drivePreviewUrl  String?                  @map("drive_preview_url") @db.VarChar(500)
-  driveDownloadUrl String?                  @map("drive_download_url") @db.VarChar(500)
-  stagedFilePath   String?                  @map("staged_file_path") @db.VarChar(500)
-  isApproved       Boolean                  @default(false) @map("is_approved")
-  isDeleted        Boolean                  @default(false) @map("is_deleted")
-  isRemoved        Boolean                  @default(false) @map("is_removed")
-  createdAt        DateTime                 @default(now()) @map("created_at")
-  updatedAt        DateTime                 @updatedAt @map("updated_at")
+  id                 String               @id @default(uuid()) @db.Uuid
+  title              String               @db.VarChar(200)
+  searchKey          String               @default("") @map("search_key") @db.VarChar(200)
+  description        String?              @db.Text
+  fileUrl            String               @map("file_url") @db.VarChar(500)
+  fileType           String               @map("file_type") @db.VarChar(20)
+  fileSize           BigInt               @map("file_size")
+  thumbnailUrl       String?              @map("thumbnail_url") @db.VarChar(500)
+  authorId           String               @map("author_id") @db.Uuid
+  subjectId          String               @map("subject_id") @db.Uuid
+  resourceType       MaterialResourceType @default(OTRO) @map("resource_type")
+  academicYear       Int?                 @map("academic_year") @db.SmallInt
+  professorId        String?              @map("professor_id") @db.Uuid
+  shift              Shift?
+  downloadCount      Int                  @default(0) @map("download_count")
+  avgRating          Decimal              @default(0.00) @map("avg_rating") @db.Decimal(3, 2)
+  ratingCount        Int                  @default(0) @map("rating_count")
+  publicationStatus  PublicationStatus    @default(PUBLISHED) @map("publication_status")
+  statusChangedAt    DateTime             @default(now()) @map("status_changed_at")
+  hiddenAt           DateTime?            @map("hidden_at")
+  authorFacingReason String?              @map("author_facing_reason") @db.VarChar(1000)
+  fileHash           String?              @map("file_hash") @db.Char(64)
+  driveFileId        String?              @map("drive_file_id") @db.VarChar(200)
+  drivePreviewUrl    String?              @map("drive_preview_url") @db.VarChar(500)
+  driveDownloadUrl   String?              @map("drive_download_url") @db.VarChar(500)
+  stagedFilePath     String?              @map("staged_file_path") @db.VarChar(500)
+  isDeleted          Boolean              @default(false) @map("is_deleted")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
 
-  author         User                  @relation(fields: [authorId], references: [id])
-  subject        Subject               @relation(fields: [subjectId], references: [id])
-  professor      Professor?            @relation(fields: [professorId], references: [id], onDelete: SetNull)
-  ratings        MaterialRating[]
-  helpfulness    MaterialHelpfulness[]
-  savedBy        SavedMaterial[]
-  moderationLogs ModerationLog[]
+  author          User                  @relation(fields: [authorId], references: [id])
+  subject         Subject               @relation(fields: [subjectId], references: [id])
+  professor       Professor?            @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  ratings         MaterialRating[]
+  helpfulness     MaterialHelpfulness[]
+  savedBy         SavedMaterial[]
+  moderationCases ModerationCase[]
+  reports         Report[]
 
-  @@index([subjectId, moderationStatus, createdAt])
-  @@index([subjectId, resourceType, moderationStatus, createdAt], map: "materials_subject_resource_status_created_idx")
-  @@index([moderationStatus, searchKey])
-  @@index([academicYear, moderationStatus, createdAt])
-  @@index([professorId, moderationStatus, createdAt])
-  @@index([shift, moderationStatus, createdAt])
+  @@index([subjectId, publicationStatus, createdAt])
+  @@index([subjectId, resourceType, publicationStatus, createdAt], map: "materials_subject_resource_status_created_idx")
+  @@index([publicationStatus, searchKey])
+  @@index([academicYear, publicationStatus, createdAt])
+  @@index([professorId, publicationStatus, createdAt])
+  @@index([shift, publicationStatus, createdAt])
+  @@index([subjectId, fileHash])
   @@index([authorId])
   @@map("materials")
 }
@@ -386,9 +374,8 @@ model Guide {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  author         User            @relation(fields: [authorId], references: [id])
-  steps          GuideStep[]
-  moderationLogs ModerationLog[]
+  author User        @relation(fields: [authorId], references: [id])
+  steps  GuideStep[]
 
   @@map("guides")
 }
@@ -411,40 +398,38 @@ model GuideStep {
 // ─── RESEÑAS DE CURSADA Y EXPERIENCIAS DE FINAL ────────────────
 
 model CourseReview {
-  id             String               @id @default(uuid()) @db.Uuid
-  userId         String               @map("user_id") @db.Uuid
-  subjectId      String               @map("subject_id") @db.Uuid
-  academicYear   Int?                 @map("academic_year") @db.SmallInt
-  shift          Shift                @default(NO_INDICO)
-  condition      CourseCondition      @default(PREFIERO_NO_RESPONDER)
-  attempt        CourseAttempt?
-  professorId    String?              @map("professor_id") @db.Uuid
-  professorName  String?              @map("professor_name") @db.VarChar(150)
-  difficulty     CommunityDifficulty?
-  recommendation Int                  @db.SmallInt
-  comment        String?              @db.Text
-  isAnonymous    Boolean              @default(false) @map("is_anonymous")
-  isRemoved      Boolean              @default(false) @map("is_removed")
-  removedReason  String?              @map("removed_reason") @db.VarChar(1000)
-  removedAt      DateTime?            @map("removed_at")
-  removedById    String?              @map("removed_by_id") @db.Uuid
-  createdAt      DateTime             @default(now()) @map("created_at")
-  updatedAt      DateTime             @updatedAt @map("updated_at")
+  id                 String               @id @default(uuid()) @db.Uuid
+  userId             String               @map("user_id") @db.Uuid
+  subjectId          String               @map("subject_id") @db.Uuid
+  academicYear       Int?                 @map("academic_year") @db.SmallInt
+  shift              Shift                @default(NO_INDICO)
+  condition          CourseCondition      @default(PREFIERO_NO_RESPONDER)
+  attempt            CourseAttempt?
+  professorId        String?              @map("professor_id") @db.Uuid
+  professorName      String?              @map("professor_name") @db.VarChar(150)
+  difficulty         CommunityDifficulty?
+  recommendation     Int                  @db.SmallInt
+  comment            String?              @db.Text
+  isAnonymous        Boolean              @default(false) @map("is_anonymous")
+  publicationStatus  PublicationStatus    @default(PUBLISHED) @map("publication_status")
+  statusChangedAt    DateTime             @default(now()) @map("status_changed_at")
+  hiddenAt           DateTime?            @map("hidden_at")
+  authorFacingReason String?              @map("author_facing_reason") @db.VarChar(1000)
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
 
-  user              User                        @relation("CourseReviewAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  subject           Subject                     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  professor         Professor?                  @relation(fields: [professorId], references: [id], onDelete: SetNull)
-  removedBy         User?                       @relation("CourseReviewRemovedBy", fields: [removedById], references: [id], onDelete: Restrict)
-  reports           CommunityReport[]           @relation("CourseReviewReports")
-  moderationActions CommunityModerationAction[] @relation("CourseReviewModerationActions")
+  user            User             @relation("CourseReviewAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  professor       Professor?       @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  moderationCases ModerationCase[]
+  reports         Report[]
 
   @@index([subjectId])
   @@index([subjectId, academicYear, createdAt], map: "course_reviews_subject_year_created_idx")
   @@index([professorId, createdAt], map: "course_reviews_professor_created_idx")
   @@index([difficulty, createdAt], map: "course_reviews_difficulty_created_idx")
   @@index([attempt, createdAt], map: "course_reviews_attempt_created_idx")
-  @@index([isRemoved, createdAt], map: "course_reviews_removed_created_idx")
-  @@index([removedById], map: "course_reviews_removed_by_idx")
+  @@index([publicationStatus, createdAt], map: "course_reviews_status_created_idx")
   @@map("course_reviews")
 }
 
@@ -466,19 +451,18 @@ model ExamExperience {
   grade              Int?                 @db.SmallInt
   comment            String?              @db.Text
   isAnonymous        Boolean              @default(false) @map("is_anonymous")
-  isRemoved          Boolean              @default(false) @map("is_removed")
-  removedReason      String?              @map("removed_reason") @db.VarChar(1000)
-  removedAt          DateTime?            @map("removed_at")
-  removedById        String?              @map("removed_by_id") @db.Uuid
+  publicationStatus  PublicationStatus    @default(PUBLISHED) @map("publication_status")
+  statusChangedAt    DateTime             @default(now()) @map("status_changed_at")
+  hiddenAt           DateTime?            @map("hidden_at")
+  authorFacingReason String?              @map("author_facing_reason") @db.VarChar(1000)
   createdAt          DateTime             @default(now()) @map("created_at")
   updatedAt          DateTime             @updatedAt @map("updated_at")
 
-  user              User                        @relation("ExamExperienceAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  subject           Subject                     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  professor         Professor?                  @relation(fields: [professorId], references: [id], onDelete: SetNull)
-  removedBy         User?                       @relation("ExamExperienceRemovedBy", fields: [removedById], references: [id], onDelete: Restrict)
-  reports           CommunityReport[]           @relation("ExamExperienceReports")
-  moderationActions CommunityModerationAction[] @relation("ExamExperienceModerationActions")
+  user            User             @relation("ExamExperienceAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  professor       Professor?       @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  moderationCases ModerationCase[]
+  reports         Report[]
 
   @@index([subjectId])
   @@index([year])
@@ -487,51 +471,8 @@ model ExamExperience {
   @@index([professorId, createdAt], map: "exam_experiences_professor_created_idx")
   @@index([outcome, createdAt], map: "exam_experiences_outcome_created_idx")
   @@index([difficulty, createdAt], map: "exam_experiences_difficulty_created_idx")
-  @@index([isRemoved, createdAt], map: "exam_experiences_removed_created_idx")
-  @@index([removedById], map: "exam_experiences_removed_by_idx")
+  @@index([publicationStatus, createdAt], map: "exam_experiences_status_created_idx")
   @@map("exam_experiences")
-}
-
-model CommunityReport {
-  id               String                @id @default(uuid()) @db.Uuid
-  reporterId       String                @map("reporter_id") @db.Uuid
-  courseReviewId   String?               @map("course_review_id") @db.Uuid
-  examExperienceId String?               @map("exam_experience_id") @db.Uuid
-  reason           CommunityReportReason
-  explanation      String?               @db.VarChar(1000)
-  createdAt        DateTime              @default(now()) @map("created_at")
-  updatedAt        DateTime              @updatedAt @map("updated_at")
-
-  reporter       User            @relation("CommunityReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  courseReview   CourseReview?   @relation("CourseReviewReports", fields: [courseReviewId], references: [id], onDelete: Cascade)
-  examExperience ExamExperience? @relation("ExamExperienceReports", fields: [examExperienceId], references: [id], onDelete: Cascade)
-
-  @@index([reporterId, createdAt], map: "community_reports_reporter_created_idx")
-  @@index([courseReviewId, createdAt], map: "community_reports_review_created_idx")
-  @@index([examExperienceId, createdAt], map: "community_reports_exam_created_idx")
-  @@map("community_reports")
-}
-
-model CommunityModerationAction {
-  id               String                        @id @default(uuid()) @db.Uuid
-  moderatorId      String                        @map("moderator_id") @db.Uuid
-  authorId         String                        @map("author_id") @db.Uuid
-  courseReviewId   String?                       @map("course_review_id") @db.Uuid
-  examExperienceId String?                       @map("exam_experience_id") @db.Uuid
-  action           CommunityModerationActionType
-  reason           String                        @db.VarChar(1000)
-  createdAt        DateTime                      @default(now()) @map("created_at")
-
-  moderator      User            @relation("CommunityModerationModerator", fields: [moderatorId], references: [id], onDelete: Restrict)
-  author         User            @relation("CommunityModerationAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  courseReview   CourseReview?   @relation("CourseReviewModerationActions", fields: [courseReviewId], references: [id], onDelete: Cascade)
-  examExperience ExamExperience? @relation("ExamExperienceModerationActions", fields: [examExperienceId], references: [id], onDelete: Cascade)
-
-  @@index([moderatorId, createdAt], map: "community_moderations_moderator_created_idx")
-  @@index([authorId, createdAt], map: "community_moderations_author_created_idx")
-  @@index([courseReviewId, createdAt], map: "community_moderations_review_created_idx")
-  @@index([examExperienceId, createdAt], map: "community_moderations_exam_created_idx")
-  @@map("community_moderation_actions")
 }
 
 // ─── BADGES ──────────────────────────────────────────────────
@@ -627,26 +568,252 @@ model PointTransaction {
 
 // ─── MODERATION LOG ────────────────────────────────────────────
 
-model ModerationLog {
-  id               String           @id @default(uuid()) @db.Uuid
-  moderatorId      String           @map("moderator_id") @db.Uuid
-  targetUserId     String?          @map("target_user_id") @db.Uuid
-  targetMaterialId String?          @map("target_material_id") @db.Uuid
-  targetGuideId    String?          @map("target_guide_id") @db.Uuid
-  action           ModerationAction
-  reason           String?          @db.Text
-  expiresAt        DateTime?        @map("expires_at")
-  createdAt        DateTime         @default(now()) @map("created_at")
+// ─── MODERACIÓN: CASOS, REPORTES E HISTORIAL ──────────────────
+// See docs/README_MODERACION.md and openspec/specs/moderation/cases.
+// Raw SQL in the migration adds: exactly-one-target and target-type CHECKs, one OPEN
+// case per target and kind, one report per reporter and target, and an append-only
+// trigger on moderation_events.
 
-  moderator  User      @relation("ModeratorAction", fields: [moderatorId], references: [id])
-  targetUser User?     @relation("ModerationTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
-  material   Material? @relation(fields: [targetMaterialId], references: [id], onDelete: Cascade)
-  guide      Guide?    @relation(fields: [targetGuideId], references: [id], onDelete: Cascade)
+enum ModerationTargetType {
+  MATERIAL
+  COURSE_REVIEW
+  EXAM_EXPERIENCE
+}
 
-  @@index([targetUserId])
-  @@index([targetMaterialId])
-  @@index([targetGuideId])
-  @@index([moderatorId])
+enum ModerationCaseKind {
+  REPORTS
+  PRIOR_REVIEW
+}
+
+enum ModerationCaseStatus {
+  OPEN
+  CLOSED
+}
+
+enum ModerationDecision {
+  KEEP_VISIBLE
+  REMOVE
+  RESTORE
+  APPROVE
+  REJECT
+}
+
+enum ReportStatus {
+  OPEN
+  CONFIRMED
+  DISMISSED
+}
+
+enum ModerationEventAction {
+  PRIOR_REVIEW_OPENED
+  PRIOR_REVIEW_APPROVED
+  PRIOR_REVIEW_REJECTED
+  RESUBMITTED
+  REPORT_FILED
+  AUTO_HIDDEN
+  AUTO_UNHIDDEN_OVERDUE
+  KEPT_VISIBLE
+  REMOVED
+  RESTORED
+  AUTHOR_REVEALED
+  LEGACY_ACTION
+  WARNED
+  MUTED
+  SUSPENDED
+  SANCTION_LIFTED
+  SUSPENSION_PROPOSED
+  SUSPENSION_REJECTED
+  APPEAL_FILED
+  APPEAL_ACCEPTED
+  APPEAL_REJECTED
+}
+
+model ModerationCase {
+  id               String               @id @default(uuid()) @db.Uuid
+  kind             ModerationCaseKind
+  status           ModerationCaseStatus @default(OPEN)
+  targetType       ModerationTargetType @map("target_type")
+  materialId       String?              @map("material_id") @db.Uuid
+  courseReviewId   String?              @map("course_review_id") @db.Uuid
+  examExperienceId String?              @map("exam_experience_id") @db.Uuid
+  highPriority     Boolean              @default(false) @map("high_priority")
+  openedAt         DateTime             @default(now()) @map("opened_at")
+  closedAt         DateTime?            @map("closed_at")
+  decision         ModerationDecision?
+  decidedById      String?              @map("decided_by_id") @db.Uuid
+  decisionReason   String?              @map("decision_reason") @db.VarChar(1000)
+  /// Author of the target when the caso opened (anonymous content included). Server-only.
+  targetAuthorId   String?              @map("target_author_id") @db.Uuid
+  /// Set when a retiro is undone by a restore or an accepted appeal.
+  revertedAt       DateTime?            @map("reverted_at")
+
+  material       Material?       @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  courseReview   CourseReview?   @relation(fields: [courseReviewId], references: [id], onDelete: Cascade)
+  examExperience ExamExperience? @relation(fields: [examExperienceId], references: [id], onDelete: Cascade)
+  decidedBy      User?           @relation("ModerationCaseDecidedBy", fields: [decidedById], references: [id], onDelete: Restrict)
+  reports        Report[]
+  sanctions      Sanction[]
+  appeal         Appeal?
+
+  @@index([status, kind, openedAt])
+  @@index([targetAuthorId, decision, closedAt])
+  @@index([materialId])
+  @@index([courseReviewId])
+  @@index([examExperienceId])
+  @@map("moderation_cases")
+}
+
+model Report {
+  id               String               @id @default(uuid()) @db.Uuid
+  caseId           String               @map("case_id") @db.Uuid
+  reporterId       String               @map("reporter_id") @db.Uuid
+  reason           ReportReason
+  explanation      String?              @db.VarChar(1000)
+  status           ReportStatus         @default(OPEN)
+  targetType       ModerationTargetType @map("target_type")
+  materialId       String?              @map("material_id") @db.Uuid
+  courseReviewId   String?              @map("course_review_id") @db.Uuid
+  examExperienceId String?              @map("exam_experience_id") @db.Uuid
+  createdAt        DateTime             @default(now()) @map("created_at")
+  resolvedAt       DateTime?            @map("resolved_at")
+
+  case           ModerationCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reporter       User            @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  material       Material?       @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  courseReview   CourseReview?   @relation(fields: [courseReviewId], references: [id], onDelete: Cascade)
+  examExperience ExamExperience? @relation(fields: [examExperienceId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, materialId])
+  @@unique([reporterId, courseReviewId])
+  @@unique([reporterId, examExperienceId])
+  @@index([caseId])
+  @@map("reports")
+}
+
+/// Append-only (a database trigger rejects UPDATE and DELETE). Target ids carry no
+/// foreign keys so the history survives content deletion; `metadata` keeps a label.
+model ModerationEvent {
+  id               String                @id @default(uuid()) @db.Uuid
+  actorId          String?               @map("actor_id") @db.Uuid
+  action           ModerationEventAction
+  targetType       ModerationTargetType? @map("target_type")
+  materialId       String?               @map("material_id") @db.Uuid
+  courseReviewId   String?               @map("course_review_id") @db.Uuid
+  examExperienceId String?               @map("exam_experience_id") @db.Uuid
+  targetUserId     String?               @map("target_user_id") @db.Uuid
+  caseId           String?               @map("case_id") @db.Uuid
+  reason           String?               @db.VarChar(1000)
+  metadata         Json?
+  createdAt        DateTime              @default(now()) @map("created_at")
+
   @@index([createdAt])
-  @@map("moderation_logs")
+  @@index([action, createdAt])
+  @@index([actorId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([caseId])
+  @@map("moderation_events")
+}
+
+// ─── MODERACIÓN: SANCIONES Y APELACIONES ─────────────────────
+// See docs/README_MODERACION.md §6–§7 and openspec/specs/moderation/{sanctions,appeals}.
+// Raw SQL in the migration adds: one PENDING suspension proposal per account, and the
+// exactly-one-target CHECK on appeals. Actor ids carry no foreign keys, like events.
+
+enum SanctionType {
+  WARNING
+  MUTE
+  SUSPENSION
+}
+
+enum SuspensionProposalStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum AppealKind {
+  RETIRO
+  SANCTION
+}
+
+enum AppealStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// One advertencia, silenciamiento or suspensión. `User.mutedUntil`, `isBanned` and
+/// `bannedUntil` cache the active ones and are written in the same transaction.
+model Sanction {
+  id               String       @id @default(uuid()) @db.Uuid
+  userId           String       @map("user_id") @db.Uuid
+  type             SanctionType
+  reason           String       @db.VarChar(1000)
+  startsAt         DateTime     @default(now()) @map("starts_at")
+  /// Null for advertencias and permanent suspensiones.
+  endsAt           DateTime?    @map("ends_at")
+  appliedById      String       @map("applied_by_id") @db.Uuid
+  caseId           String?      @map("case_id") @db.Uuid
+  liftedAt         DateTime?    @map("lifted_at")
+  liftedById       String?      @map("lifted_by_id") @db.Uuid
+  liftReason       String?      @map("lift_reason") @db.VarChar(1000)
+  voidedAt         DateTime?    @map("voided_at")
+  voidedByAppealId String?      @map("voided_by_appeal_id") @db.Uuid
+  /// When the account first saw an advertencia.
+  seenAt           DateTime?    @map("seen_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  user   User            @relation("SanctionUser", fields: [userId], references: [id], onDelete: Cascade)
+  case   ModerationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  appeal Appeal?
+
+  @@index([userId, startsAt])
+  @@index([caseId])
+  @@map("sanctions")
+}
+
+model SuspensionProposal {
+  id             String                   @id @default(uuid()) @db.Uuid
+  userId         String                   @map("user_id") @db.Uuid
+  proposedById   String                   @map("proposed_by_id") @db.Uuid
+  reason         String                   @db.VarChar(1000)
+  /// 7 or 30; null proposes a permanent suspensión.
+  durationDays   Int?                     @map("duration_days")
+  caseId         String?                  @map("case_id") @db.Uuid
+  status         SuspensionProposalStatus @default(PENDING)
+  decidedById    String?                  @map("decided_by_id") @db.Uuid
+  decisionReason String?                  @map("decision_reason") @db.VarChar(1000)
+  decidedAt      DateTime?                @map("decided_at")
+  sanctionId     String?                  @map("sanction_id") @db.Uuid
+  createdAt      DateTime                 @default(now()) @map("created_at")
+
+  user User @relation("SuspensionProposalUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("suspension_proposals")
+}
+
+model Appeal {
+  id          String       @id @default(uuid()) @db.Uuid
+  appellantId String       @map("appellant_id") @db.Uuid
+  kind        AppealKind
+  /// The caso whose retiro is appealed (kind RETIRO).
+  caseId      String?      @unique @map("case_id") @db.Uuid
+  /// The appealed sanción (kind SANCTION).
+  sanctionId  String?      @unique @map("sanction_id") @db.Uuid
+  explanation String       @db.VarChar(1000)
+  status      AppealStatus @default(PENDING)
+  /// Who made the appealed decision; they can never review it.
+  decidedById String       @map("decided_by_id") @db.Uuid
+  reviewerId  String?      @map("reviewer_id") @db.Uuid
+  answer      String?      @db.VarChar(1000)
+  answeredAt  DateTime?    @map("answered_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  appellant User            @relation("AppealAppellant", fields: [appellantId], references: [id], onDelete: Cascade)
+  case      ModerationCase? @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sanction  Sanction?       @relation(fields: [sanctionId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("appeals")
 }
