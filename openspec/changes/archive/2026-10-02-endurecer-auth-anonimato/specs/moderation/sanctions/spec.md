@@ -61,7 +61,7 @@ For each account it SHALL show:
 
 The Usuarios tab SHALL NOT reveal which anonymous entries belong to the account; linking them requires «Ver autor» from a caso.
 
-For a MODERATOR, nothing in the tab SHALL depend on retiros of anonymous content or on sanciones from casos about anonymous content: not the list, its filters, its order, the counts, the status, the paso sugerido nor the timeline. Otherwise deciding an anonymous caso and then looking at the tab would show which account wrote it.
+For a MODERATOR, nothing in the tab SHALL depend on retiros of anonymous content or on sanciones from casos about anonymous content: not the list, its filters, its order, the counts, the status, the paso sugerido nor the timeline. Otherwise deciding an anonymous caso and then looking at the tab would show which account wrote it. The same SHALL hold for the author a MODERATOR sees on a caso about signed content: its retiros in 90 days and the preselection of «Advertir también».
 
 ADMIN and SUPERADMIN SHALL see them. To them, a sanción from a caso about anonymous content SHALL appear as «por un caso sobre una publicación anónima», with its reason and date and without a link to the caso.
 
@@ -84,3 +84,7 @@ ADMIN and SUPERADMIN SHALL see them. To them, a sanción from a caso about anony
 #### Scenario: Moderator after retiring an anonymous reseña
 - **WHEN** a moderator retires an anonymous reseña with «Advertir también» and then opens Usuarios
 - **THEN** the author's account shows the same list membership, counts, status, paso sugerido and timeline as before the decision
+
+#### Scenario: Moderator opens a signed caso of the same author
+- **WHEN** a moderator retires an anonymous reseña with «Advertir también» and then opens a caso about a material by the same account
+- **THEN** the author's retiros in 90 days and the preselection of «Advertir también» are the same as before the decision, while an ADMIN sees the retiro

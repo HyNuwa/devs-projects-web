@@ -80,13 +80,21 @@ A new injectable `PasswordHasher` in the auth module, with `PASSWORD_HASH_ROUNDS
 - **Who gets it:** `ModerationUsersService` passes it for MODERATOR, and ADMIN and SUPERADMIN keep `'include'`. The same filter applies to:
   - the «suggested» candidates (retiro casos) and the «sanctioned» candidates (recent sanciones);
   - the file's sanciones timeline;
-  - `publishedCount`, which counts only signed reseñas and experiencias for MODERATOR.
-- **What stays:** the escalera for decisions (`DecisionsService`, `CasesService`) keeps the full history, so reincidence still counts for the account.
+  - `publishedCount`, which counts only signed reseñas and experiencias for MODERATOR;
+  - on a caso about signed content (`CasesService.detail`), the author's `removalsLast90Days` and the history behind `warnSuggested`. Found during implementation: comparing that card before and after an anonymous retiro would name the author just like Usuarios.
+- **What stays:** the escalera for decisions (`DecisionsService`) and «Ver autor» (`HistoryService.revealAuthor`, which is recorded) keep the full history, so reincidence still counts for the account.
 - **Restriction flags:** mute and suspension come only from Usuarios actions, which need the account. «Advertir también» only warns, and warnings do not change the account row, so the flags cannot come from an anonymous caso. The status is computed from the filtered history, so an anonymous advertencia does not turn a MODERATOR's view into WARNED.
 - **Alternative rejected:** hiding only the timeline entries. The counts and filters would still move.
 
 ### Appeals of sanciones from anonymous casos
 `anonymousContent` becomes true for a SANCTION appeal whose sanción's caso is about anonymous content, in `canReview`'s callers: list, detail, answer and count. For MODERATOR, `summary` shows such an appellant as `{ hidden: true, username: null }`, as for anonymous retiros. ADMIN still sees the username, since the sanción is on the account and its file shows it to them. The read-only path already keeps the explanation out.
+
+### Found by the code review (6.2)
+- **Points on anonymous decisions:** a retiro reverted the author's points and a restoration awarded them back, and points and level are public (`/ranking`). Diffing them before and after deciding an anonymous caso named the author. `DecisionsService` (decision and `restoreFromAppeal`) no longer moves points for anonymous content. An anonymous entry that is retired keeps its points until the points change removes anonymous points for everyone at once (README_PUNTOS_E_INSIGNIAS §3.4 and its migration).
+- **History rows that exist only for some authors:** «Advertir también» skips staff authors silently, so a masked WARNED row after an anonymous retiro said the author was not staff. For MODERATOR, `HistoryService.list` drops account events from anonymous casos instead of masking them.
+- **Over-exposed profile:** `GET /users/:id` returned another account's whole row (email, sanción flags, `lastLogin`, `updatedAt`). It now returns the public profile: id, username, display name, avatar, bio, points, level and creation date. `/users/me` is unchanged. The frontend did not call it.
+- **Log format:** pino drops extra arguments to a message, so `accountFound` and the mail error fields never reached production logs. They are logged as one object (`{ msg, accountFound }`, `{ msg, mailError }`).
+- **Not changed:** email lookup is not normalized (case and whitespace), unlike the rate-limit key; it is a correctness issue with existing data, not an oracle, since both paths pay the bcrypt round. The extra writes of «Advertir también» for a warnable author are a sub-millisecond database difference. Stored hashes with a lower cost than 12 would answer faster than the stand-in; the code never produced them, but some demo rows have them.
 
 ## Risks / Trade-offs
 

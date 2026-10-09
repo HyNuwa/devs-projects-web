@@ -94,7 +94,7 @@ A moderator SHALL NOT decide a caso about their own content, a caso in which the
 - **THEN** the decision controls are unavailable and a decision request is refused
 
 ### Requirement: Points follow publication
-A contribution's existing points (10 for a material, 5 for a reseña de cursada or an experiencia de final) SHALL be awarded when it becomes `Publicado` (on submission or on approval of a revisión previa), reverted when it becomes `Retirado`, and awarded again when it is restored. Ocultamiento preventivo and revisión previa SHALL NOT award or deduct points. A contribution SHALL never hold more than one active award. How much each contribution earns, and whether anonymous entries earn points, belongs to the points change.
+A contribution's existing points (10 for a material, 5 for a reseña de cursada or an experiencia de final) SHALL be awarded when it becomes `Publicado` (on submission or on approval of a revisión previa), reverted when it becomes `Retirado`, and awarded again when it is restored. Ocultamiento preventivo and revisión previa SHALL NOT award or deduct points. A contribution SHALL never hold more than one active award. Moderation decisions about an anonymous reseña or experiencia (retiro, restoration, approval of a revisión previa, an accepted appeal of its retiro) SHALL NOT award or deduct points: the author's public points would change with the decision and name them. How much each contribution earns, and whether anonymous entries earn points when published, belongs to the points change.
 
 #### Scenario: Material published on upload
 - **WHEN** a material is published immediately
@@ -107,6 +107,10 @@ A contribution's existing points (10 for a material, 5 for a reseña de cursada 
 #### Scenario: Retire and restore
 - **WHEN** a published material is retired and later restored
 - **THEN** its author's net points from that material are 10, not 20 and not 0
+
+#### Scenario: Retiro of an anonymous reseña
+- **WHEN** a moderator retires an anonymous reseña that earned 5 points, and later it is restored
+- **THEN** its author's points, level and account row are the same before the retiro, after it and after the restoration
 
 ### Requirement: Revelación de autor
 Moderators SHALL see an anonymous entry's author as «Autor oculto». Seeing the author SHALL require a written reason of at most 300 characters and SHALL be recorded with the moderator, the entry, the reason and the date. Records of revelación de autor SHALL be visible only to ADMIN and SUPERADMIN. Content published under the author's name SHALL show the author to moderators directly.
@@ -133,7 +137,7 @@ Every moderation action SHALL be recorded in one append-only history. That inclu
 - suspension proposals and their confirmation or rejection
 - appeals and their answers
 
-Each record SHALL hold who acted (a person or the system), the action, the target, the date and the reason. No user, including SUPERADMIN, SHALL be able to edit or delete a record through the product. Moderators SHALL be able to filter the history by action, actor, content and date. For MODERATOR, events about an account that came from a caso about anonymous content SHALL NOT show the reason, the caso or the content, and filtering by that content SHALL NOT return them. These are sanción events (advertencia, silenciamiento, suspensión, lifting, suspension proposal and its rejection) and appeals of those sanciones with their answers. The account's file and the Apelaciones tab show the account with the same reason, text and time, and matching them would link the account to the anonymous entry. For MODERATOR, appeals of a retiro of anonymous content and their answers SHALL NOT show the reason either, as the read-only appeal does not show what the appellant wrote. ADMIN and SUPERADMIN SHALL see everything.
+Each record SHALL hold who acted (a person or the system), the action, the target, the date and the reason. No user, including SUPERADMIN, SHALL be able to edit or delete a record through the product. Moderators SHALL be able to filter the history by action, actor, content and date. For MODERATOR, events about an account that came from a caso about anonymous content SHALL NOT be listed, with any filter. These are sanción events (advertencia, silenciamiento, suspensión, lifting, suspension proposal and its rejection) and appeals of those sanciones with their answers. Showing them would let a moderator match their reason, text and time with the account, and their mere existence would tell: «Advertir también» skips staff authors silently, so an advertencia row would say the hidden author is not staff. For MODERATOR, appeals of a retiro of anonymous content and their answers SHALL NOT show the reason either, as the read-only appeal does not show what the appellant wrote. ADMIN and SUPERADMIN SHALL see everything.
 
 #### Scenario: Automatic hiding appears in history
 - **WHEN** the system hides content after three reportes
@@ -145,11 +149,15 @@ Each record SHALL hold who acted (a person or the system), the action, the targe
 
 #### Scenario: Advertencia from an anonymous caso
 - **WHEN** a MODERATOR opens the history after an advertencia was given from a caso about an anonymous reseña
-- **THEN** the record shows the action and who acted, without the account, the reason, the caso or the content, and an ADMIN sees all of them
+- **THEN** the advertencia is not listed, whatever the filter, and an ADMIN sees it with the account, the reason, the caso and the content
+
+#### Scenario: «Advertir también» on an anonymous caso by a staff author
+- **WHEN** a moderator retires with «Advertir también» an anonymous reseña by a student and another by a moderator, and opens the history
+- **THEN** neither retiro is followed by an advertencia in the moderator's history, so the two look the same
 
 #### Scenario: Appeal of a sanción from an anonymous caso
 - **WHEN** the author appeals that advertencia and a MODERATOR opens the history
-- **THEN** the appeal record shows neither what the author wrote nor the caso, and filtering the history by the anonymous reseña does not return it
+- **THEN** the appeal record is not listed, and an ADMIN sees it
 
 #### Scenario: Attempt to alter a record
 - **WHEN** any client requests to update or delete a history record

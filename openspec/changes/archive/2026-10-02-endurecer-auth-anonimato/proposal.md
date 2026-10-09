@@ -34,6 +34,9 @@ The final review of `moderacion-ajustes` left three problems that existed before
   - «Advertencia with a retiro»: no preselection on anonymous casos.
   - «Who can sanction whom»: Usuarios actions never name a caso.
   - «Usuarios tab»: a MODERATOR's view ignores what came from anonymous content.
+- `moderation/cases`:
+  - «Points follow publication»: decisions about anonymous content move no points.
+  - «Immutable moderation history»: a MODERATOR does not get account events from anonymous casos at all.
 - `moderation/appeals`:
   - «Someone else reviews the appeal»: appeals of sanciones from anonymous casos go to admins.
   - «Apelaciones tab»: a moderator sees them read-only with «Autor oculto».
@@ -47,6 +50,7 @@ The final review of `moderacion-ajustes` left three problems that existed before
   - `cases.service.ts` (`warnSuggested`).
   - `moderation-users.service.ts` and `escalera-history.ts` (viewer-aware histories).
   - `sanction-rules.ts` `canReview`, `appeals-query.service.ts` and `appeals.service.ts`.
+- **Found in review:** `decisions.service.ts` (points), `history.service.ts` (listing), `users.service.ts` and `users.controller.ts` (public profile).
 - **Frontend:** Apelaciones renders a hidden appellant on a sanción appeal. No other UI change is expected; the frontend tests cover it.
 - **Docs:** `README_MODERACION` (§6, §7, §9) and `README_SECURITY`.
 - **No schema change.**
