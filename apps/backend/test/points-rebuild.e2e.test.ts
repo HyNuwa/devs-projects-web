@@ -244,4 +244,42 @@ describe('rebuild-points (e2e)', () => {
 
     expect((await ledgerOf(author)).points).toBe(10);
   });
+
+  it('also awards the insignias already met, seasonal ones included, all as seen', async () => {
+    const author = await createUser(prisma);
+    const { id: subjectId } = await createSubject(prisma);
+    await prisma.material.create({
+      data: {
+        title: 'Final con insignia',
+        fileUrl: 'https://drive.example.com/e2e',
+        fileType: 'pdf',
+        fileSize: BigInt(1000),
+        authorId: author.id,
+        subjectId,
+        resourceType: 'OTRO',
+      },
+    });
+    await prisma.examExperience.create({
+      data: {
+        userId: author.id,
+        subjectId,
+        year: 2025,
+        session: 'DICIEMBRE',
+        format: 'ESCRITO',
+        // Shared during the December 2025 mesas.
+        createdAt: new Date('2025-12-15T15:00:00.000Z'),
+      },
+    });
+
+    await rebuildPoints(prisma, { userIds: [author.id], apply: true });
+
+    const rows = await prisma.userBadge.findMany({
+      where: { userId: author.id },
+      select: { seenAt: true, badge: { select: { slug: true } } },
+    });
+    const slugs = rows.map((row) => row.badge.slug);
+    expect(slugs).toContain('primer-aporte');
+    expect(slugs).toContain('mesa-de-diciembre');
+    expect(rows.every((row) => row.seenAt !== null)).toBe(true);
+  });
 });

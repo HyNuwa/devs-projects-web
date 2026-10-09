@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
+  IsISO8601,
   IsNumber,
   IsOptional,
   IsString,
@@ -72,6 +73,18 @@ export class EnvironmentVariables {
   @Min(0)
   TRUST_PROXY: number = 0;
 
+  /**
+   * The platform's first cuatrimestre, for «Primera camada» (inclusive ISO dates).
+   * Unset: nobody earns it.
+   */
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  FOUNDER_WINDOW_START?: string;
+
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  FOUNDER_WINDOW_END?: string;
+
   @IsString()
   SMTP_HOST: string = 'localhost';
 
@@ -119,6 +132,15 @@ export function validate(config: Record<string, unknown>) {
         `  - RATE_LIMIT_SECRET: at least ${RATE_LIMIT_SECRET_MIN} characters, not the development one`,
       );
     }
+  }
+
+  // «Primera camada» needs its whole window; half of one is a mistake.
+  if (
+    Boolean(config.FOUNDER_WINDOW_START) !== Boolean(config.FOUNDER_WINDOW_END)
+  ) {
+    messages.push(
+      '  - FOUNDER_WINDOW_START, FOUNDER_WINDOW_END: set both or neither',
+    );
   }
 
   if (messages.length > 0) {

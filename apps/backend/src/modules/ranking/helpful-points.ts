@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 import type { Prisma } from '../../generated/prisma';
 import { PioneerBonus } from './pioneer-bonus';
-import { isSanctioned, PointLedger } from './point-ledger';
+import { helpfulGiverSelect, isValidHelpful } from './helpful-validity';
+import { PointLedger } from './point-ledger';
 
 type Tx = Prisma.TransactionClient;
 
@@ -42,21 +43,16 @@ export class HelpfulPoints {
       FROM "materials" WHERE "id" = ${mark.materialId}::uuid FOR NO KEY UPDATE`;
     const giver = await tx.user.findUnique({
       where: { id: mark.giverId },
-      select: {
-        emailVerified: true,
-        mutedUntil: true,
-        isBanned: true,
-        bannedUntil: true,
-      },
+      select: helpfulGiverSelect,
     });
     if (
       !material ||
       !giver ||
       material.isDeleted ||
       material.publicationStatus !== 'PUBLISHED' ||
-      material.authorId === mark.giverId ||
-      !giver.emailVerified ||
-      (!options.replayAt && isSanctioned(giver, new Date()))
+      !isValidHelpful(giver, mark.giverId, material.authorId, new Date(), {
+        ignoreSanction: Boolean(options.replayAt),
+      })
     ) {
       return false;
     }

@@ -45,8 +45,8 @@ async function main() {
   await prisma.subject.deleteMany();
   await prisma.professor.deleteMany();
   await prisma.career.deleteMany();
+  // The insignia catalog belongs to the migrations; only holders are reset.
   await prisma.userBadge.deleteMany();
-  await prisma.badge.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.emailVerification.deleteMany();
   await prisma.passwordResetRequest.deleteMany();

@@ -1,4 +1,8 @@
 import type { PrismaClient, Prisma } from '../../generated/prisma';
+import { ConfigService } from '@nestjs/config';
+
+import type { PrismaService } from '../../prisma/prisma.service';
+import { BadgeService } from './badges/badge.service';
 import { ContributionPoints } from './contribution-points';
 import { HelpfulPoints } from './helpful-points';
 import { PioneerBonus } from './pioneer-bonus';
@@ -18,19 +22,24 @@ const REPORT_POINTS = 2;
  * (or hidden while moderation reviews it, which keeps its points)
  * content, «Me sirvió» and confirmed reportes, with the ledger's rules
  * (openspec reputation/points). Legacy guía points are kept. A dry run (the
- * default) rolls each account back and only reports.
+ * default) rolls each account back and only reports. Applied, it also awards
+ * the insignias each account already meets (openspec reputation/badges).
  *
  * Each account is rebuilt on its own: every rule and cap is about the account
  * that earns, so other accounts are never touched.
  */
 export async function rebuildPoints(
-  prisma: Pick<PrismaClient, '$transaction' | 'user'>,
+  prisma: PrismaClient,
   options: { userIds?: string[]; apply?: boolean } = {},
 ): Promise<RebuildRow[]> {
   const ledger = new PointLedger();
   const pioneer = new PioneerBonus(ledger);
   const helpful = new HelpfulPoints(ledger, pioneer);
   const contributions = new ContributionPoints(ledger, pioneer, helpful);
+  const badges = new BadgeService(
+    prisma as unknown as PrismaService,
+    new ConfigService(),
+  );
 
   const userIds =
     options.userIds ??
@@ -56,6 +65,8 @@ export async function rebuildPoints(
     } catch (error) {
       if (!(error instanceof DryRun)) throw error;
     }
+    // Insignias already met are awarded too, as seen and without seasonal ones.
+    if (options.apply) await badges.evaluate(userId, { retroactive: true });
   }
   return report;
 }

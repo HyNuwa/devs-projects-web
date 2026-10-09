@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { defaultAvatarFor } from '@/components/layout/account';
+import { BadgesSection } from '@/components/progress/BadgesSection';
 import { Button, EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn';
 import { getApiError } from '@/lib/apiHelpers';
 import { getMyProgress, type Progress, type ProgressMovement } from '@/lib/progress-client';
@@ -246,6 +247,8 @@ export function ProgressPage() {
           })}
         </ol>
       </section>
+
+      <BadgesSection />
 
       <section className="rounded-2xl border-[1.5px] border-foreground bg-card p-5">
         <h2 className="text-lg font-extrabold tracking-[-0.02em]" id="progress-movements">

@@ -6,12 +6,14 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
   createE2eApp,
+  createSubject,
   createUser,
   type E2eUser,
 } from './support/e2e-app';
 
 const PUBLIC_FIELDS = [
   'avatarUrl',
+  'badges',
   'bio',
   'createdAt',
   'displayName',
@@ -60,5 +62,99 @@ describe('public profile of another account (e2e)', () => {
 
     expect(body).toEqual(expect.objectContaining({ email: viewer.email }));
     expect(body).not.toHaveProperty('passwordHash');
+  });
+
+  it('lists the earned insignias without dates and never Ojo atento', async () => {
+    const other = await createUser(prisma);
+    const author = await createUser(prisma);
+    const { id: subjectId } = await createSubject(prisma);
+    await prisma.material.create({
+      data: {
+        title: 'Resumen público',
+        fileUrl: 'https://drive.example.com/e2e',
+        fileType: 'pdf',
+        fileSize: BigInt(1000),
+        authorId: other.id,
+        subjectId,
+        resourceType: 'OTRO',
+      },
+    });
+    // Ten confirmed reportes: Ojo atento, which only its owner sees.
+    for (let i = 0; i < 10; i += 1) {
+      const review = await prisma.courseReview.create({
+        data: {
+          userId: author.id,
+          subjectId,
+          recommendation: 1,
+          publicationStatus: 'REMOVED',
+        },
+      });
+      const caso = await prisma.moderationCase.create({
+        data: {
+          kind: 'REPORTS',
+          targetType: 'COURSE_REVIEW',
+          courseReviewId: review.id,
+          targetAuthorId: author.id,
+          status: 'CLOSED',
+          decision: 'REMOVE',
+          closedAt: new Date(),
+        },
+      });
+      await prisma.report.create({
+        data: {
+          caseId: caso.id,
+          reporterId: other.id,
+          reason: 'INSULTOS_O_ACOSO',
+          targetType: 'COURSE_REVIEW',
+          courseReviewId: review.id,
+          status: 'CONFIRMED',
+        },
+      });
+    }
+
+    const { body } = await request(app.getHttpServer())
+      .get(`/api/v1/users/${other.id}`)
+      .set('Authorization', bearer(app, viewer))
+      .expect(200);
+
+    expect(body.badges).toContainEqual({
+      slug: 'primer-aporte',
+      name: 'Primer aporte',
+      rarity: 'COMUN',
+      tier: null,
+      edition: 0,
+    });
+    expect(
+      (body.badges as { slug: string }[]).some((b) => b.slug === 'ojo-atento'),
+    ).toBe(false);
+    expect(JSON.stringify(body.badges)).not.toMatch(/earned|seen|At"/);
+  });
+
+  it('lists only insignias of the catalog', async () => {
+    const other = await createUser(prisma);
+    const extra = await prisma.badge.upsert({
+      where: { slug: 'fuera-del-catalogo' },
+      create: {
+        slug: 'fuera-del-catalogo',
+        name: 'Fuera del catálogo',
+        description: 'Una insignia sin criterio.',
+        imageUrl: '/x.svg',
+      },
+      update: {},
+    });
+    await prisma.userBadge.create({
+      data: { userId: other.id, badgeId: extra.id },
+    });
+
+    const { body } = await request(app.getHttpServer())
+      .get(`/api/v1/users/${other.id}`)
+      .set('Authorization', bearer(app, viewer))
+      .expect(200);
+
+    expect(
+      (body.badges as { slug: string }[]).some(
+        (b) => b.slug === 'fuera-del-catalogo',
+      ),
+    ).toBe(false);
   });
 });

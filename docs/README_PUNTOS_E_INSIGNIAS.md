@@ -1,6 +1,6 @@
 # Sistema de puntos, niveles e insignias
 
-> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Insignias (§6) llegan con 3b; personalización, privilegios y rankings (§4 desbloqueos, §5, §7), con 3c.
+> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Las insignias (§6) están implementadas desde `puntos-insignias` (3b), salvo Lupa. Personalización, privilegios, rankings y la página de perfil público (§4 desbloqueos, §5, §7, §8), con 3c.
 > **Moderación:** desde septiembre 2026 todo se publica al instante y se modera después (`docs/README_MODERACION.md`, ADR 0001). Por eso los puntos de un aporte se otorgan **al publicarse** y se revierten si se retira.
 > **Relacionado:** `apps/backend/src/modules/ranking/` (`point.service.ts`, `rpg-levels.ts`, `ranking.service.ts`), modelos `PointTransaction`, `Badge`, `UserBadge`, `MaterialHelpfulness`, `CommunityReport` y `Guide` en `apps/backend/prisma/schema.prisma`, y el glosario de `CONTEXT.md`.
 
@@ -26,7 +26,7 @@ Los puntos existen para **reconocer a quien ayuda a otros estudiantes**, no para
 | Guía | Ya no suma. Los `GUIDE_CREATED` existentes se conservan; los movimientos viejos sin motivo conocido quedaron como `LEGACY_ADJUSTMENT`. |
 | `MaterialHelpfulness` | Un «Me sirvió» por estudiante y material; los válidos suman `HELPFUL_RECEIVED` con sus topes (§3.2). |
 | Reportes | Desde el cambio de moderación (`Report` y casos) se reportan materiales, reseñas y experiencias. `REPORT_CONFIRMED` se otorga en los tres. |
-| `Badge` / `UserBadge` | Existen con nombre, descripción e imagen. `UserBadge` ya tiene `@@unique([userId, badgeId])`. No guardan el criterio para ganarlas, su rareza ni su grado. |
+| `Badge` / `UserBadge` | Catálogo de 17 insignias (slug, rareza, orden, gema en `/assets/insignias/gema/`); el criterio vive en `badge-catalog.ts`. `UserBadge` guarda grado, edición y si ya se vio, con `@@unique([userId, badgeId, edition])`. |
 | Ranking | `ranking.service.ts` ordena por puntos totales. Se reemplaza por rankings acotados (§7). |
 | Eventos, tutorías, Clasificados | **No existen** en el esquema. Sus puntos e insignias quedan para más adelante (§10). |
 
@@ -163,7 +163,9 @@ Mientras una cuenta está silenciada (`isMuted`) o suspendida (`isBanned`): no g
   - Una insignia que depende de un solo aporte (ej. Salvavidas) se quita si ese aporte se retira.
   - Una insignia que suma varios aportes (ej. Trotamaterias) **baja de grado** o se quita solo si deja de cumplir el criterio del grado bronce.
 - Las publicaciones anónimas no cuentan para ninguna insignia, y solo cuentan los «Me sirvió» válidos (§3.2).
-- En el perfil público se pueden destacar hasta 3 insignias.
+- En el perfil público se pueden destacar hasta 3 insignias (3c). Hasta entonces, la API del perfil público lista las insignias ganadas con grado y edición, **sin fecha** (una fecha podría coincidir con un retiro) y **nunca «Ojo atento»**, que solo ve su dueño porque habla de reportar.
+- **Cuándo se evalúan:** al leerlas («Tu progreso», el perfil público y la reconstrucción de puntos), desde los datos actuales de la cuenta. La fecha «ganada» es cuándo se detectó por primera vez; se muestra con mes y año. Cuando lleguen las notificaciones habrá que evaluarlas en cada evento, con la misma función.
+- **Una insignia nueva** muestra la animación «entrada» de su gema la primera vez que se ve en «Tu progreso» (no con movimiento reducido).
 - Los nombres son sustantivos o expresiones neutras. Ninguno usa «/a».
 
 ### 6.2 Catálogo inicial
@@ -188,7 +190,7 @@ Todas se pueden calcular con los modelos que ya existen, salvo donde se indica.
 | `DECEMBER_BOARD` | Mesa de diciembre | Contaste con nombre una experiencia de final de la mesa de diciembre de ese año | De temporada | — |
 | `FINALS_SEASON` | Temporada de finales | 3 aportes publicados durante un período de mesas (una edición por período) | De temporada | — |
 | `GUARDIAN` | Ojo atento | 10 reportes confirmados por moderación | Rara | — |
-| `EDITOR` | Lupa | 10 correcciones aceptadas (requiere `CorrectionSuggestion`, §9.1) | Rara | — |
+| `EDITOR` | Lupa | 10 correcciones aceptadas (requiere `CorrectionSuggestion`, §9.1; llega con 3c) | Rara | — |
 | `FOUNDER` | Primera camada | Cuenta con email verificado creada durante el primer cuatrimestre de la plataforma y al menos un aporte publicado en ese período | Edición única | — |
 
 Notas sobre criterios:
@@ -197,6 +199,8 @@ Notas sobre criterios:
 - **Mesa de diciembre** era la única insignia «de temporada» que en realidad se repite cada año. Por eso ahora hay dos rarezas separadas: de temporada (con edición) y edición única.
 - **Primera huella** exige el tipo distinto de `OTRO` y los 3 «Me sirvió» del bono. Así no se gana subiendo cualquier cosa, y al lanzar la plataforma no la gana todo el mundo.
 - **Primera luz** premia lo más valioso para la comunidad: la primera ayuda en una materia vacía.
+- **Calendario** (`badge-calendar.ts`): 1er cuatrimestre de marzo a julio y 2do de agosto a diciembre; enero y febrero cuentan en el 2do anterior. Mesas: febrero–marzo, julio y diciembre; la edición de «Temporada de finales» es `AAAAMM` del primer mes de la mesa. Días en hora de Argentina (UTC−3).
+- **Ojo atento** cuenta casos con un reporte tuyo confirmado cuyo retiro sigue vigente, no los puntos (que tienen tope semanal).
 
 ### 6.3 Qué no se agrega nunca
 
@@ -232,10 +236,8 @@ Los rankings muestran los 10 primeros y, si no estás entre ellos, tu posición.
   - Convertir `reason` en el enum `PointReason` con los códigos del §3.1. No hacen falta variantes `_REVERTED`.
   - Agregar `idempotencyKey` (único, §3.5) y `reversesId` (opcional y único, con relación al movimiento revertido).
   - Agregar índices por `(userId, createdAt)` para los topes y el ranking mensual, y por `(reason, referenceId)` para las reversiones.
-- **`Badge`:** agregar `slug` único (el código del §6.2), `rarity` (enum `COMUN`, `RARA`, `TEMPORADA`, `EDICION_UNICA`), `availableFrom` y `availableUntil` (opcionales, para las de edición única) y `sortOrder`.
-- **`UserBadge`:**
-  - Agregar `tier` (opcional: bronce, plata, oro), `tierUpdatedAt`, `referenceId` (qué la originó) y `edition` (`Int`, `0` para las que no son de temporada; el año o período para las de temporada).
-  - Reemplazar el `@@unique([userId, badgeId])` actual por `@@unique([userId, badgeId, edition])`. `edition` no es nulo para que la unicidad funcione en Postgres.
+- **`Badge`:** `slug` único (el código del §6.2), `rarity` (enum `COMUN`, `RARA`, `TEMPORADA`, `EDICION_UNICA`) y `sortOrder`. La ventana de Primera camada vive en la configuración (`FOUNDER_WINDOW_*`). Hecho en 3b.
+- **`UserBadge`:** `tier` (bronce, plata, oro), `tierUpdatedAt`, `edition` (`Int`, `0` para las que no son de temporada; el año o `AAAAMM` de la mesa para las de temporada) y `seenAt`, con `@@unique([userId, badgeId, edition])`. Hecho en 3b.
 - **Nuevo `ProfileCustomization`** (uno por usuario): avatar elegido, color de acento, fondo, marco, banner, título (referencia a una insignia) y hasta 3 aportes fijados. El backend valida que cada opción esté desbloqueada.
 - **Nuevo `CorrectionSuggestion`** (para *Sugerir correcciones*): material, campo, valor propuesto, estado y quién decidió.
 
@@ -246,7 +248,7 @@ Los rankings muestran los 10 primeros y, si no estás entre ellos, tu posición.
 - `MATERIAL_PIONEER` se evalúa cuando un material llega a 3 «Me sirvió» y cuando se edita la materia o el tipo de un material publicado.
 - Mover los puntos de reseñas y experiencias para que solo se otorguen si `isAnonymous = false`, revertirlos cuando la moderación las retira (`CommunityModerationAction` con `REMOVE`) o el autor las borra, y volver a otorgarlos con `RESTORE`.
 - Se deja de otorgar `GUIDE_CREATED` (las guías quedaron fuera del producto).
-- Nuevo `BadgeService.evaluate(userId, trigger)`. Se dispara con un evento de dominio **después del commit** de cada movimiento de puntos o evento relevante, no dentro de la transacción de moderación. La unicidad de `UserBadge` lo hace seguro ante reintentos.
+- `BadgeService.evaluate(userId)` recalcula las insignias **al leerlas** («Tu progreso», perfil público, reconstrucción), fuera de las transacciones de moderación; un lock por cuenta y la unicidad de `UserBadge` lo hacen seguro ante lecturas simultáneas. Hecho en 3b.
 - `ranking.service.ts` calcula los rankings del §7 a partir de `PointTransaction` y no de `User.points`.
 - Tarea periódica de conciliación: verifica que `User.points` sea igual a la suma de `PointTransaction` y alerta si no coincide.
 
@@ -255,7 +257,7 @@ Los rankings muestran los 10 primeros y, si no estás entre ellos, tu posición.
 1. Las guías existentes conservan los puntos que ya otorgaron; no se generan más.
 2. Recalcular los puntos de cada usuario desde cero con las reglas nuevas: quitar los otorgados por reseñas y experiencias anónimas, y generar las `idempotencyKey`.
 3. Recalcular los niveles con la tabla nueva del §4.
-4. Otorgar retroactivamente las insignias cuyo criterio ya se cumple, excepto las de temporada.
+4. Otorgar retroactivamente las insignias cuyo criterio ya se cumple, marcadas como vistas para que no se animen todas juntas. Las de temporada solo cuentan aportes compartidos durante su período, así que no se inventan ediciones pasadas.
 
 La migración se despliega **junto con** la tabla de niveles nueva. Así, cuando cambia el nivel de todo el mundo a la vez, no se puede deducir quién perdió puntos por haber escrito reseñas anónimas.
 
@@ -286,6 +288,6 @@ Publicar en Clasificados no va a sumar puntos.
 
 ### 11.2 Pendientes
 
-- Fecha exacta que cierra el primer cuatrimestre para **Primera camada**. Propuesta: fijarla en la configuración como el último día de la última mesa del primer cuatrimestre de la plataforma.
+- Fecha exacta que cierra el primer cuatrimestre para **Primera camada**. Se configura con `FOUNDER_WINDOW_START` y `FOUNDER_WINDOW_END` (fechas ISO inclusivas); sin ambas, nadie la gana.
 - Validar los umbrales del §4 con datos reales del primer cuatrimestre.
 - ¿«Leyendas de la facultad» es una lista por facultad o una sola para toda la plataforma?

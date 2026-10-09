@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 import type { MaterialResourceType, Prisma } from '../../generated/prisma';
-import { isSanctioned, PointLedger } from './point-ledger';
+import { helpfulGiverSelect, isValidHelpful } from './helpful-validity';
+import { PointLedger } from './point-ledger';
 
 type Tx = Prisma.TransactionClient;
 
@@ -129,18 +130,12 @@ export class PioneerBonus {
     material: { id: string; authorId: string },
   ) {
     const marks = await tx.materialHelpfulness.findMany({
-      where: {
-        materialId: material.id,
-        userId: { not: material.authorId },
-        user: { emailVerified: true },
-      },
-      select: {
-        user: {
-          select: { mutedUntil: true, isBanned: true, bannedUntil: true },
-        },
-      },
+      where: { materialId: material.id },
+      select: { userId: true, user: { select: helpfulGiverSelect } },
     });
     const now = new Date();
-    return marks.filter((mark) => !isSanctioned(mark.user, now)).length;
+    return marks.filter((mark) =>
+      isValidHelpful(mark.user, mark.userId, material.authorId, now),
+    ).length;
   }
 }

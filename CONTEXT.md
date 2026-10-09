@@ -128,3 +128,15 @@ _Avoid_: Vote, like
 A named stage of an account's progress («Primeros pasos» to «Leyenda de la facultad»), computed from its points. Reaching a nivel unlocks profile personalization options, which are kept if points later drop while the account has no sanción.
 _Avoid_: Rank, tier (tiers belong to badges)
 
+
+**Insignia**:
+A recognition of a concrete, verifiable achievement (a material that helped 50 students, reseñas in 5 materias), shown as a gem. Insignias award no points, never count anonymous entries, and are lost or lowered when the contributions behind them are retired or deleted. Some have grados; seasonal ones are earned once per edición.
+_Avoid_: Achievement, trophy, medal
+
+**Grado**:
+The level of an insignia that can grow (bronce, plata, oro). Reaching a higher grado updates the same insignia; it never adds another.
+_Avoid_: Tier when talking to students, nivel (that belongs to points)
+
+**Edición**:
+The dated occurrence of a seasonal insignia, such as «Mesa de diciembre 2026». Each edición is earned on its own.
+_Avoid_: Version, season number

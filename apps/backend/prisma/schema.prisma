@@ -477,28 +477,54 @@ model ExamExperience {
 
 // ─── BADGES ──────────────────────────────────────────────────
 
+/// Rarity of an insignia (README_PUNTOS_E_INSIGNIAS §6.1).
+enum BadgeRarity {
+  COMUN
+  RARA
+  TEMPORADA
+  EDICION_UNICA
+}
+
+/// Grado of an insignia that grows; reaching a higher one updates the same row.
+enum BadgeTier {
+  BRONCE
+  PLATA
+  ORO
+}
+
+/// An insignia of the catalog (openspec reputation/badges). Its criterion lives in
+/// badge-catalog.ts, keyed by slug.
 model Badge {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @db.VarChar(100)
-  description String   @db.VarChar(255)
-  imageUrl    String   @map("image_url") @db.VarChar(500)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id          String      @id @default(uuid()) @db.Uuid
+  slug        String      @unique @db.VarChar(60)
+  name        String      @db.VarChar(100)
+  description String      @db.VarChar(255)
+  imageUrl    String      @map("image_url") @db.VarChar(500)
+  rarity      BadgeRarity @default(COMUN)
+  sortOrder   Int         @default(0) @map("sort_order")
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   users UserBadge[]
 
   @@map("badges")
 }
 
+/// An insignia an account holds: one row per edición (0 when not seasonal).
 model UserBadge {
-  id       String   @id @default(uuid()) @db.Uuid
-  userId   String   @map("user_id") @db.Uuid
-  badgeId  String   @map("badge_id") @db.Uuid
-  earnedAt DateTime @default(now()) @map("earned_at")
+  id            String     @id @default(uuid()) @db.Uuid
+  userId        String     @map("user_id") @db.Uuid
+  badgeId       String     @map("badge_id") @db.Uuid
+  earnedAt      DateTime   @default(now()) @map("earned_at")
+  tier          BadgeTier?
+  tierUpdatedAt DateTime?  @map("tier_updated_at")
+  edition       Int        @default(0)
+  /// Null until the account has seen it in «Tu progreso» (plays «entrada» once).
+  seenAt        DateTime?  @map("seen_at")
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, badgeId])
+  @@unique([userId, badgeId, edition])
   @@map("user_badges")
 }
 

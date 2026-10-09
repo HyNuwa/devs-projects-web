@@ -17,6 +17,9 @@ vi.mock('@/lib/progress-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/progress-client')>()),
   getMyProgress: mocks.progress,
 }));
+vi.mock('@/components/progress/BadgesSection', () => ({
+  BadgesSection: () => null,
+}));
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
     selector({ user: mocks.user, isLoading: mocks.isLoading }),
