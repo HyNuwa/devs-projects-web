@@ -94,22 +94,22 @@ A moderator SHALL NOT decide a caso about their own content, a caso in which the
 - **THEN** the decision controls are unavailable and a decision request is refused
 
 ### Requirement: Points follow publication
-A contribution's existing points (10 for a material, 5 for a reseña de cursada or an experiencia de final) SHALL be awarded when it becomes `Publicado` (on submission or on approval of a revisión previa), reverted when it becomes `Retirado`, and awarded again when it is restored. Ocultamiento preventivo and revisión previa SHALL NOT award or deduct points. A contribution SHALL never hold more than one active award. Moderation decisions about an anonymous reseña or experiencia (retiro, restoration, approval of a revisión previa, an accepted appeal of its retiro) SHALL NOT award or deduct points: the author's public points would change with the decision and name them. How much each contribution earns, and whether anonymous entries earn points when published, belongs to the points change.
+A contribution's points SHALL be awarded when it becomes `Publicado` (on submission or on approval of a revisión previa), reverted when it becomes `Retirado`, and awarded again when it is restored or its retiro is overturned on appeal. Ocultamiento preventivo and revisión previa SHALL NOT award or deduct points. A contribution SHALL never hold more than one active award. Anonymous reseñas and experiencias earn no points, so moderation decisions about them SHALL NOT award or deduct points to their author. Amounts, caps, the «Me sirvió» and reporte points that follow these states, and the sanction freeze belong to `reputation/points`.
 
 #### Scenario: Material published on upload
 - **WHEN** a material is published immediately
 - **THEN** its author receives 10 points once
 
 #### Scenario: Reseña waiting for revisión previa
-- **WHEN** a reseña enters `En revisión previa`
+- **WHEN** a signed reseña enters `En revisión previa`
 - **THEN** no points are awarded until a moderator approves it, and then 5 points are awarded once
 
 #### Scenario: Retire and restore
 - **WHEN** a published material is retired and later restored
-- **THEN** its author's net points from that material are 10, not 20 and not 0
+- **THEN** its author's net points from publishing it are 10, not 20 and not 0
 
 #### Scenario: Retiro of an anonymous reseña
-- **WHEN** a moderator retires an anonymous reseña that earned 5 points, and later it is restored
+- **WHEN** a moderator retires an anonymous reseña, and later it is restored
 - **THEN** its author's points, level and account row are the same before the retiro, after it and after the restoration
 
 ### Requirement: Revelación de autor
