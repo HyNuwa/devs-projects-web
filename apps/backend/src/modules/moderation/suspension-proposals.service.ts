@@ -9,7 +9,7 @@ import {
 import { Prisma } from '../../generated/prisma';
 import { assertNoReportConflict } from './conflict-of-interest';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { retireAllPublished } from './bulk-retiro';
 import { canSanction } from './sanction-rules';
 import {
@@ -31,7 +31,7 @@ export class SuspensionProposalsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sanctions: SanctionsService,
-    private readonly points: PointService,
+    private readonly points: ContributionPoints,
   ) {}
 
   async propose(

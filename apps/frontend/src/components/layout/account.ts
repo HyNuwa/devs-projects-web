@@ -1,9 +1,9 @@
-import { Inbox, LogOut, Shield, UserRound, type LucideIcon } from 'lucide-react';
+import { Inbox, LogOut, Shield, TrendingUp, UserRound, type LucideIcon } from 'lucide-react';
 
 import type { Role, User } from '@/types/auth';
 
 export type AccountMenuItem = {
-  id: 'perfil' | 'envios' | 'moderacion' | 'salir';
+  id: 'perfil' | 'progreso' | 'envios' | 'moderacion' | 'salir';
   label: string;
   icon: LucideIcon;
 } & ({ href: string; action?: never } | { action: 'logout'; href?: never });
@@ -11,10 +11,11 @@ export type AccountMenuItem = {
 const moderatorRoles: readonly Role[] = ['MODERATOR', 'ADMIN', 'SUPERADMIN'];
 
 // The mochila, Mis aportes and Configuración entries from the canvas are added
-// by the changes that build those pages.
+// by the changes that build those pages (Tu progreso: change puntos-libro).
 export function accountMenuItems(user: Pick<User, 'role'>): AccountMenuItem[] {
   return [
     { id: 'perfil', label: 'Mi perfil', href: '/profile/me', icon: UserRound },
+    { id: 'progreso', label: 'Tu progreso', href: '/mi-espacio/progreso', icon: TrendingUp },
     { id: 'envios', label: 'Mis envíos', href: '/profile/me#mis-envios', icon: Inbox },
     ...(moderatorRoles.includes(user.role)
       ? [{ id: 'moderacion', label: 'Moderación', href: '/admin', icon: Shield } as const]

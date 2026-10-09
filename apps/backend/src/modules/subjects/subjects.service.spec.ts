@@ -11,7 +11,7 @@ import {
 } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { SubjectsService } from './subjects.service';
 
 // Public reads go through publicVisibility: published, or hidden and overdue.
@@ -50,7 +50,7 @@ describe('SubjectsService community writes', () => {
     $transaction: jest.fn(),
   };
   const policy = { priorReviewFor: jest.fn(), openPriorReview: jest.fn() };
-  const pointService = { awardFor: jest.fn() };
+  const pointService = { published: jest.fn(), withdrawn: jest.fn() };
   const configService = {
     get: jest.fn((_key: string, fallback: unknown) => fallback),
   };
@@ -68,7 +68,7 @@ describe('SubjectsService community writes', () => {
       providers: [
         SubjectsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: pointService },
+        { provide: ContributionPoints, useValue: pointService },
         { provide: ConfigService, useValue: configService },
         { provide: PublicationPolicy, useValue: policy },
       ],
@@ -110,12 +110,15 @@ describe('SubjectsService community writes', () => {
         comment: dto.comment,
       }),
     });
-    expect(pointService.awardFor).toHaveBeenNthCalledWith(1, prisma, {
-      userId: 'user-1',
-      amount: 5,
-      reason: 'COURSE_REVIEWED',
-      referenceId: 'review-1',
-    });
+    expect(pointService.published).toHaveBeenNthCalledWith(
+      1,
+      prisma,
+      expect.objectContaining({
+        type: 'COURSE_REVIEW',
+        id: 'review-1',
+        authorId: 'user-1',
+      }),
+    );
   });
 
   it('advierte sobre un duplicado probable sin sobrescribir ni publicar', async () => {
@@ -141,7 +144,7 @@ describe('SubjectsService community writes', () => {
     });
 
     expect(prisma.courseReview.create).not.toHaveBeenCalled();
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('publica una cursada independiente cuando el autor confirma el aviso', async () => {
@@ -203,10 +206,13 @@ describe('SubjectsService community writes', () => {
       where: { id: 'review-1' },
       data: expect.objectContaining({
         condition: CourseCondition.PROMO,
-        isAnonymous: true,
       }),
     });
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    // Anonymity is chosen when publishing and an edit never changes it.
+    expect(prisma.courseReview.update.mock.calls[0][0].data).not.toHaveProperty(
+      'isAnonymous',
+    );
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('impide editar o eliminar una reseña ajena', async () => {
@@ -298,12 +304,15 @@ describe('SubjectsService community writes', () => {
     await service.createExam('ED-01', 'user-1', dto);
 
     expect(prisma.examExperience.create).toHaveBeenCalledTimes(2);
-    expect(pointService.awardFor).toHaveBeenNthCalledWith(2, prisma, {
-      userId: 'user-1',
-      amount: 5,
-      reason: 'EXAM_EXPERIENCE_SHARED',
-      referenceId: 'exam-2',
-    });
+    expect(pointService.published).toHaveBeenNthCalledWith(
+      2,
+      prisma,
+      expect.objectContaining({
+        type: 'EXAM_EXPERIENCE',
+        id: 'exam-2',
+        authorId: 'user-1',
+      }),
+    );
   });
 
   it('permite al autor editar el mismo intento con el contrato completo', async () => {
@@ -337,16 +346,18 @@ describe('SubjectsService community writes', () => {
         difficulty: CommunityDifficulty.MEDIA,
         outcome: ExamOutcome.DESAPROBADO,
         grade: 4,
-        isAnonymous: true,
       }),
     });
+    expect(
+      prisma.examExperience.update.mock.calls[0][0].data,
+    ).not.toHaveProperty('isAnonymous');
     expect(
       prisma.examExperience.update.mock.calls[0][0].data,
     ).not.toHaveProperty('difficultyTheory');
     expect(
       prisma.examExperience.update.mock.calls[0][0].data,
     ).not.toHaveProperty('difficultyPractice');
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('impide editar o eliminar una experiencia de final ajena', async () => {

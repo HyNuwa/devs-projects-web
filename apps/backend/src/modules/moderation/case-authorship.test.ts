@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { ReportPoints } from '../ranking/report-points';
 import { DecisionsService } from './decisions.service';
 import { PublicationPolicy } from './publication-policy.service';
 import { ReportsService } from './reports.service';
@@ -140,8 +141,16 @@ describe('a restore marks the retiro as reverted', () => {
         DecisionsService,
         { provide: PrismaService, useValue: prisma },
         {
-          provide: PointService,
-          useValue: { awardFor: vi.fn(), revertFor: vi.fn() },
+          provide: ReportPoints,
+          useValue: {
+            confirmed: vi.fn(),
+            unconfirmed: vi.fn(),
+            lockParticipants: vi.fn(),
+          },
+        },
+        {
+          provide: ContributionPoints,
+          useValue: { published: vi.fn(), withdrawn: vi.fn() },
         },
         { provide: MaterialsService, useValue: {} },
         { provide: SanctionsService, useValue: { warn: vi.fn() } },

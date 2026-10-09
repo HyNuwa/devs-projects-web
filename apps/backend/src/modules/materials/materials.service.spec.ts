@@ -3,7 +3,9 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { HelpfulPoints } from '../ranking/helpful-points';
+import { PioneerBonus } from '../ranking/pioneer-bonus';
 import { Role } from '../auth/dto/auth-response.dto';
 import { MaterialSort } from './dto/materials-query.dto';
 import { MaterialResourceType } from '../../generated/prisma';
@@ -56,7 +58,8 @@ describe('MaterialsService', () => {
   };
 
   const pointService = {
-    awardFor: jest.fn(),
+    published: jest.fn(),
+    withdrawn: jest.fn(),
   };
 
   const publicationPolicy = {
@@ -113,7 +116,15 @@ describe('MaterialsService', () => {
         MaterialsService,
         { provide: PrismaService, useValue: prisma },
         { provide: 'FILE_STORAGE', useValue: storage },
-        { provide: PointService, useValue: pointService },
+        { provide: ContributionPoints, useValue: pointService },
+        {
+          provide: HelpfulPoints,
+          useValue: { marked: jest.fn(), unmarked: jest.fn() },
+        },
+        {
+          provide: PioneerBonus,
+          useValue: { evaluate: jest.fn(), revoke: jest.fn() },
+        },
         { provide: PublicationPolicy, useValue: publicationPolicy },
       ],
     }).compile();
@@ -508,7 +519,7 @@ describe('MaterialsService', () => {
       ).resolves.toEqual({ isHelpful: false, helpfulCount: 0 });
 
       expect(prisma.material.update).not.toHaveBeenCalled();
-      expect(pointService.awardFor).not.toHaveBeenCalled();
+      expect(pointService.published).not.toHaveBeenCalled();
     });
 
     it('establece Guardar de forma idempotente sin alterar señales públicas', async () => {

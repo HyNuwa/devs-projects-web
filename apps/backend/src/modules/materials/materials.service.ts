@@ -17,7 +17,9 @@ import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
 import { MaterialsQueryDto } from './dto/materials-query.dto';
 import { Role } from '../auth/dto/auth-response.dto';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { HelpfulPoints } from '../ranking/helpful-points';
+import { PioneerBonus } from '../ranking/pioneer-bonus';
 import { normalizeSearchKey } from '../../common/search/search-key';
 import {
   buildMaterialRankingQuery,
@@ -42,7 +44,6 @@ const authorSelect = {
 // docs/README_MODERACION.md §3.2
 const DAILY_UPLOAD_LIMIT = 10;
 const UPLOAD_WINDOW_MS = 24 * 60 * 60 * 1000;
-const MATERIAL_POINTS = 10;
 
 export type MaterialSubmissionOutcome =
   | { outcome: 'PUBLISHED'; reason: null }
@@ -126,7 +127,9 @@ export class MaterialsService {
   constructor(
     private prisma: PrismaService,
     @Inject('FILE_STORAGE') private storage: FileStorageService,
-    private pointService: PointService,
+    private contributionPoints: ContributionPoints,
+    private helpfulPoints: HelpfulPoints,
+    private pioneerBonus: PioneerBonus,
     private publicationPolicy: PublicationPolicy,
   ) {}
 
@@ -249,11 +252,11 @@ export class MaterialsService {
         where: { id: dto.subjectId },
         data: { materialCount: { increment: 1 } },
       });
-      await this.pointService.awardFor(tx, {
-        userId,
-        amount: MATERIAL_POINTS,
-        reason: 'MATERIAL_PUBLISHED',
-        referenceId: created.id,
+      await this.contributionPoints.published(tx, {
+        type: 'MATERIAL',
+        id: created.id,
+        authorId: userId,
+        isAnonymous: false,
       });
       return created;
     });
@@ -515,32 +518,44 @@ export class MaterialsService {
       dto.professorId === undefined ? material.professorId : dto.professorId;
     await this.assertAcademicContext(nextSubjectId, nextProfessorId);
 
-    return this.prisma.material.update({
-      where: { id },
-      data: {
-        ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.title !== undefined
-          ? { searchKey: normalizeSearchKey(dto.title) }
-          : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description }
-          : {}),
-        ...(dto.subjectId !== undefined ? { subjectId: dto.subjectId } : {}),
-        ...(dto.resourceType !== undefined
-          ? { resourceType: dto.resourceType }
-          : {}),
-        ...(dto.academicYear !== undefined
-          ? { academicYear: dto.academicYear }
-          : {}),
-        ...(dto.professorId !== undefined
-          ? { professorId: dto.professorId }
-          : {}),
-        ...(dto.shift !== undefined ? { shift: dto.shift } : {}),
-      },
-      include: {
-        author: authorSelect,
-        subject: true,
-      },
+    // The pioneer bonus belongs to a materia and type: changing either reverts it
+    // and evaluates it again with the new values.
+    const pioneerChanges =
+      (dto.subjectId !== undefined && dto.subjectId !== material.subjectId) ||
+      (dto.resourceType !== undefined &&
+        dto.resourceType !== material.resourceType);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (pioneerChanges) await this.pioneerBonus.revoke(tx, material);
+      const updated = await tx.material.update({
+        where: { id },
+        data: {
+          ...(dto.title !== undefined ? { title: dto.title } : {}),
+          ...(dto.title !== undefined
+            ? { searchKey: normalizeSearchKey(dto.title) }
+            : {}),
+          ...(dto.description !== undefined
+            ? { description: dto.description }
+            : {}),
+          ...(dto.subjectId !== undefined ? { subjectId: dto.subjectId } : {}),
+          ...(dto.resourceType !== undefined
+            ? { resourceType: dto.resourceType }
+            : {}),
+          ...(dto.academicYear !== undefined
+            ? { academicYear: dto.academicYear }
+            : {}),
+          ...(dto.professorId !== undefined
+            ? { professorId: dto.professorId }
+            : {}),
+          ...(dto.shift !== undefined ? { shift: dto.shift } : {}),
+        },
+        include: {
+          author: authorSelect,
+          subject: true,
+        },
+      });
+      if (pioneerChanges) await this.pioneerBonus.evaluate(tx, id);
+      return updated;
     });
   }
 
@@ -560,9 +575,18 @@ export class MaterialsService {
       );
     }
 
-    return this.prisma.material.update({
-      where: { id },
-      data: { isDeleted: true },
+    return this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.material.update({
+        where: { id },
+        data: { isDeleted: true },
+      });
+      // Deleting a material takes back its points, as a retiro does.
+      await this.contributionPoints.withdrawn(tx, {
+        type: 'MATERIAL',
+        id,
+        isAnonymous: false,
+      });
+      return deleted;
     });
   }
 
@@ -634,16 +658,19 @@ export class MaterialsService {
         throw new NotFoundException('Material no encontrado');
       }
 
+      const mark = { materialId: id, giverId: userId };
       if (isHelpful) {
         await transaction.materialHelpfulness.upsert({
           where: { userId_materialId: { userId, materialId: id } },
           create: { userId, materialId: id },
           update: {},
         });
+        await this.helpfulPoints.marked(transaction, mark);
       } else {
         await transaction.materialHelpfulness.deleteMany({
           where: { userId, materialId: id },
         });
+        await this.helpfulPoints.unmarked(transaction, mark);
       }
 
       const helpfulCount = await transaction.materialHelpfulness.count({

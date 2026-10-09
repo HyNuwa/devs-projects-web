@@ -42,6 +42,7 @@ import type { PriorReviewReason, PublicationOutcome } from '@/lib/publication-ou
 import { resubmit } from '@/lib/submissions-client';
 import { useAccountRestriction } from '@/hooks/useAccountRestriction';
 import { RestrictionNotice } from '@/components/moderation/RestrictionNotice';
+import { cn } from '@/components/ui/shadcn/utils';
 
 const MIN_ACADEMIC_YEAR = 1900;
 const MAX_ACADEMIC_YEAR = new Date().getUTCFullYear() + 1;
@@ -273,6 +274,7 @@ export function ReviewForm() {
     mode: 'onBlur',
     resolver: zodResolver(reviewSchema),
   });
+  const isAnonymousChosen = useWatch({ control, name: 'isAnonymous' });
 
   const recommendation = useWatch({ control, name: 'recommendation' });
   const professorMode = useWatch({ control, name: 'professorMode' });
@@ -446,6 +448,7 @@ export function ReviewForm() {
   }
 
   const isEditing = editState.status === 'ready';
+  const anonymous = isAnonymousChosen;
   const isRejected = isEditing && editState.moderation.status === 'REJECTED';
   const hasLegacyFields = isEditing && reviewNeedsCompletion(editState.review);
   const professorModeRegistration = register('professorMode');
@@ -745,9 +748,16 @@ export function ReviewForm() {
               </FieldError>
             </fieldset>
 
-            <label className="flex cursor-pointer items-start gap-3 border border-border bg-secondary p-4 text-sm text-secondary-foreground">
+            <label
+              className={cn(
+                'flex items-start gap-3 border border-border bg-secondary p-4 text-sm text-secondary-foreground',
+                isEditing ? 'cursor-not-allowed' : 'cursor-pointer',
+              )}
+            >
               <input
+                aria-describedby="anonymity-note"
                 className="mt-1 size-4 accent-[var(--primary)]"
+                disabled={isEditing}
                 type="checkbox"
                 {...register('isAnonymous')}
               />
@@ -756,6 +766,18 @@ export function ReviewForm() {
                 <span className="mt-1 block leading-relaxed">
                   La reseña no mostrará tu nombre, avatar ni un alias permanente. La cuenta sigue
                   siendo responsable de la publicación.
+                </span>
+                <span className="mt-1 block font-semibold text-foreground" id="anonymity-note">
+                  {isEditing
+                    ? 'Se elige al publicar y no cambia al editar.'
+                    : anonymous
+                      ? 'Las publicaciones anónimas no suman puntos. '
+                      : null}
+                  {!isEditing && anonymous ? (
+                    <Link className="text-link underline" href="/puntos">
+                      Cómo funcionan los puntos
+                    </Link>
+                  ) : null}
                 </span>
               </span>
             </label>

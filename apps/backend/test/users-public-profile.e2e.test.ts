@@ -17,7 +17,6 @@ const PUBLIC_FIELDS = [
   'displayName',
   'id',
   'level',
-  'points',
   'username',
 ];
 

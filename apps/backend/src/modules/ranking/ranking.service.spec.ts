@@ -136,17 +136,17 @@ describe('RankingService', () => {
 
   describe('getLevelInfo', () => {
     it('devuelve nivel actual y puntos para el siguiente nivel', async () => {
-      prisma.user.findUnique.mockResolvedValue({ points: 100, level: 2 });
+      prisma.user.findUnique.mockResolvedValue({ points: 50, level: 2 });
 
       const result = await service.getLevelInfo('u1');
 
       expect(result).toEqual({
         level: 2,
-        levelName: 'Aprendiz',
-        points: 100,
+        levelName: 'Bigotes curiosos',
+        points: 50,
         pointsToNext: 50,
         nextLevel: 3,
-        nextLevelName: 'Explorador',
+        nextLevelName: 'De pasillo en pasillo',
       });
     });
 
@@ -157,7 +157,7 @@ describe('RankingService', () => {
 
       expect(result).toEqual({
         level: 10,
-        levelName: 'Leyenda Eterna',
+        levelName: 'Leyenda de la facultad',
         points: 15000,
         pointsToNext: null,
         nextLevel: null,
@@ -181,13 +181,13 @@ describe('RankingService', () => {
       expect(result).toHaveLength(10);
       expect(result[0]).toEqual({
         level: 1,
-        name: 'Viajero Novato',
+        name: 'Primeros pasos',
         points: 0,
       });
       expect(result[9]).toEqual({
         level: 10,
-        name: 'Leyenda Eterna',
-        points: 12000,
+        name: 'Leyenda de la facultad',
+        points: 4500,
       });
     });
   });

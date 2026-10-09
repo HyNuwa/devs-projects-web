@@ -1,6 +1,6 @@
 # Sistema de puntos, niveles e insignias
 
-> **Estado:** propuesta, revisión 2 (septiembre 2026). Todavía no está implementada salvo lo marcado como **ya existe**.
+> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Insignias (§6) llegan con 3b; personalización, privilegios y rankings (§4 desbloqueos, §5, §7), con 3c.
 > **Moderación:** desde septiembre 2026 todo se publica al instante y se modera después (`docs/README_MODERACION.md`, ADR 0001). Por eso los puntos de un aporte se otorgan **al publicarse** y se revierten si se retira.
 > **Relacionado:** `apps/backend/src/modules/ranking/` (`point.service.ts`, `rpg-levels.ts`, `ranking.service.ts`), modelos `PointTransaction`, `Badge`, `UserBadge`, `MaterialHelpfulness`, `CommunityReport` y `Guide` en `apps/backend/prisma/schema.prisma`, y el glosario de `CONTEXT.md`.
 
@@ -18,14 +18,14 @@ Los puntos existen para **reconocer a quien ayuda a otros estudiantes**, no para
 
 | Pieza | Estado actual |
 |---|---|
-| `User.points` y `User.level` | Existen. El nivel se recalcula en `PointService.awardPoints` con la tabla de `rpg-levels.ts`. La tabla cambia (§4). |
-| `PointTransaction` | Existe: `amount`, `reason` (texto libre), `referenceId`. Sin restricción de unicidad. |
-| Material aprobado | +10 al aprobarse (`MATERIAL_APPROVED`). **Cambia:** con la publicación inmediata pasa a otorgarse al publicarse (`MATERIAL_PUBLISHED`). |
-| Reseña de cursada | +5 al crearse (`COURSE_REVIEWED`), **también si es anónima**. Cambia (§3.4). |
-| Experiencia de final | +5 al crearse (`EXAM_EXPERIENCE_SHARED`), **también si es anónima**. Cambia (§3.4). |
-| Guía | +15 al crearse (`GUIDE_CREATED`). Las guías quedaron **fuera del producto** (septiembre 2026): dejan de sumar puntos. |
-| `MaterialHelpfulness` | Existe, con `@@unique([userId, materialId])`: un «Me sirvió» por estudiante y material. |
-| `CommunityReport` | Existe, pero solo para reseñas y experiencias. Los materiales todavía no se pueden reportar. |
+| `User.points` y `User.level` | Existen. El nivel se recalcula en `PointLedger` con la tabla nueva de `rpg-levels.ts` (§4). |
+| `PointTransaction` | Libro de movimientos: `reason` es el enum `PointReason`, con `idempotencyKey` única y `reversesId` (§3.5). |
+| Material publicado | +10 al publicarse (`MATERIAL_PUBLISHED`), o al aprobarse si pasó por revisión previa. |
+| Reseña de cursada | +5 al publicarse con nombre (`COURSE_REVIEWED`); las anónimas no suman (§3.4). |
+| Experiencia de final | +5 al publicarse con nombre (`EXAM_EXPERIENCE_SHARED`); las anónimas no suman (§3.4). |
+| Guía | Ya no suma. Los `GUIDE_CREATED` existentes se conservan; los movimientos viejos sin motivo conocido quedaron como `LEGACY_ADJUSTMENT`. |
+| `MaterialHelpfulness` | Un «Me sirvió» por estudiante y material; los válidos suman `HELPFUL_RECEIVED` con sus topes (§3.2). |
+| Reportes | Desde el cambio de moderación (`Report` y casos) se reportan materiales, reseñas y experiencias. `REPORT_CONFIRMED` se otorga en los tres. |
 | `Badge` / `UserBadge` | Existen con nombre, descripción e imagen. `UserBadge` ya tiene `@@unique([userId, badgeId])`. No guardan el criterio para ganarlas, su rareza ni su grado. |
 | Ranking | `ranking.service.ts` ordena por puntos totales. Se reemplaza por rankings acotados (§7). |
 | Eventos, tutorías, Clasificados | **No existen** en el esquema. Sus puntos e insignias quedan para más adelante (§10). |
@@ -39,9 +39,9 @@ Los puntos existen para **reconocer a quien ayuda a otros estudiantes**, no para
 | `MATERIAL_PUBLISHED` | Material publicado | +10 | Al publicarse (si pasó por revisión previa, al aprobarse) | Uno por material · se revierte si se retira |
 | `MATERIAL_PIONEER` | Primer material publicado de un tipo en una materia (ej. el primer final de Bases de Datos) | +5 | Cuando ese material llega a 3 «Me sirvió» | Uno por materia y tipo. No aplica al tipo `OTRO` |
 | `HELPFUL_RECEIVED` | Otro estudiante marcó «Me sirvió» en tu material | +1 | Al marcarse | Hasta 25 por material · 20 por día por autor · 5 por mes de un mismo estudiante hacia el mismo autor |
-| `COURSE_REVIEWED` | Reseña de cursada publicada con nombre | +5 | Al publicarse | Una con puntos por materia y ciclo lectivo |
-| `EXAM_EXPERIENCE_SHARED` | Experiencia de final publicada con nombre | +5 | Al publicarse | Una con puntos por materia, período de examen y año |
-| `REPORT_CONFIRMED` | Moderación retiró una reseña o experiencia que reportaste | +2 | Al retirarse el contenido | Solo reportes hechos antes del retiro · hasta 10 por semana |
+| `COURSE_REVIEWED` | Reseña de cursada publicada con nombre | +5 | Al publicarse | Una con puntos por materia y ciclo lectivo (sin ciclo cuenta como uno más) |
+| `EXAM_EXPERIENCE_SHARED` | Experiencia de final publicada con nombre | +5 | Al publicarse | Una con puntos por materia, período de examen y año («no recuerdo» cuenta como uno más) |
+| `REPORT_CONFIRMED` | Moderación retiró un material, reseña o experiencia que reportaste | +2 | Al retirarse el contenido | Solo reportes hechos antes del retiro · hasta 10 puntos por semana · se revierte si el retiro se anula |
 | `CORRECTION_ACCEPTED` | Aceptaron tu corrección de materia, tipo, ciclo o profesor (§5) | +2 | Al aceptarse | Hasta 10 por semana |
 
 Los límites de reseñas y experiencias limitan los **puntos**, no las publicaciones. Un estudiante puede publicar varias reseñas de la misma materia y ciclo si describen cursadas distintas (ver `CONTEXT.md`), pero solo la primera suma.
@@ -67,7 +67,7 @@ El tope de 5 puntos por mes entre un mismo estudiante y un mismo autor evita que
 - **Material retirado.** Se revierten `MATERIAL_PUBLISHED`, `MATERIAL_PIONEER` y todos los `HELPFUL_RECEIVED` de ese material. Si era el pionero, el bono no pasa a otro material.
 - **Material editado.** Si después de publicado se cambia su materia o su tipo, se revierte `MATERIAL_PIONEER` (si lo tenía) y se vuelve a evaluar con los datos nuevos.
 - **Reseña o experiencia retirada.** Se revierten sus puntos. Si moderación la **restaura**, se otorgan de nuevo (§3.5).
-- **Cambio de anónima a con nombre, o al revés.** Pasar a con nombre otorga los puntos. Pasar a anónima los revierte.
+- **Anónima o con nombre.** Se elige al publicar y no cambia al editar: un cambio posterior movería los puntos del autor en ese momento y lo señalaría. Para cambiarlo se borra y se publica de nuevo.
 - **Un rechazo no resta puntos.** Rechazar es parte normal de la revisión (duplicado, ilegible, etc.).
 - **«Me sirvió» quitado.** Se revierte el punto que ese «Me sirvió» haya otorgado. Si no otorgó ninguno porque ya se había alcanzado un tope, no se revierte nada.
 - **El registro no se recorta.** `User.points` es siempre la suma exacta de `PointTransaction`, aunque dé negativo. Solo al **mostrarlo** se muestra 0 como mínimo, y el nivel se calcula sobre `max(0, points)`. Así una restauración posterior no regala puntos.
@@ -217,11 +217,11 @@ Los rankings muestran los 10 primeros y, si no estás entre ellos, tu posición.
 
 ## 8. Cómo se ve en el producto
 
-- **Mi mochila → «Tu progreso»:** nivel actual, puntos que faltan para el siguiente, qué desbloquea el próximo nivel, insignias ganadas y las más cercanas («te faltan 12 "Me sirvió" para Salvavidas»).
+- **Mi espacio → «Tu progreso»** (`/mi-espacio/progreso`, construido en 3a sin insignias): nivel actual, puntos que faltan para el siguiente, qué desbloquea el próximo nivel, insignias ganadas y las más cercanas («te faltan 12 "Me sirvió" para Salvavidas»).
 - **Perfil público:** número y nombre del nivel, hasta 3 insignias destacadas, título elegido y la personalización desbloqueada. Respeta los interruptores de privacidad de Configuración (por ejemplo, «Mostrar mi nivel e insignias»).
 - **Rankings:** nombre y número de nivel («Nv. 5»).
 - **Tarjetas de aportes, reseñas y experiencias:** solo el nombre del autor (o «Anónimo»). Sin nivel ni insignias (§5.1).
-- **Notificaciones:** al subir de nivel, al ganar o subir de grado una insignia y cuando se revierten puntos (con el motivo, sin revelar quién reportó).
+- **Notificaciones:** al subir de nivel, al ganar o subir de grado una insignia y cuando se revierten puntos (con el motivo, sin revelar quién reportó). Quedan para el plan de notificaciones; mientras tanto, «Tu progreso» muestra los movimientos con su motivo.
 - **Página «Cómo funcionan los puntos»:** la tabla del §3.1, qué «Me sirvió» cuentan (§3.2) y los desbloqueos del §4, en lenguaje simple.
 
 ## 9. Cambios necesarios en el backend
@@ -281,10 +281,11 @@ Publicar en Clasificados no va a sumar puntos.
 - **¿Un «Me sirvió» de otra carrera vale más?** No. Complica los topes y cuesta explicarlo. Ese alcance se reconoce con la insignia **Puente**.
 - **¿Se muestra el nombre del nivel o el número?** Los dos en el perfil; solo el número («Nv. 5») en los rankings; ninguno en las tarjetas de aportes.
 - **¿La personalización necesita moderación?** No, porque solo hay opciones predefinidas. No se permiten imágenes propias en banners ni fondos.
+- **¿Cuentan los «Me sirvió» de cuentas nuevas?** Sí: alcanza con el email verificado y sin sanciones activas. Los topes (5 por mes entre las mismas dos personas, 20 por día por autor) ya frenan a los grupos de amigos (decidido en `puntos-libro`).
+- **Días y meses de los topes:** se cuentan en hora de Argentina (UTC−3).
 
 ### 11.2 Pendientes
 
 - Fecha exacta que cierra el primer cuatrimestre para **Primera camada**. Propuesta: fijarla en la configuración como el último día de la última mesa del primer cuatrimestre de la plataforma.
 - Validar los umbrales del §4 con datos reales del primer cuatrimestre.
 - ¿«Leyendas de la facultad» es una lista por facultad o una sola para toda la plataforma?
-- ¿Los «Me sirvió» de cuentas nuevas (menos de 7 días) deberían contar, o es suficiente con exigir email verificado?

@@ -10,7 +10,6 @@ import { UpdateGuideDto } from './dto/update-guide.dto';
 import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
 import { Role } from '../auth/dto/auth-response.dto';
-import { PointService } from '../ranking/point.service';
 
 const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
@@ -32,10 +31,7 @@ function slugify(title: string): string {
 
 @Injectable()
 export class GuidesService {
-  constructor(
-    private prisma: PrismaService,
-    private pointService: PointService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   private async generateUniqueSlug(title: string): Promise<string> {
     const base = slugify(title) || 'guia';
@@ -66,8 +62,7 @@ export class GuidesService {
       },
     });
 
-    await this.pointService.awardPoints(userId, 15, 'GUIDE_CREATED', guide.id);
-
+    // Guías are out of the product and no longer earn points (README_PUNTOS_E_INSIGNIAS §2).
     return guide;
   }
 

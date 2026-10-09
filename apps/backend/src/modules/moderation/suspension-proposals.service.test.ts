@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { SanctionsService } from './sanctions.service';
 import { SuspensionProposalsService } from './suspension-proposals.service';
 
@@ -68,7 +68,7 @@ describe('SuspensionProposalsService', () => {
   let prisma: ReturnType<typeof prismaDouble>;
   let service: SuspensionProposalsService;
   const sanctions = { suspend: vi.fn() };
-  const points = { revertFor: vi.fn() };
+  const points = { withdrawn: vi.fn() };
 
   beforeEach(async () => {
     vi.useFakeTimers().setSystemTime(NOW);
@@ -80,7 +80,7 @@ describe('SuspensionProposalsService', () => {
         SuspensionProposalsService,
         { provide: PrismaService, useValue: prisma },
         { provide: SanctionsService, useValue: sanctions },
-        { provide: PointService, useValue: points },
+        { provide: ContributionPoints, useValue: points },
       ],
     }).compile();
     service = moduleRef.get(SuspensionProposalsService);
@@ -228,8 +228,14 @@ describe('SuspensionProposalsService', () => {
           decisionReason: 'Spam',
         }),
       });
-      expect(points.revertFor).toHaveBeenCalledWith(prisma, 'mat-1');
-      expect(points.revertFor).toHaveBeenCalledWith(prisma, 'rev-1');
+      expect(points.withdrawn).toHaveBeenCalledWith(
+        prisma,
+        expect.objectContaining({ type: 'MATERIAL', id: 'mat-1' }),
+      );
+      expect(points.withdrawn).toHaveBeenCalledWith(
+        prisma,
+        expect.objectContaining({ type: 'COURSE_REVIEW', id: 'rev-1' }),
+      );
       expect(prisma.subject.update).toHaveBeenCalledWith({
         where: { id: 'sub-1' },
         data: { materialCount: { decrement: 1 } },
@@ -288,6 +294,9 @@ describe('SuspensionProposalsService', () => {
       null,
       { tx: prisma },
     );
-    expect(points.revertFor).toHaveBeenCalledWith(prisma, 'mat-1');
+    expect(points.withdrawn).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({ type: 'MATERIAL', id: 'mat-1' }),
+    );
   });
 });

@@ -48,12 +48,14 @@ describe('AccountMenu on desktop', () => {
     const items = await screen.findAllByRole('menuitem');
     expect(items.map((item) => item.textContent)).toEqual([
       'Mi perfil',
+      'Tu progreso',
       'Mis envíos',
       'Cerrar sesión',
     ]);
     expect(items[0]).toHaveFocus();
     expect(items[0]).toHaveAttribute('href', '/profile/me');
-    expect(items[1]).toHaveAttribute('href', '/profile/me#mis-envios');
+    expect(items[1]).toHaveAttribute('href', '/mi-espacio/progreso');
+    expect(items[2]).toHaveAttribute('href', '/profile/me#mis-envios');
 
     await user.keyboard('{ArrowDown}');
     expect(items[1]).toHaveFocus();
@@ -110,7 +112,7 @@ describe('AccountMenu on mobile', () => {
       within(sheet)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Mi perfil', 'Mis envíos', 'Moderación']);
+    ).toEqual(['Mi perfil', 'Tu progreso', 'Mis envíos', 'Moderación']);
     expect(within(sheet).getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
 
     await user.click(within(sheet).getByRole('button', { name: 'Cerrar' }));

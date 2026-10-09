@@ -66,6 +66,8 @@ describe('decisions on anonymous content leave no trace of the author (e2e)', ()
         amount: 5,
         reason: 'COURSE_REVIEWED',
         referenceId: review.id,
+        // Points an anonymous reseña earned before the ledger stopped awarding them.
+        idempotencyKey: `legacy:${review.id}`,
       },
     });
     await prisma.user.update({

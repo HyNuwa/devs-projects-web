@@ -6,15 +6,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCourseReviewDto } from './dto/create-course-review.dto';
 import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
 import { publicVisibility } from '../moderation/visibility';
-
-// Current points for a reseña or experiencia; the points change will redefine them.
-const COMMUNITY_ENTRY_POINTS = 5;
 
 const managementInclude = {
   user: {
@@ -97,10 +95,29 @@ function assertNotUnderModeration(status: string) {
 export class SubjectsService {
   constructor(
     private prisma: PrismaService,
-    private pointService: PointService,
+    private contributionPoints: ContributionPoints,
     private configService: ConfigService,
     private publicationPolicy: PublicationPolicy,
   ) {}
+
+  /**
+   * A published entry moved to another period gives back its points and earns
+   * them again only if that period has no other entry with points.
+   */
+  private async reevaluatePeriod(
+    tx: Prisma.TransactionClient,
+    entry: {
+      type: 'COURSE_REVIEW' | 'EXAM_EXPERIENCE';
+      id: string;
+      authorId: string;
+      isAnonymous: boolean;
+      publicationStatus: string;
+    },
+  ) {
+    if (entry.publicationStatus !== 'PUBLISHED') return;
+    await this.contributionPoints.withdrawn(tx, entry);
+    await this.contributionPoints.published(tx, entry);
+  }
 
   private courseReviewWriteData(dto: CreateCourseReviewDto) {
     return {
@@ -335,11 +352,11 @@ export class SubjectsService {
           'Reseña de cursada',
         );
       } else {
-        await this.pointService.awardFor(tx, {
-          userId,
-          amount: COMMUNITY_ENTRY_POINTS,
-          reason: 'COURSE_REVIEWED',
-          referenceId: created.id,
+        await this.contributionPoints.published(tx, {
+          type: 'COURSE_REVIEW',
+          id: created.id,
+          authorId: userId,
+          isAnonymous: created.isAnonymous,
         });
       }
       return created;
@@ -357,7 +374,14 @@ export class SubjectsService {
   ) {
     const review = await this.prisma.courseReview.findUnique({
       where: { id: reviewId },
-      select: { id: true, userId: true, subjectId: true },
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        academicYear: true,
+        isAnonymous: true,
+        publicationStatus: true,
+      },
     });
 
     if (!review) {
@@ -376,9 +400,24 @@ export class SubjectsService {
       dto.professorName,
     );
 
-    return this.prisma.courseReview.update({
-      where: { id: reviewId },
-      data: this.courseReviewWriteData(dto),
+    const data = withoutAnonymity(this.courseReviewWriteData(dto));
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.courseReview.update({
+        where: { id: reviewId },
+        data,
+      });
+      // One reseña with points per materia and ciclo: moving it to another
+      // ciclo re-evaluates its points there.
+      if (data.academicYear !== review.academicYear) {
+        await this.reevaluatePeriod(tx, {
+          type: 'COURSE_REVIEW',
+          id: reviewId,
+          authorId: userId,
+          isAnonymous: review.isAnonymous,
+          publicationStatus: review.publicationStatus,
+        });
+      }
+      return updated;
     });
   }
 
@@ -398,7 +437,14 @@ export class SubjectsService {
     }
 
     assertNotUnderModeration(review.publicationStatus);
-    await this.prisma.courseReview.delete({ where: { id: reviewId } });
+    await this.prisma.$transaction(async (tx) => {
+      await this.contributionPoints.withdrawn(tx, {
+        type: 'COURSE_REVIEW',
+        id: reviewId,
+        isAnonymous: review.isAnonymous,
+      });
+      await tx.courseReview.delete({ where: { id: reviewId } });
+    });
     return { message: 'Reseña eliminada' };
   }
 
@@ -543,11 +589,11 @@ export class SubjectsService {
           'Experiencia de final',
         );
       } else {
-        await this.pointService.awardFor(tx, {
-          userId,
-          amount: COMMUNITY_ENTRY_POINTS,
-          reason: 'EXAM_EXPERIENCE_SHARED',
-          referenceId: created.id,
+        await this.contributionPoints.published(tx, {
+          type: 'EXAM_EXPERIENCE',
+          id: created.id,
+          authorId: userId,
+          isAnonymous: created.isAnonymous,
         });
       }
       return created;
@@ -565,7 +611,15 @@ export class SubjectsService {
   ) {
     const exam = await this.prisma.examExperience.findUnique({
       where: { id: examId },
-      select: { id: true, userId: true, subjectId: true },
+      select: {
+        id: true,
+        userId: true,
+        subjectId: true,
+        session: true,
+        year: true,
+        isAnonymous: true,
+        publicationStatus: true,
+      },
     });
 
     if (!exam) {
@@ -584,9 +638,23 @@ export class SubjectsService {
       dto.examinerName,
     );
 
-    return this.prisma.examExperience.update({
-      where: { id: examId },
-      data: this.examExperienceWriteData(dto),
+    const data = withoutAnonymity(this.examExperienceWriteData(dto));
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.examExperience.update({
+        where: { id: examId },
+        data,
+      });
+      // One experiencia with points per materia, período de examen and year.
+      if (data.session !== exam.session || data.year !== exam.year) {
+        await this.reevaluatePeriod(tx, {
+          type: 'EXAM_EXPERIENCE',
+          id: examId,
+          authorId: userId,
+          isAnonymous: exam.isAnonymous,
+          publicationStatus: exam.publicationStatus,
+        });
+      }
+      return updated;
     });
   }
 
@@ -606,7 +674,23 @@ export class SubjectsService {
     }
 
     assertNotUnderModeration(exam.publicationStatus);
-    await this.prisma.examExperience.delete({ where: { id: examId } });
+    await this.prisma.$transaction(async (tx) => {
+      await this.contributionPoints.withdrawn(tx, {
+        type: 'EXAM_EXPERIENCE',
+        id: examId,
+        isAnonymous: exam.isAnonymous,
+      });
+      await tx.examExperience.delete({ where: { id: examId } });
+    });
     return { message: 'Experiencia de final eliminada' };
   }
+}
+
+/**
+ * Anonymity is chosen when publishing and never changes by editing: switching it
+ * later would move the author's points at that moment and point at them.
+ */
+function withoutAnonymity<T extends { isAnonymous: boolean }>(data: T) {
+  const { isAnonymous: _chosenAtPublishing, ...rest } = data;
+  return rest;
 }

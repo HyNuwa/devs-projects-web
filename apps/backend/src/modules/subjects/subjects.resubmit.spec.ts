@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { SubjectsService } from './subjects.service';
 
 describe('SubjectsService resubmission of rejected reseñas and experiencias', () => {
@@ -39,7 +39,7 @@ describe('SubjectsService resubmission of rejected reseñas and experiencias', (
       providers: [
         SubjectsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: { awardFor: jest.fn() } },
+        { provide: ContributionPoints, useValue: { published: jest.fn() } },
         { provide: PublicationPolicy, useValue: policy },
         {
           provide: ConfigService,

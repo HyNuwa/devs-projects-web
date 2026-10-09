@@ -302,4 +302,42 @@ describe('ReviewForm', () => {
     );
     expect(await screen.findByRole('heading', { name: 'En revisión previa' })).toBeInTheDocument();
   });
+
+  it('tells authors that anonymous entries earn no points', async () => {
+    const user = userEvent.setup();
+    render(<ReviewForm />);
+
+    const anonymous = await screen.findByLabelText(/publicar como anónimo/i);
+    expect(screen.queryByText(/no suman puntos/i)).not.toBeInTheDocument();
+    await user.click(anonymous);
+
+    expect(screen.getByText(/Las publicaciones anónimas no suman puntos/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Cómo funcionan los puntos' })).toHaveAttribute(
+      'href',
+      '/puntos',
+    );
+  });
+
+  it('shows the anonymity chosen at publishing without letting an edit change it', async () => {
+    navigation.searchParams = new URLSearchParams('editar=review-1');
+    vi.mocked(api.get).mockImplementation((requested) => {
+      if (requested === '/subjects/ED-01') return Promise.resolve({ data: subject });
+      if (requested === '/subjects/reviews/review-1/management') {
+        return Promise.resolve({
+          data: {
+            entry: review({ isAnonymous: true }),
+            moderation: { status: 'PUBLISHED', isRemoved: false, reason: null, date: null },
+          },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected request: ${requested}`));
+    });
+
+    render(<ReviewForm />);
+
+    const anonymous = await screen.findByLabelText(/publicar como anónimo/i);
+    expect(anonymous).toBeChecked();
+    expect(anonymous).toBeDisabled();
+    expect(screen.getByText(/Se elige al publicar y no cambia al editar/)).toBeInTheDocument();
+  });
 });

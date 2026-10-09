@@ -53,7 +53,7 @@ An optional verbal assessment attached to one cursada or final experience: muy b
 _Avoid_: Star rating, professor score, pass probability
 
 **Publicación anónima**:
-A per-entry presentation choice that replaces the public author with “Anónimo” while preserving authenticated ownership for the author and authorized moderators. Moderators do not see the author by default: revealing it requires a stated reason and is logged. Anonymous entries earn no public points or badges.
+A per-entry presentation choice that replaces the public author with “Anónimo” while preserving authenticated ownership for the author and authorized moderators. Moderators do not see the author by default: revealing it requires a stated reason and is logged. It is chosen when publishing and cannot be changed by editing, so no later change in points can point at the author. Anonymous entries earn no points or badges.
 _Avoid_: Unowned content, anonymous account, unverifiable record
 
 **Publicación inmediata**:
@@ -111,3 +111,20 @@ _Avoid_: Official event, approved event
 **Señal de utilidad**:
 A student's indication that a recurso académico helped them, presented in the interface as “Me sirvió.” It reflects usefulness, not academic correctness.
 _Avoid_: Verification, trust score, star rating
+
+**Puntos**:
+A student's reputation for helping others, earned by contributions that get published and by «Me sirvió» other students give them. Points are never spent and never change how content is shown or ranked. Their total is always the exact sum of the account's movimientos de puntos, even when that sum is negative; it is shown as 0 at least.
+_Avoid_: Currency, credits, karma, score of a contribution
+
+**Movimiento de puntos**:
+One recorded change in an account's points, with a fixed reason (material publicado, «Me sirvió» recibido, reporte confirmado, …), the contribution it refers to, and its amount. A reversal is a new movimiento with the negative amount that points at the one it reverses; movimientos are never edited or deleted.
+_Avoid_: Balance update, point edit
+
+**«Me sirvió» válido**:
+A señal de utilidad that counts for points and badges: given by an account with a verified email and no active sanción, not by the material's author, on a material that is published. Caps limit the points it can award, never whether it counts for badges.
+_Avoid_: Vote, like
+
+**Nivel**:
+A named stage of an account's progress («Primeros pasos» to «Leyenda de la facultad»), computed from its points. Reaching a nivel unlocks profile personalization options, which are kept if points later drop while the account has no sanción.
+_Avoid_: Rank, tier (tiers belong to badges)
+

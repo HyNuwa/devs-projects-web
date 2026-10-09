@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { excludePassword } from '../auth/exclude-password';
+import { levelForPoints } from '../ranking/rpg-levels';
 
 @Injectable()
 export class UsersService {
@@ -9,7 +10,9 @@ export class UsersService {
 
   /**
    * Another account's profile: only what is public. Email, sanción state and
-   * activity timestamps stay with the account and moderation.
+   * activity timestamps stay with the account and moderation, and so does the
+   * exact points total: a jump of 2 when a reporte is confirmed would tell the
+   * retired author who reported them (README_PUNTOS_E_INSIGNIAS §8).
    */
   async publicProfile(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -21,7 +24,6 @@ export class UsersService {
         avatarUrl: true,
         bio: true,
         points: true,
-        level: true,
         createdAt: true,
       },
     });
@@ -30,7 +32,8 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    return user;
+    const { points, ...profile } = user;
+    return { ...profile, level: levelForPoints(points) };
   }
 
   async findById(id: string) {

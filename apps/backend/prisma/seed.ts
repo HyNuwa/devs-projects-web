@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { normalizeSearchKey } from '../src/common/search/search-key';
 import { seedModeration } from './seed-moderation';
 import { seedSanctions } from './seed-sanctions';
+import { rebuildPoints } from '../src/modules/ranking/rebuild-points';
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -91,30 +92,6 @@ async function main() {
   console.log(
     `Usuarios creados: ${adminUser.username}, ${moderatorUser.username}, ${normalUser.username}`,
   );
-
-  // Puntos y niveles RPG de los usuarios demo
-  const pointSeeds = [
-    { user: adminUser, points: 5000, level: 8 },
-    { user: moderatorUser, points: 1500, level: 6 },
-    { user: normalUser, points: 100, level: 2 },
-  ];
-
-  for (const { user, points, level } of pointSeeds) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { points, level },
-    });
-
-    await prisma.pointTransaction.create({
-      data: {
-        userId: user.id,
-        amount: points,
-        reason: 'SEED',
-      },
-    });
-  }
-
-  console.log('Puntos y niveles de usuarios demo configurados');
 
   // Carrera
   const career = await prisma.career.create({
@@ -524,6 +501,11 @@ async function main() {
     await hash('DemoPass123!'),
   );
   console.log('Creados datos de demo de sanciones y apelaciones');
+
+  // Points come only from the demo content, through the ledger's rules
+  // (openspec reputation/points), so every total equals its movimientos.
+  await rebuildPoints(prisma, { apply: true });
+  console.log('Puntos de las cuentas demo calculados con el libro de puntos');
 }
 
 main()

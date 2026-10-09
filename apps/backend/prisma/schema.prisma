@@ -551,17 +551,39 @@ model PasswordResetRequest {
 
 // ─── POINT TRANSACTIONS ────────────────────────────────────────
 
+/// Reasons of a movimiento de puntos (docs/README_PUNTOS_E_INSIGNIAS §3.1).
+/// GUIDE_CREATED and LEGACY_ADJUSTMENT only label movimientos from before the
+/// ledger; they are never awarded.
+enum PointReason {
+  MATERIAL_PUBLISHED
+  MATERIAL_PIONEER
+  HELPFUL_RECEIVED
+  COURSE_REVIEWED
+  EXAM_EXPERIENCE_SHARED
+  REPORT_CONFIRMED
+  GUIDE_CREATED
+  LEGACY_ADJUSTMENT
+}
+
+/// A movimiento de puntos. Never edited or deleted: a reversal is a new row
+/// with the negative amount that names the one it reverses.
 model PointTransaction {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  amount      Int
-  reason      String   @db.VarChar(100)
-  referenceId String?  @map("reference_id") @db.VarChar(100)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  amount         Int
+  reason         PointReason
+  referenceId    String?     @map("reference_id") @db.VarChar(100)
+  /// `<reason>:<referenceId>:<reversals so far>`; a retried award repeats it.
+  idempotencyKey String      @unique @map("idempotency_key") @db.VarChar(250)
+  reversesId     String?     @unique @map("reverses_id") @db.Uuid
+  createdAt      DateTime    @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reverses   PointTransaction? @relation("PointReversal", fields: [reversesId], references: [id], onDelete: NoAction)
+  reversedBy PointTransaction? @relation("PointReversal")
 
-  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([reason, referenceId])
   @@index([createdAt])
   @@map("point_transactions")
 }

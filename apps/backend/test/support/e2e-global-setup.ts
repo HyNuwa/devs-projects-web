@@ -32,4 +32,14 @@ export default async function setup() {
       `prisma migrate deploy falló para ${database}:\n${deploy.stdout}\n${deploy.stderr}`,
     );
   }
+
+  // Apelaciones lists the 200 oldest pending appeals, so appeals left pending by
+  // earlier runs would push this run's appeals out of the list.
+  const e2e = new Client({ connectionString: url });
+  await e2e.connect();
+  try {
+    await e2e.query(`DELETE FROM "appeals" WHERE "status" = 'PENDING'`);
+  } finally {
+    await e2e.end();
+  }
 }
