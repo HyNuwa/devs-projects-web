@@ -67,7 +67,7 @@ describe('sanciones, proposals and appeals in the history', () => {
     );
   });
 
-  it('hides the account of an advertencia given from an anonymous caso', async () => {
+  it('does not list to moderators an advertencia given from an anonymous caso', async () => {
     prisma.moderationEvent.findMany.mockResolvedValue([
       event({
         action: 'WARNED',
@@ -79,8 +79,11 @@ describe('sanciones, proposals and appeals in the history', () => {
 
     const page = await service.list({ role: 'MODERATOR' }, {});
 
-    expect(page.items[0].targetUser).toBeNull();
-    expect(JSON.stringify(page)).not.toContain('juan.p');
+    // Staff authors are skipped silently, so the row's existence would tell.
+    expect(page.items).toEqual([]);
+    expect(
+      (await service.list({ role: 'ADMIN' }, {})).items[0].targetUser,
+    ).toEqual({ username: 'juan.p' });
   });
 
   it('hides the appellant of an anonymous retiro, as actor and as target', async () => {
@@ -91,6 +94,7 @@ describe('sanciones, proposals and appeals in the history', () => {
         targetType: 'COURSE_REVIEW',
         courseReviewId: 'rev-1',
         caseId: 'case-1',
+        metadata: { kind: 'RETIRO' },
       }),
     ]);
 

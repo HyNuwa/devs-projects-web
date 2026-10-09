@@ -3,6 +3,20 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
 
+/**
+ * What a mail failure may log: its kind and SMTP codes. `message` and
+ * `response` can quote the recipient, so they are left out
+ * (openspec security/authentication).
+ */
+export function mailError(err: unknown) {
+  const { name, code, responseCode } = (err ?? {}) as {
+    name?: unknown;
+    code?: unknown;
+    responseCode?: unknown;
+  };
+  return { name, code, responseCode };
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -45,7 +59,7 @@ export class MailService {
 
     if (!isProduction) {
       this.logger.log('====================================');
-      this.logger.log(`📧 Email to: ${to}`);
+      this.logger.log('📧 Email to: <destinatario oculto>');
       this.logger.log(`Subject: ${subject}`);
       this.logger.log(`From: ${from}`);
       this.logger.log(html);

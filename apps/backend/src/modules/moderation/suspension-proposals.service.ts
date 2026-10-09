@@ -12,7 +12,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PointService } from '../ranking/point.service';
 import { retireAllPublished } from './bulk-retiro';
 import { canSanction } from './sanction-rules';
-import { caseAbout } from './sanctions.service';
 import {
   type Actor,
   isSuspended,
@@ -40,7 +39,6 @@ export class SuspensionProposalsService {
     userId: string,
     rawReason: string,
     durationDays: Duration,
-    options: { caseId?: string } = {},
   ) {
     const reason = requireReason(rawReason);
     requireDuration(durationDays);
@@ -50,24 +48,12 @@ export class SuspensionProposalsService {
         select: { id: true, role: true, isBanned: true, bannedUntil: true },
       });
       if (!target) throw new NotFoundException('Cuenta no encontrada');
-      const source = options.caseId
-        ? await caseAbout(tx, options.caseId, userId)
-        : null;
-      const reported = options.caseId
-        ? await tx.report.findFirst({
-            where: { caseId: options.caseId, reporterId: actor.id },
-            select: { id: true },
-          })
-        : null;
-      const permission = canSanction(actor, target, 'PROPOSE_SUSPENSION', {
-        reportedInCase: reported !== null,
-      });
+      const permission = canSanction(actor, target, 'PROPOSE_SUSPENSION');
       if (!permission.allowed) {
         throw new ForbiddenException(
           'No podés proponer una suspensión para esa cuenta',
         );
       }
-      // Also with a caso: any caso about the account would skip it otherwise.
       await assertNoReportConflict(tx, actor.id, userId);
       if (isSuspended(target, new Date())) {
         throw new ConflictException('La cuenta ya está suspendida');
@@ -81,7 +67,8 @@ export class SuspensionProposalsService {
             proposedById: actor.id,
             reason,
             durationDays,
-            caseId: options.caseId ?? null,
+            // Usuarios never names a caso (openspec moderation/sanctions).
+            caseId: null,
           },
         });
       } catch (error) {
@@ -100,8 +87,6 @@ export class SuspensionProposalsService {
           actorId: actor.id,
           action: 'SUSPENSION_PROPOSED',
           targetUserId: userId,
-          caseId: options.caseId ?? null,
-          ...(source ?? {}),
           reason,
           metadata: { proposalId: proposal.id, durationDays },
         },

@@ -8,9 +8,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import * as bcrypt from 'bcrypt';
 
 import { Public } from '../../common/decorators/public.decorator';
+import { PasswordHasher } from '../auth/password-hasher';
 import { LoginAttempts } from '../rate-limit/login-attempts';
 import { RateLimit, RateLimitGuard } from '../rate-limit/rate-limit.guard';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -29,6 +29,7 @@ export class SuspensionAppealController {
     private readonly prisma: PrismaService,
     private readonly appeals: AppealsService,
     private readonly loginAttempts: LoginAttempts,
+    private readonly passwordHasher: PasswordHasher,
   ) {}
 
   @Public()
@@ -46,8 +47,12 @@ export class SuspensionAppealController {
         bannedUntil: true,
       },
     });
-    // Same refusal as sign-in: never say whether the account exists.
-    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+    // Same check and refusal as sign-in: never say whether the account exists.
+    const passwordMatches = await this.passwordHasher.verify(
+      dto.password,
+      user?.passwordHash ?? null,
+    );
+    if (!user || !passwordMatches) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
     // It shares the sign-in cap per client; a right password is not a guess.

@@ -166,19 +166,109 @@ describe('Usuarios tab (e2e)', () => {
       },
     });
 
-    const { body } = await get(moderator, `/users/${student.id}`);
-
-    const serialized = JSON.stringify(body);
-    expect(serialized).not.toContain(anonymousCase.id);
-    expect(serialized).not.toContain(review.id);
-    expect(body.timeline).toEqual(
+    for (const viewer of [moderator, admin]) {
+      const serialized = JSON.stringify(
+        (await get(viewer, `/users/${student.id}`)).body,
+      );
+      expect(serialized).not.toContain(anonymousCase.id);
+      expect(serialized).not.toContain(review.id);
+    }
+    // Only an admin sees the advertencia, without a link to the caso.
+    expect((await get(admin, `/users/${student.id}`)).body.timeline).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'SANCTION',
           kind: 'WARNING',
+          reason: 'Insultos',
           anonymousCase: true,
         }),
       ]),
+    );
+    expect(
+      (await get(moderator, `/users/${student.id}`)).body.timeline,
+    ).not.toContainEqual(expect.objectContaining({ type: 'SANCTION' }));
+  });
+
+  it('shows a moderator the same account before and after retiring its anonymous reseña with «Advertir también»', async () => {
+    const decider = await createUser(prisma, 'MODERATOR');
+    const author = await createUser(prisma);
+    const { username } = await prisma.user.findUniqueOrThrow({
+      where: { id: author.id },
+    });
+    await prisma.material.create({
+      data: {
+        title: 'Firmado e2e',
+        fileUrl: 'https://drive.example.com/e2e',
+        fileType: 'pdf',
+        fileSize: BigInt(1000),
+        authorId: author.id,
+        subjectId,
+      },
+    });
+    const review = await prisma.courseReview.create({
+      data: {
+        userId: author.id,
+        subjectId,
+        recommendation: 1,
+        isAnonymous: true,
+        comment: 'Anónima e2e',
+      },
+    });
+    const anonymousCase = await prisma.moderationCase.create({
+      data: {
+        kind: 'REPORTS',
+        targetType: 'COURSE_REVIEW',
+        courseReviewId: review.id,
+        targetAuthorId: author.id,
+      },
+    });
+    /** Everything the Usuarios tab shows `viewer` about the author. */
+    const usuarios = async (viewer: E2eUser) => ({
+      suggested: (await get(viewer, `/users?filter=suggested&q=${username}`))
+        .body.users,
+      sanctioned: (await get(viewer, `/users?filter=sanctioned&q=${username}`))
+        .body.users,
+      search: (await get(viewer, `/users?q=${username}`)).body.users,
+      file: (await get(viewer, `/users/${author.id}`)).body,
+    });
+    const before = await usuarios(moderator);
+    expect(before.file).toEqual(
+      expect.objectContaining({
+        counts: { published: 1, retiros90d: 0 },
+        status: expect.objectContaining({ kind: 'ACTIVE' }),
+        suggestedStep: 'NONE',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/moderation/cases/${anonymousCase.id}/decision`)
+      .set('Authorization', bearer(app, decider))
+      .send({ decision: 'REMOVE', reason: 'Insultos', warn: true })
+      .expect(201);
+    expect(
+      await prisma.sanction.count({
+        where: { userId: author.id, caseId: anonymousCase.id },
+      }),
+    ).toBe(1);
+
+    expect(await usuarios(moderator)).toEqual(before);
+
+    const seenByAdmin = await usuarios(admin);
+    expect(
+      (seenByAdmin.sanctioned as Array<{ id: string }>).map((user) => user.id),
+    ).toEqual([author.id]);
+    expect(seenByAdmin.file).toEqual(
+      expect.objectContaining({
+        counts: expect.objectContaining({ retiros90d: 1 }),
+        status: expect.objectContaining({ kind: 'WARNED' }),
+      }),
+    );
+    expect(seenByAdmin.file.timeline).toContainEqual(
+      expect.objectContaining({
+        type: 'SANCTION',
+        kind: 'WARNING',
+        anonymousCase: true,
+      }),
     );
   });
 

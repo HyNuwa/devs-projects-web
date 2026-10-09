@@ -69,11 +69,14 @@ describe('CasesService', () => {
     sanction: { findMany: jest.fn().mockResolvedValue([]) },
     moderationEvent: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       count: jest.fn(),
     },
     user: { findUnique: jest.fn() },
     material: { count: jest.fn() },
+    courseReview: { findMany: jest.fn().mockResolvedValue([]) },
+    examExperience: { findMany: jest.fn().mockResolvedValue([]) },
   };
 
   beforeEach(async () => {
@@ -85,6 +88,10 @@ describe('CasesService', () => {
     ]);
     prisma.moderationEvent.findFirst.mockResolvedValue(null);
     prisma.moderationEvent.count.mockResolvedValue(1);
+    // A moderator's count leaves out anonymous entries; this retiro is a material.
+    prisma.moderationEvent.findMany.mockResolvedValue([
+      { courseReviewId: null, examExperienceId: null },
+    ]);
     prisma.material.count.mockResolvedValue(14);
     prisma.user.findUnique.mockResolvedValue({
       id: 'author-1',

@@ -8,7 +8,9 @@ Estado: ✅ hecho · 🟡 parcial · ⬜ pendiente.
 
 | Medida | Estado | Detalle |
 |---|---|---|
-| Contraseñas con bcrypt (12 rondas) | ✅ | `auth.service.ts` |
+| Contraseñas con bcrypt (12 rondas) | ✅ | `PasswordHasher` (`auth/password-hasher.ts`), el único que hashea y compara |
+| Chequeo de credenciales que no revela cuentas | ✅ | Ingreso y «Apelar esta suspensión» comparan siempre la contraseña: con un email sin cuenta, contra un hash de reemplazo del mismo costo, preparado una vez al arrancar (`onModuleInit`). La respuesta es igual a la de una contraseña incorrecta: mismo estado, cuerpo y headers |
+| Logs de autenticación sin emails | ✅ | La recuperación registra solo `{ msg: 'Solicitud de recuperación', accountFound }` (nivel debug). Los errores de envío de mail registran solo `mailError: { name, code, responseCode }`, en un único objeto para que pino conserve los campos, nunca `message` ni `response`, que pueden citar al destinatario. En desarrollo, el mail se imprime con el destinatario como `<destinatario oculto>` |
 | Política de contraseña | ✅ | 8+ caracteres, mayúscula, número y carácter especial (DTO + zod) |
 | JWT corto en cookie httpOnly | ✅ | 15 min, `SameSite=Lax`, `Secure` en producción |
 | Refresh token rotativo en base | ✅ | 7 días, hasheado, se rota y se revoca en logout y reset |
@@ -16,6 +18,13 @@ Estado: ✅ hecho · 🟡 parcial · ⬜ pendiente.
 | Refresh automático en el frontend | ⬜ | Hoy un 401 manda al login (ver README_AUTH) |
 | Rate limit en login, registro y forgot-password | ⬜ | Decidido (cambio `moderacion-ajustes`): login 5 fallidos / 15 min por email + IP y 20 / 15 min por IP (un ingreso correcto reinicia solo el de email + IP); registro 3 / hora por IP; recuperación 3 / hora por email y 3 / hora por IP, exista o no la cuenta; «Apelar esta suspensión» 5 / 15 min por email + IP. Respuesta 429 con `Retry-After`. Ver «Límites de frecuencia» |
 | Bloqueo por intentos fallidos | ⬜ | Propuesta: 5 intentos fallidos bloquean 15 min |
+
+**Límites conocidos** (cambio `endurecer-auth-anonimato`):
+
+- El **registro** responde 409 «El email ya está registrado» para un email existente: es una enumeración explícita, limitada a 3 por hora por IP. Quitarla exige mandar un mail de verificación también a las direcciones existentes; queda fuera de este cambio.
+- El **email no se normaliza** al buscar la cuenta (mayúsculas y espacios), a diferencia de la clave del límite de frecuencia. No revela cuentas, porque las dos ramas pagan la comparación bcrypt, pero `User@x.com` y `user@x.com` son cuentas distintas. Corregirlo exige normalizar los emails ya guardados.
+- Un hash guardado con **menos de 12 rondas** responde más rápido que el hash de reemplazo. El código nunca los genera; si aparecen (datos cargados a mano), conviene rehashearlos.
+- La **recuperación** hace sus escrituras en la base solo para cuentas existentes. La diferencia es de unos milisegundos de base, no una ronda de bcrypt, y la respuesta ya es idéntica; no se iguala.
 
 ## API
 
@@ -56,6 +65,7 @@ Estado: ✅ hecho · 🟡 parcial · ⬜ pendiente.
 | Medida | Estado | Detalle |
 |---|---|---|
 | Nunca devolver `passwordHash` | ✅ | DTOs de respuesta |
+| Perfil de otra cuenta sin datos privados | ✅ | `GET /users/:id` devuelve solo id, usuario, nombre, avatar, bio, puntos, nivel y fecha de creación; el email, el estado de sanción y `lastLogin` quedan para `/users/me` y moderación |
 | Publicación anónima | ✅ | La API pública muestra «Anónimo»; el autor solo lo ven los moderadores |
 | Anónimos no suman puntos | ⬜ | Hoy suman (ver README_BACKEND) |
 | Retención de reportes y registros | ⬜ | Plazos definidos en README_MODERACION §14 |

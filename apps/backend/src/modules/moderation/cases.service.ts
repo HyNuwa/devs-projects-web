@@ -12,7 +12,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { targetColumns } from './publication-policy.service';
 import { suggestedStep } from './escalera';
 import { canSanction } from './sanction-rules';
-import { emptyHistory, loadHistories } from './escalera-history';
+import {
+  type AnonymousHistory,
+  anonymousHistoryFor,
+  emptyHistory,
+  loadHistories,
+} from './escalera-history';
 import { groupQueue } from './queue';
 import { isQualifiedReporter } from './rules';
 import { isOverdueHidden } from './visibility';
@@ -189,8 +194,13 @@ export class CasesService {
 
     const target = caseTarget(record);
     const columns = targetColumns(target);
+    // A MODERATOR's view of a signed caso's author ignores anonymous content too:
+    // comparing it before and after an anonymous retiro would name its author.
+    const anonymous = anonymousHistoryFor(viewerRole);
     const [author, history] = await Promise.all([
-      target.isAnonymous ? null : this.authorSummary(target.authorId),
+      target.isAnonymous
+        ? null
+        : this.authorSummary(target.authorId, { anonymous }),
       this.prisma.moderationCase.findMany({
         where: {
           status: 'CLOSED',
@@ -217,26 +227,9 @@ export class CasesService {
           ? ('REPORTED' as const)
           : null;
     const now = new Date();
-    // «Advertir también» is preselected when this retiro would call for an
-    // advertencia. Only that flag leaves the server, never the author's record.
-    const authorHistory =
-      (await loadHistories(this.prisma, [target.authorId])).get(
-        target.authorId,
-      ) ?? emptyHistory();
-    const authorRole = await this.prisma.user.findUnique({
-      where: { id: target.authorId },
-      select: { id: true, role: true },
-    });
-    const mayWarn =
-      !authorRole ||
-      canSanction({ id: viewerId, role: viewerRole }, authorRole, 'WARN')
-        .allowed;
-    const warnSuggested =
-      mayWarn &&
-      suggestedStep(
-        { ...authorHistory, retiros: [...authorHistory.retiros, now] },
-        now,
-      ) === 'WARNING';
+    const warnSuggested = target.isAnonymous
+      ? false
+      : await this.warnSuggested(target.authorId, viewerId, viewerRole, now);
 
     return {
       caseId: record.id,
@@ -306,7 +299,45 @@ export class CasesService {
     };
   }
 
-  async authorSummary(authorId: string) {
+  /**
+   * «Advertir también» is preselected when this retiro would call for an
+   * advertencia. Only that flag leaves the server, never the author's record. Never
+   * on anonymous content: the flag would say something about the hidden author.
+   */
+  private async warnSuggested(
+    authorId: string,
+    viewerId: string,
+    viewerRole: Role,
+    now: Date,
+  ) {
+    const authorHistory =
+      (
+        await loadHistories(this.prisma, [authorId], {
+          anonymous: anonymousHistoryFor(viewerRole),
+        })
+      ).get(authorId) ?? emptyHistory();
+    const authorRole = await this.prisma.user.findUnique({
+      where: { id: authorId },
+      select: { id: true, role: true },
+    });
+    const mayWarn =
+      !authorRole ||
+      canSanction({ id: viewerId, role: viewerRole }, authorRole, 'WARN')
+        .allowed;
+    return (
+      mayWarn &&
+      suggestedStep(
+        { ...authorHistory, retiros: [...authorHistory.retiros, now] },
+        now,
+      ) === 'WARNING'
+    );
+  }
+
+  /** «Ver autor» shows everything: that look is recorded. */
+  async authorSummary(
+    authorId: string,
+    options: { anonymous?: AnonymousHistory } = {},
+  ) {
     const [user, publishedMaterials, removalsLast90Days] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: authorId },
@@ -324,13 +355,7 @@ export class CasesService {
           isDeleted: false,
         },
       }),
-      this.prisma.moderationEvent.count({
-        where: {
-          action: 'REMOVED',
-          targetUserId: authorId,
-          createdAt: { gte: new Date(Date.now() - REMOVAL_WINDOW_MS) },
-        },
-      }),
+      this.removalsLast90Days(authorId, options.anonymous ?? 'include'),
     ]);
     if (!user) return null;
     return {
@@ -342,6 +367,42 @@ export class CasesService {
       publishedMaterials,
       removalsLast90Days,
     };
+  }
+
+  private async removalsLast90Days(
+    authorId: string,
+    anonymous: AnonymousHistory,
+  ) {
+    const where = {
+      action: 'REMOVED' as const,
+      targetUserId: authorId,
+      createdAt: { gte: new Date(Date.now() - REMOVAL_WINDOW_MS) },
+    };
+    if (anonymous === 'include') {
+      return this.prisma.moderationEvent.count({ where });
+    }
+    const events = await this.prisma.moderationEvent.findMany({
+      where,
+      select: { courseReviewId: true, examExperienceId: true },
+    });
+    const ids = (key: 'courseReviewId' | 'examExperienceId') =>
+      events.flatMap((event) => (event[key] ? [event[key]] : []));
+    const [reviews, exams] = await Promise.all([
+      this.prisma.courseReview.findMany({
+        where: { id: { in: ids('courseReviewId') }, isAnonymous: true },
+        select: { id: true },
+      }),
+      this.prisma.examExperience.findMany({
+        where: { id: { in: ids('examExperienceId') }, isAnonymous: true },
+        select: { id: true },
+      }),
+    ]);
+    const hidden = new Set([...reviews, ...exams].map((row) => row.id));
+    return events.filter(
+      (event) =>
+        !hidden.has(event.courseReviewId ?? '') &&
+        !hidden.has(event.examExperienceId ?? ''),
+    ).length;
   }
 
   /** Writes AUTO_UNHIDDEN_OVERDUE the first time an overdue hidden caso is seen. */

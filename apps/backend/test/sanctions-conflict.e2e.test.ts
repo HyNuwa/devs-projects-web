@@ -132,48 +132,72 @@ describe('conflict of interest when sanctioning from Usuarios (e2e)', () => {
     );
   });
 
-  it('refuses it too when a different caso about the account is named', async () => {
+  it('refuses any request that names a caso, the same way for its author and for another account', async () => {
     const author = await createUser(prisma);
-    await reportMaterial(author, 10);
-    // A caso about the account that the moderator did not report.
-    const material = await prisma.material.create({
+    const other = await createUser(prisma);
+    // A caso about the author's anonymous reseña that the moderator did not report.
+    const review = await prisma.courseReview.create({
       data: {
-        title: 'Otro material e2e',
-        fileUrl: 'https://drive.example.com/e2e-otro',
-        fileType: 'pdf',
-        fileSize: BigInt(1000),
-        authorId: author.id,
+        userId: author.id,
         subjectId,
+        recommendation: 2,
+        isAnonymous: true,
+        comment: 'Reseña e2e',
       },
     });
-    const other = await prisma.moderationCase.create({
+    const caso = await prisma.moderationCase.create({
       data: {
-        kind: 'PRIOR_REVIEW',
-        targetType: 'MATERIAL',
-        materialId: material.id,
+        kind: 'REPORTS',
+        targetType: 'COURSE_REVIEW',
+        courseReviewId: review.id,
         targetAuthorId: author.id,
       },
     });
-
-    expectConflict(
-      await post(`/users/${author.id}/warn`, {
+    const observable = (response: request.Response) => {
+      const { timestamp, path, ...body } = response.body as Record<
+        string,
+        unknown
+      >;
+      expect(typeof timestamp).toBe('string');
+      expect(typeof path).toBe('string');
+      return { status: response.status, body };
+    };
+    const attempts = (account: E2eUser) => [
+      post(`/users/${account.id}/warn`, {
         reason: 'Advertencia.',
-        caseId: other.id,
+        caseId: caso.id,
       }),
-    );
-    expectConflict(
-      await post(`/users/${author.id}/mute`, {
+      post(`/users/${account.id}/mute`, {
         reason: 'Silencio.',
-        caseId: other.id,
+        caseId: caso.id,
       }),
-    );
-    expectConflict(
-      await post(`/users/${author.id}/suspension-proposals`, {
+      post(`/users/${account.id}/suspension-proposals`, {
         reason: 'Propuesta.',
         duration: '30_DAYS',
-        caseId: other.id,
+        caseId: caso.id,
       }),
-    );
+    ];
+
+    const forAuthor = await Promise.all(attempts(author));
+    const forOther = await Promise.all(attempts(other));
+
+    expect(forAuthor.map(observable)).toEqual(forOther.map(observable));
+    for (const response of forAuthor) {
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          message: ['property caseId should not exist'],
+        }),
+      );
+    }
+    const accounts = { userId: { in: [author.id, other.id] } };
+    expect(await prisma.sanction.count({ where: accounts })).toBe(0);
+    expect(await prisma.suspensionProposal.count({ where: accounts })).toBe(0);
+    expect(
+      await prisma.moderationEvent.count({
+        where: { targetUserId: { in: [author.id, other.id] } },
+      }),
+    ).toBe(0);
   });
 
   it('does not let a report on anonymous content block, so it reveals nothing', async () => {

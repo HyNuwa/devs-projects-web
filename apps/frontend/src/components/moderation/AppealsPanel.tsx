@@ -37,6 +37,8 @@ function ago(value: string) {
 function title(appeal: AppealSummary) {
   if (appeal.decision.kind === 'RETIRO') return `«${appeal.decision.label ?? 'Aporte'}»`;
   const type = appeal.decision.type ? SANCTION_LABEL[appeal.decision.type] : 'Sanción';
+  // From an anonymous caso a moderator never learns whose sanción it is.
+  if (appeal.appellant.hidden) return `${type} · Autor oculto`;
   return `${type} de @${appeal.appellant.username ?? 'desconocido'}`;
 }
 

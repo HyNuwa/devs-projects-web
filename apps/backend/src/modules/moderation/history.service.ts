@@ -162,11 +162,13 @@ export class HistoryService {
         reason: hideReason ? null : event.reason,
       };
     });
-    // Filtering by that actor, or an account event by that content, would link
-    // them to the entry just the same.
+    // Filtering by that actor would link them to the entry just the same. An
+    // account event from an anonymous caso is not listed at all: «Advertir
+    // también» skips staff authors silently, so whether its WARNED row exists
+    // would tell a moderator if the hidden author is staff.
     const items = visible
       .filter((item) => !(filters.actorId && item.actorIsHiddenAuthor))
-      .filter((item) => !(filters.contentId && item.aboutAccount))
+      .filter((item) => !item.aboutAccount)
       .map(
         ({ actorIsHiddenAuthor: _hidden, aboutAccount: _account, ...item }) =>
           item,

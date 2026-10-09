@@ -201,6 +201,50 @@ describe('AppealsService.answer', () => {
     expect(data).not.toHaveProperty('examExperience');
   });
 
+  it('keeps appeals of sanciones from casos about anonymous content for admins', async () => {
+    const anonymousSanction = {
+      ...retiroAppeal,
+      kind: 'SANCTION',
+      caseId: null,
+      sanctionId: 'sanction-1',
+      case: null,
+      sanction: {
+        type: 'WARNING',
+        case: {
+          targetType: 'COURSE_REVIEW',
+          materialId: null,
+          courseReviewId: 'review-1',
+          examExperienceId: null,
+          courseReview: { isAnonymous: true },
+          examExperience: null,
+        },
+      },
+    };
+    prisma.appeal.findUnique.mockResolvedValue(anonymousSanction);
+
+    await expect(
+      service.answer(reviewer, 'appeal-1', { accept: true, answer: 'x' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.appeal.updateMany).not.toHaveBeenCalled();
+
+    await service.answer({ id: 'admin-1', role: 'ADMIN' }, 'appeal-1', {
+      accept: true,
+      answer: 'Se anula.',
+    });
+    expect(sanctions.voidByAppeal).toHaveBeenCalled();
+    const { data } = prisma.moderationEvent.create.mock.calls[0][0] as {
+      data: Record<string, unknown>;
+    };
+    expect(data).toEqual(
+      expect.objectContaining({
+        targetType: 'COURSE_REVIEW',
+        courseReviewId: 'review-1',
+      }),
+    );
+    expect(data).not.toHaveProperty('courseReview');
+    expect(data).not.toHaveProperty('examExperience');
+  });
+
   it('refuses a second answer, even from a concurrent reviewer', async () => {
     prisma.appeal.updateMany.mockResolvedValue({ count: 0 });
 

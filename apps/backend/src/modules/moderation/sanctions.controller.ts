@@ -52,9 +52,7 @@ export class SanctionsController {
     @Request() req: AuthedRequest,
     @Body() dto: SanctionReasonDto,
   ) {
-    return this.sanctions.warn(actorOf(req), id, dto.reason, {
-      caseId: dto.caseId,
-    });
+    return this.sanctions.warn(actorOf(req), id, dto.reason);
   }
 
   @Post('users/:id/mute')
@@ -64,9 +62,7 @@ export class SanctionsController {
     @Request() req: AuthedRequest,
     @Body() dto: SanctionReasonDto,
   ) {
-    return this.sanctions.mute(actorOf(req), id, dto.reason, {
-      caseId: dto.caseId,
-    });
+    return this.sanctions.mute(actorOf(req), id, dto.reason);
   }
 
   @Post('users/:id/unmute')
@@ -91,7 +87,6 @@ export class SanctionsController {
       id,
       dto.reason,
       durationDays(dto.duration),
-      { caseId: dto.caseId },
     );
   }
 

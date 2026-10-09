@@ -6,7 +6,12 @@ import {
 
 import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
-import { canReview } from './sanction-rules';
+import { anonymousHistoryFor } from './escalera-history';
+import {
+  canReview,
+  isAnonymousCase,
+  isAppealAboutAnonymousContent,
+} from './sanction-rules';
 import type { Actor } from './sanctions.service';
 
 const appealSelect = {
@@ -81,7 +86,7 @@ export class AppealsQueryService {
       visible.map(({ row }) => row.decidedById),
     );
     return visible.map(({ row, access }) => ({
-      ...summary(row, deciders),
+      ...summary(viewer, row, deciders),
       canAnswer: access === 'answer',
     }));
   }
@@ -100,14 +105,14 @@ export class AppealsQueryService {
     if (allowed === 'read') {
       // «La resuelve un admin»: what was decided, not what the appellant wrote.
       return {
-        ...summary(row, deciders),
+        ...summary(viewer, row, deciders),
         status: row.status,
         canAnswer: false,
       };
     }
     const anonymous = isAnonymousRetiro(row);
     return {
-      ...summary(row, deciders),
+      ...summary(viewer, row, deciders),
       status: row.status,
       explanation: row.explanation,
       answer: row.answer,
@@ -143,7 +148,7 @@ function access(viewer: Actor, row: AppealRow): 'answer' | 'read' | null {
     appellant: row.appellant,
     decidedById: row.decidedById,
     suspension: row.sanction?.type === 'SUSPENSION',
-    anonymousContent: row.kind === 'RETIRO' && isAnonymousRetiro(row),
+    anonymousContent: isAppealAboutAnonymousContent(row),
   };
   if (canReview(viewer, appeal)) return 'answer';
   // Refused only for the appellant's role or because the content is anonymous:
@@ -163,10 +168,7 @@ function access(viewer: Actor, row: AppealRow): 'answer' | 'read' | null {
 }
 
 function isAnonymousRetiro(row: AppealRow) {
-  return Boolean(
-    row.case?.courseReview?.isAnonymous ||
-    row.case?.examExperience?.isAnonymous,
-  );
+  return row.kind === 'RETIRO' && isAnonymousCase(row.case);
 }
 
 function label(row: AppealRow) {
@@ -176,14 +178,15 @@ function label(row: AppealRow) {
   return null;
 }
 
-function summary(row: AppealRow, deciders: Map<string, string>) {
-  // The author of an anonymous retiro is never linked to it; a sanción is on an
-  // account, so its appellant is shown but an anonymous caso stays unlinked.
-  const hidden = row.kind === 'RETIRO' && isAnonymousRetiro(row);
-  const anonymousCase = Boolean(
-    row.sanction?.case?.courseReview?.isAnonymous ||
-    row.sanction?.case?.examExperience?.isAnonymous,
-  );
+function summary(viewer: Actor, row: AppealRow, deciders: Map<string, string>) {
+  // The author of an anonymous retiro is never linked to it. A sanción is on an
+  // account: an admin sees who appeals it, but a moderator does not when it came
+  // from an anonymous caso, since the appellant would name the caso's author.
+  const anonymousCase =
+    row.kind === 'SANCTION' && isAnonymousCase(row.sanction?.case);
+  const hidden =
+    isAnonymousRetiro(row) ||
+    (anonymousCase && anonymousHistoryFor(viewer.role) === 'exclude');
   return {
     id: row.id,
     kind: row.kind,

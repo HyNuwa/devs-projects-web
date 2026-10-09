@@ -104,6 +104,33 @@ export function canAppeal(
  * appeals from students but not from staff, which ones they could answer would
  * reveal that the author is staff.
  */
+type AnonymityOf = {
+  courseReview?: { isAnonymous: boolean } | null;
+  examExperience?: { isAnonymous: boolean } | null;
+} | null;
+
+/** Whether a caso is about an anonymous reseña or experiencia. */
+export function isAnonymousCase(moderationCase: AnonymityOf | undefined) {
+  return Boolean(
+    moderationCase?.courseReview?.isAnonymous ||
+    moderationCase?.examExperience?.isAnonymous,
+  );
+}
+
+/**
+ * An appeal about anonymous content: of a retiro of anonymous content, or of a
+ * sanción from a caso about it. Only admins answer those (openspec moderation/appeals).
+ */
+export function isAppealAboutAnonymousContent(appeal: {
+  kind: 'RETIRO' | 'SANCTION';
+  case?: AnonymityOf;
+  sanction?: { case?: AnonymityOf } | null;
+}) {
+  return appeal.kind === 'RETIRO'
+    ? isAnonymousCase(appeal.case)
+    : isAnonymousCase(appeal.sanction?.case);
+}
+
 export function canReview(
   viewer: Account,
   appeal: {

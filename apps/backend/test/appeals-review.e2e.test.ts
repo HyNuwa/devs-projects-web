@@ -210,6 +210,101 @@ describe('reviewing appeals (e2e)', () => {
     }
   });
 
+  it('sends the appeal of an advertencia from an anonymous caso to admins, hiding the appellant from moderators', async () => {
+    const student = await createUser(prisma);
+    const { username } = await prisma.user.findUniqueOrThrow({
+      where: { id: student.id },
+    });
+    const review = await prisma.courseReview.create({
+      data: {
+        userId: student.id,
+        subjectId,
+        recommendation: 2,
+        isAnonymous: true,
+        comment: 'Reseña anónima e2e',
+      },
+    });
+    const moderationCase = await prisma.moderationCase.create({
+      data: {
+        kind: 'REPORTS',
+        targetType: 'COURSE_REVIEW',
+        courseReviewId: review.id,
+        targetAuthorId: student.id,
+      },
+    });
+    await as(decider)
+      .post(`/moderation/cases/${moderationCase.id}/decision`, {
+        decision: 'REMOVE',
+        reason: 'Insultos',
+        warn: true,
+      })
+      .expect(201);
+    const sanction = await prisma.sanction.findFirstOrThrow({
+      where: { userId: student.id, caseId: moderationCase.id },
+    });
+    await as(student)
+      .post('/me/appeals', {
+        kind: 'SANCTION',
+        sanctionId: sanction.id,
+        explanation: 'No insulté a nadie.',
+      })
+      .expect(201);
+    const appeal = await prisma.appeal.findFirstOrThrow({
+      where: { sanctionId: sanction.id },
+    });
+
+    const list = await as(reviewer).get('/moderation/appeals').expect(200);
+    const item = (list.body as Array<AppealItem & { canAnswer: boolean }>).find(
+      (entry) => entry.id === appeal.id,
+    );
+    expect(item).toEqual(
+      expect.objectContaining({
+        kind: 'SANCTION',
+        canAnswer: false,
+        appellant: { hidden: true, username: null },
+      }),
+    );
+    expect(JSON.stringify(list.body)).not.toContain(username);
+    expect(JSON.stringify(list.body)).not.toContain(student.id);
+
+    const detail = await as(reviewer)
+      .get(`/moderation/appeals/${appeal.id}`)
+      .expect(200);
+    expect(detail.body.canAnswer).toBe(false);
+    expect(detail.body).not.toHaveProperty('explanation');
+    expect(JSON.stringify(detail.body)).not.toContain(username);
+    expect(JSON.stringify(detail.body)).not.toContain(student.id);
+
+    const refused = await as(reviewer)
+      .post(`/moderation/appeals/${appeal.id}/answer`, {
+        accept: true,
+        answer: 'Se anula.',
+      })
+      .expect(403);
+    expect(refused.body.message).toBe('No podés resolver esta apelación');
+    expect(JSON.stringify(refused.body)).not.toContain(username);
+
+    const forAdmin = await as(admin)
+      .get(`/moderation/appeals/${appeal.id}`)
+      .expect(200);
+    expect(forAdmin.body).toEqual(
+      expect.objectContaining({
+        canAnswer: true,
+        appellant: { hidden: false, username },
+      }),
+    );
+    await as(admin)
+      .post(`/moderation/appeals/${appeal.id}/answer`, {
+        accept: true,
+        answer: 'Se anula la advertencia.',
+      })
+      .expect(201);
+    expect(
+      (await prisma.sanction.findUniqueOrThrow({ where: { id: sanction.id } }))
+        .voidedAt,
+    ).not.toBeNull();
+  });
+
   it('lists a staff appellant’s appeal of signed content read-only for other moderators', async () => {
     const staffAuthor = await createUser(prisma, 'MODERATOR');
     const { appeal } = await appealedRetiro(staffAuthor, { signed: true });

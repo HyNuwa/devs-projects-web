@@ -64,12 +64,17 @@ describe('history of sanctions from anonymous casos (e2e)', () => {
     });
   }
 
-  const warn = (author: E2eUser, caseId: string, reason: string) =>
-    request(app.getHttpServer())
-      .post(`/api/v1/moderation/users/${author.id}/warn`)
+  /** Retires the caso's content with «Advertir también», the only way to warn from a caso. */
+  async function warn(author: E2eUser, caseId: string, reason: string) {
+    await request(app.getHttpServer())
+      .post(`/api/v1/moderation/cases/${caseId}/decision`)
       .set('Authorization', bearer(app, moderator))
-      .send({ reason, caseId })
+      .send({ decision: 'REMOVE', reason, warn: true })
       .expect(201);
+    await prisma.sanction.findFirstOrThrow({
+      where: { userId: author.id, caseId, type: 'WARNING' },
+    });
+  }
 
   async function list(viewer: E2eUser, query: Record<string, string>) {
     const response = await request(app.getHttpServer())
@@ -93,14 +98,33 @@ describe('history of sanctions from anonymous casos (e2e)', () => {
     return item!;
   }
 
-  it('hides the account and the reason from moderators, not from admins', async () => {
+  /** `viewer` does not get the `action` event about `caseId` with any filter. */
+  async function notListed(viewer: E2eUser, caseId: string, action: string) {
+    const event = await prisma.moderationEvent.findFirstOrThrow({
+      where: { caseId, action: action as 'WARNED' },
+      orderBy: { createdAt: 'desc' },
+    });
+    const caso = await prisma.moderationCase.findUniqueOrThrow({
+      where: { id: caseId },
+    });
+    for (const query of [
+      {},
+      { action },
+      { actorId: event.actorId! },
+      { contentId: caso.courseReviewId! },
+    ]) {
+      const items = await list(viewer, query);
+      expect(items.some((entry) => entry.id === event.id)).toBe(false);
+    }
+  }
+
+  it('does not list the advertencia to moderators, while admins see the account and the reason', async () => {
     const author = await createUser(prisma);
     const caso = await reviewCase(author, true);
     await warn(author, caso.id, 'Advertencia por un insulto anónimo.');
 
-    const seenByModerator = await history(otherModerator, caso.id);
-    expect(seenByModerator.reason).toBeNull();
-    expect(seenByModerator.targetUser).toBeNull();
+    await notListed(otherModerator, caso.id, 'WARNED');
+    await notListed(moderator, caso.id, 'WARNED');
 
     const seenByAdmin = await history(admin, caso.id);
     expect(seenByAdmin.reason).toBe('Advertencia por un insulto anónimo.');
@@ -112,15 +136,7 @@ describe('history of sanctions from anonymous casos (e2e)', () => {
     const caso = await reviewCase(author, true);
     await warn(author, caso.id, 'Advertencia por otro insulto anónimo.');
 
-    const seenByModerator = await history(otherModerator, caso.id);
-    expect(seenByModerator.caseId).toBeNull();
-    expect(seenByModerator.target).toBeNull();
-    const byContent = await list(otherModerator, {
-      contentId: caso.courseReviewId!,
-    });
-    expect(byContent.some((entry) => entry.id === seenByModerator.id)).toBe(
-      false,
-    );
+    await notListed(otherModerator, caso.id, 'WARNED');
 
     const seenByAdmin = await history(admin, caso.id);
     expect(seenByAdmin.caseId).toBe(caso.id);
@@ -148,15 +164,7 @@ describe('history of sanctions from anonymous casos (e2e)', () => {
       })
       .expect(201);
 
-    const seenByModerator = await history(
-      otherModerator,
-      caso.id,
-      'APPEAL_FILED',
-    );
-    expect(seenByModerator.reason).toBeNull();
-    expect(seenByModerator.caseId).toBeNull();
-    expect(seenByModerator.target).toBeNull();
-    expect(seenByModerator.targetUser).toBeNull();
+    await notListed(otherModerator, caso.id, 'APPEAL_FILED');
 
     const seenByAdmin = await history(admin, caso.id, 'APPEAL_FILED');
     expect(seenByAdmin.reason).toBe('Texto único de la apelación e2e.');
@@ -198,9 +206,14 @@ describe('history of sanctions from anonymous casos (e2e)', () => {
       },
     });
 
-    const seen = await history(otherModerator, caso.id);
-    expect(seen.reason).toBeNull();
-    expect(seen.targetUser).toBeNull();
+    const event = await prisma.moderationEvent.findFirstOrThrow({
+      where: { caseId: caso.id, action: 'WARNED' },
+    });
+    const items = await list(otherModerator, { action: 'WARNED' });
+    expect(items.some((entry) => entry.id === event.id)).toBe(false);
+    expect((await history(admin, caso.id)).reason).toBe(
+      'Advertencia sin contenido en el evento.',
+    );
   });
 
   it('keeps the reason of a sanción from a caso about signed content', async () => {

@@ -53,10 +53,9 @@ export class UsersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener perfil público de usuario' })
-  @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async getUser(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.findById(id);
+    return this.usersService.publicProfile(id);
   }
 
   @Post('me/avatar')

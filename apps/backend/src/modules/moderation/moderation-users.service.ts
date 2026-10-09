@@ -4,9 +4,13 @@ import type { Prisma, Role } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ESCALERA_WINDOW_DAYS, suggestedStep } from './escalera';
 import {
+  type AnonymousHistory,
+  anonymousHistoryFor,
   emptyHistory,
   type EscaleraHistory,
   loadHistories,
+  SIGNED_CASE,
+  SIGNED_SANCTION,
 } from './escalera-history';
 import { canSanction, type SanctionAction } from './sanction-rules';
 import { type Actor, isSuspended } from './sanctions.service';
@@ -22,13 +26,7 @@ export type UsersFilter = 'suggested' | 'sanctioned' | 'prior-review';
  * Casos whose content is not anonymous. Casos about anonymous entries never appear
  * in an account's file: linking them requires «Ver autor» from the caso.
  */
-const NOT_ANONYMOUS: Prisma.ModerationCaseWhereInput = {
-  OR: [
-    { materialId: { not: null } },
-    { courseReview: { is: { isAnonymous: false } } },
-    { examExperience: { is: { isAnonymous: false } } },
-  ],
-};
+const NOT_ANONYMOUS = SIGNED_CASE;
 
 const accountSelect = {
   id: true,
@@ -54,8 +52,14 @@ type Account = Prisma.UserGetPayload<{ select: typeof accountSelect }>;
 export class ModerationUsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * For a MODERATOR nothing here depends on retiros of anonymous content or on
+   * sanciones from casos about it: not the list, its filters, the counts, the
+   * status, the paso sugerido nor the timeline. ADMIN and SUPERADMIN see them.
+   */
   async list(viewer: Actor, input: { filter?: UsersFilter; q?: string }) {
     const now = new Date();
+    const anonymous = anonymousHistoryFor(viewer.role);
     const q = input.q?.trim();
     // A search looks at every account first, then the filter applies within it,
     // so no match is lost to the candidate limit.
@@ -63,7 +67,7 @@ export class ModerationUsersService {
     const ids =
       q && !input.filter
         ? (within ?? [])
-        : await this.candidateIds(input.filter, now, within);
+        : await this.candidateIds(input.filter, now, anonymous, within);
     // Alphabetical, never by the latest retiro: that order would point at the
     // author of an anonymous entry just retired.
     const accounts = await this.prisma.user.findMany({
@@ -77,6 +81,7 @@ export class ModerationUsersService {
     const histories = await loadHistories(
       this.prisma,
       accounts.map((account) => account.id),
+      { anonymous },
     );
     const users = accounts
       .map((account) => {
@@ -108,6 +113,7 @@ export class ModerationUsersService {
       select: accountSelect,
     });
     if (!account) throw new NotFoundException('Cuenta no encontrada');
+    const anonymous = anonymousHistoryFor(viewer.role);
 
     const [
       history,
@@ -119,10 +125,10 @@ export class ModerationUsersService {
       dismissed,
       proposal,
     ] = await Promise.all([
-      loadHistories(this.prisma, [userId]).then(
+      loadHistories(this.prisma, [userId], { anonymous }).then(
         (map) => map.get(userId) ?? emptyHistory(),
       ),
-      this.publishedCount(userId),
+      this.publishedCount(userId, anonymous),
       this.prisma.report.groupBy({
         by: ['status'],
         where: {
@@ -148,7 +154,10 @@ export class ModerationUsersService {
         },
       }),
       this.prisma.sanction.findMany({
-        where: { userId },
+        where: {
+          userId,
+          ...(anonymous === 'exclude' ? SIGNED_SANCTION : {}),
+        },
         orderBy: { startsAt: 'desc' },
         take: 30,
         select: {
@@ -275,10 +284,12 @@ export class ModerationUsersService {
   private async candidateIds(
     filter: UsersFilter | undefined,
     now: Date,
+    anonymous: AnonymousHistory,
     within?: string[],
   ): Promise<string[]> {
     const since = new Date(now.getTime() - ESCALERA_WINDOW_DAYS * DAY_MS);
     const users = within ? { in: within } : undefined;
+    const exclude = anonymous === 'exclude';
     if (filter === 'sanctioned') {
       const [restricted, recent] = await Promise.all([
         this.prisma.user.findMany({
@@ -290,7 +301,12 @@ export class ModerationUsersService {
           select: { id: true },
         }),
         this.prisma.sanction.findMany({
-          where: { userId: users, voidedAt: null, startsAt: { gte: since } },
+          where: {
+            userId: users,
+            voidedAt: null,
+            startsAt: { gte: since },
+            ...(exclude ? SIGNED_SANCTION : {}),
+          },
           distinct: ['userId'],
           take: LIST_LIMIT,
           select: { userId: true },
@@ -324,6 +340,7 @@ export class ModerationUsersService {
         revertedAt: null,
         closedAt: { gte: since },
         targetAuthorId: users ?? { not: null },
+        ...(exclude ? SIGNED_CASE : {}),
       },
       distinct: ['targetAuthorId'],
       take: 200,
@@ -332,7 +349,9 @@ export class ModerationUsersService {
     return cases.map((c) => c.targetAuthorId!);
   }
 
-  private async publishedCount(userId: string) {
+  /** For MODERATOR only signed reseñas and experiencias count. */
+  private async publishedCount(userId: string, anonymous: AnonymousHistory) {
+    const signed = anonymous === 'exclude' ? { isAnonymous: false } : {};
     const [materials, reviews, exams] = await Promise.all([
       this.prisma.material.count({
         where: {
@@ -342,10 +361,10 @@ export class ModerationUsersService {
         },
       }),
       this.prisma.courseReview.count({
-        where: { userId, publicationStatus: 'PUBLISHED' },
+        where: { userId, publicationStatus: 'PUBLISHED', ...signed },
       }),
       this.prisma.examExperience.count({
-        where: { userId, publicationStatus: 'PUBLISHED' },
+        where: { userId, publicationStatus: 'PUBLISHED', ...signed },
       }),
     ]);
     return materials + reviews + exams;

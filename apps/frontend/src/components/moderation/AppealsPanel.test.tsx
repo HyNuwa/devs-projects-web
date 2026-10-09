@@ -169,6 +169,40 @@ describe('AppealsPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a hidden appellant on a sanción appeal as «Autor oculto»', async () => {
+    mocks.user = { id: 'mod-2', role: 'MODERATOR' };
+    const hiddenSanction: AppealSummary = {
+      ...summary,
+      kind: 'SANCTION',
+      canAnswer: false,
+      decision: {
+        kind: 'SANCTION',
+        type: 'WARNING',
+        reason: 'Insultos a una docente',
+        decidedAt: '2026-09-22T12:00:00.000Z',
+        endsAt: null,
+        anonymousCase: true,
+      },
+    };
+    mocks.list.mockResolvedValue([hiddenSanction]);
+    mocks.detail.mockResolvedValue({
+      ...hiddenSanction,
+      status: 'PENDING',
+    } satisfies AppealDetail);
+    render(<AppealsPanel />);
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 2,
+        name: 'Apelación · Advertencia · Autor oculto',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Advertencia · Autor oculto/ })).toBeInTheDocument();
+    expect(screen.queryByText(/@desconocido/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Advertencia de @/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Tu respuesta')).not.toBeInTheDocument();
+  });
+
   it('says when there is nothing to resolve', async () => {
     mocks.list.mockResolvedValue([]);
     render(<AppealsPanel />);

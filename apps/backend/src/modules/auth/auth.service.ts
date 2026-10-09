@@ -7,17 +7,17 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MailService } from '../mail/mail.service';
+import { MailService, mailError } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
+import { excludePassword } from './exclude-password';
+import { PasswordHasher } from './password-hasher';
 import { UserResponseDto } from './dto/auth-response.dto';
 import { accountNotices } from '../moderation/account-notices';
 import { isSuspended } from '../moderation/sanctions.service';
 import { assertNotSuspended } from '../moderation/suspension-notice';
 
-const SALT_ROUNDS = 12;
 const REFRESH_TOKEN_BYTES = 64;
 const EMAIL_VERIFICATION_TOKEN_BYTES = 32;
 const PASSWORD_RESET_TOKEN_BYTES = 32;
@@ -31,12 +31,6 @@ function hashToken(token: string): string {
 
 function generateToken(bytes: number): string {
   return crypto.randomBytes(bytes).toString('hex');
-}
-
-function excludePassword(user: Record<string, unknown>): UserResponseDto {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { passwordHash, ...safe } = user;
-  return safe as unknown as UserResponseDto;
 }
 
 interface TokenPair {
@@ -54,6 +48,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private mailService: MailService,
+    private passwordHasher: PasswordHasher,
   ) {}
 
   private signAccessToken(user: { id: string; email: string; role: string }) {
@@ -116,7 +111,7 @@ export class AuthService {
       throw new ConflictException('El email ya está registrado');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    const passwordHash = await this.passwordHasher.hash(dto.password);
 
     const user = await this.prisma.user.create({
       data: {
@@ -142,7 +137,10 @@ export class AuthService {
     this.mailService
       .sendVerificationEmail(user.email, user.username, token)
       .catch((err) => {
-        this.logger.error('Error enviando email de verificación', err);
+        this.logger.error({
+          msg: 'Error enviando email de verificación',
+          mailError: mailError(err),
+        });
       });
 
     return this.createTokenPair(user);
@@ -153,13 +151,13 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user) {
-      return null;
-    }
+    // An unknown email still pays for a comparison, so timing tells nothing.
+    const isPasswordValid = await this.passwordHasher.verify(
+      password,
+      user?.passwordHash ?? null,
+    );
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-    if (!isPasswordValid) {
+    if (!user || !isPasswordValid) {
       return null;
     }
 
@@ -226,9 +224,14 @@ export class AuthService {
       where: { email },
     });
 
+    // Never the address: only that a request arrived and whether it matched.
+    this.logger.debug({
+      msg: 'Solicitud de recuperación',
+      accountFound: !!user,
+    });
+
     if (!user) {
       // No revelar si el email existe o no
-      this.logger.log(`Solicitud de reset para email no registrado: ${email}`);
       return { message: 'Si el email existe, recibirás instrucciones' };
     }
 
@@ -252,7 +255,10 @@ export class AuthService {
     this.mailService
       .sendPasswordResetEmail(user.email, user.username, token)
       .catch((err) => {
-        this.logger.error('Error enviando email de reset', err);
+        this.logger.error({
+          msg: 'Error enviando email de reset',
+          mailError: mailError(err),
+        });
       });
 
     return { message: 'Si el email existe, recibirás instrucciones' };
@@ -274,7 +280,7 @@ export class AuthService {
       throw new BadRequestException('Token de recuperación expirado');
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const passwordHash = await this.passwordHasher.hash(newPassword);
 
     await this.prisma.$transaction([
       this.prisma.user.update({

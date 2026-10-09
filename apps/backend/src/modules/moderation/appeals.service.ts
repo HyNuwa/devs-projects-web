@@ -9,7 +9,12 @@ import {
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DecisionsService } from './decisions.service';
-import { type AppealTarget, canAppeal, canReview } from './sanction-rules';
+import {
+  type AppealTarget,
+  canAppeal,
+  canReview,
+  isAppealAboutAnonymousContent,
+} from './sanction-rules';
 import { type Actor, SanctionsService } from './sanctions.service';
 
 const EXPLANATION_MAX = 1000;
@@ -30,6 +35,31 @@ const contentSelect = {
   courseReviewId: true,
   examExperienceId: true,
 } as const;
+
+const contentAnonymitySelect = {
+  ...contentSelect,
+  courseReview: { select: { isAnonymous: true } },
+  examExperience: { select: { isAnonymous: true } },
+} as const;
+
+/** The caso's content columns for an event, without the anonymity flags. */
+function contentColumns(
+  moderationCase:
+    | (Record<keyof typeof contentSelect, unknown> & {
+        courseReview?: unknown;
+        examExperience?: unknown;
+      })
+    | null
+    | undefined,
+) {
+  if (!moderationCase) return {};
+  const {
+    courseReview: _review,
+    examExperience: _exam,
+    ...columns
+  } = moderationCase;
+  return columns;
+}
 
 const REFUSAL = {
   ALREADY_APPEALED: 'Ya apelaste esta decisión',
@@ -83,26 +113,18 @@ export class AppealsService {
           sanctionId: true,
           decidedById: true,
           appellant: { select: { id: true, role: true } },
-          sanction: { select: { type: true, case: { select: contentSelect } } },
-          case: {
-            select: {
-              ...contentSelect,
-              courseReview: { select: { isAnonymous: true } },
-              examExperience: { select: { isAnonymous: true } },
-            },
+          sanction: {
+            select: { type: true, case: { select: contentAnonymitySelect } },
           },
+          case: { select: contentAnonymitySelect },
         },
       });
       if (!appeal) throw new NotFoundException('Apelación no encontrada');
-      const { courseReview, examExperience, ...retiroContent } =
-        appeal.case ?? {};
       const allowed = canReview(reviewer, {
         appellant: appeal.appellant,
         decidedById: appeal.decidedById,
         suspension: appeal.sanction?.type === 'SUSPENSION',
-        anonymousContent:
-          appeal.kind === 'RETIRO' &&
-          Boolean(courseReview?.isAnonymous || examExperience?.isAnonymous),
+        anonymousContent: isAppealAboutAnonymousContent(appeal),
       });
       if (!allowed) {
         throw new ForbiddenException('No podés resolver esta apelación');
@@ -143,7 +165,7 @@ export class AppealsService {
           action: input.accept ? 'APPEAL_ACCEPTED' : 'APPEAL_REJECTED',
           targetUserId: appeal.appellant.id,
           caseId: appeal.caseId,
-          ...(appeal.case ? retiroContent : (appeal.sanction?.case ?? {})),
+          ...contentColumns(appeal.case ?? appeal.sanction?.case),
           reason: answer,
           metadata: { appealId, kind: appeal.kind },
         },

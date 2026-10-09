@@ -116,30 +116,26 @@ describe('findings of the code review', () => {
     expect(prisma.sanction.create).not.toHaveBeenCalled();
   });
 
-  it('keeps the content columns on a proposal from a caso, so history masking applies', async () => {
-    prisma.moderationCase.findUnique.mockResolvedValue({
-      id: 'case-1',
-      targetType: 'COURSE_REVIEW',
-      materialId: null,
-      courseReviewId: 'rev-1',
-      examExperienceId: null,
-      targetAuthorId: 'user-1',
-    });
+  it('records a proposal from Usuarios without any caso, so it never tests who wrote one', async () => {
     const service = await build(SuspensionProposalsService, [
       { provide: SanctionsService, useValue: {} },
       { provide: PointService, useValue: {} },
     ]);
 
-    await service.propose(mod, 'user-1', 'Reincide', 30, { caseId: 'case-1' });
+    await service.propose(mod, 'user-1', 'Reincide', 30);
 
-    expect(prisma.moderationEvent.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        action: 'SUSPENSION_PROPOSED',
-        caseId: 'case-1',
-        targetType: 'COURSE_REVIEW',
-        courseReviewId: 'rev-1',
-      }),
-    });
+    expect(prisma.moderationCase.findUnique).not.toHaveBeenCalled();
+    const [{ data: proposal }] = prisma.suspensionProposal.create.mock
+      .calls[0] as [{ data: Record<string, unknown> }];
+    expect(proposal.caseId ?? null).toBeNull();
+    const [{ data: event }] = prisma.moderationEvent.create.mock.calls[0] as [
+      { data: Record<string, unknown> },
+    ];
+    expect(event).toEqual(
+      expect.objectContaining({ action: 'SUSPENSION_PROPOSED' }),
+    );
+    expect(event.caseId ?? null).toBeNull();
+    expect(event.courseReviewId ?? null).toBeNull();
   });
 
   describe('accepting an appeal of a retiro that is no longer in force', () => {

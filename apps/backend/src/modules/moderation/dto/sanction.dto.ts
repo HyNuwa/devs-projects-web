@@ -4,7 +4,6 @@ import {
   IsIn,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
 } from 'class-validator';
 
@@ -15,7 +14,11 @@ export function durationDays(duration: SuspensionDuration): 7 | 30 | null {
   return duration === '7_DAYS' ? 7 : duration === '30_DAYS' ? 30 : null;
 }
 
-/** Reason for a sanción or for lifting one; blank reasons are refused by the service. */
+/**
+ * Reason for a sanción or for lifting one; blank reasons are refused by the service.
+ * It names no caso: the only sanción tied to one comes from deciding it, so a
+ * request can never test who wrote a caso's content (openspec moderation/sanctions).
+ */
 export class SanctionReasonDto {
   @ApiProperty({
     maxLength: 1000,
@@ -24,11 +27,6 @@ export class SanctionReasonDto {
   @IsString()
   @MaxLength(1000)
   reason: string;
-
-  @ApiPropertyOptional({ description: 'Caso del que viene la sanción' })
-  @IsOptional()
-  @IsUUID()
-  caseId?: string;
 }
 
 export class ProposeSuspensionDto extends SanctionReasonDto {

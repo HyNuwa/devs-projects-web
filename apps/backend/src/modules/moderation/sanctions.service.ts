@@ -156,8 +156,7 @@ export class SanctionsService {
           reportedInCase: source?.reportedByActor ?? false,
         }),
       );
-      // Naming a caso from Usuarios does not skip it: any caso about the
-      // account would do.
+      // Only a caso's decision skips it; Usuarios actions never name a caso.
       if (!options.decidingCase && type !== 'SUSPENSION') {
         await assertNoReportConflict(tx, actor.id, userId, now);
       }

@@ -198,10 +198,15 @@ export class DecisionsService {
         });
       }
 
-      if (decision === 'REMOVE') {
+      // Points never move for anonymous content: the author's public points
+      // would change with the decision and name them (README_PUNTOS_E_INSIGNIAS §3.4).
+      if (decision === 'REMOVE' && !snapshot.isAnonymous) {
         await this.points.revertFor(tx, target.id);
       }
-      if (decision === 'RESTORE' || decision === 'APPROVE') {
+      if (
+        (decision === 'RESTORE' || decision === 'APPROVE') &&
+        !snapshot.isAnonymous
+      ) {
         await this.points.awardFor(tx, {
           userId: snapshot.authorId,
           amount: points.amount,
@@ -337,13 +342,16 @@ export class DecisionsService {
       data: { revertedAt: now },
     });
     // The retiro was a mistake: points come back even during an active sanción.
+    // Anonymous content kept its points when retired, so nothing comes back.
     const points = CONTRIBUTION_POINTS[target.type];
-    await this.points.awardFor(tx, {
-      userId: snapshot.authorId,
-      amount: points.amount,
-      reason: points.reason,
-      referenceId: target.id,
-    });
+    if (!snapshot.isAnonymous) {
+      await this.points.awardFor(tx, {
+        userId: snapshot.authorId,
+        amount: points.amount,
+        reason: points.reason,
+        referenceId: target.id,
+      });
+    }
     if (target.type === 'MATERIAL') {
       await tx.subject.update({
         where: { id: snapshot.subjectId },

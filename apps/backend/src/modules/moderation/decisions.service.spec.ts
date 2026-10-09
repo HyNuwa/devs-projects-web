@@ -56,10 +56,10 @@ describe('DecisionsService.decide', () => {
     publicationStatus,
     hiddenAt: publicationStatus === 'HIDDEN' ? NOW : null,
   });
-  const review = (publicationStatus: string) => ({
+  const review = (publicationStatus: string, isAnonymous = true) => ({
     userId: 'author-2',
     subjectId: 'sub-1',
-    isAnonymous: true,
+    isAnonymous,
     publicationStatus,
     hiddenAt: null,
   });
@@ -172,7 +172,7 @@ describe('DecisionsService.decide', () => {
       courseReviewId: 'rev-1',
       reports: [{ reporterId: 'reporter-1' }],
     });
-    prisma.courseReview.findUnique.mockResolvedValue(review('HIDDEN'));
+    prisma.courseReview.findUnique.mockResolvedValue(review('HIDDEN', false));
 
     await service.decide('case-2', moderator('mod-1'), {
       decision: 'REMOVE',
@@ -199,6 +199,27 @@ describe('DecisionsService.decide', () => {
         reason: 'Ataca a una persona en lugar de contar la cursada.',
       }),
     });
+  });
+
+  it('moves no points when retiring an anonymous reseña, which would name its author', async () => {
+    withCase({
+      id: 'case-2',
+      kind: 'REPORTS',
+      status: 'OPEN',
+      targetType: 'COURSE_REVIEW',
+      courseReviewId: 'rev-1',
+      reports: [{ reporterId: 'reporter-1' }],
+    });
+    prisma.courseReview.findUnique.mockResolvedValue(review('PUBLISHED'));
+
+    await service.decide('case-2', moderator('mod-1'), {
+      decision: 'REMOVE',
+      reason: 'Insultos',
+    });
+
+    expect(prisma.courseReview.updateMany).toHaveBeenCalled();
+    expect(points.revertFor).not.toHaveBeenCalled();
+    expect(points.awardFor).not.toHaveBeenCalled();
   });
 
   it('removes a retired material from its materia count', async () => {
