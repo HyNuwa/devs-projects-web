@@ -118,6 +118,8 @@ model User {
   role          Role      @default(USER)
   points        Int       @default(0)
   level         Int       @default(1)
+  /// Nivel máximo alcanzado: never goes down; decides personalization unlocks.
+  maxLevel      Int       @default(1) @map("max_level")
   emailVerified Boolean   @default(false) @map("email_verified")
   isBanned      Boolean   @default(false) @map("is_banned")
   isMuted       Boolean   @default(false) @map("is_muted")
@@ -128,26 +130,51 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")
 
-  studyPlans          UserStudyPlan[]
-  materials           Material[]
-  materialRatings     MaterialRating[]
-  materialHelpfulness MaterialHelpfulness[]
-  savedMaterials      SavedMaterial[]
-  guides              Guide[]
-  courseReviews       CourseReview[]         @relation("CourseReviewAuthor")
-  examExperiences     ExamExperience[]       @relation("ExamExperienceAuthor")
-  reports             Report[]               @relation("ReportReporter")
-  decidedCases        ModerationCase[]       @relation("ModerationCaseDecidedBy")
-  badges              UserBadge[]
-  refreshTokens       RefreshToken[]
-  emailVerifications  EmailVerification[]
-  passwordResets      PasswordResetRequest[]
-  pointTransactions   PointTransaction[]
-  sanctions           Sanction[]             @relation("SanctionUser")
-  suspensionProposals SuspensionProposal[]   @relation("SuspensionProposalUser")
-  appeals             Appeal[]               @relation("AppealAppellant")
+  studyPlans           UserStudyPlan[]
+  materials            Material[]
+  materialRatings      MaterialRating[]
+  materialHelpfulness  MaterialHelpfulness[]
+  savedMaterials       SavedMaterial[]
+  guides               Guide[]
+  courseReviews        CourseReview[]         @relation("CourseReviewAuthor")
+  examExperiences      ExamExperience[]       @relation("ExamExperienceAuthor")
+  reports              Report[]               @relation("ReportReporter")
+  decidedCases         ModerationCase[]       @relation("ModerationCaseDecidedBy")
+  badges               UserBadge[]
+  refreshTokens        RefreshToken[]
+  emailVerifications   EmailVerification[]
+  passwordResets       PasswordResetRequest[]
+  pointTransactions    PointTransaction[]
+  sanctions            Sanction[]             @relation("SanctionUser")
+  suspensionProposals  SuspensionProposal[]   @relation("SuspensionProposalUser")
+  appeals              Appeal[]               @relation("AppealAppellant")
+  profileCustomization ProfileCustomization?
 
   @@map("users")
+}
+
+/// Perfil público choices (openspec reputation/profile-customization). One lazy
+/// row per account: no row means every default. Values are option ids from
+/// `users/profile-options.ts`; stale ones fall back on read.
+model ProfileCustomization {
+  userId             String   @id @map("user_id") @db.Uuid
+  avatarCat          String?  @map("avatar_cat") @db.VarChar(40)
+  accent             String?  @db.VarChar(40)
+  background         String?  @db.VarChar(40)
+  frame              String?  @db.VarChar(40)
+  banner             String?  @db.VarChar(40)
+  theme              String?  @db.VarChar(40)
+  titleBadge         String?  @map("title_badge") @db.VarChar(40)
+  featuredBadges     String[] @default([]) @map("featured_badges")
+  /// Ordered `{ type, id }` entries: MATERIAL, COURSE_REVIEW or EXAM_EXPERIENCE.
+  pinned             Json     @default("[]")
+  showLevelAndBadges Boolean  @default(true) @map("show_level_and_badges")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_customizations")
 }
 
 // ─── CARRERAS Y PLANES ─────────────────────────────────────────

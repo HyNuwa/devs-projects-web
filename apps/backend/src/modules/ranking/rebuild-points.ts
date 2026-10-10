@@ -96,7 +96,13 @@ async function rebuildAccount(
   const kept = _sum.amount ?? 0;
   await tx.user.update({
     where: { id: userId },
-    data: { points: kept, level: levelForPoints(kept) },
+    // The rebuild is the one path that lowers the nivel máximo alcanzado: the
+    // history before the ledger is not reliable (reputation/points).
+    data: {
+      points: kept,
+      level: levelForPoints(kept),
+      maxLevel: levelForPoints(kept),
+    },
   });
 
   const [materials, reviews, exams, reports] = await Promise.all([

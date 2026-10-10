@@ -1,11 +1,13 @@
 import { IsString, IsOptional, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { NotReservedName } from '../../../common/validators/reserved-name';
 
 export class UpdateProfileDto {
   @ApiProperty({ example: 'Juan Pérez', nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(50)
+  @NotReservedName()
   displayName?: string;
 
   @ApiProperty({

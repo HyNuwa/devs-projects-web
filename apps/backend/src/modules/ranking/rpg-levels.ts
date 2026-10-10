@@ -8,7 +8,7 @@ export interface RpgLevel {
 
 /**
  * The levels table of docs/README_PUNTOS_E_INSIGNIAS §4, in ascending order.
- * Unlocks are shown in «Tu progreso»; applying them is change 3c.
+ * Unlocks are shown in «Tu progreso» and applied by `users/profile-options.ts`.
  */
 export const RPG_LEVELS: RpgLevel[] = [
   {

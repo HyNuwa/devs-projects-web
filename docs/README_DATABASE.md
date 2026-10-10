@@ -44,7 +44,8 @@ erDiagram
 | Comunidad | `CourseReview`, `ExamExperience` | Publicación anónima con `isAnonymous`; retiro reversible con `isRemoved`, `removedReason`, `removedAt`, `removedById`. |
 | Moderación comunitaria | `CommunityReport`, `CommunityModerationAction` | Un reporte apunta a una reseña **o** a una experiencia. Cada retiro o restauración queda registrado con su motivo. |
 | Moderación de materiales | `ModerationLog` (+ enum `ModerationAction`) | Registro de aprobaciones y rechazos. Incluye acciones de ban, mute y guías que nunca se implementaron. |
-| Puntos | `PointTransaction`, `User.points`, `User.level` | Libro de movimientos; `points` es el total acumulado. |
+| Puntos | `PointTransaction`, `User.points`, `User.level`, `User.maxLevel` | Libro de movimientos; `points` es el total acumulado. `maxLevel` es el nivel máximo alcanzado: lo sube el libro y nunca baja (ver abajo). |
+| Perfil público | `ProfileCustomization` | Una fila por cuenta, creada al guardar por primera vez: avatar, acento, fondo, marco, banner, tema, título, insignias destacadas, aportes fijados (`pinned`, JSON) y «Mostrar mi nivel e insignias». Guarda ids de opciones; lo que deja de valer se ignora al leer. |
 | Insignias | `Badge`, `UserBadge` | Tablas creadas, sin datos ni lógica. |
 | Heredado | `Professor`, `SubjectProfessor`, `Guide`, `GuideStep` | `Professor` sigue en uso como dato de contexto (quién dictó o tomó). Las guías y las páginas de profesores salieron del producto. |
 
@@ -76,6 +77,10 @@ Las relaciones nuevas usan `onDelete: Restrict`: borrar una facultad o universid
 **Rollback:** Prisma no tiene migraciones hacia atrás. `openspec/changes/archive/*-instituciones/rollback.sql` deshace las dos migraciones (`institutions` e `institutions_trigger_locks`) a mano y borra sus filas de `_prisma_migrations`, porque `migrate resolve --rolled-back` solo acepta migraciones fallidas. Aborta si existe una segunda facultad.
 
 **Concurrencia:** el trigger del vínculo plan–materia bloquea con `FOR SHARE` el plan, la carrera y la materia que lee (migración `institutions_trigger_locks`), así que una mudanza simultánea de cualquiera de ellos espera y después se valida.
+
+**¿Por qué se guarda el nivel máximo alcanzado?** Los desbloqueos de personalización no se pierden si bajan los puntos. `users.max_level` (migración `20261012000000_profile_customization`) arrancó igual a `level`. Desde entonces lo escribe `PointLedger` dentro de la transacción que bloquea la cuenta, solo hacia arriba. `rebuild-points` es el único camino que lo baja: lo deja en el nivel reconstruido. El rollback está en `openspec/changes/archive/*-perfil-publico/rollback.sql`.
+
+**¿Por qué los aportes fijados son JSON y no claves foráneas?** Un aporte retirado o borrado tiene que dejar de mostrarse, y volver si se restaura. Con claves foráneas en cascada se perdería esa vuelta. El perfil público filtra los fijados al leer: propios, publicados, no borrados y con nombre.
 
 **Pendiente antes de cargar una segunda facultad:** las URLs de materia son globales (`/materias/:code`, búsqueda por `code` sola). Dos facultades con el mismo código de materia chocarían; hay que decidir el esquema de URLs antes.
 

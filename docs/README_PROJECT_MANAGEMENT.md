@@ -71,7 +71,7 @@ Grandes bloques pendientes, sin fechas. Cada uno se convierte en uno o más camb
 | Eventos | Canvas (página Eventos) | Diseñado, por especificar |
 | Clasificados (venta y tutorías) | Canvas (página Clasificados) | Diseñado, por especificar |
 | Infraestructura y despliegue | [`README_DEVOPS.md`](README_DEVOPS.md) | Plan |
-| Limpieza de lo heredado (foro, guías, profesores, ranking) | — | Por decidir |
+| Limpieza de lo heredado (foro, guías, profesores, ranking) | [`PLAN_LIMPIEZA_HEREDADOS.md`](plans/PLAN_LIMPIEZA_HEREDADOS.md) | Inventario en curso |
 
 ## Bloqueos
 

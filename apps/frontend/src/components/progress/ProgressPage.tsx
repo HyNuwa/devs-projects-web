@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { defaultAvatarFor } from '@/components/layout/account';
+import { avatarSrc } from '@/components/layout/account';
 import { BadgesSection } from '@/components/progress/BadgesSection';
 import { Button, EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn';
 import { getApiError } from '@/lib/apiHelpers';
@@ -123,7 +123,7 @@ export function ProgressPage() {
               alt=""
               className="size-28 rounded-full border-[1.5px] border-foreground object-cover"
               height={112}
-              src={user.avatarUrl ?? defaultAvatarFor(user.id)}
+              src={avatarSrc(user)}
               width={112}
             />
             <span className="absolute -right-1 bottom-1 rounded-full border-2 border-card bg-foreground px-2.5 py-1 text-sm font-black text-background">

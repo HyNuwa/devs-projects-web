@@ -1,4 +1,6 @@
 import Link from 'next/link';
+
+import { AuthorLink } from '@/components/public-profile/AuthorLink';
 import { GraduationCap, Star, UserRound } from 'lucide-react';
 
 import { Button } from '@/components/ui/shadcn';
@@ -63,10 +65,6 @@ type SummaryCardProps<TSummary> = {
 };
 
 type FactEntries = Array<[label: string, value: string | null | undefined]>;
-
-function publicAuthorName(author: CommunityAuthor | null | undefined) {
-  return author?.displayName || author?.username || 'Anónimo';
-}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -142,7 +140,7 @@ function SummaryShell({
               className="size-4 shrink-0 text-primary"
               strokeWidth={1.7}
             />
-            {publicAuthorName(author)}
+            <AuthorLink author={author} />
           </p>
         </div>
         <div className="flex min-h-6 shrink-0 items-center">{indicator}</div>

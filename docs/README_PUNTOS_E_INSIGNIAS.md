@@ -1,6 +1,6 @@
 # Sistema de puntos, niveles e insignias
 
-> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Las insignias (§6) están implementadas desde `puntos-insignias` (3b), salvo Lupa. Personalización, privilegios, rankings y la página de perfil público (§4 desbloqueos, §5, §7, §8), con 3c.
+> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Las insignias (§6) están implementadas desde `puntos-insignias` (3b), salvo Lupa. La personalización y la página de perfil público (§4 desbloqueos, §8) están implementadas desde `perfil-publico` (3c-1). Los privilegios (§5) llegan con 3c-2 y los rankings (§7) con 3c-3.
 > **Moderación:** desde septiembre 2026 todo se publica al instante y se modera después (`docs/README_MODERACION.md`, ADR 0001). Por eso los puntos de un aporte se otorgan **al publicarse** y se revierten si se retira.
 > **Relacionado:** `apps/backend/src/modules/ranking/` (`point.service.ts`, `rpg-levels.ts`, `ranking.service.ts`), modelos `PointTransaction`, `Badge`, `UserBadge`, `MaterialHelpfulness`, `CommunityReport` y `Guide` en `apps/backend/prisma/schema.prisma`, y el glosario de `CONTEXT.md`.
 
@@ -133,6 +133,25 @@ Decisiones de 3c-1 (`perfil-publico`):
 - **Aportes fijados:** solo propios, publicados y con nombre. Desaparecen si se retiran o borran.
 - **«Mostrar mi nivel e insignias»** (encendido por defecto): apagado oculta el nivel, las insignias y el título, y saca a la cuenta de todos los rankings. Los cosméticos siguen visibles.
 
+Cómo quedó implementado en 3c-1:
+
+- **Nivel máximo alcanzado:** la columna `users.max_level`. La sube el libro de puntos (`PointLedger`) y nunca baja; solo `rebuild-points` la vuelve a fijar en el nivel reconstruido.
+- **Elecciones:** la tabla `profile_customizations`, con una fila por cuenta que se crea al guardar por primera vez. El catálogo de opciones y sus desbloqueos vive en `apps/backend/src/modules/users/profile-options.ts`, y el backend rechaza cualquier opción bloqueada.
+- **Opciones:**
+  - gatos: `birrete`, `crema`, `guino` y `max` (Nv. 1); `gato-lentes`, `gato-bufanda`, `gato-lapiz` y `gato-mate` (Nv. 2); `gato-pixel`, `gato-dorado` y `gato-nocturno` (Nv. 7); `gato-animado` (Nv. 9);
+  - acentos: `menta`, `coral`, `cielo`, `ambar`, `lavanda` y `pizarra` (Nv. 3);
+  - fondos: `cuadriculado`, `hoja` y `pixel` (Nv. 4);
+  - marcos: `marco-clasico` (Nv. 5), `marco-legendario` (Nv. 10) y `marco-salvavidas` (insignia Salvavidas);
+  - banners: `banner-biblioteca`, `banner-pasillo` y `banner-atardecer` (Nv. 5);
+  - tema: `faro` (Nv. 8).
+- **Lo que se pierde se cae solo al leer:** si se pierde la insignia del título, de una destacada o del marco Salvavidas, o si se retira un aporte fijado, el perfil deja de mostrarlo sin borrar nada. Si el aporte se restaura, vuelve.
+- **API:** `GET`/`PUT /users/me/profile-customization`, y las públicas `GET /profiles/:username` y `GET /profiles/:username/contributions`.
+- **Arte:** los gatos están en `apps/frontend/public/avatars/` y los banners en `apps/frontend/public/assets/perfil/banners/`.
+- **El editor no reevalúa insignias al guardar:** usa la última evaluación, la de «Tu progreso» o la del perfil público. Si reevaluara, también podría quitar insignias en medio de una edición. Una insignia ganada recién aparece en el editor después de abrir «Tu progreso».
+- **Autor de un material:** las vistas rediseñadas de materiales (la vista previa y `/buscar`) no muestran quién lo subió, así que el enlace al perfil solo aparece en reseñas y experiencias. Si una vista futura muestra al autor, tiene que usar `AuthorLink`, que nunca enlaza lo anónimo.
+- **«Anónimo» es un nombre reservado:** el registro y el nombre visible rechazan «Anónimo» y sus variantes (`common/validators/reserved-name.ts`), porque es como se muestra lo anónimo.
+- **Pendiente para 3c-3 (`rankings-acotados`):** que el interruptor «Mostrar mi nivel e insignias» saque a la cuenta de todos los rankings, y enlazar cada nombre del ranking a su perfil con `AuthorLink`. Hasta entonces, el `/ranking` heredado todavía muestra a la cuenta, así que 3c-1 no puede salir sin 3c-3.
+
 ## 5. Privilegios de confianza
 
 Son permisos que ayudan a mantener la calidad. Todos requieren **no haber tenido sanciones en los últimos 90 días**: cuentan el silenciamiento, la suspensión y el retiro por normas (incluido el de contenido anónimo, porque los privilegios no son públicos), contados desde el fin de la sanción o el cierre del caso. No cuentan las advertencias ni lo anulado en apelación o restaurado. La suspensión permanente no vuelve nunca. El nivel requerido se compara con el nivel máximo alcanzado. Cada privilegio se basa en la señal que mejor predice si se va a usar bien: el nivel mide cuánto aportaste, no si reportás con buen criterio.
@@ -243,7 +262,7 @@ Decisiones de 3c-3 (`rankings-acotados`):
 ## 8. Cómo se ve en el producto
 
 - **Mi espacio → «Tu progreso»** (`/mi-espacio/progreso`, construido en 3a sin insignias): nivel actual, puntos que faltan para el siguiente, qué desbloquea el próximo nivel, insignias ganadas y las más cercanas («te faltan 12 "Me sirvió" para Salvavidas»).
-- **Perfil público:** número y nombre del nivel, hasta 3 insignias destacadas, título elegido y la personalización desbloqueada. Respeta los interruptores de privacidad de Configuración (por ejemplo, «Mostrar mi nivel e insignias»).
+- **Perfil público:** número y nombre del nivel, hasta 3 insignias destacadas, título elegido y la personalización desbloqueada. Respeta el interruptor «Mostrar mi nivel e insignias» de *Mi perfil → Perfil público*. En `/usuarios/[username]`, abierta sin iniciar sesión.
 - **Rankings:** nombre y número de nivel («Nv. 5»).
 - **Tarjetas de aportes, reseñas y experiencias:** solo el nombre del autor (o «Anónimo»). Sin nivel ni insignias (§5.1).
 - **Notificaciones:** al subir de nivel, al ganar o subir de grado una insignia y cuando se revierten puntos (con el motivo, sin revelar quién reportó). Quedan para el plan de notificaciones; mientras tanto, «Tu progreso» muestra los movimientos con su motivo.

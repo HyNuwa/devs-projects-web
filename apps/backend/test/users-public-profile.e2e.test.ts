@@ -12,13 +12,18 @@ import {
 } from './support/e2e-app';
 
 const PUBLIC_FIELDS = [
+  'avatarCat',
   'avatarUrl',
   'badges',
   'bio',
-  'createdAt',
+  'customization',
   'displayName',
+  'featured',
   'id',
   'level',
+  'memberSince',
+  'pinned',
+  'title',
   'username',
 ];
 

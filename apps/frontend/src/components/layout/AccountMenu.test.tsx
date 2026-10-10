@@ -36,6 +36,19 @@ beforeEach(() => {
 
 const pill = () => screen.getByRole('button', { name: 'Max, abrir menú de cuenta' });
 
+describe('AccountMenu avatar', () => {
+  it('shows the chosen cat', () => {
+    const { container } = render(
+      <AccountMenu
+        user={{ ...userWith('USER', '/foto.webp'), avatarCat: 'gato-mate' }}
+        variant="desktop"
+      />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/gato-mate.webp');
+  });
+});
+
 describe('AccountMenu on desktop', () => {
   it('opens from the keyboard with a student’s entries and returns focus on Escape', async () => {
     const user = userEvent.setup();

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
     id: string;
     username: string;
     avatarUrl: string | null;
+    avatarCat?: string | null;
   } | null,
   isLoading: false,
 }));
@@ -91,6 +92,19 @@ beforeEach(() => {
 });
 
 describe('ProgressPage («Tu progreso»)', () => {
+  it('shows the chosen cat as the avatar', async () => {
+    mocks.user = {
+      id: 'user-1',
+      username: 'max',
+      avatarUrl: '/foto.webp',
+      avatarCat: 'gato-bufanda',
+    };
+    const { container } = render(<ProgressPage />);
+
+    await screen.findByRole('heading', { level: 1, name: /Mochila cargada/ });
+    expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/gato-bufanda.webp');
+  });
+
   it('shows the level, the points and how many are missing for the next one', async () => {
     render(<ProgressPage />);
 

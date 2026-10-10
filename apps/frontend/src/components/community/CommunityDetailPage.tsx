@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+
+import { AuthorLink } from '@/components/public-profile/AuthorLink';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -243,7 +245,7 @@ function CommunityDetailContent({
           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border py-4 font-sans text-sm text-secondary-foreground">
             <span className="inline-flex items-center gap-2">
               <UserRound aria-hidden="true" className="size-4 text-primary" strokeWidth={1.7} />
-              {detail.author.username || 'Anónimo'}
+              <AuthorLink author={detail.author} />
             </span>
             {createdDate ? (
               <span className="inline-flex items-center gap-2">

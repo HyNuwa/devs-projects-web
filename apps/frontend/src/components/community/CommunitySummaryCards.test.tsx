@@ -28,6 +28,11 @@ describe('CommunitySummaryCards', () => {
       />,
     );
 
+    expect(screen.getByRole('link', { name: 'luciana' })).toHaveAttribute(
+      'href',
+      '/usuarios/luciana',
+    );
+
     expect(screen.getByRole('link', { name: 'Algoritmos y Estructuras de Datos' })).toHaveAttribute(
       'href',
       '/materias/S2-14',
@@ -86,6 +91,7 @@ describe('CommunitySummaryCards', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Recomendación: 5 de 5 estrellas')).not.toBeInTheDocument();
     expect(screen.getAllByText('Anónimo')).toHaveLength(2);
+    expect(screen.queryByRole('link', { name: 'Anónimo' })).not.toBeInTheDocument();
   });
 
   it('uses the anonymous identity and omits unknown optional course facts', () => {

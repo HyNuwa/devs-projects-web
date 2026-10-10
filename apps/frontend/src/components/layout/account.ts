@@ -40,3 +40,25 @@ export function defaultAvatarFor(userId: string): string {
   }
   return defaultAvatars[(hash >>> 0) % defaultAvatars.length];
 }
+
+/** The nivel-9 cat is the crema cat with a subtle animation (README_PUNTOS_E_INSIGNIAS §4). */
+const ANIMATED_CAT = 'gato-animado';
+
+export function isAnimatedCat(avatarCat: string | null | undefined) {
+  return avatarCat === ANIMATED_CAT;
+}
+
+/**
+ * The avatar to draw (openspec reputation/profile-customization): the chosen
+ * cat, else the uploaded photo, else the cat assigned by id.
+ */
+export function avatarSrc(user: {
+  id: string;
+  avatarUrl: string | null;
+  avatarCat?: string | null;
+}): string {
+  if (user.avatarCat) {
+    return `/avatars/${isAnimatedCat(user.avatarCat) ? 'crema' : user.avatarCat}.webp`;
+  }
+  return user.avatarUrl ?? defaultAvatarFor(user.id);
+}

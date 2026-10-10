@@ -136,6 +136,7 @@ describe('CommunityDetailPage', () => {
     ).toBeInTheDocument();
     expect(getCourseReviewDetail).toHaveBeenCalledWith('review-1');
     expect(screen.getByText('Anónimo')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Anónimo' })).not.toBeInTheDocument();
     expect(screen.getByText(reviewComment)).toBeInTheDocument();
     expect(screen.getByText('Profesor: Ing. Laura Quiroga')).toBeInTheDocument();
     expect(screen.getByText('Editada · 1 sept 2026')).toBeInTheDocument();
@@ -146,6 +147,16 @@ describe('CommunityDetailPage', () => {
     expect(screen.getByRole('link', { name: 'Iniciá sesión para reportar' })).toHaveAttribute(
       'href',
       '/auth/login?redirect=%2Fresenas%2Freview-1',
+    );
+  });
+
+  it('links a signed review to its author’s perfil público', async () => {
+    vi.mocked(getCourseReviewDetail).mockResolvedValue(review({ author: { username: 'vale' } }));
+    render(<CourseReviewDetailRoute />);
+
+    expect(await screen.findByRole('link', { name: 'vale' })).toHaveAttribute(
+      'href',
+      '/usuarios/vale',
     );
   });
 

@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { Role } from '@/types/auth';
 
-import { accountMenuItems, defaultAvatarFor, defaultAvatars } from './account';
+import {
+  accountMenuItems,
+  avatarSrc,
+  defaultAvatarFor,
+  defaultAvatars,
+  isAnimatedCat,
+} from './account';
 
 const labelsFor = (role: Role) => accountMenuItems({ role }).map(({ label }) => label);
 
@@ -52,5 +58,26 @@ describe('defaultAvatarFor', () => {
       '/avatars/guino.webp',
       '/avatars/max.webp',
     ]);
+  });
+});
+
+describe('avatarSrc (reputation/profile-customization)', () => {
+  it('shows the chosen cat over the photo', () => {
+    expect(avatarSrc({ id: 'u1', avatarUrl: '/foto.webp', avatarCat: 'gato-lentes' })).toBe(
+      '/avatars/gato-lentes.webp',
+    );
+  });
+
+  it('draws the animated cat with the crema art', () => {
+    expect(avatarSrc({ id: 'u1', avatarUrl: null, avatarCat: 'gato-animado' })).toBe(
+      '/avatars/crema.webp',
+    );
+    expect(isAnimatedCat('gato-animado')).toBe(true);
+    expect(isAnimatedCat('crema')).toBe(false);
+  });
+
+  it('falls back to the photo, then to the cat assigned by id', () => {
+    expect(avatarSrc({ id: 'u1', avatarUrl: '/foto.webp', avatarCat: null })).toBe('/foto.webp');
+    expect(avatarSrc({ id: 'u1', avatarUrl: null })).toBe(defaultAvatarFor('u1'));
   });
 });

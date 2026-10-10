@@ -334,11 +334,16 @@ export class PointLedger {
     const updated = await tx.user.update({
       where: { id: userId },
       data: { points: { increment: amount } },
-      select: { points: true, level: true },
+      select: { points: true, level: true, maxLevel: true },
     });
     const level = levelForPoints(updated.points);
-    if (level !== updated.level) {
-      await tx.user.update({ where: { id: userId }, data: { level } });
+    if (level !== updated.level || level > updated.maxLevel) {
+      // The nivel máximo alcanzado never goes down: not on reversals, not
+      // under a sanción. The account row is locked, so this read is current.
+      await tx.user.update({
+        where: { id: userId },
+        data: { level, maxLevel: Math.max(level, updated.maxLevel) },
+      });
     }
   }
 }

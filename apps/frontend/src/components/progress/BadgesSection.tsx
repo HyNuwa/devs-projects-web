@@ -6,9 +6,9 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ErrorState, LoadingState } from '@/components/ui/shadcn';
 import { cn } from '@/components/ui/shadcn/utils';
 import { getApiError } from '@/lib/apiHelpers';
+import { editionLabel, gemPath, MONTHS, TIER_LABEL } from '@/lib/badge-labels';
 import {
   type BadgeRarity,
-  type BadgeTier,
   type EarnedBadge,
   getMyBadges,
   markBadgesSeen,
@@ -22,27 +22,13 @@ const RARITY: Record<BadgeRarity, string> = {
   EDICION_UNICA: 'Edición única',
 };
 
-const TIER: Record<BadgeTier, string> = { BRONCE: 'Bronce', PLATA: 'Plata', ORO: 'Oro' };
-
-const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const TIER = TIER_LABEL;
 
 /** «ago 2026», in the faculty's time zone (UTC-3). */
 function monthYear(iso: string) {
   const local = new Date(new Date(iso).getTime() - 3 * 3_600_000);
   return `${MONTHS[local.getUTCMonth()]} ${local.getUTCFullYear()}`;
 }
-
-/** «Edición 2025» for a year, «Edición jul 2026» for an exam period. */
-function editionLabel(edition: number) {
-  if (edition === 0) return null;
-  if (edition > 9999) {
-    return `Edición ${MONTHS[(edition % 100) - 1]} ${Math.floor(edition / 100)}`;
-  }
-  return `Edición ${edition}`;
-}
-
-const gemPath = (slug: string, extension: 'svg' | 'lottie') =>
-  `/assets/insignias/gema/${slug}.${extension}`;
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
