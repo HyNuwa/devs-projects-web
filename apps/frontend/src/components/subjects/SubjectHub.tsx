@@ -136,6 +136,18 @@ function MaterialList({ materials }: { materials: Material[] }) {
   );
 }
 
+/** «FI (UNJU) · Ingeniería Informática · Año 2 · Cuatrimestre 1 · 6 créditos» */
+function placementLabel(plan: SubjectHubType['studyPlans'][number]): string {
+  const { career } = plan.studyPlan;
+  return [
+    `${career.faculty.shortName} (${career.faculty.university.shortName})`,
+    career.name,
+    `Año ${plan.year}`,
+    `Cuatrimestre ${plan.semester}`,
+    ...(plan.credits ? [`${plan.credits} créditos`] : []),
+  ].join(' · ');
+}
+
 export function SubjectHub({ code }: { code: string }) {
   const [attempt, setAttempt] = useState(0);
   const [activeTab, setActiveTab] = useState<SubjectHubTab>('reviews');
@@ -210,7 +222,6 @@ export function SubjectHub({ code }: { code: string }) {
   }
 
   const { exams, materials, reviews, subject } = state.data;
-  const plan = subject.studyPlans[0];
   const averageRecommendation = subject.stats.avgRecommendation?.toFixed(1) ?? '—';
 
   return (
@@ -241,12 +252,11 @@ export function SubjectHub({ code }: { code: string }) {
           ) : null}
           <div className="mt-5 flex flex-wrap gap-2">
             {subject.code ? <Chip tone="neutral">Código {subject.code}</Chip> : null}
-            {plan ? (
-              <Chip tone="neutral">
-                {plan.studyPlan.career.name} · Año {plan.year} · Cuatrimestre {plan.semester}
-                {plan.credits ? ` · ${plan.credits} créditos` : ''}
+            {subject.studyPlans.map((placement) => (
+              <Chip key={placementLabel(placement)} tone="neutral">
+                {placementLabel(placement)}
               </Chip>
-            ) : null}
+            ))}
           </div>
         </div>
         <Button asChild className="lg:justify-self-end" variant="outline">

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -31,11 +31,23 @@ vi.mock('@/lib/discovery-client', async (importOriginal) => {
 });
 
 const careerId = '10000000-0000-4000-8000-000000000001';
+const fiUnju = {
+  id: 'faculty-fi',
+  name: 'Facultad de Ingeniería',
+  shortName: 'FI',
+  university: { id: 'university-unju', name: 'Universidad Nacional de Jujuy', shortName: 'UNJU' },
+};
 const studyPlanId = '20000000-0000-4000-8000-000000000002';
 const subjectId = '30000000-0000-4000-8000-000000000003';
 
 const subjectContext = {
-  career: { id: careerId, name: 'Ingeniería Informática', code: 'INF', studyPlanCount: 1 },
+  career: {
+    id: careerId,
+    name: 'Ingeniería Informática',
+    code: 'INF',
+    studyPlanCount: 1,
+    faculty: fiUnju,
+  },
   studyPlan: { id: studyPlanId, name: 'Plan 2024', code: 'INF-24' },
   year: 2,
   subjects: [
@@ -77,7 +89,15 @@ describe('MaterialHierarchyPage', () => {
 
   it('starts at careers and exposes a stable route for each choice', async () => {
     vi.mocked(getHierarchyCareers).mockResolvedValue({
-      careers: [{ id: careerId, name: 'Ingeniería Informática', code: 'INF', studyPlanCount: 1 }],
+      careers: [
+        {
+          id: careerId,
+          name: 'Ingeniería Informática',
+          code: 'INF',
+          studyPlanCount: 1,
+          faculty: fiUnju,
+        },
+      ],
       hasMore: false,
     });
 
@@ -88,6 +108,123 @@ describe('MaterialHierarchyPage', () => {
       'href',
       `/materiales/carreras/${careerId}`,
     );
+  });
+
+  it('groups careers under their facultad and universidad', async () => {
+    const agrarias = {
+      id: 'faculty-fca',
+      name: 'Facultad de Ciencias Agrarias',
+      shortName: 'FCA',
+      university: fiUnju.university,
+    };
+    vi.mocked(getHierarchyCareers).mockResolvedValue({
+      careers: [
+        {
+          id: 'c-agro',
+          name: 'Ingeniería Agronómica',
+          code: 'IA',
+          studyPlanCount: 1,
+          faculty: agrarias,
+        },
+        {
+          id: careerId,
+          name: 'Ingeniería Informática',
+          code: 'INF',
+          studyPlanCount: 1,
+          faculty: fiUnju,
+        },
+        {
+          id: 'c-ind',
+          name: 'Ingeniería Industrial',
+          code: 'IND',
+          studyPlanCount: 2,
+          faculty: fiUnju,
+        },
+      ],
+      hasMore: false,
+    });
+
+    render(<MaterialHierarchyPage query="" segments={[]} />);
+
+    const fi = await screen.findByRole('region', { name: 'Facultad de Ingeniería · UNJU' });
+    const fca = screen.getByRole('region', { name: 'Facultad de Ciencias Agrarias · UNJU' });
+    expect(
+      within(fi)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual([
+      expect.stringContaining('Ingeniería Informática'),
+      expect.stringContaining('Ingeniería Industrial'),
+    ]);
+    expect(within(fca).getByRole('link', { name: /ingeniería agronómica/i })).toHaveAttribute(
+      'href',
+      '/materiales/carreras/c-agro',
+    );
+    expect(within(fi).queryByRole('link', { name: /agronómica/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps facultades of the same universidad together', async () => {
+    const unsa = {
+      id: 'university-unsa',
+      name: 'Universidad Nacional de Salta',
+      shortName: 'UNSa',
+    };
+    const faculty = (id: string, name: string, university = fiUnju.university) => ({
+      id,
+      name,
+      shortName: id,
+      university,
+    });
+    vi.mocked(getHierarchyCareers).mockResolvedValue({
+      careers: [
+        {
+          id: 'c1',
+          name: 'Agronomía',
+          code: 'A',
+          studyPlanCount: 1,
+          faculty: faculty('fca', 'Facultad de Ciencias Agrarias'),
+        },
+        {
+          id: 'c2',
+          name: 'Economía',
+          code: 'E',
+          studyPlanCount: 1,
+          faculty: faculty('fce-unsa', 'Facultad de Ciencias Económicas', unsa),
+        },
+        { id: 'c3', name: 'Informática', code: 'I', studyPlanCount: 1, faculty: fiUnju },
+      ],
+      hasMore: false,
+    });
+
+    render(<MaterialHierarchyPage query="" segments={[]} />);
+
+    await screen.findByRole('region', { name: 'Facultad de Ingeniería · UNJU' });
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'Facultad de Ciencias Agrarias · UNJU',
+      'Facultad de Ingeniería · UNJU',
+      'Facultad de Ciencias Económicas · UNSa',
+    ]);
+  });
+
+  it('shows the facultad heading even when there is only one', async () => {
+    vi.mocked(getHierarchyCareers).mockResolvedValue({
+      careers: [
+        {
+          id: careerId,
+          name: 'Ingeniería Informática',
+          code: 'INF',
+          studyPlanCount: 1,
+          faculty: fiUnju,
+        },
+      ],
+      hasMore: false,
+    });
+
+    render(<MaterialHierarchyPage query="" segments={[]} />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Facultad de Ingeniería · UNJU' }),
+    ).toBeInTheDocument();
   });
 
   it('honors shared root preview links without reloading the hierarchy', async () => {

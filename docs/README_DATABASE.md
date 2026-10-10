@@ -39,7 +39,7 @@ erDiagram
 | Área | Modelos | Notas |
 |---|---|---|
 | Cuentas | `User`, `RefreshToken`, `EmailVerification`, `PasswordResetRequest` | Tokens guardados hasheados. `User` ya tiene `isBanned`, `isMuted`, `mutedUntil`, pero no hay lógica que los use. |
-| Plan de estudios | `Career`, `StudyPlan`, `StudyPlanSubject`, `Subject`, `UserStudyPlan` | La materia se vincula al **plan**, no a la carrera (ver abajo). |
+| Instituciones y planes | `University`, `Faculty`, `Career`, `StudyPlan`, `StudyPlanSubject`, `Subject`, `UserStudyPlan` | Universidad → Facultad → Carrera → Plan → Materia ([ADR 0002](adr/0002-jerarquia-universidad-facultad.md)). La materia se vincula al **plan**, no a la carrera, y pertenece a una sola facultad (ver abajo). |
 | Recursos | `Material`, `MaterialRating`, `MaterialHelpfulness`, `SavedMaterial` | `Material` guarda el contexto de cursada (`resourceType`, `academicYear`, `professorId`, `shift`), el estado de moderación y los datos del archivo (Drive o staging local). |
 | Comunidad | `CourseReview`, `ExamExperience` | Publicación anónima con `isAnonymous`; retiro reversible con `isRemoved`, `removedReason`, `removedAt`, `removedById`. |
 | Moderación comunitaria | `CommunityReport`, `CommunityModerationAction` | Un reporte apunta a una reseña **o** a una experiencia. Cada retiro o restauración queda registrado con su motivo. |
@@ -62,7 +62,22 @@ Estas dudas estaban anotadas en el antiguo `README_DATABASE_MODELO.md`.
 
 **¿Por qué la materia se vincula al plan y no a la carrera?** Una misma carrera cambia de plan (Plan 2011, Plan 2023) y la materia puede cambiar de año, de cuatrimestre o desaparecer. `StudyPlanSubject` guarda `year`, `semester` y `credits` para cada plan. Una materia compartida por varias carreras aparece en varios planes sin duplicarse.
 
-**¿Un estudiante puede tener más de una carrera?** Sí. `UserStudyPlan` es la tabla estudiante–plan, con estado ACTIVE, COMPLETED o DROPPED. Reemplazó al `career_id` único del diseño original.
+**¿Un estudiante puede tener más de una carrera?** Sí. `UserStudyPlan` es la tabla estudiante–plan, con estado ACTIVE, COMPLETED o DROPPED. Reemplazó al `career_id` único del diseño original. Desde el cambio `instituciones`, cada estudiante declara sus planes en *Mi perfil → Mi carrera* (`GET`/`PUT /users/me/study-plans`). Son privados: el perfil público no los muestra.
+
+**¿Cómo se garantiza que una materia pertenezca a una sola facultad?** `Subject.facultyId` es obligatorio y cuatro triggers de la migración `20261011000000_institutions` rechazan con `check_violation` (23514):
+
+- `study_plan_subjects_same_faculty`: vincular un plan con una materia de otra facultad.
+- `subjects_faculty_matches_plans`: mover a otra facultad una materia que está en planes.
+- `careers_faculty_fixed_with_plans`: mover de facultad una carrera que tiene planes.
+- `study_plans_career_same_faculty`: mover un plan con materias a una carrera de otra facultad.
+
+Las relaciones nuevas usan `onDelete: Restrict`: borrar una facultad o universidad con contenido falla. El código de carrera es único por facultad (`@@unique([facultyId, code])`). UNJU y la Facultad de Ingeniería tienen ids fijos (`institutions.constants.ts`) que comparten la migración, el seed y los tests. Las facultades se cargan por migración o seed; no hay alta desde la interfaz.
+
+**Rollback:** Prisma no tiene migraciones hacia atrás. `openspec/changes/archive/*-instituciones/rollback.sql` deshace las dos migraciones (`institutions` e `institutions_trigger_locks`) a mano y borra sus filas de `_prisma_migrations`, porque `migrate resolve --rolled-back` solo acepta migraciones fallidas. Aborta si existe una segunda facultad.
+
+**Concurrencia:** el trigger del vínculo plan–materia bloquea con `FOR SHARE` el plan, la carrera y la materia que lee (migración `institutions_trigger_locks`), así que una mudanza simultánea de cualquiera de ellos espera y después se valida.
+
+**Pendiente antes de cargar una segunda facultad:** las URLs de materia son globales (`/materias/:code`, búsqueda por `code` sola). Dos facultades con el mismo código de materia chocarían; hay que decidir el esquema de URLs antes.
 
 **¿Hace falta una tabla para valorar materiales?** Sí, y existe: `MaterialRating` guarda una valoración de 1 a 5 por usuario y material (único por par), con comentario opcional. `Material.avgRating` y `ratingCount` son un caché de esa tabla. El «Me sirvió» es aparte (`MaterialHelpfulness`) y es la señal principal que se muestra.
 
@@ -71,7 +86,7 @@ Estas dudas estaban anotadas en el antiguo `README_DATABASE_MODELO.md`.
 | Especificación | Cambios en el esquema |
 |---|---|
 | [Moderación](README_MODERACION.md) y [ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md) | Caso de moderación que agrupe reportes de cualquier contenido (materiales, reseñas, experiencias, eventos, avisos); ocultamiento preventivo; sanciones con vencimiento; apelaciones; registro de «Ver autor» con motivo; `Material` publicado por defecto. |
-| Alcance por facultad | No existen `University` ni `Faculty`; la carrera no sabe a qué facultad pertenece. Hace falta para moderadores por facultad y para la navegación Universidad → Facultad → Carrera del rediseño. |
+| Alcance por facultad | El modelo `University` → `Faculty` existe desde el cambio `instituciones`. Faltan `ModeratorScope` (moderadores por facultad) y la navegación Universidad → Facultad → Carrera del rediseño: cambio 4 `alcance-por-facultad`. |
 | [Puntos e insignias](README_PUNTOS_E_INSIGNIAS.md) | Códigos de motivo nuevos (`MATERIAL_PUBLISHED`, `EVENT_PUBLISHED`, reversiones); catálogo de insignias con clave estable; privilegios por nivel. |
 | Formularios de experiencias | Nota de promoción, temas y preparación del final, datos de la mesa; `academicYear`, `attempt` y `outcome` pasan a ser obligatorios según el formulario. |
 | Eventos y Clasificados | Modelos nuevos (evento, «Me interesa», organizador verificado; aviso de venta y de tutoría). |

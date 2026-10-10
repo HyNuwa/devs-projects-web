@@ -24,6 +24,31 @@ export class DiscoveryHierarchyQueryDto {
   limit?: number = DEFAULT_DISCOVERY_HIERARCHY_LIMIT;
 }
 
+export class DiscoveryUniversityDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  shortName: string;
+}
+
+export class DiscoveryFacultyDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  shortName: string;
+
+  @ApiProperty({ type: DiscoveryUniversityDto })
+  university: DiscoveryUniversityDto;
+}
+
 export class DiscoveryCareerDto {
   @ApiProperty()
   id: string;
@@ -36,6 +61,9 @@ export class DiscoveryCareerDto {
 
   @ApiProperty()
   studyPlanCount: number;
+
+  @ApiProperty({ type: DiscoveryFacultyDto })
+  faculty: DiscoveryFacultyDto;
 }
 
 export class DiscoveryCareerListDto {

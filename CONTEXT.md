@@ -2,10 +2,20 @@
 
 DevsProject helps FI-UNJU students discover and judge academic resources in the context of a materia and a specific cursada, and also serve a tool for students to share their knowledge/resources and experiences with each other.
 
+It starts at FI-UNJU with the goal of adding other facultades and universidades (ADR 0002).
+
 ## Language
 
+**Universidad**:
+An institution that groups one or more facultades.
+_Avoid_: Institution (when you mean a facultad), campus
+
+**Facultad**:
+An academic unit of a universidad that offers carreras. Two universidades may each have a facultad with the same name; they are different facultades. A student belongs to a facultad only through their study plans and may belong to more than one.
+_Avoid_: Department, school
+
 **Materia**:
-An academic unit in the FI-UNJU study plan and the primary organizing context for resources, reviews, exam experiences, and professors.
+An academic unit in a study plan of one facultad, and the primary organizing context for resources, reviews, exam experiences, and professors. A materia with the same name in two facultades is two different materias.
 _Avoid_: Course, subject hub
 
 **Recurso académico**:
@@ -125,9 +135,33 @@ A señal de utilidad that counts for points and badges: given by an account with
 _Avoid_: Vote, like
 
 **Nivel**:
-A named stage of an account's progress («Primeros pasos» to «Leyenda de la facultad»), computed from its points. Reaching a nivel unlocks profile personalization options, which are kept if points later drop while the account has no sanción.
+A named stage of an account's progress («Primeros pasos» to «Leyenda de la facultad»), computed from its current points. The profile always shows the current nivel.
 _Avoid_: Rank, tier (tiers belong to badges)
 
+**Nivel máximo alcanzado**:
+The highest nivel an account has ever reached. It never goes down, not even when points drop or a sanción applies, and it is what decides which personalization options are unlocked.
+_Avoid_: Current nivel, peak points
+
+
+**Perfil público**:
+The page anyone can open about a student: name, avatar, nivel, insignias, personalización, aportes fijados and their signed contributions. Anonymous entries never appear on it or link to it. A student can hide their nivel and insignias from it, which also keeps them out of every ranking.
+_Avoid_: Account page, Mi perfil (that is where the student edits it)
+
+**Personalización del perfil**:
+The predefined cosmetic choices a student makes for their perfil público (avatar, accent color, background, frame, banner, theme, título), each unlocked by nivel máximo alcanzado or by an insignia. It is never uploaded by the student, never needs moderation, and never shows on contribution cards. A sanción does not hide it, because hiding it would reveal the sanción.
+_Avoid_: Reward, purchase, skin
+
+**Título**:
+An insignia the student picks to show under their name on the perfil público. It disappears on its own if the insignia is lost.
+_Avoid_: Rank, nivel name
+
+**Insignia destacada**:
+One of up to three insignias a student chooses to show first on their perfil público.
+_Avoid_: Pinned badge
+
+**Aporte fijado**:
+One of up to three of the student's own published contributions shown first on their perfil público: a recurso académico, or a reseña de cursada or experiencia de final published with their name. It disappears on its own if the contribution is retired or deleted.
+_Avoid_: Featured content, highlighted post
 
 **Insignia**:
 A recognition of a concrete, verifiable achievement (a material that helped 50 students, reseñas in 5 materias), shown as a gem. Insignias award no points, never count anonymous entries, and are lost or lowered when the contributions behind them are retired or deleted. Some have grados; seasonal ones are earned once per edición.

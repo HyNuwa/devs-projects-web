@@ -18,6 +18,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { Button, Input, useToast } from '@/components/ui';
+import { MyStudyPlans } from './MyStudyPlans';
 import { MySubmissions } from './MySubmissions';
 import styles from './ProfilePage.module.css';
 
@@ -338,6 +339,8 @@ export function ProfilePage() {
               </section>
             </div>
           )}
+
+          {user && <MyStudyPlans />}
 
           {user && <MySubmissions />}
         </div>

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { FI_UNJU_FACULTY_ID } from '../src/modules/institutions/institutions.constants';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
@@ -29,7 +30,11 @@ describe('point reversals and restores (e2e)', () => {
     reviewer = await createUser(prisma, 'ADMIN');
     subjectCode = `E2E${randomUUID().slice(0, 6)}`;
     ({ id: subjectId } = await prisma.subject.create({
-      data: { name: `Materia ${subjectCode}`, code: subjectCode },
+      data: {
+        facultyId: FI_UNJU_FACULTY_ID,
+        name: `Materia ${subjectCode}`,
+        code: subjectCode,
+      },
       select: { id: true },
     }));
   });

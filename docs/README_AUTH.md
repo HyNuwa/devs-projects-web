@@ -81,7 +81,7 @@ Enum `Role` en `prisma/schema.prisma`.
 | `ADMIN` | `admin/*`, alta/edición de profesores, más todo lo de `MODERATOR` | Suspende, nombra moderadores y organizadores verificados, ve todas las facultades |
 | `SUPERADMIN` | Igual que `ADMIN` | Igual que `ADMIN` |
 
-> Con la publicación inmediata ([ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md)) los endpoints de aprobación de materiales quedan solo para los casos de revisión previa. El alcance por facultad todavía no existe en el esquema.
+> Con la publicación inmediata ([ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md)) los endpoints de aprobación de materiales quedan solo para los casos de revisión previa. El modelo de facultad existe desde el cambio `instituciones`, pero el alcance por facultad de los moderadores (`ModeratorScope`) llega con el cambio 4 `alcance-por-facultad`.
 
 ```typescript
 @Controller('admin')
@@ -155,7 +155,7 @@ apps/frontend/src/
 | Rate limit en auth | Hoy el throttler solo cubre escrituras de la comunidad. Falta limitar login, register y forgot-password. |
 | Bloqueo por intentos fallidos | Por ejemplo, 5 intentos fallidos bloquean 15 min. |
 | Qué exige email verificado | Decidir si publicar o reportar requiere cuenta verificada. |
-| Alcance por facultad para moderadores | Lo pide [`README_MODERACION.md`](README_MODERACION.md); el esquema no lo modela. |
+| Alcance por facultad para moderadores | Lo pide [`README_MODERACION.md`](README_MODERACION.md). El esquema ya tiene `Faculty`; falta `ModeratorScope` (cambio 4 `alcance-por-facultad`). |
 | Sanciones | Silenciar y suspender no existen todavía; un usuario suspendido debería perder la sesión (borrar sus refresh tokens). |
 
 ---

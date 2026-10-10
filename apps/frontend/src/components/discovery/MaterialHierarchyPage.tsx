@@ -87,6 +87,40 @@ function yearLabel(year: number): string {
   return `${year}.er año`;
 }
 
+const collator = new Intl.Collator('es', { sensitivity: 'base' });
+
+/** «Facultad de Ingeniería · UNJU» */
+function facultyLabel(career: DiscoveryHierarchyCareer): string {
+  return `${career.faculty.name} · ${career.faculty.university.shortName}`;
+}
+
+/**
+ * Careers grouped by facultad, facultades of the same universidad together
+ * (openspec academic-resources/discovery). Careers keep the API's order.
+ */
+function groupByFaculty(careers: DiscoveryHierarchyCareer[]) {
+  const groups = new Map<
+    string,
+    { label: string; university: string; faculty: string; careers: DiscoveryHierarchyCareer[] }
+  >();
+  for (const career of careers) {
+    const group = groups.get(career.faculty.id) ?? {
+      label: facultyLabel(career),
+      university: career.faculty.university.name,
+      faculty: career.faculty.name,
+      careers: [],
+    };
+    group.careers.push(career);
+    groups.set(career.faculty.id, group);
+  }
+  return [...groups.entries()]
+    .map(([id, group]) => ({ id, ...group }))
+    .sort(
+      (a, b) =>
+        collator.compare(a.university, b.university) || collator.compare(a.faculty, b.faculty),
+    );
+}
+
 function compactCount(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
@@ -503,18 +537,28 @@ function ReadyHierarchy({
           </p>
         </header>
         {view.careers.length > 0 ? (
-          <ul className="mt-9 grid gap-4 sm:grid-cols-2">
-            {view.careers.map((career) => (
-              <HierarchyLink
-                description={career.code}
-                href={materialHierarchyPath({ kind: 'years', careerId: career.id })}
-                icon={<GraduationCap className="size-5" strokeWidth={1.8} />}
-                key={career.id}
-                meta={compactCount(career.studyPlanCount, 'plan', 'planes')}
-                title={career.name}
-              />
-            ))}
-          </ul>
+          groupByFaculty(view.careers).map((group) => (
+            <section aria-labelledby={`faculty-${group.id}`} className="mt-9" key={group.id}>
+              <h2
+                id={`faculty-${group.id}`}
+                className="font-sans text-2xl font-bold text-foreground"
+              >
+                {group.label}
+              </h2>
+              <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+                {group.careers.map((career) => (
+                  <HierarchyLink
+                    description={career.code}
+                    href={materialHierarchyPath({ kind: 'years', careerId: career.id })}
+                    icon={<GraduationCap className="size-5" strokeWidth={1.8} />}
+                    key={career.id}
+                    meta={compactCount(career.studyPlanCount, 'plan', 'planes')}
+                    title={career.name}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))
         ) : (
           <EmptyState
             className="mt-9"

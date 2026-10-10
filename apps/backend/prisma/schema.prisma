@@ -152,15 +152,50 @@ model User {
 
 // ─── CARRERAS Y PLANES ─────────────────────────────────────────
 
-model Career {
+/// A universidad groups facultades (ADR 0002). Loaded by migration or seed only.
+model University {
   id        String   @id @default(uuid()) @db.Uuid
-  name      String   @db.VarChar(100)
-  code      String   @unique @db.VarChar(20)
+  name      String   @unique @db.VarChar(150)
+  shortName String   @unique @map("short_name") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  faculties Faculty[]
+
+  @@map("universities")
+}
+
+/// A facultad owns its carreras and materias. Triggers in the `institutions`
+/// migration keep every plan inside its carrera's facultad.
+model Faculty {
+  id           String   @id @default(uuid()) @db.Uuid
+  universityId String   @map("university_id") @db.Uuid
+  name         String   @db.VarChar(150)
+  shortName    String   @map("short_name") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  university University @relation(fields: [universityId], references: [id], onDelete: Restrict)
+  careers    Career[]
+  subjects   Subject[]
+
+  @@unique([universityId, name])
+  @@unique([universityId, shortName])
+  @@map("faculties")
+}
+
+model Career {
+  id        String   @id @default(uuid()) @db.Uuid
+  facultyId String   @map("faculty_id") @db.Uuid
+  name      String   @db.VarChar(100)
+  code      String   @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  faculty    Faculty     @relation(fields: [facultyId], references: [id], onDelete: Restrict)
   studyPlans StudyPlan[]
 
+  @@unique([facultyId, code])
   @@map("careers")
 }
 
@@ -199,6 +234,7 @@ model UserStudyPlan {
 
 model Subject {
   id            String   @id @default(uuid()) @db.Uuid
+  facultyId     String   @map("faculty_id") @db.Uuid
   code          String?  @db.VarChar(20)
   name          String   @db.VarChar(150)
   searchKey     String   @default("") @map("search_key") @db.VarChar(200)
@@ -207,6 +243,7 @@ model Subject {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  faculty         Faculty            @relation(fields: [facultyId], references: [id], onDelete: Restrict)
   studyPlans      StudyPlanSubject[]
   professors      SubjectProfessor[]
   materials       Material[]
@@ -214,6 +251,7 @@ model Subject {
   examExperiences ExamExperience[]
 
   @@index([searchKey])
+  @@index([facultyId])
   @@map("subjects")
 }
 

@@ -106,6 +106,18 @@ describe('UsersPanel', () => {
     expect(mocks.list).not.toHaveBeenCalled();
   });
 
+  it('shows the carrera with its facultad as the API labels it', async () => {
+    mocks.list.mockResolvedValueOnce({
+      users: [{ ...listItem, career: 'Ingeniería Informática · FI (UNJU)' }],
+      proposals: null,
+    });
+    render(<UsersPanel />);
+
+    expect(await screen.findByRole('button', { name: /@juan\.p/ })).toHaveTextContent(
+      'Ingeniería Informática · FI (UNJU)',
+    );
+  });
+
   it('lists accounts with suggestions and filters or searches them', async () => {
     const user = userEvent.setup();
     render(<UsersPanel />);

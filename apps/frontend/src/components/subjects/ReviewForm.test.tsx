@@ -1,3 +1,4 @@
+import { fiUnju } from '@/test/institutions';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -53,6 +54,7 @@ const subject: SubjectHub = {
   ],
   stats: { avgRecommendation: null, reviewCount: 0, examCount: 0, materialCount: 0 },
   studyPlans: [],
+  faculty: fiUnju,
 };
 
 function review(overrides: Partial<CourseReview> = {}): CourseReview {

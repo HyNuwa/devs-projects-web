@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { GuidesModule } from './modules/guides/guides.module';
+import { InstitutionsModule } from './modules/institutions/institutions.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MaterialsModule } from './modules/materials/materials.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
@@ -73,6 +74,7 @@ import { validate } from './config/env.validation';
     AdminModule,
     DiscoveryModule,
     GuidesModule,
+    InstitutionsModule,
     MailModule,
     MaterialsModule,
     ModerationModule,

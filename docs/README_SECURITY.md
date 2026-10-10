@@ -47,7 +47,7 @@ Estado: ✅ hecho · 🟡 parcial · ⬜ pendiente.
 | RBAC | ✅ | `RolesGuard` + `@Roles()`; `JwtAuthGuard` global con `@Public()` explícito |
 | Chequeo de dueño | ✅ | Editar o borrar reseñas, experiencias y materiales exige ser autor |
 | Registro de acciones de moderación | 🟡 | `ModerationLog` (materiales) y `CommunityModerationAction` (reseñas y experiencias); falta el historial unificado |
-| Alcance por facultad para moderadores | ⬜ | Especificado en README_MODERACION |
+| Alcance por facultad para moderadores | ⬜ | Especificado en README_MODERACION; el modelo `Faculty` existe, falta `ModeratorScope` (cambio 4) |
 | «Ver autor» con motivo registrado | ⬜ | Especificado en README_MODERACION |
 
 ## Archivos

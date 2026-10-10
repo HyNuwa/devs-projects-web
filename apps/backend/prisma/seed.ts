@@ -6,6 +6,10 @@ import { normalizeSearchKey } from '../src/common/search/search-key';
 import { seedModeration } from './seed-moderation';
 import { seedSanctions } from './seed-sanctions';
 import { rebuildPoints } from '../src/modules/ranking/rebuild-points';
+import {
+  FI_UNJU_FACULTY_ID,
+  UNJU_UNIVERSITY_ID,
+} from '../src/modules/institutions/institutions.constants';
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -93,9 +97,32 @@ async function main() {
     `Usuarios creados: ${adminUser.username}, ${moderatorUser.username}, ${normalUser.username}`,
   );
 
+  // Universidad y facultad: la migración `institutions` ya las crea; el upsert
+  // las repone si alguien las borró a mano.
+  await prisma.university.upsert({
+    where: { id: UNJU_UNIVERSITY_ID },
+    update: {},
+    create: {
+      id: UNJU_UNIVERSITY_ID,
+      name: 'Universidad Nacional de Jujuy',
+      shortName: 'UNJU',
+    },
+  });
+  await prisma.faculty.upsert({
+    where: { id: FI_UNJU_FACULTY_ID },
+    update: {},
+    create: {
+      id: FI_UNJU_FACULTY_ID,
+      universityId: UNJU_UNIVERSITY_ID,
+      name: 'Facultad de Ingeniería',
+      shortName: 'FI',
+    },
+  });
+
   // Carrera
   const career = await prisma.career.create({
     data: {
+      facultyId: FI_UNJU_FACULTY_ID,
       name: 'Ingeniería Informática',
       code: 'II',
     },
@@ -438,6 +465,7 @@ async function main() {
   for (const s of subjectsData) {
     const subject = await prisma.subject.create({
       data: {
+        facultyId: FI_UNJU_FACULTY_ID,
         code: s.code,
         name: s.name,
         searchKey: normalizeSearchKey(s.name, s.code),

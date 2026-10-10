@@ -13,6 +13,7 @@ import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { ContributionPoints } from '../ranking/contribution-points';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
 import { publicVisibility } from '../moderation/visibility';
+import { facultySelect } from '../institutions/faculty-select';
 
 const managementInclude = {
   user: {
@@ -242,8 +243,20 @@ export class SubjectsService {
     const subject = await this.prisma.subject.findFirst({
       where: { code },
       include: {
+        faculty: { select: facultySelect },
         studyPlans: {
-          include: { studyPlan: { include: { career: true } } },
+          orderBy: [
+            { studyPlan: { career: { name: 'asc' } } },
+            { studyPlan: { name: 'asc' } },
+            { year: 'asc' },
+          ],
+          include: {
+            studyPlan: {
+              include: {
+                career: { include: { faculty: { select: facultySelect } } },
+              },
+            },
+          },
         },
         professors: { include: { professor: true } },
       },

@@ -1,10 +1,21 @@
 import type { Material, MaterialPreview, MaterialResourceType } from './material';
 
+export interface InstitutionRef {
+  id: string;
+  name: string;
+  shortName: string;
+}
+
+export interface DiscoveryHierarchyFaculty extends InstitutionRef {
+  university: InstitutionRef;
+}
+
 export interface DiscoveryHierarchyCareer {
   id: string;
   name: string;
   code: string;
   studyPlanCount: number;
+  faculty: DiscoveryHierarchyFaculty;
 }
 
 export interface DiscoveryHierarchyStudyPlan {

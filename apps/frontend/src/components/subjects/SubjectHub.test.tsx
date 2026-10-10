@@ -1,3 +1,4 @@
+import { fiUnju } from '@/test/institutions';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,6 +25,7 @@ const subject: SubjectHubType = {
   professors: [],
   stats: { avgRecommendation: 4, examCount: 1, materialCount: 1, reviewCount: 1 },
   studyPlans: [],
+  faculty: fiUnju,
 };
 
 function mockHubRequests() {
@@ -99,6 +101,48 @@ describe('SubjectHub', () => {
       ],
       meta: { limit: 20, page: 1, total: 1, totalPages: 1 },
     } as never);
+  });
+
+  it('names the facultad in every plan placement of the materia', async () => {
+    const hub = vi.mocked(api.get).getMockImplementation()!;
+    vi.mocked(api.get).mockImplementation((path, ...rest) =>
+      path === '/subjects/ED-01'
+        ? Promise.resolve({
+            data: {
+              ...subject,
+              studyPlans: [
+                {
+                  year: 2,
+                  semester: 1,
+                  credits: null,
+                  studyPlan: {
+                    name: 'Plan 2023',
+                    career: { name: 'Ingeniería Informática', faculty: fiUnju },
+                  },
+                },
+                {
+                  year: 3,
+                  semester: 2,
+                  credits: 6,
+                  studyPlan: {
+                    name: 'Plan 2019',
+                    career: { name: 'Ingeniería Industrial', faculty: fiUnju },
+                  },
+                },
+              ],
+            },
+          })
+        : hub(path, ...rest),
+    );
+
+    render(<SubjectHub code="ED-01" />);
+
+    expect(
+      await screen.findByText('FI (UNJU) · Ingeniería Informática · Año 2 · Cuatrimestre 1'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('FI (UNJU) · Ingeniería Industrial · Año 3 · Cuatrimestre 2 · 6 créditos'),
+    ).toBeInTheDocument();
   });
 
   it('renders each source review once and keeps its shareable detail route', async () => {

@@ -4,6 +4,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PointLedger } from '../src/modules/ranking/point-ledger';
+import { FI_UNJU_FACULTY_ID } from '../src/modules/institutions/institutions.constants';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
@@ -34,7 +35,10 @@ describe('GET /me/progress (e2e)', () => {
 
   async function subjectNamed(name: string) {
     return prisma.subject.create({
-      data: { name: `${name} ${randomUUID().slice(0, 4)}` },
+      data: {
+        facultyId: FI_UNJU_FACULTY_ID,
+        name: `${name} ${randomUUID().slice(0, 4)}`,
+      },
       select: { id: true, name: true },
     });
   }

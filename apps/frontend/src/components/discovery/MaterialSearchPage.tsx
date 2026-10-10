@@ -416,6 +416,7 @@ function SearchContent({
                 {strongSubject.name}
               </h1>
               <p className="mt-4 text-base leading-relaxed text-secondary-foreground sm:text-lg">
+                {`${strongSubject.faculty.shortName} (${strongSubject.faculty.university.shortName}) · `}
                 {strongSubject.code ? `Código ${strongSubject.code} · ` : ''}
                 Recursos publicados para esta materia.
               </p>

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { MaterialResourceType } from '../src/generated/prisma';
 import { BadgeService } from '../src/modules/ranking/badges/badge.service';
+import { FI_UNJU_FACULTY_ID } from '../src/modules/institutions/institutions.constants';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   createE2eApp,
@@ -142,6 +143,7 @@ describe('BadgeService.evaluate (e2e)', () => {
       const giver = await createUser(prisma);
       const career = await prisma.career.create({
         data: {
+          facultyId: FI_UNJU_FACULTY_ID,
           name: `Carrera ${randomUUID().slice(0, 6)}`,
           code: `C${randomUUID().slice(0, 8)}`,
         },

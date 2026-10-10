@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/config/configure-app';
 import type { Role } from '../../src/generated/prisma';
+import { FI_UNJU_FACULTY_ID } from '../../src/modules/institutions/institutions.constants';
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 /** Boots the whole API with the same pipeline as `main.ts`. */
@@ -54,7 +55,10 @@ export function bearer(app: NestExpressApplication, user: E2eUser) {
 
 export async function createSubject(prisma: PrismaService) {
   return prisma.subject.create({
-    data: { name: `Materia e2e ${randomUUID().slice(0, 6)}` },
+    data: {
+      facultyId: FI_UNJU_FACULTY_ID,
+      name: `Materia e2e ${randomUUID().slice(0, 6)}`,
+    },
     select: { id: true },
   });
 }

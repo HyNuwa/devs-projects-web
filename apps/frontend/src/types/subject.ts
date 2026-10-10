@@ -1,3 +1,4 @@
+import type { DiscoveryHierarchyFaculty } from './discovery-hierarchy';
 export type Shift = 'MANANA' | 'TARDE' | 'NOCHE' | 'NO_INDICO';
 export type CourseCondition = 'PROMO' | 'REGULAR' | 'LIBRE' | 'PREFIERO_NO_RESPONDER';
 export type ExamFormat = 'ESCRITO' | 'ORAL' | 'MIXTO';
@@ -23,13 +24,14 @@ export interface SubjectUser {
 }
 
 export interface SubjectHub extends Subject {
+  faculty: DiscoveryHierarchyFaculty;
   studyPlans: {
     year: number;
     semester: number;
     credits: number | null;
     studyPlan: {
       name: string;
-      career: { name: string };
+      career: { name: string; faculty: DiscoveryHierarchyFaculty };
     };
   }[];
   professors: { professor: { id: string; name: string; bio: string | null } }[];

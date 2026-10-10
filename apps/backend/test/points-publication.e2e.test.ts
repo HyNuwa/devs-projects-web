@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { FI_UNJU_FACULTY_ID } from '../src/modules/institutions/institutions.constants';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
@@ -33,7 +34,7 @@ describe('points on publication (e2e)', () => {
   async function subject() {
     const code = `E2E${randomUUID().slice(0, 6)}`;
     const created = await prisma.subject.create({
-      data: { name: `Materia ${code}`, code },
+      data: { facultyId: FI_UNJU_FACULTY_ID, name: `Materia ${code}`, code },
       select: { id: true },
     });
     return { id: created.id, code };

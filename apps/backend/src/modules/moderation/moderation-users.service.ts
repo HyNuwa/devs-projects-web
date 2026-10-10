@@ -38,10 +38,28 @@ const accountSelect = {
   isBanned: true,
   bannedUntil: true,
   mutedUntil: true,
+  // An active plan first, then a finished one (enum order: ACTIVE, COMPLETED).
   studyPlans: {
-    where: { status: 'ACTIVE' },
+    where: { status: { in: ['ACTIVE', 'COMPLETED'] } },
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     take: 1,
-    select: { studyPlan: { select: { career: { select: { name: true } } } } },
+    select: {
+      studyPlan: {
+        select: {
+          career: {
+            select: {
+              name: true,
+              faculty: {
+                select: {
+                  shortName: true,
+                  university: { select: { shortName: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 } satisfies Prisma.UserSelect;
 
@@ -411,11 +429,19 @@ function caseLabel(c: {
     : 'Experiencia de final';
 }
 
+/** «Ingeniería Informática · FI (UNJU)», from the plan `accountSelect` picked. */
+function careerLabel(account: Account) {
+  const career = account.studyPlans[0]?.studyPlan.career;
+  if (!career) return null;
+  const { faculty } = career;
+  return `${career.name} · ${faculty.shortName} (${faculty.university.shortName})`;
+}
+
 function basics(account: Account, now: Date) {
   return {
     id: account.id,
     username: account.username,
-    career: account.studyPlans[0]?.studyPlan.career.name ?? null,
+    career: careerLabel(account),
     createdAt: account.createdAt,
     accountAgeDays: Math.floor(
       (now.getTime() - account.createdAt.getTime()) / DAY_MS,

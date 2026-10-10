@@ -71,7 +71,7 @@ El tope de 5 puntos por mes entre un mismo estudiante y un mismo autor evita que
 - **Un rechazo no resta puntos.** Rechazar es parte normal de la revisión (duplicado, ilegible, etc.).
 - **«Me sirvió» quitado.** Se revierte el punto que ese «Me sirvió» haya otorgado. Si no otorgó ninguno porque ya se había alcanzado un tope, no se revierte nada.
 - **El registro no se recorta.** `User.points` es siempre la suma exacta de `PointTransaction`, aunque dé negativo. Solo al **mostrarlo** se muestra 0 como mínimo, y el nivel se calcula sobre `max(0, points)`. Así una restauración posterior no regala puntos.
-- **Desbloqueos.** El nivel puede bajar si bajan los puntos, pero **los desbloqueos ya obtenidos se conservan** mientras la cuenta no tenga sanciones (§5.2).
+- **Desbloqueos.** El nivel puede bajar si bajan los puntos, pero **los desbloqueos se conservan**: los decide el *nivel máximo alcanzado*, que nunca baja (ni por reversiones ni por sanciones). El perfil muestra el nivel actual. Al migrar, el máximo se inicializa con el nivel actual.
 
 ### 3.4 Publicaciones anónimas
 
@@ -100,7 +100,7 @@ La tabla de `rpg-levels.ts` **cambia**:
 - **Umbrales.** Con la tabla anterior, un material bueno rinde unos 20 puntos (10 al publicarse + unos 10 «Me sirvió»). Llegar al nivel 8 (5.000) exigía unos 250 materiales buenos y el nivel 10 (12.000), unos 600: inalcanzable en una carrera. La curva nueva hace que el nivel 10 sea raro pero posible.
 - **Nombres.** Los anteriores estaban todos en masculino («Viajero», «Caballero», «Maestro», «Sabio») y «Caballero del Código» no encajaba con carreras que no son de programación. Los nuevos son neutros y siguen la temática de la mascota y de *Mi mochila*.
 
-Cada nivel **desbloquea** opciones de personalización, que se eligen en *Configuración → Perfil público*. Nada de esto afecta cómo se ve el contenido.
+Cada nivel **desbloquea** opciones de personalización, que se eligen en *Mi perfil → Perfil público* (`/profile/me`). Se ven solo en el perfil público (`/usuarios/[username]`); fuera de él solo aparece el avatar elegido. Nada de esto afecta cómo se ve el contenido.
 
 | Nivel | Nombre | Puntos | Se desbloquea |
 |---|---|---|---|
@@ -123,17 +123,31 @@ Referencia de ritmo:
 
 Los umbrales se revisan con datos reales después del primer cuatrimestre.
 
-Algunas insignias también desbloquean cosas: por ejemplo, **Salvavidas** (cualquier grado) habilita un marco especial. Así se premia la calidad y no solo el volumen.
+Algunas insignias también desbloquean cosas: por ejemplo, **Salvavidas** (cualquier grado) habilita un marco especial. Así se premia la calidad y no solo el volumen. A diferencia de los niveles, si se pierde la insignia se pierde su desbloqueo.
+
+Decisiones de 3c-1 (`perfil-publico`):
+
+- **Avatar:** foto propia o cualquier gato desbloqueado; sin elección, el gato asignado por id.
+- **Arte:** acentos, fondos, marcos y el tema del nivel 8 en CSS. Los 4 gatos del nivel 2, los 3 especiales del nivel 7 y los 3 banners, ilustrados. El gato animado del nivel 9 es un gato existente con una animación sutil.
+- **Insignias destacadas:** desde cualquier nivel. El título, desde el nivel 6.
+- **Aportes fijados:** solo propios, publicados y con nombre. Desaparecen si se retiran o borran.
+- **«Mostrar mi nivel e insignias»** (encendido por defecto): apagado oculta el nivel, las insignias y el título, y saca a la cuenta de todos los rankings. Los cosméticos siguen visibles.
 
 ## 5. Privilegios de confianza
 
-Son permisos que ayudan a mantener la calidad. Todos requieren **no haber tenido sanciones en los últimos 90 días** (ni silenciamiento ni contenido retirado por normas). Cada privilegio se basa en la señal que mejor predice si se va a usar bien: el nivel mide cuánto aportaste, no si reportás con buen criterio.
+Son permisos que ayudan a mantener la calidad. Todos requieren **no haber tenido sanciones en los últimos 90 días**: cuentan el silenciamiento, la suspensión y el retiro por normas (incluido el de contenido anónimo, porque los privilegios no son públicos), contados desde el fin de la sanción o el cierre del caso. No cuentan las advertencias ni lo anulado en apelación o restaurado. La suspensión permanente no vuelve nunca. El nivel requerido se compara con el nivel máximo alcanzado. Cada privilegio se basa en la señal que mejor predice si se va a usar bien: el nivel mide cuánto aportaste, no si reportás con buen criterio.
 
 | Privilegio | Requisito | Qué permite |
 |---|---|---|
 | Sugerir correcciones | Nivel 3 | Proponer cambios de materia, tipo, ciclo o profesor en materiales ajenos. Moderación los acepta o rechaza, así que el riesgo es bajo. |
 | Reportes prioritarios | Al menos 5 reportes confirmados y 70 % o más de reportes confirmados en los últimos 90 días | Tus reportes aparecen primero en la cola de moderación. Se pierde si la precisión baja del 70 %. |
 | Invitación a moderar | Nivel 6 · cuenta con más de 6 meses · al menos 5 reportes confirmados o 10 correcciones aceptadas | Moderación puede invitarte al rol `MODERATOR`. La invitación es manual; cumplir los requisitos solo te hace elegible. |
+
+Decisiones de 3c-2 (`privilegios-confianza`):
+
+- **Correcciones:** son de clasificación (materia, tipo, ciclo o profesor), un campo por sugerencia y una sola abierta por material y campo, nunca sobre lo propio. **El autor decide primero** desde «Mis envíos»: si acepta, se aplica; si rechaza, se cierra; si no responde en 7 días, pasa a la pestaña «Correcciones» de moderación. Si el material se edita o se retira antes de decidir, la sugerencia se cierra. Las aceptadas cuentan para Lupa aunque el material se retire después. Cuando lleguen las Novedades, el autor recibirá un aviso.
+- **Reportes prioritarios:** ambas condiciones en los últimos 90 días, sin contar pendientes. Se evalúan al reportar y se guardan en el reporte. Ordenan después de los casos de datos personales y antes del conteo de reportes.
+- **Invitación a moderar:** sin entidad propia. Una marca y un filtro «Elegible» en `/admin/usuarios`, y el admin cambia el rol. «Tu progreso» muestra los otros dos privilegios con su estado, pero no la elegibilidad.
 
 ### 5.1 Qué no se otorga nunca por nivel
 
@@ -144,9 +158,9 @@ Son permisos que ayudan a mantener la calidad. Todos requieren **no haber tenido
 
 ### 5.2 Sanciones
 
-Mientras una cuenta está silenciada (`isMuted`) o suspendida (`isBanned`): no gana puntos, sus «Me sirvió» no cuentan, se ocultan sus personalizaciones y pierde los privilegios de confianza. Al terminar la sanción recupera las personalizaciones, pero los privilegios vuelven recién después de 90 días sin sanciones.
+Mientras una cuenta está silenciada (`isMuted`) o suspendida (`isBanned`): no gana puntos, sus «Me sirvió» no cuentan y pierde los privilegios de confianza, que vuelven recién después de 90 días sin sanciones. **La personalización y las insignias no se ocultan**: si un perfil volviera de golpe al aspecto por defecto, cualquiera deduciría la sanción (decidido en el grilling de 3c).
 
-**Estado:** el cambio de moderación (sanciones y apelaciones) solo bloquea publicar y marcar «Me sirvió» durante la sanción. Congelar los puntos, ocultar personalizaciones y quitar privilegios se implementa en el cambio de puntos e insignias. Los puntos reotorgados por una apelación aceptada se otorgan aunque haya una sanción activa.
+**Estado:** congelar los puntos está implementado desde 3a. Quitar los privilegios llega con 3c-2. Los puntos reotorgados por una apelación aceptada se otorgan aunque haya una sanción activa.
 
 ## 6. Insignias
 
@@ -182,7 +196,7 @@ Todas se pueden calcular con los modelos que ya existen, salvo donde se indica.
 | `FIRST_LIGHT` | Primera luz | Primer material publicado de una materia que no tenía ninguno | Rara | — |
 | `FULL_KIT` | Kit completo | En una misma materia tenés materiales publicados de 4 tipos distintos (sin contar `OTRO`) | Rara | — |
 | `ARCHIVE` | Archivo histórico | Materiales publicados del mismo tipo y materia en 3 ciclos lectivos distintos | Rara | — |
-| `BRIDGE` | Puente | Un material tuyo recibe «Me sirvió» de estudiantes de al menos 3 carreras distintas (según sus planes de estudio activos) | Rara | — |
+| `BRIDGE` | Puente | Un material tuyo recibe «Me sirvió» de estudiantes de al menos 3 carreras distintas (según sus planes de estudio activos, que cada estudiante declara en *Mi carrera* desde el cambio `instituciones`; cada estudiante cuenta una sola vez) | Rara | — |
 | `STEADY` | Constante | Al menos un aporte publicado en 2 cuatrimestres seguidos (plata: 4, oro: 8) | Común | Bronce · plata · oro |
 | `REVIEWER` | Voz de la cursada | Reseñas de cursada con nombre: 5 (plata: 15, oro: 40) | Común | Bronce · plata · oro |
 | `FULL_CONTEXT` | Contexto completo | 10 reseñas con nombre que indican ciclo lectivo, profesor, franja horaria, situación de cursada y dificultad | Rara | — |
@@ -215,9 +229,16 @@ Se reemplaza el ranking global por puntos totales (siempre ganan los mismos y de
 
 - **Los que más ayudaron este mes en tu carrera:** puntos netos ganados en el mes (otorgamientos menos reversiones). Cada punto se atribuye a la carrera de la materia del aporte que lo generó. Si la materia pertenece a varias carreras, cuenta en cada una. `REPORT_CONFIRMED` y `CORRECTION_ACCEPTED` se atribuyen a la carrera del contenido reportado o corregido.
 - **Más útiles de una materia este cuatrimestre:** materiales ordenados por «Me sirvió», en la página de la materia.
-- **Leyendas de la facultad:** lista fija de quienes llegaron a nivel 10.
+- **Leyendas de la facultad:** lista fija, **por facultad** (ADR 0002), de quienes alcanzaron alguna vez el nivel 10 (nivel máximo alcanzado). Alguien aparece en las facultades de sus planes de estudio activos o terminados; sin plan, no aparece.
 
-Los rankings muestran los 10 primeros y, si no estás entre ellos, tu posición. Nunca muestran cuentas sancionadas ni a quien desactivó «Mostrar mi nivel e insignias».
+Los rankings de personas muestran los 10 primeros y, si no estás entre ellos, tu posición; los empates comparten el puesto. Nunca muestran a quien desactivó «Mostrar mi nivel e insignias». Exclusión por sanción: el mensual excluye las sanciones activas (la lista rota y no delata a nadie); Leyendas solo excluye la suspensión permanente, porque sacar a alguien de una lista fija durante 7 días lo delataría.
+
+Decisiones de 3c-3 (`rankings-acotados`):
+
+- **Mensual:** mes calendario en UTC−3. Por defecto, la carrera del plan activo, con un selector.
+- **Materia:** top 10 de materiales por «Me sirvió» válidos recibidos **en el cuatrimestre en curso**, sin importar cuándo se publicaron. Sin «tu posición» ni exclusiones por autor. La sección no aparece si está vacía.
+- **`/ranking`:** dos pestañas, «Este mes en tu carrera» y «Leyendas de la facultad». Se eliminan el ranking global, el semanal y `/ranking/top`.
+- **`/puntos`** (existe desde 3a): se actualiza con correcciones, Lupa, privilegios y desbloqueos.
 
 ## 8. Cómo se ve en el producto
 
@@ -276,6 +297,8 @@ Estos puntos e insignias dependen de funciones que todavía no existen en el esq
 
 Publicar en Clasificados no va a sumar puntos.
 
+También queda para más adelante un **programa de embajadores** (por ahora, un formulario de Google enlazado desde el sitio) para quienes quieran ayudar a sumar su facultad o a moderar en ella.
+
 ## 11. Decisiones y preguntas abiertas
 
 ### 11.1 Decididas en esta revisión
@@ -286,8 +309,10 @@ Publicar en Clasificados no va a sumar puntos.
 - **¿Cuentan los «Me sirvió» de cuentas nuevas?** Sí: alcanza con el email verificado y sin sanciones activas. Los topes (5 por mes entre las mismas dos personas, 20 por día por autor) ya frenan a los grupos de amigos (decidido en `puntos-libro`).
 - **Días y meses de los topes:** se cuentan en hora de Argentina (UTC−3).
 
+- **Leyendas de la facultad:** una lista por facultad. La jerarquía universidad → facultad llega antes de 3c, en el cambio `instituciones` (ADR 0002).
+- **Secuencia de 3c:** `instituciones` → `perfil-publico` (3c-1) → `privilegios-confianza` (3c-2) → `rankings-acotados` (3c-3), en ramas apiladas.
+
 ### 11.2 Pendientes
 
 - Fecha exacta que cierra el primer cuatrimestre para **Primera camada**. Se configura con `FOUNDER_WINDOW_START` y `FOUNDER_WINDOW_END` (fechas ISO inclusivas); sin ambas, nadie la gana.
 - Validar los umbrales del §4 con datos reales del primer cuatrimestre.
-- ¿«Leyendas de la facultad» es una lista por facultad o una sola para toda la plataforma?

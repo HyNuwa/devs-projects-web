@@ -31,12 +31,14 @@ import {
 } from './dto/discovery-exam-experiences.dto';
 import { toMaterialPreview } from '../materials/material-preview.mapper';
 import { publicVisibility } from '../moderation/visibility';
+import { facultySelect } from '../institutions/faculty-select';
 
 const subjectSuggestionSelect = {
   id: true,
   code: true,
   name: true,
   searchKey: true,
+  faculty: { select: facultySelect },
 } satisfies Prisma.SubjectSelect;
 
 const materialSuggestionSelect = {
@@ -431,6 +433,7 @@ export class DiscoveryService {
         id: true,
         name: true,
         code: true,
+        faculty: { select: facultySelect },
         _count: { select: { studyPlans: true } },
       },
     });
@@ -457,6 +460,7 @@ export class DiscoveryService {
           id: true,
           name: true,
           code: true,
+          faculty: { select: facultySelect },
           _count: { select: { studyPlans: true } },
         },
       }),
@@ -512,6 +516,7 @@ export class DiscoveryService {
         name: career.name,
         code: career.code,
         studyPlanCount: career._count.studyPlans,
+        faculty: career.faculty,
       },
       years: bounded.items,
       hasMore: bounded.hasMore,
@@ -536,6 +541,7 @@ export class DiscoveryService {
             id: true,
             name: true,
             code: true,
+            faculty: { select: facultySelect },
             _count: { select: { studyPlans: true } },
           },
         },
@@ -574,6 +580,7 @@ export class DiscoveryService {
         name: studyPlan.career.name,
         code: studyPlan.career.code,
         studyPlanCount: studyPlan.career._count.studyPlans,
+        faculty: studyPlan.career.faculty,
       },
       studyPlan: {
         id: studyPlan.id,

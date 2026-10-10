@@ -1,3 +1,4 @@
+import type { DiscoveryHierarchyFaculty } from './discovery-hierarchy';
 import type { MaterialResourceType } from './material';
 
 export interface DiscoverySubjectSuggestion {
@@ -5,6 +6,7 @@ export interface DiscoverySubjectSuggestion {
   id: string;
   name: string;
   code: string | null;
+  faculty: DiscoveryHierarchyFaculty;
 }
 
 export interface DiscoveryMaterialSuggestion {
