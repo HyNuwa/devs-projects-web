@@ -9,7 +9,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { Prisma } from '../../generated/prisma/index';
+import { Prisma, type Material } from '../../generated/prisma/index';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FileStorageService, StagedFile } from './file-storage.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
@@ -20,6 +20,7 @@ import { Role } from '../auth/dto/auth-response.dto';
 import { ContributionPoints } from '../ranking/contribution-points';
 import { HelpfulPoints } from '../ranking/helpful-points';
 import { PioneerBonus } from '../ranking/pioneer-bonus';
+import { closeObsolete } from '../corrections/close-obsolete';
 import { normalizeSearchKey } from '../../common/search/search-key';
 import {
   buildMaterialRankingQuery,
@@ -513,21 +514,20 @@ export class MaterialsService {
       );
     }
 
-    const nextSubjectId = dto.subjectId ?? material.subjectId;
-    const nextProfessorId =
-      dto.professorId === undefined ? material.professorId : dto.professorId;
-    await this.assertAcademicContext(nextSubjectId, nextProfessorId);
-
-    // The pioneer bonus belongs to a materia and type: changing either reverts it
-    // and evaluates it again with the new values.
-    const pioneerChanges =
-      (dto.subjectId !== undefined && dto.subjectId !== material.subjectId) ||
-      (dto.resourceType !== undefined &&
-        dto.resourceType !== material.resourceType);
-
     return this.prisma.$transaction(async (tx) => {
-      if (pioneerChanges) await this.pioneerBonus.revoke(tx, material);
-      const updated = await tx.material.update({
+      await this.applyClassification(tx, material, {
+        ...(dto.subjectId !== undefined ? { subjectId: dto.subjectId } : {}),
+        ...(dto.resourceType !== undefined
+          ? { resourceType: dto.resourceType }
+          : {}),
+        ...(dto.academicYear !== undefined
+          ? { academicYear: dto.academicYear }
+          : {}),
+        ...(dto.professorId !== undefined
+          ? { professorId: dto.professorId }
+          : {}),
+      });
+      return tx.material.update({
         where: { id },
         data: {
           ...(dto.title !== undefined ? { title: dto.title } : {}),
@@ -537,16 +537,6 @@ export class MaterialsService {
           ...(dto.description !== undefined
             ? { description: dto.description }
             : {}),
-          ...(dto.subjectId !== undefined ? { subjectId: dto.subjectId } : {}),
-          ...(dto.resourceType !== undefined
-            ? { resourceType: dto.resourceType }
-            : {}),
-          ...(dto.academicYear !== undefined
-            ? { academicYear: dto.academicYear }
-            : {}),
-          ...(dto.professorId !== undefined
-            ? { professorId: dto.professorId }
-            : {}),
           ...(dto.shift !== undefined ? { shift: dto.shift } : {}),
         },
         include: {
@@ -554,9 +544,59 @@ export class MaterialsService {
           subject: true,
         },
       });
-      if (pioneerChanges) await this.pioneerBonus.evaluate(tx, id);
-      return updated;
     });
+  }
+
+  /**
+   * Changes a material's classification (materia, tipo, ciclo, profesor) with
+   * the author's validation, inside the caller's transaction. Shared by the
+   * author's edit and by accepted corrections (openspec
+   * academic-resources/corrections). The pioneer bonus belongs to a materia and
+   * type: changing either reverts it and evaluates it again with the new values.
+   * Open suggestions the change made obsolete are closed.
+   */
+  async applyClassification(
+    tx: Prisma.TransactionClient,
+    target: Pick<Material, 'id'>,
+    changes: Partial<
+      Pick<
+        Material,
+        'subjectId' | 'resourceType' | 'academicYear' | 'professorId'
+      >
+    >,
+  ) {
+    // Lock and read it fresh: concurrent edits and accepted corrections must
+    // validate and move the pioneer bonus against the same values.
+    await tx.$queryRaw`SELECT 1 FROM "materials" WHERE "id" = ${target.id}::uuid FOR UPDATE`;
+    const material = await tx.material.findUniqueOrThrow({
+      where: { id: target.id },
+      select: {
+        id: true,
+        subjectId: true,
+        resourceType: true,
+        professorId: true,
+        authorId: true,
+      },
+    });
+    const nextSubjectId = changes.subjectId ?? material.subjectId;
+    const nextProfessorId =
+      changes.professorId === undefined
+        ? material.professorId
+        : changes.professorId;
+    await this.assertAcademicContext(nextSubjectId, nextProfessorId);
+
+    const pioneerChanges =
+      (changes.subjectId !== undefined &&
+        changes.subjectId !== material.subjectId) ||
+      (changes.resourceType !== undefined &&
+        changes.resourceType !== material.resourceType);
+
+    if (pioneerChanges) await this.pioneerBonus.revoke(tx, material);
+    if (Object.keys(changes).length > 0) {
+      await tx.material.update({ where: { id: material.id }, data: changes });
+    }
+    if (pioneerChanges) await this.pioneerBonus.evaluate(tx, material.id);
+    await closeObsolete(tx, material.id);
   }
 
   async remove(id: string, userId: string, role: Role) {
@@ -586,6 +626,7 @@ export class MaterialsService {
         id,
         isAnonymous: false,
       });
+      await closeObsolete(tx, id);
       return deleted;
     });
   }

@@ -21,6 +21,15 @@ import { loadTarget } from './targets';
 const PAGE_SIZE = 50;
 const REVEAL_REASON_MAX = 300;
 const ADMIN_ROLES: ReadonlySet<Role> = new Set(['ADMIN', 'SUPERADMIN']);
+
+/**
+ * Events only admins see: «Ver autor», and role changes (who was made a
+ * moderator follows from eligibility, which counts anonymous retiros).
+ */
+const ADMIN_ONLY_ACTIONS: ModerationEventAction[] = [
+  'AUTHOR_REVEALED',
+  'ROLE_CHANGED',
+];
 // Events about the account. Its file and the Apelaciones tab show the account
 // with the same reason, text and time, so for a moderator an event from an
 // anonymous caso keeps no reason, caso or content (README_MODERACION §9).
@@ -62,7 +71,7 @@ export class HistoryService {
         ? { action: filters.action }
         : isAdmin
           ? {}
-          : { action: { not: 'AUTHOR_REVEALED' } }),
+          : { action: { notIn: ADMIN_ONLY_ACTIONS } }),
       ...(filters.actorId ? { actorId: filters.actorId } : {}),
       ...(filters.contentId
         ? {
@@ -82,7 +91,11 @@ export class HistoryService {
           }
         : {}),
     };
-    if (!isAdmin && filters.action === 'AUTHOR_REVEALED') {
+    if (
+      !isAdmin &&
+      filters.action &&
+      ADMIN_ONLY_ACTIONS.includes(filters.action)
+    ) {
       return { items: [], nextCursor: null };
     }
 
@@ -128,6 +141,8 @@ export class HistoryService {
       const metadata = event.metadata as {
         label?: string;
         kind?: string;
+        from?: string;
+        to?: string;
       } | null;
       const label = metadata?.label ?? null;
       // A sanción, or an appeal of one, is about the account: unlinked from the
@@ -160,6 +175,10 @@ export class HistoryService {
             : null,
         caseId: aboutAccount ? null : event.caseId,
         reason: hideReason ? null : event.reason,
+        roleChange:
+          event.action === 'ROLE_CHANGED' && metadata?.from && metadata.to
+            ? { from: metadata.from, to: metadata.to }
+            : null,
       };
     });
     // Filtering by that actor would link them to the entry just the same. An

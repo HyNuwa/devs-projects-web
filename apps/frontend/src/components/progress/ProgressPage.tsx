@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { avatarSrc } from '@/components/layout/account';
 import { BadgesSection } from '@/components/progress/BadgesSection';
+import { PrivilegesCard } from '@/components/progress/PrivilegesCard';
 import { Button, EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn';
 import { getApiError } from '@/lib/apiHelpers';
 import { getMyProgress, type Progress, type ProgressMovement } from '@/lib/progress-client';
@@ -33,6 +34,7 @@ function describe(movement: ProgressMovement) {
       ? `${title} publicada con nombre`
       : 'experiencia de final publicada con nombre',
     REPORT_CONFIRMED: 'reporte confirmado por moderación',
+    CORRECTION_ACCEPTED: 'corrección aceptada',
     GUIDE_CREATED: 'guía creada',
     LEGACY_ADJUSTMENT: 'ajuste de puntos anteriores',
   }[movement.reason];
@@ -249,6 +251,8 @@ export function ProgressPage() {
       </section>
 
       <BadgesSection />
+
+      <PrivilegesCard />
 
       <section className="rounded-2xl border-[1.5px] border-foreground bg-card p-5">
         <h2 className="text-lg font-extrabold tracking-[-0.02em]" id="progress-movements">

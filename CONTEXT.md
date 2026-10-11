@@ -138,6 +138,18 @@ _Avoid_: Vote, like
 A named stage of an account's progress («Primeros pasos» to «Leyenda de la facultad»), computed from its current points. The profile always shows the current nivel.
 _Avoid_: Rank, tier (tiers belong to badges)
 
+**Buena posición**:
+An account with no active sanción and 90 days since its last silenciamiento, suspensión or retiro por normas ended, anonymous content included. Advertencias and anything voided on appeal or restored do not count; a permanent suspensión never clears. Every privilegio de confianza requires it.
+_Avoid_: Clean record, trust score
+
+**Privilegio de confianza**:
+A permission that comes from a student's nivel máximo alcanzado or their record and requires buena posición: suggesting corrections, priority reportes, and being eligible to moderate (seen only by admins).
+_Avoid_: Perk, reward
+
+**Corrección**:
+A proposal to fix one classification field of someone else's material (materia, tipo, ciclo lectivo or profesor), never its title, description or file. The material's author decides first; after 7 days without an answer, moderation does. Its author never sees who suggested it.
+_Avoid_: Edit, suggestion (alone)
+
 **Nivel máximo alcanzado**:
 The highest nivel an account has ever reached. It never goes down, not even when points drop or a sanción applies, and it is what decides which personalization options are unlocked.
 _Avoid_: Current nivel, peak points

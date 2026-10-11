@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import type { Prisma, Role } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -14,13 +19,16 @@ import {
 } from './escalera-history';
 import { canSanction, type SanctionAction } from './sanction-rules';
 import { type Actor, isSuspended } from './sanctions.service';
+import { TrustService } from '../trust/trust.service';
+import { MODERATE_LEVEL, MODERATE_MIN_MONTHS } from '../trust/privileges';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LIST_LIMIT = 50;
 const MIN_RESOLVED_REPORTS = 5;
 const ADMIN_ROLES: ReadonlySet<Role> = new Set(['ADMIN', 'SUPERADMIN']);
 
-export type UsersFilter = 'suggested' | 'sanctioned' | 'prior-review';
+export type UsersFilter =
+  'suggested' | 'sanctioned' | 'prior-review' | 'eligible';
 
 /**
  * Casos whose content is not anonymous. Casos about anonymous entries never appear
@@ -68,7 +76,10 @@ type Account = Prisma.UserGetPayload<{ select: typeof accountSelect }>;
 /** The Usuarios tab (openspec moderation/sanctions, «Usuarios tab»). */
 @Injectable()
 export class ModerationUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly trust: TrustService,
+  ) {}
 
   /**
    * For a MODERATOR nothing here depends on retiros of anonymous content or on
@@ -76,6 +87,11 @@ export class ModerationUsersService {
    * status, the paso sugerido nor the timeline. ADMIN and SUPERADMIN see them.
    */
   async list(viewer: Actor, input: { filter?: UsersFilter; q?: string }) {
+    const isAdmin = ADMIN_ROLES.has(viewer.role);
+    // Eligibility counts retiros of anonymous content: admins only.
+    if (input.filter === 'eligible' && !isAdmin) {
+      throw new ForbiddenException('Solo un administrador ve la elegibilidad.');
+    }
     const now = new Date();
     const anonymous = anonymousHistoryFor(viewer.role);
     const q = input.q?.trim();
@@ -101,7 +117,7 @@ export class ModerationUsersService {
       accounts.map((account) => account.id),
       { anonymous },
     );
-    const users = accounts
+    const listed = accounts
       .map((account) => {
         const history = histories.get(account.id) ?? emptyHistory();
         return {
@@ -114,9 +130,22 @@ export class ModerationUsersService {
         (user) =>
           (input.filter ?? (q ? undefined : 'suggested')) !== 'suggested' ||
           user.suggestedStep !== 'NONE',
-      )
-      .slice(0, LIST_LIMIT);
-
+      );
+    // Eligibility costs a few queries per account: only for the page shown,
+    // and one account at a time so the pool is never flooded.
+    const eligibleFilter = input.filter === 'eligible';
+    const page = eligibleFilter ? listed : listed.slice(0, LIST_LIMIT);
+    const eligibility = isAdmin
+      ? await this.eligibility(page.map((user) => user.id))
+      : null;
+    const users = page
+      .filter((user) => !eligibleFilter || eligibility?.get(user.id))
+      .slice(0, LIST_LIMIT)
+      .map((user) =>
+        eligibility
+          ? { ...user, eligible: eligibility.get(user.id) ?? false }
+          : user,
+      );
     return {
       users,
       proposals: ADMIN_ROLES.has(viewer.role) ? await this.proposals() : null,
@@ -286,7 +315,53 @@ export class ModerationUsersService {
       pendingProposal: proposal,
       timeline,
       actions: allowedActions(viewer, account, proposal !== null, now),
+      // Eligibility counts retiros of anonymous content: admins only.
+      ...(ADMIN_ROLES.has(viewer.role)
+        ? {
+            eligible: await this.trust.isEligibleToModerate(account.id),
+            canPromote: account.role === 'USER' && account.id !== viewer.id,
+          }
+        : {}),
     };
+  }
+
+  /**
+   * «Hacer moderador»: an admin makes a USER account a MODERATOR. Only that
+   * change, recorded in the moderation history.
+   */
+  async promote(viewer: Actor, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const [account] = await tx.$queryRaw<{ role: string }[]>`
+        SELECT "role"::text AS "role" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+      if (!account) throw new NotFoundException('Cuenta no encontrada');
+      if (account.role !== 'USER') {
+        throw new ConflictException(
+          'Solo se puede hacer moderadora a una cuenta de estudiante.',
+        );
+      }
+      await tx.user.update({
+        where: { id: userId },
+        data: { role: 'MODERATOR' },
+      });
+      await tx.moderationEvent.create({
+        data: {
+          actorId: viewer.id,
+          action: 'ROLE_CHANGED',
+          targetUserId: userId,
+          metadata: { from: 'USER', to: 'MODERATOR' },
+        },
+      });
+      return { role: 'MODERATOR' as const };
+    });
+  }
+
+  /** Eligibility of each account, for admins (openspec reputation/trust-privileges). */
+  private async eligibility(ids: string[]) {
+    const eligible = new Map<string, boolean>();
+    for (const id of ids) {
+      eligible.set(id, await this.trust.isEligibleToModerate(id));
+    }
+    return eligible;
   }
 
   private async searchIds(q: string): Promise<string[]> {
@@ -336,6 +411,22 @@ export class ModerationUsersService {
           ...restricted.map((user) => user.id),
         ]),
       ];
+    }
+    if (filter === 'eligible') {
+      // Only students with the nivel and age can qualify; the rest is checked per account.
+      const oldEnough = new Date(now);
+      oldEnough.setUTCMonth(oldEnough.getUTCMonth() - MODERATE_MIN_MONTHS);
+      const candidates = await this.prisma.user.findMany({
+        where: {
+          id: users,
+          role: 'USER',
+          maxLevel: { gte: MODERATE_LEVEL },
+          createdAt: { lte: oldEnough },
+        },
+        take: 200,
+        select: { id: true },
+      });
+      return candidates.map((user) => user.id);
     }
     if (filter === 'prior-review') {
       const cases = await this.prisma.moderationCase.findMany({

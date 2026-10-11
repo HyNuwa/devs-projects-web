@@ -18,6 +18,8 @@ import { RateLimitModule } from './modules/rate-limit/rate-limit.module';
 import { RankingModule } from './modules/ranking/ranking.module';
 import { SubjectsModule } from './modules/subjects/subjects.module';
 import { SubmissionsModule } from './modules/submissions/submissions.module';
+import { CorrectionsModule } from './modules/corrections/corrections.module';
+import { TrustModule } from './modules/trust/trust.module';
 import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
@@ -83,6 +85,8 @@ import { validate } from './config/env.validation';
     RankingModule,
     SubjectsModule,
     SubmissionsModule,
+    TrustModule,
+    CorrectionsModule,
     UsersModule,
   ],
   controllers: [AppController],

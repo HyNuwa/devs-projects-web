@@ -8,6 +8,7 @@ import { HelpfulPoints } from './helpful-points';
 import { PioneerBonus } from './pioneer-bonus';
 import { PointLedger } from './point-ledger';
 import { levelForPoints } from './rpg-levels';
+import { CORRECTION_POINTS } from './point-ledger';
 
 type Tx = Prisma.TransactionClient;
 
@@ -105,7 +106,7 @@ async function rebuildAccount(
     },
   });
 
-  const [materials, reviews, exams, reports] = await Promise.all([
+  const [materials, reviews, exams, reports, corrections] = await Promise.all([
     tx.material.findMany({
       where: {
         authorId: userId,
@@ -141,6 +142,12 @@ async function rebuildAccount(
       },
       distinct: ['caseId'],
       select: { caseId: true, case: { select: { closedAt: true } } },
+    }),
+    // Accepted corrections keep their points even if the material left later.
+    tx.correctionSuggestion.findMany({
+      where: { suggesterId: userId, status: 'ACCEPTED' },
+      orderBy: { decidedAt: 'asc' },
+      select: { id: true, decidedAt: true, createdAt: true },
     }),
   ]);
 
@@ -192,6 +199,15 @@ async function rebuildAccount(
       referenceId: `${caseId}:${userId}`,
       amount: REPORT_POINTS,
       replayAt: caso.closedAt ?? new Date(),
+    });
+  }
+  for (const correction of corrections) {
+    await ledger.award(tx, {
+      userId,
+      reason: 'CORRECTION_ACCEPTED',
+      referenceId: correction.id,
+      amount: CORRECTION_POINTS,
+      replayAt: correction.decidedAt ?? correction.createdAt,
     });
   }
 }

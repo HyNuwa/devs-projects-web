@@ -11,7 +11,7 @@ export type SanctionAction =
   | 'DECIDE_PROPOSAL'
   | 'LIFT_SUSPENSION';
 export type SuspensionDuration = '7_DAYS' | '30_DAYS' | 'PERMANENT';
-export type UsersFilter = 'suggested' | 'sanctioned' | 'prior-review';
+export type UsersFilter = 'suggested' | 'sanctioned' | 'prior-review' | 'eligible';
 
 export type AccountStatus = {
   kind: 'ACTIVE' | 'WARNED' | 'MUTED' | 'SUSPENDED';
@@ -27,6 +27,8 @@ export type UserListItem = {
   emailVerified: boolean;
   status: AccountStatus;
   suggestedStep: SuggestedStep;
+  /** Eligible to moderate: present only for ADMIN and SUPERADMIN viewers. */
+  eligible?: boolean;
 };
 
 export type SuspensionProposal = {
@@ -83,6 +85,9 @@ export type UserFile = UserListItem & {
   } | null;
   timeline: TimelineEntry[];
   actions: SanctionAction[];
+  /** Only for ADMIN and SUPERADMIN viewers. */
+  eligible?: boolean;
+  canPromote?: boolean;
 };
 
 export async function getModerationUsers(params: { filter?: UsersFilter; q?: string }) {

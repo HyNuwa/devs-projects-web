@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   lift: vi.fn(),
   confirm: vi.fn(),
   reject: vi.fn(),
+  promote: vi.fn(),
   user: { id: 'mod-1', role: 'MODERATOR' } as { id: string; role: string } | null,
 }));
 
@@ -30,6 +31,10 @@ vi.mock('@/lib/moderation-users-client', async (importOriginal) => ({
   liftSuspension: mocks.lift,
   confirmProposal: mocks.confirm,
   rejectProposal: mocks.reject,
+}));
+vi.mock('@/lib/trust-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/trust-client')>()),
+  promoteToModerator: mocks.promote,
 }));
 vi.mock('@/lib/moderation-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/moderation-client')>()),
@@ -244,5 +249,44 @@ describe('UsersPanel', () => {
         retireContributions: true,
       }),
     );
+  });
+});
+
+describe('UsersPanel: eligibility to moderate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.promote.mockResolvedValue(undefined);
+  });
+
+  it('offers «Elegibles», the mark and «Hacer moderador» to an admin', async () => {
+    const user = userEvent.setup();
+    mocks.user = { id: 'admin-1', role: 'ADMIN' };
+    mocks.list.mockResolvedValue({
+      users: [{ ...listItem, suggestedStep: 'NONE', eligible: true }],
+      proposals: [],
+    });
+    mocks.file.mockResolvedValue(file({ eligible: true, canPromote: true }));
+    render(<UsersPanel />);
+
+    await user.click(await screen.findByRole('button', { name: 'Elegibles' }));
+    expect(mocks.list).toHaveBeenLastCalledWith({ filter: 'eligible' });
+    const row = await screen.findByRole('button', { name: /@juan\.p/ });
+    expect(row).toHaveTextContent('Elegible');
+    await user.click(row);
+    expect(await screen.findByText('Elegible para moderar')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hacer moderador' }));
+
+    expect(mocks.promote).toHaveBeenCalledWith('user-1');
+  });
+
+  it('shows no eligibility to a moderator', async () => {
+    mocks.user = { id: 'mod-1', role: 'MODERATOR' };
+    mocks.list.mockResolvedValue(list);
+    mocks.file.mockResolvedValue(file());
+    render(<UsersPanel />);
+
+    await screen.findByRole('button', { name: /@juan\.p/ });
+    expect(screen.queryByRole('button', { name: 'Elegibles' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Elegible/)).not.toBeInTheDocument();
   });
 });

@@ -25,6 +25,11 @@ const earns = [
     '+2',
     'Moderación retiró algo que reportaste. Hasta 10 puntos por semana.',
   ],
+  [
+    'Corrección aceptada',
+    '+2',
+    'Aceptaron tu corrección del tipo, la materia, el ciclo o el profesor de un material. Hasta 10 puntos por semana.',
+  ],
 ] as const;
 
 const levels = [
@@ -43,9 +48,15 @@ const levels = [
 const thousands = new Intl.NumberFormat('es-AR');
 
 function Section({ children, title }: { children: React.ReactNode; title: string }) {
+  const id = `puntos-${title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <section className="grid gap-4">
-      <h2 className="text-2xl font-extrabold tracking-[-0.03em]">{title}</h2>
+    <section aria-labelledby={id} className="grid gap-4">
+      <h2 className="text-2xl font-extrabold tracking-[-0.03em]" id={id}>
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -124,6 +135,32 @@ export default function PuntosPage() {
           incluidos sus «Me sirvió». Si después se restaura (por ejemplo, porque ganaste una
           apelación), los recuperás. En pantalla nunca bajás de 0 puntos. Mientras una cuenta está
           silenciada o suspendida, no suma, y lo que no sumó no se recupera después.
+        </p>
+      </Section>
+
+      <Section title="Privilegios de confianza">
+        <p>
+          Algunos permisos llegan con tu nivel y tu buen criterio. Todos requieren{' '}
+          <strong>90 días sin sanciones</strong>: cuentan los silenciamientos, las suspensiones y
+          los retiros por normas, y no las advertencias ni lo que se anuló en una apelación.
+        </p>
+        <ul className="grid list-disc gap-1.5 pl-5">
+          <li>
+            <strong>Sugerir correcciones</strong> (desde el Nv. 3): proponé el tipo, la materia, el
+            ciclo o el profesor correcto de un material ajeno. Primero decide quien lo subió; si no
+            responde en 7 días, moderación. Con 10 correcciones aceptadas ganás la insignia Lupa.
+          </li>
+          <li>
+            <strong>Reportes prioritarios</strong>: con al menos 5 reportes confirmados y un 70 % de
+            acierto en los últimos 90 días, tus reportes se revisan antes.
+          </li>
+        </ul>
+        <p className="text-muted-foreground">
+          Su estado está en{' '}
+          <Link className="font-bold text-link" href="/mi-espacio/progreso">
+            Tu progreso
+          </Link>
+          .
         </p>
       </Section>
 

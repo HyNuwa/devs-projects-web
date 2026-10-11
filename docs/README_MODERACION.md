@@ -103,7 +103,9 @@ Los reportes de cuentas con *Reportes prioritarios* valen doble para este cálcu
 
 ### 4.5 Cola de moderación
 
-La cola ordena primero: ocultos preventivamente, luego casos con más reportes, luego los de reportantes con buena precisión, y dentro de cada grupo, los más viejos. Cada moderador ve solo los casos de su facultad (§8).
+Fuera de «Vencidos», cada grupo de la cola ordena así: primero los ocultos, luego los de alta prioridad (datos personales), luego los que tienen un **reporte prioritario** (de alguien con al menos 5 reportes confirmados, un 70 % de acierto en 90 días y buena posición; `README_PUNTOS_E_INSIGNIAS.md` §5), luego por cantidad de reportes y por último los más viejos. La prioridad solo ordena: moderación no ve qué reporte la tiene ni quién reportó. Cada moderador ve solo los casos de su facultad (§8).
+
+**Pestaña Correcciones:** lista las sugerencias de corrección que su autor no decidió en 7 días, las más viejas primero, con quién las sugirió. Aceptar cambia el material como si lo editara su autor. Nadie decide sobre su propia sugerencia ni sobre su propio material.
 
 ## 5. Decisiones sobre un caso
 
@@ -187,7 +189,9 @@ Las acciones bloqueadas se muestran deshabilitadas con la explicación («Estás
 
 Hoy DevsProject solo tiene la FI UNJu, así que en la práctica todos los moderadores cubren la misma facultad. La asignación por facultad evita rehacer el modelo cuando se sumen otras.
 
-**Cómo se llega a moderar:** por invitación de un `ADMIN`. Cumplir los requisitos de *Invitación a moderar* (`README_PUNTOS_E_INSIGNIAS.md` §5) solo hace elegible.
+**Cómo se llega a moderar:** por invitación de un `ADMIN`. Cumplir los requisitos de *Invitación a moderar* (`README_PUNTOS_E_INSIGNIAS.md` §5) solo hace elegible. Solo ADMIN y SUPERADMIN ven la marca «Elegible» y su filtro en *Usuarios*, porque los requisitos cuentan retiros de contenido anónimo. Desde la ficha, «Hacer moderador» pasa la cuenta de USER a MODERATOR.
+
+**Cambios de rol:** el endpoint admite solo roles válidos; otorgar o quitar ADMIN o SUPERADMIN requiere ser SUPERADMIN, y nadie cambia su propio rol. Cada cambio real queda en el historial (`ROLE_CHANGED`, con el rol anterior y el nuevo), que en la pestaña Historial ven solo ADMIN y SUPERADMIN; un pedido que no cambia el rol no registra nada.
 
 ## 9. Publicaciones anónimas en moderación
 

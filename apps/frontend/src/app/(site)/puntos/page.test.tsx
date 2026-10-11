@@ -20,6 +20,7 @@ describe('/puntos', () => {
       ['«Me sirvió» en tu material', '+1'],
       ['Primera huella', '+5'],
       ['Reporte confirmado', '+2'],
+      ['Corrección aceptada', '+2'],
     ]) {
       const row = within(table).getByRole('row', { name: new RegExp(action) });
       expect(row).toHaveTextContent(points);
@@ -40,6 +41,16 @@ describe('/puntos', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/email verificado y sin sanciones/)).toBeInTheDocument();
     expect(screen.getByText(/se descuentan los puntos que te dio/)).toBeInTheDocument();
+  });
+
+  it('explains the privilegios de confianza and Lupa', () => {
+    render(<PuntosPage />);
+
+    const section = screen.getByRole('region', { name: 'Privilegios de confianza' });
+    expect(within(section).getByText(/Sugerir correcciones/)).toBeInTheDocument();
+    expect(within(section).getByText(/Reportes prioritarios/)).toBeInTheDocument();
+    expect(within(section).getByText(/90 días sin sanciones/)).toBeInTheDocument();
+    expect(within(section).getByText(/Lupa/)).toBeInTheDocument();
   });
 
   it('lists the ten levels with their thresholds', () => {

@@ -143,7 +143,12 @@ describe('GET /institutions (e2e)', () => {
   it('nests facultades, carreras and plans, sorted by name at every level', async () => {
     const universities = await catalog();
     const names = universities.map((u) => u.name);
-    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'es')));
+    // The same comparison the catalog uses: «Universidad 4…» before «Universidad 16…».
+    const collator = new Intl.Collator('es', {
+      sensitivity: 'base',
+      numeric: true,
+    });
+    expect(names).toEqual([...names].sort((a, b) => collator.compare(a, b)));
 
     const mine = universities.find((u) => u.id === ids.university);
     expect(mine).toEqual({

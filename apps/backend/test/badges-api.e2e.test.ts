@@ -93,7 +93,7 @@ describe('GET /me/badges (e2e)', () => {
     const { body } = await get(author).expect(200);
 
     expect(body.earned).toEqual([]);
-    expect(body.pending).toHaveLength(17);
+    expect(body.pending).toHaveLength(18);
     expect(body.pending[0]).toEqual({
       slug: 'primer-aporte',
       name: 'Primer aporte',

@@ -18,6 +18,9 @@ vi.mock('@/lib/progress-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/progress-client')>()),
   getMyProgress: mocks.progress,
 }));
+vi.mock('@/components/progress/PrivilegesCard', () => ({
+  PrivilegesCard: () => <section aria-label="privileges-card" />,
+}));
 vi.mock('@/components/progress/BadgesSection', () => ({
   BadgesSection: () => null,
 }));
@@ -92,6 +95,25 @@ beforeEach(() => {
 });
 
 describe('ProgressPage («Tu progreso»)', () => {
+  it('shows the privileges card and names accepted corrections', async () => {
+    mocks.progress.mockResolvedValue({
+      ...progress,
+      movements: [
+        {
+          reason: 'CORRECTION_ACCEPTED',
+          amount: 2,
+          createdAt: '2026-10-09T12:00:00.000Z',
+          reversal: false,
+          subject: null,
+        },
+      ],
+    });
+    render(<ProgressPage />);
+
+    expect(await screen.findByRole('region', { name: 'privileges-card' })).toBeInTheDocument();
+    expect(await screen.findByText('Corrección aceptada')).toBeInTheDocument();
+  });
+
   it('shows the chosen cat as the avatar', async () => {
     mocks.user = {
       id: 'user-1',

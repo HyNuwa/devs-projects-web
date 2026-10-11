@@ -26,12 +26,13 @@ beforeEach(() => {
     overdueCases: 2,
     openCases: 10,
     pendingAppeals: 3,
+    pendingCorrections: 4,
     pendingProposals: null,
   });
 });
 
 describe('ModerationHeader', () => {
-  it('offers the four tabs and marks the active one', async () => {
+  it('offers the five tabs and marks the active one', async () => {
     render(<ModerationHeader active="usuarios" description="x" />);
 
     const nav = screen.getByRole('navigation', { name: 'Moderación' });
@@ -40,6 +41,7 @@ describe('ModerationHeader', () => {
       links.map((link) => [link.textContent?.replace(/\d+/g, ''), link.getAttribute('href')]),
     ).toEqual([
       ['Casos', '/admin'],
+      ['Correcciones', '/admin/correcciones'],
       ['Usuarios', '/admin/usuarios'],
       ['Apelaciones', '/admin/apelaciones'],
       ['Historial', '/admin/historial'],
@@ -55,6 +57,7 @@ describe('ModerationHeader', () => {
 
     expect(await screen.findByRole('link', { name: 'Casos 10' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Apelaciones 3' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Correcciones 4' })).toBeInTheDocument();
   });
 
   it('lets the Casos panel update its own count', async () => {

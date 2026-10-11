@@ -7,6 +7,7 @@ import { Test } from '@nestjs/testing';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReportsService } from './reports.service';
+import { TrustService } from '../trust/trust.service';
 
 const NOW = new Date('2026-09-29T12:00:00.000Z');
 const hoursAgo = (hours: number) => new Date(NOW.getTime() - hours * 3_600_000);
@@ -86,7 +87,14 @@ describe('ReportsService.file', () => {
     openReports({ reporterId: 'reporter-1' });
 
     const moduleRef = await Test.createTestingModule({
-      providers: [ReportsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ReportsService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: TrustService,
+          useValue: { isPriorityReporter: jest.fn().mockResolvedValue(false) },
+        },
+      ],
     }).compile();
     service = moduleRef.get(ReportsService);
   });

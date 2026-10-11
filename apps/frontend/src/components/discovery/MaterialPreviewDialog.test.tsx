@@ -21,6 +21,11 @@ vi.mock('next/navigation', () => ({
   useRouter: () => navigation,
 }));
 vi.mock('@/lib/discovery-client', () => ({ getPublicMaterial: vi.fn() }));
+vi.mock('@/components/corrections/SuggestCorrectionDialog', () => ({
+  SuggestCorrectionDialog: ({ authorId }: { authorId: string }) => (
+    <span data-testid="suggest-correction" data-author={authorId} />
+  ),
+}));
 vi.mock('@/lib/material-community-client', () => ({ getMaterialRatings: vi.fn() }));
 vi.mock('@/lib/material-viewer-client', () => ({
   getMaterialViewerState: vi.fn(),
@@ -138,6 +143,15 @@ describe('MaterialPreviewDialog', () => {
     vi.mocked(setMaterialSaved).mockReset();
     navigation.push.mockReset();
     useAuthStore.setState({ isLoading: false, user: null });
+  });
+
+  it('offers «Sugerir corrección» with the material author', async () => {
+    render(<DialogFixture />);
+
+    expect(await screen.findByTestId('suggest-correction')).toHaveAttribute(
+      'data-author',
+      'author-1',
+    );
   });
 
   it('offers visitors a sign-in link to report the material', async () => {

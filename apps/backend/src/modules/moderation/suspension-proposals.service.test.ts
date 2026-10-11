@@ -40,6 +40,10 @@ function prismaDouble() {
       update: vi.fn(),
     },
     moderationEvent: { create: vi.fn() },
+    correctionSuggestion: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn(),
+    },
     moderationCase: {
       create: vi.fn().mockResolvedValue({ id: 'case-new' }),
     },

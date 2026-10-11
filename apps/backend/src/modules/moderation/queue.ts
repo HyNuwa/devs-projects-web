@@ -9,6 +9,8 @@ export type QueueItem = {
   targetStatus: PublicationStatus;
   reportCount: number;
   highPriority: boolean;
+  /** Some open reporte was filed with the Reportes prioritarios privilege. */
+  priorityReport: boolean;
   openedAt: Date;
   hiddenAt?: Date | null;
   overdueHidden: boolean;
@@ -38,6 +40,7 @@ export function groupQueue<T extends QueueItem>(items: T[], now?: Date) {
   const byUrgency = (a: T, b: T) =>
     Number(b.overdueHidden) - Number(a.overdueHidden) ||
     Number(b.highPriority) - Number(a.highPriority) ||
+    Number(b.priorityReport) - Number(a.priorityReport) ||
     b.reportCount - a.reportCount ||
     oldestFirst(a, b);
 

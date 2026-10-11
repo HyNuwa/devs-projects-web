@@ -2,6 +2,7 @@ import type { Prisma } from '../../generated/prisma';
 import type { ContributionPoints } from '../ranking/contribution-points';
 import type { ModerationTarget } from './publication-policy.service';
 import { targetWhere, updateTargetStatusFrom } from './targets';
+import { closeObsolete } from '../corrections/close-obsolete';
 
 type Tx = Prisma.TransactionClient;
 
@@ -81,6 +82,7 @@ export async function retireAllPublished(
       },
     });
     await points.withdrawn(tx, { ...target, isAnonymous });
+    if (target.type === 'MATERIAL') await closeObsolete(tx, target.id);
     if (target.type === 'MATERIAL') {
       await tx.subject.update({
         where: { id: subjectId },

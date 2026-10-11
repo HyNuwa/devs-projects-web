@@ -13,12 +13,15 @@ import { MaterialResourceType } from '../../generated/prisma';
 describe('MaterialsService', () => {
   let service: MaterialsService;
 
+  const materialFindUnique = jest.fn();
   const prisma = {
     material: {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
-      findUnique: jest.fn(),
+      findUnique: materialFindUnique,
+      // applyClassification re-reads the locked row; same answer as findUnique.
+      findUniqueOrThrow: jest.fn((args: unknown) => materialFindUnique(args)),
       update: jest.fn(),
       count: jest.fn(),
     },
@@ -42,6 +45,10 @@ describe('MaterialsService', () => {
     subject: {
       findUnique: jest.fn(),
       update: jest.fn(),
+    },
+    correctionSuggestion: {
+      findMany: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn(),
     },
     subjectProfessor: {
       findUnique: jest.fn(),

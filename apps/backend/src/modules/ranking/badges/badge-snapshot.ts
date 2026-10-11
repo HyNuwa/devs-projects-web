@@ -23,83 +23,94 @@ export async function loadBadgeSnapshot(
   userId: string,
 ): Promise<BadgeSnapshot> {
   const now = new Date();
-  const [account, materials, reviews, exams, pioneerBonuses, reports] =
-    await Promise.all([
-      tx.user.findUniqueOrThrow({
-        where: { id: userId },
-        select: { emailVerified: true, createdAt: true },
-      }),
-      tx.material.findMany({
-        where: {
-          authorId: userId,
-          publicationStatus: { in: [...COUNTED] },
-          isDeleted: false,
-        },
-        select: {
-          id: true,
-          subjectId: true,
-          resourceType: true,
-          academicYear: true,
-          createdAt: true,
-          publicationStatus: true,
-          helpfulness: {
-            select: {
-              userId: true,
-              user: {
-                select: {
-                  ...helpfulGiverSelect,
-                  studyPlans: {
-                    where: { status: 'ACTIVE' },
-                    select: { studyPlan: { select: { careerId: true } } },
-                  },
+  const [
+    account,
+    materials,
+    reviews,
+    exams,
+    pioneerBonuses,
+    reports,
+    acceptedCorrections,
+  ] = await Promise.all([
+    tx.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { emailVerified: true, createdAt: true },
+    }),
+    tx.material.findMany({
+      where: {
+        authorId: userId,
+        publicationStatus: { in: [...COUNTED] },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        subjectId: true,
+        resourceType: true,
+        academicYear: true,
+        createdAt: true,
+        publicationStatus: true,
+        helpfulness: {
+          select: {
+            userId: true,
+            user: {
+              select: {
+                ...helpfulGiverSelect,
+                studyPlans: {
+                  where: { status: 'ACTIVE' },
+                  select: { studyPlan: { select: { careerId: true } } },
                 },
               },
             },
           },
         },
-      }),
-      tx.courseReview.findMany({
-        where: {
-          userId,
-          publicationStatus: { in: [...COUNTED] },
-          isAnonymous: false,
-        },
-        select: {
-          createdAt: true,
-          academicYear: true,
-          professorId: true,
-          professorName: true,
-          shift: true,
-          condition: true,
-          difficulty: true,
-        },
-      }),
-      tx.examExperience.findMany({
-        where: {
-          userId,
-          publicationStatus: { in: [...COUNTED] },
-          isAnonymous: false,
-        },
-        select: { createdAt: true, session: true, year: true },
-      }),
-      tx.pointTransaction.count({
-        where: {
-          userId,
-          reason: 'MATERIAL_PIONEER',
-          amount: { gt: 0 },
-          reversedBy: null,
-        },
-      }),
-      tx.report.findMany({
-        where: {
-          reporterId: userId,
-          status: 'CONFIRMED',
-          case: { decision: 'REMOVE', revertedAt: null },
-        },
-        distinct: ['caseId'],
-        select: { caseId: true },
-      }),
-    ]);
+      },
+    }),
+    tx.courseReview.findMany({
+      where: {
+        userId,
+        publicationStatus: { in: [...COUNTED] },
+        isAnonymous: false,
+      },
+      select: {
+        createdAt: true,
+        academicYear: true,
+        professorId: true,
+        professorName: true,
+        shift: true,
+        condition: true,
+        difficulty: true,
+      },
+    }),
+    tx.examExperience.findMany({
+      where: {
+        userId,
+        publicationStatus: { in: [...COUNTED] },
+        isAnonymous: false,
+      },
+      select: { createdAt: true, session: true, year: true },
+    }),
+    tx.pointTransaction.count({
+      where: {
+        userId,
+        reason: 'MATERIAL_PIONEER',
+        amount: { gt: 0 },
+        reversedBy: null,
+      },
+    }),
+    tx.report.findMany({
+      where: {
+        reporterId: userId,
+        status: 'CONFIRMED',
+        case: { decision: 'REMOVE', revertedAt: null },
+      },
+      distinct: ['caseId'],
+      select: { caseId: true },
+    }),
+    // Lupa counts accepted corrections, even if the material left later.
+    tx.correctionSuggestion.count({
+      where: { suggesterId: userId, status: 'ACCEPTED' },
+    }),
+  ]);
 
   // The first material ever published in each of the account's materias, in
   // one query: the first row of each subject in this order.
@@ -143,5 +154,6 @@ export async function loadBadgeSnapshot(
     exams,
     pioneerBonuses,
     confirmedReports: reports.length,
+    acceptedCorrections,
   };
 }

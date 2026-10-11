@@ -72,6 +72,7 @@ const caseInclude = {
       explanation: true,
       createdAt: true,
       reporterId: true,
+      priority: true,
       reporter: { select: { createdAt: true, emailVerified: true } },
     },
   },
@@ -162,6 +163,7 @@ export class CasesService {
         reportCount: record.reports.length,
         topReason: topReason(record.reports),
         highPriority: record.highPriority,
+        priorityReport: record.reports.some((report) => report.priority),
         openedAt: record.openedAt,
         hiddenAt: target.hiddenAt,
         overdueHidden: isOverdueHidden(
@@ -178,7 +180,16 @@ export class CasesService {
       });
     }
 
-    return groupQueue(items, now);
+    // The priority of a reporte only orders the queue; moderators never see it.
+    const groups = groupQueue(items, now);
+    const hide = <T extends { priorityReport: boolean }>(entries: T[]) =>
+      entries.map(({ priorityReport: _priority, ...entry }) => entry);
+    return {
+      vencidos: hide(groups.vencidos),
+      hidden: hide(groups.hidden),
+      priorReview: hide(groups.priorReview),
+      reported: hide(groups.reported),
+    };
   }
 
   async detail(

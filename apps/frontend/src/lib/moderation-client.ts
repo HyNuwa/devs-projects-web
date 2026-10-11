@@ -89,12 +89,15 @@ export type HistoryItem = {
   targetUser: { username: string | null } | null;
   caseId: string | null;
   reason: string | null;
+  /** Only for ROLE_CHANGED, which only admins see. */
+  roleChange?: { from: string; to: string } | null;
 };
 
 export type ModerationSummary = {
   overdueCases: number;
   openCases: number;
   pendingAppeals: number;
+  pendingCorrections: number;
   /** Only for admins. */
   pendingProposals: number | null;
 };

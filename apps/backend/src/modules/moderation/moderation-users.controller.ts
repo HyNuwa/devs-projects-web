@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  HttpCode,
+  Post,
   Param,
   ParseUUIDPipe,
   Query,
@@ -21,7 +23,7 @@ import type { Actor } from './sanctions.service';
 
 class UsersQueryDto {
   @IsOptional()
-  @IsIn(['suggested', 'sanctioned', 'prior-review'])
+  @IsIn(['suggested', 'sanctioned', 'prior-review', 'eligible'])
   filter?: UsersFilter;
 
   @IsOptional()
@@ -55,5 +57,16 @@ export class ModerationUsersController {
     @Request() req: { user: Actor },
   ) {
     return this.users.file({ id: req.user.id, role: req.user.role }, id);
+  }
+
+  @Post(':id/promote')
+  @HttpCode(200)
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Hacer moderadora a una cuenta de estudiante' })
+  promote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: Actor },
+  ) {
+    return this.users.promote({ id: req.user.id, role: req.user.role }, id);
   }
 }

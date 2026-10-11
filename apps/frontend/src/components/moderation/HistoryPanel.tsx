@@ -26,7 +26,17 @@ const ACTION_LABEL: Record<string, string> = {
   RESTORED: 'Restauración',
   AUTHOR_REVEALED: 'Ver autor',
   LEGACY_ACTION: 'Acción anterior',
+  ROLE_CHANGED: 'Cambio de rol',
 };
+
+const ROLE_LABEL: Record<string, string> = {
+  USER: 'Estudiante',
+  MODERATOR: 'Moderación',
+  ADMIN: 'Admin',
+  SUPERADMIN: 'Superadmin',
+};
+
+const roleName = (role: string) => ROLE_LABEL[role] ?? role;
 
 const dateFormat = new Intl.DateTimeFormat('es-AR', {
   day: 'numeric',
@@ -187,7 +197,11 @@ export function HistoryPanel() {
                       </span>
                     ) : null}
                   </td>
-                  <td className="p-3 text-muted-foreground">{item.reason ?? '—'}</td>
+                  <td className="p-3 text-muted-foreground">
+                    {item.roleChange
+                      ? `De ${roleName(item.roleChange.from)} a ${roleName(item.roleChange.to)}`
+                      : (item.reason ?? '—')}
+                  </td>
                 </tr>
               ))}
             </tbody>

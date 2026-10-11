@@ -40,6 +40,10 @@ describe('DecisionsService.decide', () => {
     },
     report: { updateMany: jest.fn() },
     moderationEvent: { create: jest.fn() },
+    correctionSuggestion: {
+      findMany: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn(),
+    },
     material: { findUnique: jest.fn(), updateMany: jest.fn() },
     courseReview: { findUnique: jest.fn(), updateMany: jest.fn() },
     examExperience: { findUnique: jest.fn(), updateMany: jest.fn() },

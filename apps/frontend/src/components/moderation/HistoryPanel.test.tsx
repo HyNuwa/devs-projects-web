@@ -100,6 +100,31 @@ describe('HistoryPanel', () => {
     expect(table).not.toHaveTextContent('@desconocido');
   });
 
+  it('names a role change and its roles', async () => {
+    mocks.history.mockResolvedValue({
+      items: [
+        {
+          ...items[1],
+          id: 'ev-role',
+          action: 'ROLE_CHANGED',
+          target: null,
+          targetUser: { username: 'lucia.p' },
+          reason: null,
+          roleChange: { from: 'USER', to: 'MODERATOR' },
+        },
+      ],
+      nextCursor: null,
+    });
+    render(<HistoryPanel />);
+
+    const table = await screen.findByRole('table', { name: 'Historial de moderación' });
+    const row = within(table).getAllByRole('row')[1];
+    expect(row).toHaveTextContent('Cambio de rol');
+    expect(row).toHaveTextContent('@lucia.p');
+    expect(row).toHaveTextContent('De Estudiante a Moderación');
+    expect(row).not.toHaveTextContent('ROLE_CHANGED');
+  });
+
   it('is read-only: there are no edit or delete controls', async () => {
     render(<HistoryPanel />);
     await screen.findByRole('table', { name: 'Historial de moderación' });

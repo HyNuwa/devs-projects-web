@@ -43,6 +43,7 @@ function snapshot(overrides: Partial<BadgeSnapshot> = {}): BadgeSnapshot {
     exams: [],
     pioneerBonuses: 0,
     confirmedReports: 0,
+    acceptedCorrections: 0,
     ...overrides,
   };
 }
@@ -65,7 +66,7 @@ const holds = (slug: string, data: BadgeSnapshot) =>
   stateOf(slug, data).earned.length > 0;
 
 describe('insignia catalog', () => {
-  it('offers the 17 insignias of §6.2 without Lupa, in order', () => {
+  it('offers the 18 insignias of §6.2, in order', () => {
     expect(BADGE_CATALOG.map((badge) => badge.slug)).toEqual([
       'primer-aporte',
       'primer-me-sirvio',
@@ -83,8 +84,14 @@ describe('insignia catalog', () => {
       'mesa-de-diciembre',
       'temporada-de-finales',
       'ojo-atento',
+      'lupa',
       'primera-camada',
     ]);
+  });
+
+  it('Lupa takes 10 accepted corrections', () => {
+    expect(holds('lupa', snapshot({ acceptedCorrections: 9 }))).toBe(false);
+    expect(holds('lupa', snapshot({ acceptedCorrections: 10 }))).toBe(true);
   });
 
   it('Primer aporte and Primer «Me sirvió»', () => {

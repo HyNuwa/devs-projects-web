@@ -8,6 +8,7 @@ import { ReportPoints } from '../ranking/report-points';
 import { DecisionsService } from './decisions.service';
 import { PublicationPolicy } from './publication-policy.service';
 import { ReportsService } from './reports.service';
+import { TrustService } from '../trust/trust.service';
 import { SanctionsService } from './sanctions.service';
 
 const NOW = new Date('2026-09-30T12:00:00.000Z');
@@ -66,7 +67,14 @@ describe('casos remember the author of their target', () => {
     });
     prisma.moderationCase.findFirst.mockResolvedValue(null);
     const moduleRef = await Test.createTestingModule({
-      providers: [ReportsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ReportsService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: TrustService,
+          useValue: { isPriorityReporter: vi.fn().mockResolvedValue(false) },
+        },
+      ],
     }).compile();
 
     await moduleRef.get(ReportsService).file('reporter-1', {

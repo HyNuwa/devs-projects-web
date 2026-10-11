@@ -25,6 +25,7 @@ import { loadTarget, targetWhere, updateTargetStatusFrom } from './targets';
 import { canSanction } from './sanction-rules';
 import { type Actor, SanctionsService } from './sanctions.service';
 import { nextStatusFor } from './transitions';
+import { closeObsolete } from '../corrections/close-obsolete';
 
 const REASON_REQUIRED: ReadonlySet<ModerationDecision> = new Set([
   'REMOVE',
@@ -216,6 +217,8 @@ export class DecisionsService {
       };
       if (decision === 'REMOVE') {
         await this.points.withdrawn(tx, contribution);
+        // Its open correction suggestions no longer apply.
+        if (target.type === 'MATERIAL') await closeObsolete(tx, target.id);
       }
       if (decision === 'RESTORE' || decision === 'APPROVE') {
         await this.points.published(tx, contribution);

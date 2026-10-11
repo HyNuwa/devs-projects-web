@@ -6,6 +6,9 @@ import { levelForPoints } from './rpg-levels';
 type Tx = Prisma.TransactionClient;
 
 export const REPORT_CAP_PER_WEEK = 10;
+export const CORRECTION_CAP_PER_WEEK = 10;
+/** Points for an accepted correction (README_PUNTOS_E_INSIGNIAS §3.1). */
+export const CORRECTION_POINTS = 2;
 
 export const HELPFUL_CAPS = {
   perMaterial: 25,
@@ -262,12 +265,17 @@ export class PointLedger {
           fromGiver >= HELPFUL_CAPS.perGiverPerMonth
         );
       }
-      case 'REPORT_CONFIRMED': {
-        // At most 10 points from confirmed reportes per account in 7 days.
+      case 'REPORT_CONFIRMED':
+      case 'CORRECTION_ACCEPTED': {
+        // At most 10 points per account in 7 days from each of these reasons.
+        const cap =
+          award.reason === 'REPORT_CONFIRMED'
+            ? REPORT_CAP_PER_WEEK
+            : CORRECTION_CAP_PER_WEEK;
         const { _sum } = await tx.pointTransaction.aggregate({
           where: {
             userId: award.userId,
-            reason: 'REPORT_CONFIRMED',
+            reason: award.reason,
             amount: { gt: 0 },
             reversedBy: null,
             createdAt: {
@@ -277,7 +285,7 @@ export class PointLedger {
           },
           _sum: { amount: true },
         });
-        return (_sum.amount ?? 0) + award.amount > REPORT_CAP_PER_WEEK;
+        return (_sum.amount ?? 0) + award.amount > cap;
       }
       default:
         return false;

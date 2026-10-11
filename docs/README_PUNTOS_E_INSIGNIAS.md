@@ -1,6 +1,6 @@
 # Sistema de puntos, niveles e insignias
 
-> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Las insignias (§6) están implementadas desde `puntos-insignias` (3b), salvo Lupa. La personalización y la página de perfil público (§4 desbloqueos, §8) están implementadas desde `perfil-publico` (3c-1). Los privilegios (§5) llegan con 3c-2 y los rankings (§7) con 3c-3.
+> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Las insignias (§6) están implementadas desde `puntos-insignias` (3b); Lupa, desde `privilegios-confianza` (3c-2). La personalización y la página de perfil público (§4 desbloqueos, §8) están implementadas desde `perfil-publico` (3c-1). Los privilegios (§5) están implementados desde `privilegios-confianza` (3c-2). Los rankings (§7) llegan con 3c-3.
 > **Moderación:** desde septiembre 2026 todo se publica al instante y se modera después (`docs/README_MODERACION.md`, ADR 0001). Por eso los puntos de un aporte se otorgan **al publicarse** y se revierten si se retira.
 > **Relacionado:** `apps/backend/src/modules/ranking/` (`point.service.ts`, `rpg-levels.ts`, `ranking.service.ts`), modelos `PointTransaction`, `Badge`, `UserBadge`, `MaterialHelpfulness`, `CommunityReport` y `Guide` en `apps/backend/prisma/schema.prisma`, y el glosario de `CONTEXT.md`.
 
@@ -168,6 +168,18 @@ Decisiones de 3c-2 (`privilegios-confianza`):
 - **Reportes prioritarios:** ambas condiciones en los últimos 90 días, sin contar pendientes. Se evalúan al reportar y se guardan en el reporte. Ordenan después de los casos de datos personales y antes del conteo de reportes.
 - **Invitación a moderar:** sin entidad propia. Una marca y un filtro «Elegible» en `/admin/usuarios`, y el admin cambia el rol. «Tu progreso» muestra los otros dos privilegios con su estado, pero no la elegibilidad.
 
+Cómo quedó implementado en 3c-2:
+
+- **Buena posición:** `trust/standing.ts` la calcula desde `Sanction` (silenciamientos y suspensiones no anuladas, contadas desde `liftedAt` o `endsAt`) y desde los casos con `REMOVE` no revertidos (contados desde `closedAt`), incluidos los de contenido anónimo. Los privilegios están en `trust/privileges.ts` y se muestran con `GET /users/me/privileges`.
+- **Correcciones:** la tabla `correction_suggestions`, con un índice único parcial que permite una sola sugerencia abierta por material y campo. Cada estudiante puede tener como máximo 10 abiertas.
+  - La fase (autor o moderación) y la obsolescencia se calculan al leer, sin tareas programadas.
+  - Un material oculto preventivamente no cierra sus sugerencias: esperan sin listarse hasta que vuelve a estar publicado.
+  - Aceptar usa `MaterialsService.applyClassification`, la misma validación y la misma reevaluación de Primera huella que la edición del autor.
+  - `rebuild-points` también repite los `CORRECTION_ACCEPTED`.
+- **Reportes prioritarios:** `Report.priority` se guarda al reportar. La cola los ordena después de los casos de datos personales; la respuesta de la cola y el detalle del caso no muestran la marca ni quién reportó.
+- **Elegibles:** el filtro `eligible` y las marcas `eligible` y `canPromote` en Usuarios aparecen solo para ADMIN y SUPERADMIN, porque la buena posición cuenta retiros anónimos. «Hacer moderador» (`POST /moderation/users/:id/promote`) solo pasa de USER a MODERATOR y queda en el historial como `ROLE_CHANGED`.
+- **Pantallas:** «Sugerir corrección» en la vista previa del material, «Sugerencias para tus materiales» en «Mis envíos», la pestaña `/admin/correcciones` y la tarjeta de privilegios en «Tu progreso».
+
 ### 5.1 Qué no se otorga nunca por nivel
 
 - Resolver casos de moderación sin ser moderador.
@@ -223,7 +235,7 @@ Todas se pueden calcular con los modelos que ya existen, salvo donde se indica.
 | `DECEMBER_BOARD` | Mesa de diciembre | Contaste con nombre una experiencia de final de la mesa de diciembre de ese año | De temporada | — |
 | `FINALS_SEASON` | Temporada de finales | 3 aportes publicados durante un período de mesas (una edición por período) | De temporada | — |
 | `GUARDIAN` | Ojo atento | 10 reportes confirmados por moderación | Rara | — |
-| `EDITOR` | Lupa | 10 correcciones aceptadas (requiere `CorrectionSuggestion`, §9.1; llega con 3c) | Rara | — |
+| `EDITOR` | Lupa | 10 correcciones aceptadas, aunque el material se retire después (implementada en 3c-2, slug `lupa`) | Rara | — |
 | `FOUNDER` | Primera camada | Cuenta con email verificado creada durante el primer cuatrimestre de la plataforma y al menos un aporte publicado en ese período | Edición única | — |
 
 Notas sobre criterios:
@@ -279,7 +291,7 @@ Decisiones de 3c-3 (`rankings-acotados`):
 - **`Badge`:** `slug` único (el código del §6.2), `rarity` (enum `COMUN`, `RARA`, `TEMPORADA`, `EDICION_UNICA`) y `sortOrder`. La ventana de Primera camada vive en la configuración (`FOUNDER_WINDOW_*`). Hecho en 3b.
 - **`UserBadge`:** `tier` (bronce, plata, oro), `tierUpdatedAt`, `edition` (`Int`, `0` para las que no son de temporada; el año o `AAAAMM` de la mesa para las de temporada) y `seenAt`, con `@@unique([userId, badgeId, edition])`. Hecho en 3b.
 - **Nuevo `ProfileCustomization`** (uno por usuario): avatar elegido, color de acento, fondo, marco, banner, título (referencia a una insignia) y hasta 3 aportes fijados. El backend valida que cada opción esté desbloqueada.
-- **Nuevo `CorrectionSuggestion`** (para *Sugerir correcciones*): material, campo, valor propuesto, estado y quién decidió.
+- **`CorrectionSuggestion`** (para *Sugerir correcciones*): material, campo, valor actual y propuesto, comentario, estado, quién decidió y por qué se cerró. Hecho en 3c-2.
 
 ### 9.2 Servicios
 

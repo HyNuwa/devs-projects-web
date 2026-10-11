@@ -130,25 +130,26 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")
 
-  studyPlans           UserStudyPlan[]
-  materials            Material[]
-  materialRatings      MaterialRating[]
-  materialHelpfulness  MaterialHelpfulness[]
-  savedMaterials       SavedMaterial[]
-  guides               Guide[]
-  courseReviews        CourseReview[]         @relation("CourseReviewAuthor")
-  examExperiences      ExamExperience[]       @relation("ExamExperienceAuthor")
-  reports              Report[]               @relation("ReportReporter")
-  decidedCases         ModerationCase[]       @relation("ModerationCaseDecidedBy")
-  badges               UserBadge[]
-  refreshTokens        RefreshToken[]
-  emailVerifications   EmailVerification[]
-  passwordResets       PasswordResetRequest[]
-  pointTransactions    PointTransaction[]
-  sanctions            Sanction[]             @relation("SanctionUser")
-  suspensionProposals  SuspensionProposal[]   @relation("SuspensionProposalUser")
-  appeals              Appeal[]               @relation("AppealAppellant")
-  profileCustomization ProfileCustomization?
+  studyPlans            UserStudyPlan[]
+  materials             Material[]
+  materialRatings       MaterialRating[]
+  materialHelpfulness   MaterialHelpfulness[]
+  savedMaterials        SavedMaterial[]
+  guides                Guide[]
+  courseReviews         CourseReview[]         @relation("CourseReviewAuthor")
+  examExperiences       ExamExperience[]       @relation("ExamExperienceAuthor")
+  reports               Report[]               @relation("ReportReporter")
+  decidedCases          ModerationCase[]       @relation("ModerationCaseDecidedBy")
+  badges                UserBadge[]
+  refreshTokens         RefreshToken[]
+  emailVerifications    EmailVerification[]
+  passwordResets        PasswordResetRequest[]
+  pointTransactions     PointTransaction[]
+  sanctions             Sanction[]             @relation("SanctionUser")
+  suspensionProposals   SuspensionProposal[]   @relation("SuspensionProposalUser")
+  appeals               Appeal[]               @relation("AppealAppellant")
+  profileCustomization  ProfileCustomization?
+  correctionSuggestions CorrectionSuggestion[] @relation("CorrectionSuggester")
 
   @@map("users")
 }
@@ -367,6 +368,8 @@ model Material {
   savedBy         SavedMaterial[]
   moderationCases ModerationCase[]
   reports         Report[]
+
+  correctionSuggestions CorrectionSuggestion[]
 
   @@index([subjectId, publicationStatus, createdAt])
   @@index([subjectId, resourceType, publicationStatus, createdAt], map: "materials_subject_resource_status_created_idx")
@@ -652,6 +655,7 @@ enum PointReason {
   COURSE_REVIEWED
   EXAM_EXPERIENCE_SHARED
   REPORT_CONFIRMED
+  CORRECTION_ACCEPTED
   GUIDE_CREATED
   LEGACY_ADJUSTMENT
 }
@@ -739,6 +743,8 @@ enum ModerationEventAction {
   APPEAL_FILED
   APPEAL_ACCEPTED
   APPEAL_REJECTED
+  /// An admin changed an account's role (openspec reputation/trust-privileges).
+  ROLE_CHANGED
 }
 
 model ModerationCase {
@@ -789,6 +795,9 @@ model Report {
   examExperienceId String?              @map("exam_experience_id") @db.Uuid
   createdAt        DateTime             @default(now()) @map("created_at")
   resolvedAt       DateTime?            @map("resolved_at")
+  /// Filed by a reporter with the Reportes prioritarios privilege at that moment
+  /// (openspec reputation/trust-privileges). Never changes afterwards.
+  priority         Boolean              @default(false)
 
   case           ModerationCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
   reporter       User            @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
@@ -929,4 +938,60 @@ model Appeal {
 
   @@index([status, createdAt])
   @@map("appeals")
+}
+
+// ─── CORRECCIONES ──────────────────────────────────────────────
+
+enum CorrectionField {
+  SUBJECT
+  RESOURCE_TYPE
+  ACADEMIC_YEAR
+  PROFESSOR
+}
+
+enum CorrectionStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+  CLOSED
+}
+
+enum CorrectionDecider {
+  AUTHOR
+  MODERATION
+}
+
+enum CorrectionClosedReason {
+  FIELD_CHANGED
+  MATERIAL_GONE
+}
+
+/// A proposed fix to one classification field of someone else's material
+/// (openspec academic-resources/corrections). Values are serialized as text: a
+/// uuid for materia and profesor, the enum name for tipo, the year for ciclo.
+/// A partial unique index (migration `trust_privileges`) allows one OPEN
+/// suggestion per material and field.
+model CorrectionSuggestion {
+  id            String                  @id @default(uuid()) @db.Uuid
+  materialId    String                  @map("material_id") @db.Uuid
+  suggesterId   String                  @map("suggester_id") @db.Uuid
+  field         CorrectionField
+  /// The field's value when the suggestion was made; a change closes it.
+  currentValue  String?                 @map("current_value") @db.VarChar(60)
+  proposedValue String?                 @map("proposed_value") @db.VarChar(60)
+  comment       String?                 @db.VarChar(500)
+  status        CorrectionStatus        @default(OPEN)
+  decidedBy     CorrectionDecider?      @map("decided_by")
+  decidedById   String?                 @map("decided_by_id") @db.Uuid
+  closedReason  CorrectionClosedReason? @map("closed_reason")
+  createdAt     DateTime                @default(now()) @map("created_at")
+  decidedAt     DateTime?               @map("decided_at")
+
+  material  Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  suggester User     @relation("CorrectionSuggester", fields: [suggesterId], references: [id], onDelete: Cascade)
+
+  @@index([materialId, status])
+  @@index([suggesterId, status])
+  @@index([status, createdAt])
+  @@map("correction_suggestions")
 }

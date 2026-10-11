@@ -45,6 +45,8 @@ Estado: ✅ hecho · 🟡 parcial · ⬜ pendiente.
 | Medida | Estado | Detalle |
 |---|---|---|
 | RBAC | ✅ | `RolesGuard` + `@Roles()`; `JwtAuthGuard` global con `@Public()` explícito |
+| Cambios de rol acotados | ✅ | `PATCH /admin/users/:id/role` valida el rol; solo un SUPERADMIN otorga o quita ADMIN y SUPERADMIN; nadie cambia su propio rol; queda en el historial (desde 3c-2) |
+| Elegibilidad para moderar solo para admins | ✅ | Depende de retiros anónimos; un MODERATOR no la ve ni puede filtrar por ella |
 | Chequeo de dueño | ✅ | Editar o borrar reseñas, experiencias y materiales exige ser autor |
 | Registro de acciones de moderación | 🟡 | `ModerationLog` (materiales) y `CommunityModerationAction` (reseñas y experiencias); falta el historial unificado |
 | Alcance por facultad para moderadores | ⬜ | Especificado en README_MODERACION; el modelo `Faculty` existe, falta `ModeratorScope` (cambio 4) |

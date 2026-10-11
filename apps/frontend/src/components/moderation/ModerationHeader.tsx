@@ -1,6 +1,14 @@
 'use client';
 
-import { AlarmClock, History, MessagesSquare, Scale, ShieldCheck, Users } from 'lucide-react';
+import {
+  AlarmClock,
+  History,
+  MessagesSquare,
+  PencilLine,
+  Scale,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -8,7 +16,7 @@ import { cn } from '@/components/ui/shadcn/utils';
 import { getModerationSummary, type ModerationSummary } from '@/lib/moderation-client';
 import { useAuthStore } from '@/stores/authStore';
 
-type Tab = 'casos' | 'usuarios' | 'apelaciones' | 'historial';
+type Tab = 'casos' | 'correcciones' | 'usuarios' | 'apelaciones' | 'historial';
 
 const ADMIN_ROLES = new Set(['ADMIN', 'SUPERADMIN']);
 
@@ -16,11 +24,14 @@ const ADMIN_ROLES = new Set(['ADMIN', 'SUPERADMIN']);
 export function ModerationHeader({
   active,
   caseCount,
+  correctionCount,
   description,
 }: {
   active: Tab;
   /** The Casos panel passes its live count; other pages use the summary. */
   caseCount?: number;
+  /** Same for the Correcciones panel. */
+  correctionCount?: number;
   description: string;
 }) {
   const role = useAuthStore((state) => state.user?.role);
@@ -42,12 +53,14 @@ export function ModerationHeader({
 
   const counts: Record<Tab, number | undefined> = {
     casos: caseCount ?? summary?.openCases,
+    correcciones: correctionCount ?? summary?.pendingCorrections,
     usuarios: isAdmin ? (summary?.pendingProposals ?? undefined) : undefined,
     apelaciones: summary?.pendingAppeals,
     historial: undefined,
   };
   const tabs: Array<{ id: Tab; label: string; href: string; icon: typeof History }> = [
     { id: 'casos', label: 'Casos', href: '/admin', icon: MessagesSquare },
+    { id: 'correcciones', label: 'Correcciones', href: '/admin/correcciones', icon: PencilLine },
     { id: 'usuarios', label: 'Usuarios', href: '/admin/usuarios', icon: Users },
     { id: 'apelaciones', label: 'Apelaciones', href: '/admin/apelaciones', icon: Scale },
     { id: 'historial', label: 'Historial', href: '/admin/historial', icon: History },

@@ -54,6 +54,8 @@ export type BadgeSnapshot = {
   pioneerBonuses: number;
   /** Reportes whose retiro stands. */
   confirmedReports: number;
+  /** Correction suggestions accepted, whatever happened to the material later. */
+  acceptedCorrections: number;
 };
 
 export type BadgeCalendar = { founder: { start: Date; end: Date } | null };
@@ -178,7 +180,7 @@ const seasonal = (editions: number[]) => ({
   progress: null,
 });
 
-/** The catalog of README_PUNTOS_E_INSIGNIAS §6.2, without Lupa, in display order. */
+/** The catalog of README_PUNTOS_E_INSIGNIAS §6.2, in display order. */
 export const BADGE_CATALOG: BadgeDefinition[] = [
   {
     slug: 'primer-aporte',
@@ -398,6 +400,14 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
     description: '10 reportes confirmados por moderación.',
     rarity: 'RARA',
     evaluate: (s) => single(s.confirmedReports, 10, 'reportes confirmados'),
+  },
+  {
+    slug: 'lupa',
+    name: 'Lupa',
+    description: '10 correcciones aceptadas.',
+    rarity: 'RARA',
+    evaluate: (s) =>
+      single(s.acceptedCorrections, 10, 'correcciones aceptadas'),
   },
   {
     slug: 'primera-camada',

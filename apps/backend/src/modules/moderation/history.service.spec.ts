@@ -67,8 +67,10 @@ describe('HistoryService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     prisma.moderationEvent.findMany.mockImplementation(
-      async ({ where }: { where: { action?: { not: string } } }) =>
-        events.filter((event) => event.action !== where.action?.not),
+      async ({ where }: { where: { action?: { notIn: string[] } } }) =>
+        events.filter(
+          (event) => !(where.action?.notIn ?? []).includes(event.action),
+        ),
     );
     prisma.courseReview.findMany.mockResolvedValue([
       { id: 'rev-1', isAnonymous: true },
@@ -105,7 +107,7 @@ describe('HistoryService', () => {
       expect(prisma.moderationEvent.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            action: { not: 'AUTHOR_REVEALED' },
+            action: { notIn: ['AUTHOR_REVEALED', 'ROLE_CHANGED'] },
           }),
         }),
       );
