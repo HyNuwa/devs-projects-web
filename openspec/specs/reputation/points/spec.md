@@ -101,6 +101,17 @@ When moderation retires reported content, each account that reported it before t
 - **WHEN** that retiro is overturned on appeal
 - **THEN** the student's 2 points are reverted
 
+### Requirement: Accepted corrections earn points
+When a correction suggestion is accepted, by its material's author or by moderation, the student who made it SHALL earn 2 points (`CORRECTION_ACCEPTED`), at most 10 such points per account per week. The points SHALL be kept if the material is retired later, because the correction was right. Like every other award, the points SHALL NOT be earned while the account has an active sanción.
+
+#### Scenario: Correction accepted
+- **WHEN** an author accepts a student's suggestion
+- **THEN** that student earns 2 points, shown in «Tu progreso» as «Corrección aceptada»
+
+#### Scenario: Weekly cap
+- **WHEN** a student has six suggestions accepted in one week
+- **THEN** they earn 10 points that week, not 12
+
 ### Requirement: Retired and deleted contributions lose their points
 When a contribution is retired by moderation or deleted by its author, its points SHALL be reverted. For a material, that also reverts its pioneer bonus and every point its «Me sirvió» earned. When a retired contribution is restored, or its retiro is overturned on appeal, its points SHALL be awarded again. Its «Me sirvió» SHALL count again within the caps. A rejection in revisión previa SHALL NOT deduct points.
 

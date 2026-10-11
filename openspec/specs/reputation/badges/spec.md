@@ -27,9 +27,10 @@ The system SHALL offer these insignias. Each has a criterion, a rarity, and, whe
 | Mesa de diciembre | A signed experiencia de final of a December mesa, one edición per year | De temporada |
 | Temporada de finales | 3 published contributions during one exam period, one edición per period | De temporada |
 | Ojo atento | 10 confirmed reportes | Rara |
+| Lupa | 10 accepted correction suggestions, even if their materials were retired later | Rara |
 | Primera camada | An account with a verified email created during the platform's first cuatrimestre, with a contribution published in it | Edición única |
 
-Insignias SHALL award no points. «Lupa» SHALL NOT be offered until corrections exist. «Puente» SHALL count carreras of different students: one student enrolled in three carreras counts once.
+Insignias SHALL award no points. «Puente» SHALL count carreras of different students: one student enrolled in three carreras counts once.
 
 #### Scenario: A material reaches 50 «Me sirvió»
 - **WHEN** one of a student's materials reaches 50 valid «Me sirvió»
@@ -38,6 +39,10 @@ Insignias SHALL award no points. «Lupa» SHALL NOT be offered until corrections
 #### Scenario: Volume alone
 - **WHEN** a student publishes 30 materials in one materia that nobody marks
 - **THEN** they earn «Primer aporte» but neither «Trotamaterias» nor «Salvavidas»
+
+#### Scenario: Ten accepted corrections
+- **WHEN** a student's tenth correction suggestion is accepted
+- **THEN** they hold «Lupa», and keep it if one of those materials is retired later
 
 ### Requirement: Insignias follow current contributions
 An account's insignias SHALL be computed from what currently counts:
