@@ -23,6 +23,19 @@ export function semesterOf(date: Date): Semester {
   return { year, half: month <= 7 ? 1 : 2 };
 }
 
+/**
+ * The current cuatrimestre of `date` and its local bounds, `start` inclusive and
+ * `end` exclusive: March–July, or August to the end of February.
+ */
+export function semesterRange(date: Date) {
+  const semester = semesterOf(date);
+  const at = (year: number, month: number) =>
+    new Date(Date.UTC(year, month - 1, 1) - LOCAL_OFFSET_MS);
+  return semester.half === 1
+    ? { semester, start: at(semester.year, 3), end: at(semester.year, 8) }
+    : { semester, start: at(semester.year, 8), end: at(semester.year + 1, 3) };
+}
+
 const semesterIndex = ({ year, half }: Semester) => year * 2 + (half - 1);
 
 /** The longest run of consecutive cuatrimestres that each hold one of `dates`. */

@@ -5,6 +5,7 @@ import {
   founderWindow,
   longestConsecutiveSemesters,
   semesterOf,
+  semesterRange,
 } from './badge-calendar';
 
 /** A local (UTC-3) date at noon, so the time zone never moves the day. */
@@ -59,6 +60,46 @@ describe('badge calendar', () => {
     expect(founderWindow({ start: '2026-03-01', end: '2026-07-31' })).toEqual({
       start: new Date('2026-03-01T03:00:00.000Z'),
       end: new Date('2026-08-01T03:00:00.000Z'),
+    });
+  });
+});
+
+describe('semesterRange', () => {
+  /** Local midnight as a UTC instant. */
+  const midnight = (iso: string) => new Date(`${iso}T03:00:00.000Z`);
+
+  it('spans March–July for a date in the first cuatrimestre', () => {
+    expect(semesterRange(local('2026-04-01'))).toEqual({
+      semester: { year: 2026, half: 1 },
+      start: midnight('2026-03-01'),
+      end: midnight('2026-08-01'),
+    });
+  });
+
+  it('spans August–February for a date in the second cuatrimestre', () => {
+    expect(semesterRange(local('2026-09-15'))).toEqual({
+      semester: { year: 2026, half: 2 },
+      start: midnight('2026-08-01'),
+      end: midnight('2027-03-01'),
+    });
+  });
+
+  it('puts January in the second cuatrimestre of the previous year', () => {
+    expect(semesterRange(local('2027-01-10'))).toEqual({
+      semester: { year: 2026, half: 2 },
+      start: midnight('2026-08-01'),
+      end: midnight('2027-03-01'),
+    });
+  });
+
+  it('uses Argentina time at the boundaries', () => {
+    // 1 August 01:00 UTC is still 31 July in Argentina.
+    expect(
+      semesterRange(new Date('2026-08-01T01:00:00.000Z')).semester,
+    ).toEqual({ year: 2026, half: 1 });
+    expect(semesterRange(midnight('2026-08-01')).semester).toEqual({
+      year: 2026,
+      half: 2,
     });
   });
 });

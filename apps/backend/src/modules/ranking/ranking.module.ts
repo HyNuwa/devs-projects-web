@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { RankingController } from './ranking.controller';
+import {
+  RankingController,
+  SubjectTopMaterialsController,
+} from './ranking.controller';
 import { RankingService } from './ranking.service';
 import { BadgeService } from './badges/badge.service';
 import {
@@ -14,7 +17,12 @@ import { ProgressController, ProgressService } from './progress.controller';
 import { ReportPoints } from './report-points';
 
 @Module({
-  controllers: [RankingController, ProgressController, MyBadgesController],
+  controllers: [
+    RankingController,
+    SubjectTopMaterialsController,
+    ProgressController,
+    MyBadgesController,
+  ],
   providers: [
     RankingService,
     ProgressService,

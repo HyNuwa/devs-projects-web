@@ -1,15 +1,37 @@
 import { fiUnju } from '@/test/institutions';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api';
 import { getMaterialDiscovery } from '@/lib/discovery-client';
+import { getTopMaterials, type TopMaterials } from '@/lib/ranking-client';
 import type { SubjectHub as SubjectHubType } from '@/types/subject';
 
 import { SubjectHub } from './SubjectHub';
 
 vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }));
+
+vi.mock('@/lib/ranking-client', () => ({ getTopMaterials: vi.fn() }));
+
+vi.mock('@/components/discovery/MaterialPreviewDialog', () => ({
+  MaterialPreviewDialog: ({
+    file,
+    onRequestClose,
+    subjectName,
+  }: {
+    file: { title: string };
+    onRequestClose: () => void;
+    subjectName: string;
+  }) => (
+    <div aria-label={`Vista previa de ${file.title}`} role="dialog">
+      {subjectName}
+      <button onClick={onRequestClose} type="button">
+        Cerrar
+      </button>
+    </div>
+  ),
+}));
 
 vi.mock('@/lib/discovery-client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/discovery-client')>();
@@ -83,6 +105,38 @@ function mockHubRequests() {
   });
 }
 
+const emptyTop: TopMaterials = { semester: { year: 2026, half: 2 }, entries: [] };
+
+const top: TopMaterials = {
+  semester: { year: 2026, half: 2 },
+  entries: [
+    {
+      rank: 1,
+      helpful: 12,
+      material: {
+        id: 'material-9',
+        title: 'Resumen de árboles',
+        resourceType: 'RESUMEN',
+        fileType: 'pdf',
+        academicYear: 2024,
+        createdAt: '2024-05-01T12:00:00.000Z',
+      },
+    },
+    {
+      rank: 2,
+      helpful: 1,
+      material: {
+        id: 'material-1',
+        title: 'Parcial 1 resuelto',
+        resourceType: 'PARCIAL',
+        fileType: 'pdf',
+        academicYear: null,
+        createdAt: '2026-08-01T12:00:00.000Z',
+      },
+    },
+  ],
+};
+
 afterEach(cleanup);
 
 describe('SubjectHub', () => {
@@ -90,6 +144,7 @@ describe('SubjectHub', () => {
     vi.mocked(api.get).mockReset();
     vi.mocked(getMaterialDiscovery).mockReset();
     mockHubRequests();
+    vi.mocked(getTopMaterials).mockReset().mockResolvedValue(emptyTop);
     vi.mocked(getMaterialDiscovery).mockResolvedValue({
       data: [
         {
@@ -185,5 +240,45 @@ describe('SubjectHub', () => {
       subjectId: subject.id,
     });
     expect(api.get).toHaveBeenCalledTimes(3);
+  });
+
+  it('lists «Más útiles este cuatrimestre» with their count and opens the preview', async () => {
+    vi.mocked(getTopMaterials).mockResolvedValue(top);
+    const user = userEvent.setup();
+    render(<SubjectHub code="ED-01" />);
+
+    await screen.findByText(/los parciales prácticos ayudaron/i);
+    await user.click(screen.getByRole('tab', { name: 'Materiales (1)' }));
+
+    const section = screen.getByRole('region', { name: 'Más útiles este cuatrimestre' });
+    const items = within(section).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('1.º');
+    expect(items[0]).toHaveTextContent('Resumen de árboles');
+    expect(items[0]).toHaveTextContent('12 «Me sirvió»');
+    expect(items[1]).toHaveTextContent('1 «Me sirvió»');
+    expect(getTopMaterials).toHaveBeenCalledWith('ED-01');
+
+    await user.click(within(items[0]).getByRole('button', { name: /resumen de árboles/i }));
+    expect(
+      screen.getByRole('dialog', { name: 'Vista previa de Resumen de árboles' }),
+    ).toHaveTextContent('Estructuras de Datos');
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('hides «Más útiles» when empty or when it cannot load', async () => {
+    const user = userEvent.setup();
+    render(<SubjectHub code="ED-01" />);
+    await screen.findByText(/los parciales prácticos ayudaron/i);
+    await user.click(screen.getByRole('tab', { name: 'Materiales (1)' }));
+    expect(screen.queryByRole('region', { name: 'Más útiles este cuatrimestre' })).toBeNull();
+    cleanup();
+
+    vi.mocked(getTopMaterials).mockRejectedValue(new Error('boom'));
+    render(<SubjectHub code="ED-01" />);
+    await screen.findByText(/los parciales prácticos ayudaron/i);
+    await user.click(screen.getByRole('tab', { name: 'Materiales (1)' }));
+    expect(screen.getByRole('link', { name: /parcial 1 resuelto/i })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Más útiles este cuatrimestre' })).toBeNull();
   });
 });

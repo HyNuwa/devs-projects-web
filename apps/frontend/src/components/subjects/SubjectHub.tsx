@@ -17,11 +17,13 @@ import {
   CourseReviewSummaryCard,
   FinalExperienceSummaryCard,
 } from '@/components/community/CommunitySummaryCards';
+import { MaterialPreviewDialog } from '@/components/discovery/MaterialPreviewDialog';
 import { Button, Chip, EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
 import { getMaterialDiscovery } from '@/lib/discovery-client';
 import { courseConditionLabel, resourceTypeLabel } from '@/lib/presentation-labels';
+import { getTopMaterials, type TopMaterial } from '@/lib/ranking-client';
 import type { Material } from '@/types/material';
 import type {
   CourseReviewResponse,
@@ -34,6 +36,7 @@ type SubjectHubTab = 'reviews' | 'exams' | 'materials';
 type SubjectHubData = {
   exams: ExamExperience[];
   materials: Material[];
+  top: TopMaterial[];
   reviews: CourseReviewResponse;
   subject: SubjectHubType;
 };
@@ -92,6 +95,64 @@ function HubTab({
     >
       {children}
     </button>
+  );
+}
+
+const topButtonId = (id: string) => `subject-top-${id}`;
+
+/**
+ * «Más útiles este cuatrimestre» (openspec reputation/rankings): the materials
+ * with the most valid «Me sirvió» this cuatrimestre. Hidden when empty.
+ */
+function TopMaterials({ entries, subjectName }: { entries: TopMaterial[]; subjectName: string }) {
+  const [open, setOpen] = useState<TopMaterial['material'] | null>(null);
+  if (entries.length === 0) return null;
+
+  return (
+    <section
+      aria-labelledby="subject-top-materials"
+      className="rounded-2xl border-[1.5px] border-foreground bg-secondary p-4 sm:p-5"
+    >
+      <h3
+        className="flex items-center gap-2 font-sans text-lg font-extrabold text-foreground"
+        id="subject-top-materials"
+      >
+        <Sparkles aria-hidden="true" className="size-5 text-primary" strokeWidth={1.7} />
+        Más útiles este cuatrimestre
+      </h3>
+      <ol className="mt-3 grid gap-2">
+        {entries.map(({ rank, material, helpful }) => (
+          <li className="flex items-center gap-3" key={material.id}>
+            <span className="w-9 shrink-0 font-sans text-sm font-extrabold tabular-nums">
+              {rank}.º
+            </span>
+            <button
+              className="min-w-0 flex-1 truncate text-left font-sans text-base font-bold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              id={topButtonId(material.id)}
+              onClick={() => setOpen(material)}
+              type="button"
+            >
+              {material.title}
+              <span className="ml-2 font-sans text-sm font-semibold text-muted-foreground">
+                {resourceTypeLabel(material.resourceType)}
+              </span>
+            </button>
+            <span className="shrink-0 font-sans text-sm font-extrabold tabular-nums text-primary">
+              {helpful} «Me sirvió»
+            </span>
+          </li>
+        ))}
+      </ol>
+      {open ? (
+        <MaterialPreviewDialog
+          file={open}
+          focusTargetId={topButtonId(open.id)}
+          onRequestClose={() => setOpen(null)}
+          open
+          subjectName={subjectName}
+        />
+      ) : null}
+    </section>
   );
 }
 
@@ -160,8 +221,10 @@ export function SubjectHub({ code }: { code: string }) {
       api.get<SubjectHubType>(`/subjects/${encodeURIComponent(code)}`),
       api.get<CourseReviewResponse>(`/subjects/${encodeURIComponent(code)}/reviews`),
       api.get<ExamExperience[]>(`/subjects/${encodeURIComponent(code)}/exams`),
+      // The ranking is a bonus: the materia page loads without it.
+      getTopMaterials(code).catch(() => null),
     ])
-      .then(async ([subjectResponse, reviewsResponse, examsResponse]) => {
+      .then(async ([subjectResponse, reviewsResponse, examsResponse, topMaterials]) => {
         const subject = getData(subjectResponse);
         const materialResult = await getMaterialDiscovery({
           limit: 20,
@@ -177,6 +240,7 @@ export function SubjectHub({ code }: { code: string }) {
               materials: materialResult.data,
               reviews: getData(reviewsResponse),
               subject,
+              top: topMaterials?.entries ?? [],
             },
             status: 'ready',
           });
@@ -221,7 +285,7 @@ export function SubjectHub({ code }: { code: string }) {
     );
   }
 
-  const { exams, materials, reviews, subject } = state.data;
+  const { exams, materials, reviews, subject, top } = state.data;
   const averageRecommendation = subject.stats.avgRecommendation?.toFixed(1) ?? '—';
 
   return (
@@ -462,7 +526,8 @@ export function SubjectHub({ code }: { code: string }) {
                 <Link href="/materiales/nuevo">Subir material</Link>
               </Button>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 grid gap-6">
+              <TopMaterials entries={top} subjectName={subject.name} />
               <MaterialList materials={materials} />
             </div>
           </section>

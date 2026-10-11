@@ -182,6 +182,15 @@ describe('ProgressPage («Tu progreso»)', () => {
     );
   });
 
+  it('links to the rankings', async () => {
+    render(<ProgressPage />);
+
+    expect(await screen.findByRole('link', { name: /Ver rankings/ })).toHaveAttribute(
+      'href',
+      '/ranking',
+    );
+  });
+
   it('explains how to start when there are no movements yet', async () => {
     mocks.progress.mockResolvedValue({
       ...progress,

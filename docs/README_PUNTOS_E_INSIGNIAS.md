@@ -1,6 +1,6 @@
 # Sistema de puntos, niveles e insignias
 
-> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Las insignias (§6) están implementadas desde `puntos-insignias` (3b); Lupa, desde `privilegios-confianza` (3c-2). La personalización y la página de perfil público (§4 desbloqueos, §8) están implementadas desde `perfil-publico` (3c-1). Los privilegios (§5) están implementados desde `privilegios-confianza` (3c-2). Los rankings (§7) llegan con 3c-3.
+> **Estado:** revisión 2 (septiembre 2026). Los puntos y niveles (§3 y §4) están implementados desde el cambio `puntos-libro` (3a, octubre 2026). Las insignias (§6) están implementadas desde `puntos-insignias` (3b); Lupa, desde `privilegios-confianza` (3c-2). La personalización y la página de perfil público (§4 desbloqueos, §8) están implementadas desde `perfil-publico` (3c-1). Los privilegios (§5) están implementados desde `privilegios-confianza` (3c-2). Los rankings (§7) están implementados desde `rankings-acotados` (3c-3).
 > **Moderación:** desde septiembre 2026 todo se publica al instante y se modera después (`docs/README_MODERACION.md`, ADR 0001). Por eso los puntos de un aporte se otorgan **al publicarse** y se revierten si se retira.
 > **Relacionado:** `apps/backend/src/modules/ranking/` (`point.service.ts`, `rpg-levels.ts`, `ranking.service.ts`), modelos `PointTransaction`, `Badge`, `UserBadge`, `MaterialHelpfulness`, `CommunityReport` y `Guide` en `apps/backend/prisma/schema.prisma`, y el glosario de `CONTEXT.md`.
 
@@ -27,7 +27,7 @@ Los puntos existen para **reconocer a quien ayuda a otros estudiantes**, no para
 | `MaterialHelpfulness` | Un «Me sirvió» por estudiante y material; los válidos suman `HELPFUL_RECEIVED` con sus topes (§3.2). |
 | Reportes | Desde el cambio de moderación (`Report` y casos) se reportan materiales, reseñas y experiencias. `REPORT_CONFIRMED` se otorga en los tres. |
 | `Badge` / `UserBadge` | Catálogo de 17 insignias (slug, rareza, orden, gema en `/assets/insignias/gema/`); el criterio vive en `badge-catalog.ts`. `UserBadge` guarda grado, edición y si ya se vio, con `@@unique([userId, badgeId, edition])`. |
-| Ranking | `ranking.service.ts` ordena por puntos totales. Se reemplaza por rankings acotados (§7). |
+| Ranking | Desde 3c-3, `ranking.service.ts` calcula los rankings acotados del §7 a partir de `PointTransaction`. El ranking global por puntos totales ya no existe. |
 | Eventos, tutorías, Clasificados | **No existen** en el esquema. Sus puntos e insignias quedan para más adelante (§10). |
 
 ## 3. Cómo se ganan puntos
@@ -150,7 +150,7 @@ Cómo quedó implementado en 3c-1:
 - **El editor no reevalúa insignias al guardar:** usa la última evaluación, la de «Tu progreso» o la del perfil público. Si reevaluara, también podría quitar insignias en medio de una edición. Una insignia ganada recién aparece en el editor después de abrir «Tu progreso».
 - **Autor de un material:** las vistas rediseñadas de materiales (la vista previa y `/buscar`) no muestran quién lo subió, así que el enlace al perfil solo aparece en reseñas y experiencias. Si una vista futura muestra al autor, tiene que usar `AuthorLink`, que nunca enlaza lo anónimo.
 - **«Anónimo» es un nombre reservado:** el registro y el nombre visible rechazan «Anónimo» y sus variantes (`common/validators/reserved-name.ts`), porque es como se muestra lo anónimo.
-- **Pendiente para 3c-3 (`rankings-acotados`):** que el interruptor «Mostrar mi nivel e insignias» saque a la cuenta de todos los rankings, y enlazar cada nombre del ranking a su perfil con `AuthorLink`. Hasta entonces, el `/ranking` heredado todavía muestra a la cuenta, así que 3c-1 no puede salir sin 3c-3.
+- **Rankings (desde 3c-3):** el interruptor «Mostrar mi nivel e insignias» saca a la cuenta del ranking mensual y de Leyendas, sin dejarle puesto, y cada nombre de un ranking enlaza a su perfil con `AuthorLink`.
 
 ## 5. Privilegios de confianza
 
@@ -258,11 +258,11 @@ Notas sobre criterios:
 
 Se reemplaza el ranking global por puntos totales (siempre ganan los mismos y desanima a los nuevos) por rankings **acotados y que se renuevan**:
 
-- **Los que más ayudaron este mes en tu carrera:** puntos netos ganados en el mes (otorgamientos menos reversiones). Cada punto se atribuye a la carrera de la materia del aporte que lo generó. Si la materia pertenece a varias carreras, cuenta en cada una. `REPORT_CONFIRMED` y `CORRECTION_ACCEPTED` se atribuyen a la carrera del contenido reportado o corregido.
+- **Los que más ayudaron este mes en tu carrera:** puntos netos ganados en el mes (otorgamientos menos reversiones). Cada punto se atribuye a la carrera de la materia del aporte que lo generó. Si la materia pertenece a varias carreras, cuenta en cada una. `REPORT_CONFIRMED` y `CORRECTION_ACCEPTED` no cuentan en ninguna: llegan justo cuando el autor ve el retiro o el cambio, y un salto de 2 le diría quién reportó o sugirió.
 - **Más útiles de una materia este cuatrimestre:** materiales ordenados por «Me sirvió», en la página de la materia.
 - **Leyendas de la facultad:** lista fija, **por facultad** (ADR 0002), de quienes alcanzaron alguna vez el nivel 10 (nivel máximo alcanzado). Alguien aparece en las facultades de sus planes de estudio activos o terminados; sin plan, no aparece.
 
-Los rankings de personas muestran los 10 primeros y, si no estás entre ellos, tu posición; los empates comparten el puesto. Nunca muestran a quien desactivó «Mostrar mi nivel e insignias». Exclusión por sanción: el mensual excluye las sanciones activas (la lista rota y no delata a nadie); Leyendas solo excluye la suspensión permanente, porque sacar a alguien de una lista fija durante 7 días lo delataría.
+El mensual muestra los 10 primeros y, si no estás entre ellos, tu posición; los empates comparten el puesto. Leyendas es una lista alfabética, sin puestos. Ninguno muestra a quien desactivó «Mostrar mi nivel e insignias». Exclusión por sanción: el mensual excluye a quien tenía una sanción vigente al empezar el mes, y una sanción aplicada, levantada o anulada durante el mes no lo cambia, porque desaparecer a mitad de mes la delataría. Leyendas solo excluye la suspensión permanente, porque sacar a alguien de una lista fija durante 7 días lo delataría.
 
 Decisiones de 3c-3 (`rankings-acotados`):
 
@@ -271,11 +271,22 @@ Decisiones de 3c-3 (`rankings-acotados`):
 - **`/ranking`:** dos pestañas, «Este mes en tu carrera» y «Leyendas de la facultad». Se eliminan el ranking global, el semanal y `/ranking/top`.
 - **`/puntos`** (existe desde 3a): se actualiza con correcciones, Lupa, privilegios y desbloqueos.
 
+### 7.1 Cómo quedó implementado (3c-3)
+
+- **Atribución** (`ranking/attribution.ts`): `materiaOf` resuelve cada movimiento a su materia. Material y «Me sirvió» usan el material; Primera huella, la materia que nombra su referencia; reseña y experiencia, la suya; `REPORT_CONFIRMED`, el objetivo de su caso; `CORRECTION_ACCEPTED`, el material corregido. Guías, ajustes heredados y referencias que no son ids no cuentan en ninguna carrera. `careersOf` da las carreras con un plan que incluye la materia. El mensual deja afuera `REPORT_CONFIRMED` y `CORRECTION_ACCEPTED` (§7).
+- **La materia es la actual:** si una corrección mueve un material a otra materia, sus puntos del mes se mueven con él. No se guarda una foto de la materia al otorgar. Primera huella no se mueve: su referencia nombra la materia, y la corrección la revierte allí y la vuelve a otorgar en la nueva.
+- **Límite conocido:** reseñas y experiencias se borran de verdad, así que la reversión al borrarlas no resuelve a ninguna materia y no baja ninguna carrera. Borrar el 1.º una reseña otorgada el 31 y volver a publicarla suma 5 en el mes nuevo. Se arregla guardando la materia en cada movimiento (migración) o con borrado lógico; queda para más adelante.
+- **Mensual** (`GET /ranking/monthly?careerId=`, público): lee los movimientos del mes local, suma por cuenta los de la carrera, deja los positivos, saca a las ocultas y a las que tenían una sanción vigente al empezar el mes (según `Sanction`), y ordena por puntos y nombre con puestos compartidos (`ranking/ranks.ts`). Sin `careerId`, la primera carrera por nombre. `GET /ranking/monthly/me` (con sesión) da el puesto propio, o null si no aparece, y la carrera del plan activo.
+- **Leyendas** (`GET /ranking/legends?facultyId=`, público): `maxLevel ≥ 10` con un plan activo o terminado en la facultad, sin ocultas ni suspensiones permanentes, en orden alfabético y hasta 200. `GET /ranking/legends/me` da la facultad de un plan activo, o si no la de uno terminado.
+- **Materia** (`GET /subjects/:code/top-materials`, público): «Me sirvió» válidos (`isValidHelpful`) recibidos dentro de `semesterRange(now)`, en materiales publicados y no borrados. No devuelve al autor.
+- **Lo que se borró:** `GET /ranking?period=`, `/ranking/top` y `/ranking/me`, con sus métodos y su spec, y en el frontend `RankCard`, `RankingList`, `LevelsTable` y `types/ranking.ts`. `GET /ranking/levels` sigue.
+- **Costo:** el mensual lee todos los movimientos del mes. Alcanza para el volumen de una facultad; si crece, se pasa a un agregado materializado.
+
 ## 8. Cómo se ve en el producto
 
 - **Mi espacio → «Tu progreso»** (`/mi-espacio/progreso`, construido en 3a sin insignias): nivel actual, puntos que faltan para el siguiente, qué desbloquea el próximo nivel, insignias ganadas y las más cercanas («te faltan 12 "Me sirvió" para Salvavidas»).
 - **Perfil público:** número y nombre del nivel, hasta 3 insignias destacadas, título elegido y la personalización desbloqueada. Respeta el interruptor «Mostrar mi nivel e insignias» de *Mi perfil → Perfil público*. En `/usuarios/[username]`, abierta sin iniciar sesión.
-- **Rankings:** nombre y número de nivel («Nv. 5»).
+- **Rankings** (`/ranking`, abierta sin sesión): el mensual muestra puesto, nombre, número de nivel («Nv. 5») y puntos del mes, con «Tu posición» debajo si quedás fuera del top 10. Leyendas muestra solo nombres. La pestaña Materiales de cada materia muestra «Más útiles este cuatrimestre», y «Tu progreso» enlaza a los rankings.
 - **Tarjetas de aportes, reseñas y experiencias:** solo el nombre del autor (o «Anónimo»). Sin nivel ni insignias (§5.1).
 - **Notificaciones:** al subir de nivel, al ganar o subir de grado una insignia y cuando se revierten puntos (con el motivo, sin revelar quién reportó). Quedan para el plan de notificaciones; mientras tanto, «Tu progreso» muestra los movimientos con su motivo.
 - **Página «Cómo funcionan los puntos»:** la tabla del §3.1, qué «Me sirvió» cuentan (§3.2) y los desbloqueos del §4, en lenguaje simple.

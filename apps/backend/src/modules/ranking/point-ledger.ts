@@ -32,7 +32,7 @@ function startOfLocalDay(now: Date, offset = 0) {
 }
 
 /** The start of the local month of `now`, or of `offset` months later. */
-function startOfLocalMonth(now: Date, offset = 0) {
+export function startOfLocalMonth(now: Date, offset = 0) {
   const local = new Date(now.getTime() + LOCAL_OFFSET_MS);
   return new Date(
     Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + offset, 1) -

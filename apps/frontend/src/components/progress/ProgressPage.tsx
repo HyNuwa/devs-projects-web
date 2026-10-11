@@ -199,9 +199,14 @@ export function ProgressPage() {
           <h2 className="text-lg font-extrabold tracking-[-0.02em]" id="progress-path">
             El camino
           </h2>
-          <Link className="text-sm font-bold text-link" href="/puntos">
-            Cómo funcionan los puntos →
-          </Link>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link className="text-sm font-bold text-link" href="/puntos">
+              Cómo funcionan los puntos →
+            </Link>
+            <Link className="text-sm font-bold text-link" href="/ranking">
+              Ver rankings →
+            </Link>
+          </div>
         </div>
         <ol
           aria-labelledby="progress-path"
