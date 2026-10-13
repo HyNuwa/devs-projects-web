@@ -136,8 +136,9 @@ Every moderation action SHALL be recorded in one append-only history. That inclu
 - sanciones and their lifting
 - suspension proposals and their confirmation or rejection
 - appeals and their answers
+- role changes and changes to a moderator's facultades
 
-Each record SHALL hold who acted (a person or the system), the action, the target, the date and the reason. No user, including SUPERADMIN, SHALL be able to edit or delete a record through the product. Moderators SHALL be able to filter the history by action, actor, content and date. For MODERATOR, events about an account that came from a caso about anonymous content SHALL NOT be listed, with any filter. These are sanción events (advertencia, silenciamiento, suspensión, lifting, suspension proposal and its rejection) and appeals of those sanciones with their answers. Showing them would let a moderator match their reason, text and time with the account, and their mere existence would tell: «Advertir también» skips staff authors silently, so an advertencia row would say the hidden author is not staff. For MODERATOR, appeals of a retiro of anonymous content and their answers SHALL NOT show the reason either, as the read-only appeal does not show what the appellant wrote. ADMIN and SUPERADMIN SHALL see everything.
+Each record SHALL hold who acted (a person or the system), the action, the target, the date and the reason. No user, including SUPERADMIN, SHALL be able to edit or delete a record through the product. Moderators SHALL be able to filter the history by action, actor, content and date. For MODERATOR, events about an account that came from a caso about anonymous content SHALL NOT be listed, with any filter. These are sanción events (advertencia, silenciamiento, suspensión, lifting, suspension proposal and its rejection) and appeals of those sanciones with their answers. Showing them would let a moderator match their reason, text and time with the account, and their mere existence would tell: «Advertir también» skips staff authors silently, so an advertencia row would say the hidden author is not staff. For MODERATOR, appeals of a retiro of anonymous content and their answers SHALL NOT show the reason either, as the read-only appeal does not show what the appellant wrote. For MODERATOR, the history SHALL list only events about content of their facultades and about accounts they can see (see moderation/scope), and SHALL NOT list role changes or changes to anyone's facultades. ADMIN and SUPERADMIN SHALL see everything.
 
 #### Scenario: Automatic hiding appears in history
 - **WHEN** the system hides content after three reportes
@@ -163,10 +164,14 @@ Each record SHALL hold who acted (a person or the system), the action, the targe
 - **WHEN** any client requests to update or delete a history record
 - **THEN** no such operation exists and the record is unchanged
 
+#### Scenario: Event of another facultad
+- **WHEN** a moderator covering FI-UNJU opens the history after a retiro in another facultad
+- **THEN** that retiro is not listed, and an admin sees it
+
 ### Requirement: Moderation panel
 The moderation panel SHALL be available only to MODERATOR, ADMIN and SUPERADMIN, and SHALL offer the Casos, Correcciones, Usuarios, Apelaciones and Historial tabs. Correcciones lists the correction suggestions that their authors did not decide within 7 days (see academic-resources/corrections).
 
-Casos SHALL list open work in these groups, in this order:
+Every tab SHALL show only the work and accounts within the viewer's alcance de moderación (see moderation/scope). Casos SHALL list open work in these groups, in this order:
 1. Vencidos: casos past their response time, meaning 48 hours for hidden content and 7 days for everything else, most overdue first.
 2. Ocultos preventivamente.
 3. Revisión previa.
@@ -197,3 +202,7 @@ ADMIN and SUPERADMIN SHALL see a notice in the panel with the number of overdue 
 #### Scenario: Priority reporte
 - **WHEN** two reported casos have one reporte each, and one of those reportes is priority
 - **THEN** the caso with the priority reporte comes first in Reportados, after any high-priority caso
+
+#### Scenario: Counts follow the facultades
+- **WHEN** a moderator covering FI-UNJU opens the panel while another facultad has three open casos
+- **THEN** those casos appear neither in Casos nor in the tab counts

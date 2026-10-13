@@ -17,35 +17,16 @@ The system SHALL provide bounded, accent-insensitive search suggestions grouped 
 - **WHEN** a user enters a query with no matching materia or resource
 - **THEN** the system presents a clear no-results message and preserves the query for revision
 
-### Requirement: Hierarchical materials browsing
-The public materials experience SHALL let users navigate from careers to curriculum years, from a year to its materias, from a materia to its resource categories, and from a category to its file list without requiring a search query. The first level SHALL group careers under their facultad and universidad; while only one facultad exists, the grouping MUST NOT add a separate browsing level or change existing URLs.
-
-#### Scenario: User enters Materials
-- **WHEN** a user opens `/materiales`
-- **THEN** the system presents the available careers as the first browsing level, each group headed by its facultad and universidad
-
-#### Scenario: Several facultades exist
-- **WHEN** careers of more than one facultad exist and a user opens `/materiales`
-- **THEN** each career appears once, under its own facultad, and facultades of the same universidad appear together
-
-#### Scenario: User follows the academic hierarchy
-- **WHEN** a user chooses a career, curriculum year, materia, and resource category in sequence
-- **THEN** each selection opens a stable URL-backed level whose content is limited to that academic context
-
-#### Scenario: A hierarchy level has no public content
-- **WHEN** the selected career, year, materia, or resource category contains no approved public materials
-- **THEN** the system preserves the selected context and explains the empty state without inventing child records
-
 ### Requirement: Materia-scoped search
-Every materia resource view SHALL provide a search control scoped to that materia, with the active query represented in the URL.
+The materia page SHALL provide a search control scoped to that materia's materials, with the active query represented in the URL.
 
 #### Scenario: User searches within a materia
-- **WHEN** a user enters a query from a materia resource view
+- **WHEN** a user enters a query on a materia page
 - **THEN** only approved public resources belonging to that materia are searched and the interface identifies the active scope
 
 #### Scenario: Scoped query is shared
 - **WHEN** another user opens the URL of a materia-scoped search
-- **THEN** the same materia, resource category when present, and query are restored
+- **THEN** the same materia, resource type when present, and query are restored
 
 ### Requirement: Homepage discovery entry
 The homepage SHALL prioritize an outcome-oriented promise and the primary discovery input before community or contribution content.
@@ -74,18 +55,18 @@ The system SHALL provide a public `/buscar` experience that presents matching ma
 - **THEN** the missing value is shown as `No informado` and is not inferred from other records
 
 ### Requirement: Materia context names its facultad
-Wherever a materia's academic context is presented (the materia page and its plan placements), the system SHALL name the materia's facultad by its short name and universidad together with the career, curriculum year and cuatrimestre, for every plan that includes the materia, in a stable order.
+Wherever a materia's academic context is presented, the system SHALL name the materia's facultad by its short name and universidad together with each carrera that includes it, with the año and cuatrimestre it has there, in a stable order by carrera name. It SHALL NOT name plans.
 
 #### Scenario: Materia page header
 - **WHEN** a user opens a materia page
-- **THEN** each plan placement reads like «FI (UNJU) · Ingeniería Informática · Año 2 · Cuatrimestre 1»
+- **THEN** each placement reads like «FI (UNJU) · Ingeniería Informática · Año 2 · Cuatrimestre 1»
 
 #### Scenario: Materia in several plans
-- **WHEN** a materia belongs to plans of two carreras
-- **THEN** the page shows one placement per plan, ordered by carrera, plan and year
+- **WHEN** a materia belongs to two carreras
+- **THEN** the page shows one placement per carrera, ordered by carrera name
 
 ### Requirement: Filterable and shareable result state
-The results experience SHALL support filters for resource type, materia, ciclo lectivo, and professor, and SHALL encode the active query, filters, and supported sort selection in the URL.
+The results experience SHALL support filters for facultad, resource type, materia, ciclo lectivo, and professor, and SHALL encode the active query, filters, and supported sort selection in the URL. The facultad filter SHALL start at the viewer's ubicación (see academic-structure/browsing) and offer «en todas».
 
 #### Scenario: User applies filters
 - **WHEN** a user applies one or more filters
@@ -94,6 +75,10 @@ The results experience SHALL support filters for resource type, materia, ciclo l
 #### Scenario: User filters on a narrow viewport
 - **WHEN** a user opens filters on a mobile viewport
 - **THEN** the system uses a keyboard-operable drawer or bottom sheet that preserves visible labels and focus management
+
+#### Scenario: Search limited to a facultad
+- **WHEN** a user filters by FI-UNJU
+- **THEN** only resources of FI-UNJU materias are listed, and the URL keeps the facultad
 
 ### Requirement: Deterministic default ordering
 The default resource ordering SHALL evaluate textual relevance first, followed by academic-context completeness, recency, helpfulness, and a stable identifier tie-breaker.
