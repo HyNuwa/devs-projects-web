@@ -2,6 +2,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { FI_UNJU_FACULTY_ID } from '../src/modules/institutions/institutions.constants';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
@@ -72,10 +73,20 @@ describe('eligibility to moderate and role changes (e2e)', () => {
     return user;
   }
 
-  const listEligible = (viewer: E2eUser) =>
+  // The list keeps 50 accounts and the e2e database accumulates eligible ones
+  // from earlier runs, so a test looks its accounts up by username.
+  const listEligible = (viewer: E2eUser, q?: string) =>
     http()
-      .get('/api/v1/moderation/users?filter=eligible')
+      .get('/api/v1/moderation/users')
+      .query({ filter: 'eligible', ...(q ? { q } : {}) })
       .set('Authorization', bearer(app, viewer));
+  const usernameOf = async (user: E2eUser) =>
+    (
+      await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { username: true },
+      })
+    ).username;
 
   const file = async (viewer: E2eUser, id: string) =>
     (
@@ -92,11 +103,19 @@ describe('eligibility to moderate and role changes (e2e)', () => {
       createdAt: new Date(Date.now() - 30 * DAY),
     });
 
-    const { body } = await listEligible(admin).expect(200);
-    const users = (body as { users: ListedUser[] }).users;
+    const listed = async (user: E2eUser) =>
+      (
+        (await listEligible(admin, await usernameOf(user)).expect(200))
+          .body as { users: ListedUser[] }
+      ).users;
 
-    expect(users.find((user) => user.id === eligible.id)?.eligible).toBe(true);
-    expect(users.some((user) => user.id === tooNew.id)).toBe(false);
+    expect(
+      (await listed(eligible)).find((user) => user.id === eligible.id)
+        ?.eligible,
+    ).toBe(true);
+    expect((await listed(tooNew)).some((user) => user.id === tooNew.id)).toBe(
+      false,
+    );
     expect(await file(admin, eligible.id)).toMatchObject({
       eligible: true,
       canPromote: true,
@@ -107,6 +126,14 @@ describe('eligibility to moderate and role changes (e2e)', () => {
   it('never shows eligibility to a moderator', async () => {
     const moderator = await createUser(prisma, 'MODERATOR');
     const eligible = await eligibleStudent();
+    // A carrera at FI-UNJU puts the account in the moderator's alcance.
+    const plan = await prisma.studyPlan.findFirstOrThrow({
+      where: { career: { facultyId: FI_UNJU_FACULTY_ID } },
+      select: { id: true },
+    });
+    await prisma.userStudyPlan.create({
+      data: { userId: eligible.id, studyPlanId: plan.id },
+    });
 
     await listEligible(moderator).expect(403);
     const body = await file(moderator, eligible.id);
@@ -148,10 +175,12 @@ describe('eligibility to moderate and role changes (e2e)', () => {
     await http()
       .post(`/api/v1/moderation/users/${student.id}/promote`)
       .set('Authorization', bearer(app, admin))
+      .send({ facultyIds: [FI_UNJU_FACULTY_ID] })
       .expect(200);
     await http()
       .post(`/api/v1/moderation/users/${moderator.id}/promote`)
       .set('Authorization', bearer(app, admin))
+      .send({ facultyIds: [FI_UNJU_FACULTY_ID] })
       .expect(409);
 
     expect(
@@ -175,6 +204,7 @@ describe('eligibility to moderate and role changes (e2e)', () => {
     await http()
       .post(`/api/v1/moderation/users/${student.id}/promote`)
       .set('Authorization', bearer(app, admin))
+      .send({ facultyIds: [FI_UNJU_FACULTY_ID] })
       .expect(200);
     const history = (viewer: E2eUser) =>
       http()
@@ -213,7 +243,10 @@ describe('eligibility to moderate and role changes (e2e)', () => {
       http()
         .patch(`/api/v1/admin/users/${id}/role`)
         .set('Authorization', bearer(app, actor))
-        .send({ role });
+        .send({
+          role,
+          ...(role === 'MODERATOR' && { facultyIds: [FI_UNJU_FACULTY_ID] }),
+        });
 
     it('rejects an unknown role', async () => {
       const superadmin = await createUser(prisma, 'SUPERADMIN');

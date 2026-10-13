@@ -8,6 +8,7 @@ import { cn } from '@/components/ui/shadcn/utils';
 import { getApiError } from '@/lib/apiHelpers';
 import { getModerationHistory, type HistoryItem } from '@/lib/moderation-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
 
@@ -63,11 +64,15 @@ export function HistoryPanel() {
   const [action, setAction] = useState('');
   const [state, setState] = useState<HistoryState>({ status: 'loading' });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const facultyId = useModerationFaculty();
 
   useEffect(() => {
     if (!isModerator) return;
     let active = true;
-    getModerationHistory(action ? { action } : {})
+    getModerationHistory({
+      ...(action ? { action } : {}),
+      ...(facultyId ? { facultyId } : {}),
+    })
       .then((page) => {
         if (active) setState({ status: 'ready', ...page });
       })
@@ -77,7 +82,7 @@ export function HistoryPanel() {
     return () => {
       active = false;
     };
-  }, [action, isModerator]);
+  }, [action, facultyId, isModerator]);
 
   if (!isModerator) {
     return (
@@ -94,6 +99,7 @@ export function HistoryPanel() {
     try {
       const page = await getModerationHistory({
         ...(action ? { action } : {}),
+        ...(facultyId ? { facultyId } : {}),
         cursor: state.nextCursor,
       });
       setState({

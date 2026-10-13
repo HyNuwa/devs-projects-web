@@ -10,6 +10,11 @@ import type { SubjectHub as SubjectHubType } from '@/types/subject';
 
 import { SubjectHub } from './SubjectHub';
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/materias/ED-01',
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }));
 
 vi.mock('@/lib/ranking-client', () => ({ getTopMaterials: vi.fn() }));
@@ -172,7 +177,12 @@ describe('SubjectHub', () => {
                   credits: null,
                   studyPlan: {
                     name: 'Plan 2023',
-                    career: { name: 'Ingeniería Informática', faculty: fiUnju },
+                    career: {
+                      id: 'c-inf',
+                      name: 'Ingeniería Informática',
+                      code: 'II',
+                      faculty: fiUnju,
+                    },
                   },
                 },
                 {
@@ -181,7 +191,12 @@ describe('SubjectHub', () => {
                   credits: 6,
                   studyPlan: {
                     name: 'Plan 2019',
-                    career: { name: 'Ingeniería Industrial', faculty: fiUnju },
+                    career: {
+                      id: 'c-ind',
+                      name: 'Ingeniería Industrial',
+                      code: 'IND',
+                      faculty: fiUnju,
+                    },
                   },
                 },
               ],
@@ -227,7 +242,7 @@ describe('SubjectHub', () => {
       '/finales/exam-1',
     );
 
-    await user.click(screen.getByRole('tab', { name: 'Materiales (1)' }));
+    await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
 
     expect(screen.getByRole('link', { name: /parcial 1 resuelto/i })).toHaveAttribute(
       'href',
@@ -248,7 +263,7 @@ describe('SubjectHub', () => {
     render(<SubjectHub code="ED-01" />);
 
     await screen.findByText(/los parciales prácticos ayudaron/i);
-    await user.click(screen.getByRole('tab', { name: 'Materiales (1)' }));
+    await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
 
     const section = screen.getByRole('region', { name: 'Más útiles este cuatrimestre' });
     const items = within(section).getAllByRole('listitem');
@@ -270,14 +285,14 @@ describe('SubjectHub', () => {
     const user = userEvent.setup();
     render(<SubjectHub code="ED-01" />);
     await screen.findByText(/los parciales prácticos ayudaron/i);
-    await user.click(screen.getByRole('tab', { name: 'Materiales (1)' }));
+    await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
     expect(screen.queryByRole('region', { name: 'Más útiles este cuatrimestre' })).toBeNull();
     cleanup();
 
     vi.mocked(getTopMaterials).mockRejectedValue(new Error('boom'));
     render(<SubjectHub code="ED-01" />);
     await screen.findByText(/los parciales prácticos ayudaron/i);
-    await user.click(screen.getByRole('tab', { name: 'Materiales (1)' }));
+    await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
     expect(screen.getByRole('link', { name: /parcial 1 resuelto/i })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Más útiles este cuatrimestre' })).toBeNull();
   });

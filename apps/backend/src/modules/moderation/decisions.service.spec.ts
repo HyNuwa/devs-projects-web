@@ -32,7 +32,11 @@ describe('DecisionsService.decide', () => {
   let service: DecisionsService;
 
   const prisma = {
+    moderatorScope: {
+      findMany: jest.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
     moderationCase: {
+      count: jest.fn().mockResolvedValue(1),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       update: jest.fn(),

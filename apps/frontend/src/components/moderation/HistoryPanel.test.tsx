@@ -9,6 +9,11 @@ const mocks = vi.hoisted(() => ({
   user: { id: 'mod-1', role: 'MODERATOR' } as { id: string; role: string } | null,
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/lib/moderation-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/moderation-client')>()),
   getModerationHistory: mocks.history,

@@ -18,9 +18,13 @@ const admin = { id: 'admin-1', role: 'ADMIN' } as const;
 
 function prismaDouble() {
   const prisma = {
+    moderatorScope: {
+      findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
     $transaction: vi.fn(),
     $queryRaw: vi.fn(),
     user: {
+      count: vi.fn().mockResolvedValue(1),
       findUnique: vi.fn().mockResolvedValue({
         id: 'user-1',
         role: 'USER',
@@ -37,7 +41,10 @@ function prismaDouble() {
       update: vi.fn(),
     },
     moderationEvent: { create: vi.fn() },
-    moderationCase: { findUnique: vi.fn() },
+    moderationCase: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn(),
+    },
     report: { findFirst: vi.fn().mockResolvedValue(null) },
     refreshToken: { deleteMany: vi.fn() },
   };

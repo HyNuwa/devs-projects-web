@@ -24,7 +24,7 @@ describe('SiteFooter', () => {
     expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
       ['DevsProject', '/'],
       ['Inicio', '/'],
-      ['Materias', '/materias'],
+      ['Materias', '/universidades'],
       ['Experiencias', '/resenas'],
       ['Subir material', '/materiales/nuevo'],
       ['Normas', '/normas'],

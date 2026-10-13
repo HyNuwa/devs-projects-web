@@ -1,7 +1,5 @@
 import type { User } from '@/types/auth';
 
-const moderatorRoles = new Set(['ADMIN', 'MODERATOR', 'SUPERADMIN']);
-
 export type MaterialManagementTarget = {
   authorId: string;
 };
@@ -12,18 +10,20 @@ export type MaterialManagementCapabilities = {
   canManage: boolean;
 };
 
-/** Mirrors the existing material API: owner edits, owner or moderator deletes. */
+/**
+ * Mirrors the material API: only the author edits or deletes. Staff take
+ * content down with a retiro from its caso, which follows their facultades and
+ * stays in the history.
+ */
 export function getMaterialManagementCapabilities(
   material: MaterialManagementTarget | null,
   user: User | null,
 ): MaterialManagementCapabilities {
   const isOwner = Boolean(material && user && material.authorId === user.id);
-  const isModerator = Boolean(user && moderatorRoles.has(user.role));
-  const canDelete = isOwner || isModerator;
 
   return {
-    canDelete,
+    canDelete: isOwner,
     canEdit: isOwner,
-    canManage: isOwner || isModerator,
+    canManage: isOwner,
   };
 }

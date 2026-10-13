@@ -22,9 +22,10 @@ export const primaryDestinations: readonly Destination[] = [
   {
     id: 'materias',
     label: 'Materias',
-    href: '/materias',
+    href: '/universidades',
     icon: BookOpen,
-    match: ['/materias', '/materias/*', '/materiales', '/materiales/**'],
+    // The browsing steps, each materia and each material (openspec frontend/app-shell).
+    match: ['/universidades', '/universidades/**', '/materias/*', '/materiales/*'],
   },
   {
     id: 'experiencias',

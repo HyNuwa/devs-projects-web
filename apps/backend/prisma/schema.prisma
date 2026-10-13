@@ -150,6 +150,7 @@ model User {
   appeals               Appeal[]               @relation("AppealAppellant")
   profileCustomization  ProfileCustomization?
   correctionSuggestions CorrectionSuggestion[] @relation("CorrectionSuggester")
+  moderatorScopes       ModeratorScope[]
 
   @@map("users")
 }
@@ -203,9 +204,10 @@ model Faculty {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  university University @relation(fields: [universityId], references: [id], onDelete: Restrict)
+  university University       @relation(fields: [universityId], references: [id], onDelete: Restrict)
   careers    Career[]
   subjects   Subject[]
+  moderators ModeratorScope[]
 
   @@unique([universityId, name])
   @@unique([universityId, shortName])
@@ -217,6 +219,8 @@ model Career {
   facultyId String   @map("faculty_id") @db.Uuid
   name      String   @db.VarChar(100)
   code      String   @db.VarChar(20)
+  /// Official plan on the universidad's website, https only (ADR 0003).
+  planUrl   String?  @map("plan_url") @db.VarChar(500)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -241,6 +245,7 @@ model StudyPlan {
   subjects StudyPlanSubject[]
 
   @@unique([careerId, code])
+  @@unique([careerId])
   @@map("study_plans")
 }
 
@@ -263,7 +268,7 @@ model UserStudyPlan {
 model Subject {
   id            String   @id @default(uuid()) @db.Uuid
   facultyId     String   @map("faculty_id") @db.Uuid
-  code          String?  @db.VarChar(20)
+  code          String?  @unique @db.VarChar(20)
   name          String   @db.VarChar(150)
   searchKey     String   @default("") @map("search_key") @db.VarChar(200)
   description   String?  @db.Text
@@ -745,6 +750,7 @@ enum ModerationEventAction {
   APPEAL_REJECTED
   /// An admin changed an account's role (openspec reputation/trust-privileges).
   ROLE_CHANGED
+  MODERATOR_SCOPE_CHANGED
 }
 
 model ModerationCase {
@@ -994,4 +1000,19 @@ model CorrectionSuggestion {
   @@index([suggesterId, status])
   @@index([status, createdAt])
   @@map("correction_suggestions")
+}
+
+/// Facultades a MODERATOR covers (openspec moderation/scope). ADMIN and
+/// SUPERADMIN cover every facultad without rows here.
+model ModeratorScope {
+  userId    String   @map("user_id") @db.Uuid
+  facultyId String   @map("faculty_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Restrict)
+
+  @@id([userId, facultyId])
+  @@index([facultyId])
+  @@map("moderator_scopes")
 }

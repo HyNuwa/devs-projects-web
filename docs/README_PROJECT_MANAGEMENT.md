@@ -67,7 +67,7 @@ Grandes bloques pendientes, sin fechas. Cada uno se convierte en uno o más camb
 | Moderación con publicación inmediata | [`README_MODERACION.md`](README_MODERACION.md), [ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md) | Especificado |
 | Puntos, niveles e insignias | [`README_PUNTOS_E_INSIGNIAS.md`](README_PUNTOS_E_INSIGNIAS.md) | Especificado |
 | Rediseño visual | Canvas DevsProject · Home | Diseñado |
-| Universidad → Facultad en el modelo | [`README_DATABASE.md`](README_DATABASE.md), [ADR 0002](adr/0002-jerarquia-universidad-facultad.md) | Modelo y «Mi carrera» con el cambio `instituciones`; navegación del canvas y `ModeratorScope`, cambio 4 `alcance-por-facultad` |
+| Universidad → Facultad en el modelo | [`README_DATABASE.md`](README_DATABASE.md), [ADR 0002](adr/0002-jerarquia-universidad-facultad.md) | Modelo y «Mi carrera» con el cambio `instituciones`; navegación del canvas, ubicación, universidades precargadas y `ModeratorScope` con el cambio 4 `alcance-por-facultad`; alta desde la interfaz con `catalogo-editable` |
 | Eventos | Canvas (página Eventos) | Diseñado, por especificar |
 | Clasificados (venta y tutorías) | Canvas (página Clasificados) | Diseñado, por especificar |
 | Infraestructura y despliegue | [`README_DEVOPS.md`](README_DEVOPS.md) | Plan |

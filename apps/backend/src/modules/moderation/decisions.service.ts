@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { assertCaseInScope } from './scope';
 
 import type {
   ModerationDecision,
@@ -60,6 +61,7 @@ export class DecisionsService {
       throw new BadRequestException('Escribí la razón de la decisión');
     }
 
+    await assertCaseInScope(this.prisma, moderator, caseId);
     const moderationCase = await this.prisma.moderationCase.findUnique({
       where: { id: caseId },
       select: {

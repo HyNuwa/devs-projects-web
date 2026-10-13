@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+
 import { SubjectHub } from '@/components/subjects/SubjectHub';
 
 export const metadata: Metadata = {
@@ -8,5 +10,10 @@ export const metadata: Metadata = {
 
 export default async function MateriaPage({ params }: { params: Promise<{ codigo: string }> }) {
   const { codigo } = await params;
-  return <SubjectHub code={codigo} key={codigo} />;
+  // The hub reads the carrera and the materia search from the URL.
+  return (
+    <Suspense fallback={null}>
+      <SubjectHub code={codigo} key={codigo} />
+    </Suspense>
+  );
 }

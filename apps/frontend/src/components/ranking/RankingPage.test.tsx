@@ -22,7 +22,11 @@ vi.mock('@/lib/ranking-client', () => ({
   getLegends: mocks.legends,
   getMyLegendsFaculty: mocks.legendsMe,
 }));
-vi.mock('@/lib/study-plans-client', () => ({ getInstitutions: mocks.institutions }));
+vi.mock('@/lib/study-plans-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/study-plans-client')>()),
+  getInstitutions: mocks.institutions,
+  getMyCareers: vi.fn().mockResolvedValue([]),
+}));
 vi.mock('next/navigation', () => ({
   usePathname: () => '/ranking',
   useRouter: () => ({ replace: mocks.replace }),
@@ -32,6 +36,8 @@ vi.mock('@/stores/authStore', () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
     selector({ user: mocks.user, isLoading: mocks.isLoading }),
 }));
+
+import { resetUbicacionStore, UBICACION_STORAGE_KEY } from '@/stores/ubicacionStore';
 
 import { RankingPage } from './RankingPage';
 
@@ -95,6 +101,8 @@ afterEach(cleanup);
 
 describe('RankingPage (/ranking)', () => {
   beforeEach(() => {
+    resetUbicacionStore();
+    window.localStorage.clear();
     mocks.user = null;
     mocks.isLoading = false;
     mocks.searchParams = new URLSearchParams();
@@ -268,5 +276,38 @@ describe('RankingPage (/ranking)', () => {
     expect(
       screen.getByText('No pudimos cargar las carreras y facultades para elegir otra.'),
     ).toBeInTheDocument();
+  });
+
+  it('starts a visitor at the first carrera of their ubicación', async () => {
+    window.localStorage.setItem(
+      UBICACION_STORAGE_KEY,
+      JSON.stringify({
+        universityId: 'u-unju',
+        universityShortName: 'UNJU',
+        facultyId: 'f-fce',
+        facultyShortName: 'FCE',
+      }),
+    );
+    render(<RankingPage />);
+    await waitFor(() => expect(mocks.monthly).toHaveBeenCalledWith('c-cont'));
+    expect(mocks.monthly).not.toHaveBeenCalledWith(undefined);
+    expect(await screen.findByRole('combobox', { name: 'Carrera' })).toHaveValue('c-cont');
+  });
+
+  it('starts Leyendas at the ubicación’s facultad', async () => {
+    window.localStorage.setItem(
+      UBICACION_STORAGE_KEY,
+      JSON.stringify({
+        universityId: 'u-unju',
+        universityShortName: 'UNJU',
+        facultyId: 'f-fi',
+        facultyShortName: 'FI',
+      }),
+    );
+    mocks.searchParams = new URLSearchParams('tab=leyendas');
+    render(<RankingPage />);
+    await screen.findByRole('list', { name: 'Leyendas de f-fi' });
+    expect(mocks.legends).toHaveBeenCalledWith('f-fi');
+    expect(mocks.legendsMe).not.toHaveBeenCalled();
   });
 });

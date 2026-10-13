@@ -5,12 +5,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  assertCorrectionInScope,
+  correctionWhere,
+  narrow,
+  scopeOf,
+} from '../moderation/scope';
 
 import {
   MaterialResourceType,
   Prisma,
   type CorrectionField,
   type CorrectionSuggestion,
+  type Role,
 } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -191,27 +198,51 @@ export class CorrectionsService {
   }
 
   /** Correcciones tab: suggestions the author left for 7 days, oldest first. */
-  async forModeration(moderatorId: string, seesSuggester = false) {
+  async forModeration(
+    moderator: { id: string; role: Role },
+    seesSuggester = false,
+    facultyId?: string,
+  ) {
+    const moderatorId = moderator.id;
+    const scope = correctionWhere(
+      narrow(await scopeOf(this.prisma, moderator), facultyId),
+    );
     const rows = await this.openWhere(
       {
         suggesterId: { not: moderatorId },
-        material: { authorId: { not: moderatorId } },
+        ...scope,
+        material: {
+          ...(scope.material as Prisma.MaterialWhereInput),
+          authorId: { not: moderatorId },
+        },
       },
       { createdAt: { lte: new Date(Date.now() - AUTHOR_PHASE_MS) } },
     );
     return Promise.all(rows.map((row) => this.view(row, seesSuggester)));
   }
 
-  async countForModeration(moderatorId: string) {
-    return (await this.forModeration(moderatorId)).length;
+  async countForModeration(
+    moderator: { id: string; role: Role },
+    facultyId?: string,
+  ) {
+    return (await this.forModeration(moderator, false, facultyId)).length;
   }
 
   decideAsAuthor(id: string, authorId: string, accept: boolean) {
     return this.decide(id, { kind: 'AUTHOR', userId: authorId }, accept);
   }
 
-  decideAsModeration(id: string, moderatorId: string, accept: boolean) {
-    return this.decide(id, { kind: 'MODERATION', userId: moderatorId }, accept);
+  async decideAsModeration(
+    id: string,
+    moderator: { id: string; role: Role },
+    accept: boolean,
+  ) {
+    await assertCorrectionInScope(this.prisma, moderator, id);
+    return this.decide(
+      id,
+      { kind: 'MODERATION', userId: moderator.id },
+      accept,
+    );
   }
 
   private async decide(id: string, decider: Decider, accept: boolean) {

@@ -18,6 +18,7 @@ import {
 } from '@/lib/ranking-client';
 import { getInstitutions, type InstitutionTree } from '@/lib/study-plans-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useUbicacionStore } from '@/stores/ubicacionStore';
 
 type Tab = 'mes' | 'leyendas';
 
@@ -102,9 +103,24 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 /** «Este mes en tu carrera»: the top 10 of the month and the viewer's place below it. */
-function MonthlyPanel({ tree }: { tree: InstitutionTree }) {
+/** The first carrera by name of the ubicación's facultad (openspec reputation/rankings). */
+function firstCareerOf(tree: InstitutionTree, facultyId: string | undefined) {
+  if (!facultyId) return undefined;
+  for (const university of tree) {
+    const faculty = university.faculties.find((entry) => entry.id === facultyId);
+    if (faculty) return faculty.careers[0]?.id;
+  }
+  return undefined;
+}
+
+function MonthlyPanel({ tree, treeSettled }: { tree: InstitutionTree; treeSettled: boolean }) {
   const user = useAuthStore((state) => state.user);
   const authLoading = useAuthStore((state) => state.isLoading);
+  const ubicacion = useUbicacionStore((store) => store.ubicacion);
+  const ubicacionReady = useUbicacionStore((store) => store.ready);
+  // With an ubicación, wait for the carreras to pick its first one.
+  const waiting = authLoading || !ubicacionReady || (Boolean(ubicacion) && !treeSettled);
+  const ubicacionCareer = firstCareerOf(tree, ubicacion?.facultyId);
   const [selected, setSelected] = useState<string>();
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<Load<{ ranking: MonthlyRanking; me: MyMonthlyPlace['me'] }>>({
@@ -112,7 +128,7 @@ function MonthlyPanel({ tree }: { tree: InstitutionTree }) {
   });
 
   useEffect(() => {
-    if (authLoading) return;
+    if (waiting) return;
     let active = true;
     (async () => {
       // The viewer's place is extra: the public list loads even when it fails.
@@ -122,6 +138,15 @@ function MonthlyPanel({ tree }: { tree: InstitutionTree }) {
         return { ranking, me: place?.me ?? null };
       }
       const place = await mine;
+      // Their carrera cursando first, then the ubicación's first carrera.
+      const careerId = place?.defaultCareerId ?? ubicacionCareer;
+      if (careerId && careerId !== place?.careerId) {
+        const [again, ranking] = await Promise.all([
+          user ? getMyMonthlyPlace(careerId).catch(() => null) : null,
+          getMonthlyRanking(careerId),
+        ]);
+        return { ranking, me: again?.me ?? null };
+      }
       const ranking = await getMonthlyRanking(place?.careerId);
       return { ranking, me: place?.me ?? null };
     })()
@@ -134,7 +159,7 @@ function MonthlyPanel({ tree }: { tree: InstitutionTree }) {
     return () => {
       active = false;
     };
-  }, [authLoading, reloadKey, selected, user]);
+  }, [waiting, reloadKey, selected, user, ubicacionCareer]);
 
   const careerId = selected ?? (state.status === 'ready' ? state.ranking.career.id : '');
 
@@ -227,16 +252,20 @@ function MonthlyPanel({ tree }: { tree: InstitutionTree }) {
 function LegendsPanel({ tree }: { tree: InstitutionTree }) {
   const user = useAuthStore((state) => state.user);
   const authLoading = useAuthStore((state) => state.isLoading);
+  const ubicacion = useUbicacionStore((store) => store.ubicacion);
+  const ubicacionReady = useUbicacionStore((store) => store.ready);
   const [selected, setSelected] = useState<string>();
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<Load<{ legends: Legends }>>({ status: 'loading' });
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || !ubicacionReady) return;
     let active = true;
     (async () => {
-      const mine = !selected && user ? await getMyLegendsFaculty().catch(() => null) : null;
-      return getLegends(selected ?? mine?.defaultFacultyId ?? undefined);
+      // The ubicación's facultad first; it already follows the viewer's carrera.
+      const start = selected ?? ubicacion?.facultyId;
+      const mine = !start && user ? await getMyLegendsFaculty().catch(() => null) : null;
+      return getLegends(start ?? mine?.defaultFacultyId ?? undefined);
     })()
       .then((legends) => {
         if (active) setState({ status: 'ready', legends });
@@ -247,7 +276,7 @@ function LegendsPanel({ tree }: { tree: InstitutionTree }) {
     return () => {
       active = false;
     };
-  }, [authLoading, reloadKey, selected, user]);
+  }, [authLoading, ubicacionReady, ubicacion?.facultyId, reloadKey, selected, user]);
 
   const facultyId = selected ?? (state.status === 'ready' ? state.legends.faculty.id : '');
   const university =
@@ -339,6 +368,14 @@ export function RankingPage() {
   const tab: Tab = searchParams.get('tab') === 'leyendas' ? 'leyendas' : 'mes';
   const [tree, setTree] = useState<InstitutionTree>([]);
   const [treeFailed, setTreeFailed] = useState(false);
+  const [treeSettled, setTreeSettled] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const authLoading = useAuthStore((state) => state.isLoading);
+  const loadUbicacion = useUbicacionStore((store) => store.load);
+
+  useEffect(() => {
+    if (!authLoading) void loadUbicacion(Boolean(user));
+  }, [authLoading, loadUbicacion, user]);
 
   useEffect(() => {
     let active = true;
@@ -348,6 +385,9 @@ export function RankingPage() {
       })
       .catch(() => {
         if (active) setTreeFailed(true);
+      })
+      .finally(() => {
+        if (active) setTreeSettled(true);
       });
     return () => {
       active = false;
@@ -425,7 +465,11 @@ export function RankingPage() {
               No pudimos cargar las carreras y facultades para elegir otra.
             </p>
           ) : null}
-          {tab === 'mes' ? <MonthlyPanel tree={tree} /> : <LegendsPanel tree={tree} />}
+          {tab === 'mes' ? (
+            <MonthlyPanel tree={tree} treeSettled={treeSettled} />
+          ) : (
+            <LegendsPanel tree={tree} />
+          )}
         </div>
       </section>
     </article>

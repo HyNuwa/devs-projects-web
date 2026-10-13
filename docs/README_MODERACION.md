@@ -187,7 +187,18 @@ Las acciones bloqueadas se muestran deshabilitadas con la explicación («Estás
 
 **Quién sanciona a quién:** nadie se sanciona a sí mismo. Un `MODERATOR` no sanciona a otro `MODERATOR`, `ADMIN` ni `SUPERADMIN`: a un moderador lo sanciona un `ADMIN`, y a un `ADMIN` solo un `SUPERADMIN`. Tampoco se sanciona a una cuenta desde un caso que uno reportó, ni desde *Usuarios* a una cuenta cuyo contenido **no anónimo** uno reportó en los últimos 90 días («Reportaste contenido de esta cuenta: lo resuelve otra persona de moderación»). Solo la advertencia al decidir un caso («Advertir también») queda afuera de esta regla: ahí aplica la del caso, y rechazarla por otro reporte podría revelar quién escribió una publicación anónima. Con contenido anónimo no se bloquea: el bloqueo mismo revelaría la autoría.
 
-Hoy DevsProject solo tiene la FI UNJu, así que en la práctica todos los moderadores cubren la misma facultad. La asignación por facultad evita rehacer el modelo cuando se sumen otras.
+Hoy DevsProject solo tiene contenido en la FI UNJu, así que en la práctica todos los moderadores cubren la misma facultad. La asignación por facultad evita rehacer el modelo cuando se sumen otras.
+
+### 8.1 Alcance de moderación
+
+Desde el cambio `alcance-por-facultad` (spec `moderation/scope`):
+
+- **Asignación:** un `ADMIN` elige las facultades al hacer moderadora a una cuenta (al menos una, preseleccionadas con las de sus carreras) y las cambia desde la ficha. Cada cambio queda en el historial (`MODERATOR_SCOPE_CHANGED`, con las facultades de antes y de después), visible solo para `ADMIN`. Quitar el rol borra sus facultades. Los moderadores que ya existían cubren la FI UNJu.
+- **Facultad de un caso:** la de la materia del contenido, calculada al leer, nunca guardada. Un caso sin materia (eventos y avisos, cuando lleguen) lo ven solo los `ADMIN`.
+- **Qué ve un moderador:** casos, revisiones previas, correcciones, apelaciones, historial y contadores de sus facultades. Sin facultades no ve ningún caso y el panel se lo explica. Lo de otra facultad responde igual que algo que no existe.
+- **Usuarios:** ve y puede sancionar a las cuentas con una carrera declarada en sus facultades o autoras con nombre de un caso en ellas. Un caso anónimo nunca hace visible a su autor. La ficha muestra todo el historial de la cuenta, también de otras facultades, porque la escalera cuenta todo.
+- **Apelaciones:** las revisa otro moderador que cubra esa facultad; si no hay otro, esperan a un `ADMIN`.
+- **Panel:** «Tu rol: moderación · FI UNJU». Los `ADMIN` filtran Casos, Correcciones, Apelaciones e Historial por facultad (`?facultad=`).
 
 **Cómo se llega a moderar:** por invitación de un `ADMIN`. Cumplir los requisitos de *Invitación a moderar* (`README_PUNTOS_E_INSIGNIAS.md` §5) solo hace elegible. Solo ADMIN y SUPERADMIN ven la marca «Elegible» y su filtro en *Usuarios*, porque los requisitos cuentan retiros de contenido anónimo. Desde la ficha, «Hacer moderador» pasa la cuenta de USER a MODERATOR.
 
@@ -227,7 +238,7 @@ El historial es de solo lectura: nadie puede editar ni borrar un registro.
 - **Reportes:** generalizar `CommunityReport` para cualquier contenido (materiales, reseñas, experiencias, eventos, avisos) y agregar estado del reporte (`OPEN`, `CONFIRMED`, `DISMISSED`).
 - **Nuevo `ModerationCase`:** agrupa los reportes de un contenido, con estado, facultad y quién lo resolvió.
 - **Nuevo `Appeal`:** decisión apelada, explicación, estado, quién la revisó y razón.
-- **Nuevo `ModeratorScope`:** qué facultades cubre cada moderador. Llega con el modelo de Facultad (cambio Universidad/Facultad); hasta entonces todo moderador ve todos los casos.
+- **`ModeratorScope` (cambio `alcance-por-facultad`):** qué facultades cubre cada moderador. Ver §8.1.
 - **Revelación de autor:** cada uso de «Ver autor» (moderador, publicación, motivo, fecha) se guarda como un evento `AUTHOR_REVEALED` del historial único, visible solo para `ADMIN`.
 - **Advertencias:** agregar `WARN_USER` a `ModerationAction`.
 - **Organizadores:** nuevos `Organization` (verificada o no) y `OrganizationMember`.
@@ -259,7 +270,7 @@ No ve el email completo ni cuáles publicaciones anónimas son de esa persona, s
 
 ### 13.2 Historial
 
-- Cada `MODERATOR` ve el historial de **su facultad**, con filtros por tipo de acción, moderador, contenido y fecha.
+- Cada `MODERATOR` ve el historial de **sus facultades** (§8.1), con filtros por tipo de acción, moderador, contenido y fecha. No ve los cambios de rol ni de facultades.
 - `ADMIN` ve el de todas las facultades.
 - El registro de usos de **Ver autor** lo ven **solo los `ADMIN`**, para detectar abusos de esa función.
 

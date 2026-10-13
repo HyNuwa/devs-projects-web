@@ -54,6 +54,7 @@ export const groupedSuggestionsQuerySchema = z
   .object({
     q: nonEmptySearchText.max(120),
     limit: z.number().int().min(1).max(10).optional(),
+    facultyId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -61,6 +62,7 @@ export const groupedSuggestionsQuerySchema = z
 export const materialDiscoveryQuerySchema = z
   .object({
     subjectId: z.string().uuid().optional(),
+    facultyId: z.string().uuid().optional(),
     search: nonEmptySearchText.optional(),
     resourceType: z.enum(materialResourceTypes).optional(),
     academicYear: z.number().int().min(minimumAcademicYear).max(maximumAcademicYear).optional(),

@@ -530,6 +530,20 @@ async function main() {
   );
   console.log('Creados datos de demo de sanciones y apelaciones');
 
+  // Demo moderators cover FI-UNJU, as the alcance-por-facultad migration did
+  // for the moderators that existed then (openspec moderation/scope).
+  const moderators = await prisma.user.findMany({
+    where: { role: Role.MODERATOR },
+    select: { id: true },
+  });
+  await prisma.moderatorScope.createMany({
+    data: moderators.map((moderator) => ({
+      userId: moderator.id,
+      facultyId: FI_UNJU_FACULTY_ID,
+    })),
+    skipDuplicates: true,
+  });
+
   // Points come only from the demo content, through the ledger's rules
   // (openspec reputation/points), so every total equals its movimientos.
   await rebuildPoints(prisma, { apply: true });

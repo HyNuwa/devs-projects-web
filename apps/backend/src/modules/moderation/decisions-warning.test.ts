@@ -18,7 +18,11 @@ describe('«Retirar» with «Advertir también»', () => {
   function prismaDouble() {
     const double = {
       $transaction: vi.fn(),
+      moderatorScope: {
+        findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+      },
       moderationCase: {
+        count: vi.fn().mockResolvedValue(1),
         findUnique: vi.fn().mockResolvedValue({
           id: 'case-1',
           kind: 'REPORTS',

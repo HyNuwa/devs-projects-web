@@ -26,3 +26,9 @@ Se agrega la jerarquía **Universidad → Facultad → Carrera → Plan → Mate
 - Leyendas de la facultad es una lista por facultad desde el primer día. Alguien aparece en las facultades de sus planes de estudio, activos o terminados.
 - El ranking mensual sigue agrupando por carrera, que ya admite varias.
 - Una universidad y una facultad con una sola fila cada una parecen diseño especulativo. Esta ADR explica por qué existen.
+
+## Actualización (12 de octubre de 2026)
+
+- El cambio `alcance-por-facultad` precarga las universidades principales del país con sus facultades, aunque todavía no tengan carreras, para que quien llegue desde otra universidad encuentre la suya. Las carreras y materias se suman a demanda.
+- El alta desde la interfaz llega con el cambio `catalogo-editable`: un admin carga o aprueba pedidos de estudiantes, que traen el link al plan oficial de la carrera. Desde ese cambio, lo nuevo deja de cargarse por migración.
+- La tabla de planes queda como detalle interno, un plan por carrera ([ADR 0003](0003-un-plan-por-carrera.md)).

@@ -16,6 +16,9 @@ const NOW = new Date('2026-09-30T12:00:00.000Z');
 /** A Prisma double whose writes report one affected row. */
 function prismaDouble() {
   const prisma = {
+    moderatorScope: {
+      findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
     $executeRaw: vi.fn(),
     $transaction: vi.fn(),
     material: {
@@ -34,6 +37,7 @@ function prismaDouble() {
       updateMany: vi.fn(),
     },
     moderationCase: {
+      count: vi.fn().mockResolvedValue(1),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn().mockResolvedValue({ id: 'case-1', highPriority: false }),

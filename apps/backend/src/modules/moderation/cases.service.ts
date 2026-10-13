@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as path from 'path';
+import type { Actor } from './sanctions.service';
+import { assertCaseInScope, caseWhere, narrow, scopeOf } from './scope';
 
 import type {
   ModerationTargetType,
@@ -142,10 +144,11 @@ const REMOVAL_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 export class CasesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async queue() {
+  async queue(viewer: Actor, facultyId?: string) {
     const now = new Date();
+    const scope = narrow(await scopeOf(this.prisma, viewer), facultyId);
     const records = await this.prisma.moderationCase.findMany({
-      where: { status: 'OPEN' },
+      where: { status: 'OPEN', ...caseWhere(scope) },
       include: caseInclude,
     });
 
@@ -197,6 +200,11 @@ export class CasesService {
     viewerId: string,
     viewerRole: Role = 'MODERATOR',
   ) {
+    await assertCaseInScope(
+      this.prisma,
+      { id: viewerId, role: viewerRole },
+      caseId,
+    );
     const record = await this.prisma.moderationCase.findUnique({
       where: { id: caseId },
       include: caseInclude,
@@ -281,7 +289,8 @@ export class CasesService {
   }
 
   /** Where to read a material caso's file: the staged copy or the published one. */
-  async materialFile(caseId: string) {
+  async materialFile(caseId: string, viewer: Actor) {
+    await assertCaseInScope(this.prisma, viewer, caseId);
     const record = await this.prisma.moderationCase.findUnique({
       where: { id: caseId },
       select: {

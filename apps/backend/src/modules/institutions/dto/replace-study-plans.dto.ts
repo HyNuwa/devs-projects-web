@@ -10,24 +10,25 @@ import {
 
 import { StudyPlanStatus } from '../../../generated/prisma';
 
-/** Sanity bound on how many plans one student can declare. */
-export const MAX_DECLARED_PLANS = 10;
+/** Sanity bound on how many carreras one student can declare. */
+export const MAX_DECLARED_CAREERS = 10;
 
-export class DeclaredStudyPlanDto {
+export class DeclaredCareerDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
-  studyPlanId: string;
+  careerId: string;
 
   @ApiProperty({ enum: StudyPlanStatus })
   @IsEnum(StudyPlanStatus)
   status: StudyPlanStatus;
 }
 
-export class ReplaceStudyPlansDto {
-  @ApiProperty({ type: [DeclaredStudyPlanDto], maxItems: MAX_DECLARED_PLANS })
+/** «Mi carrera»: the whole list of declared carreras (ADR 0003: no plans). */
+export class ReplaceDeclaredCareersDto {
+  @ApiProperty({ type: [DeclaredCareerDto], maxItems: MAX_DECLARED_CAREERS })
   @IsArray()
-  @ArrayMaxSize(MAX_DECLARED_PLANS)
+  @ArrayMaxSize(MAX_DECLARED_CAREERS)
   @ValidateNested({ each: true })
-  @Type(() => DeclaredStudyPlanDto)
-  plans: DeclaredStudyPlanDto[];
+  @Type(() => DeclaredCareerDto)
+  careers: DeclaredCareerDto[];
 }

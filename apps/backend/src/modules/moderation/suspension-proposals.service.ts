@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { assertAccountInScope } from './scope';
 
 import { Prisma } from '../../generated/prisma';
 import { assertNoReportConflict } from './conflict-of-interest';
@@ -43,6 +44,7 @@ export class SuspensionProposalsService {
     const reason = requireReason(rawReason);
     requireDuration(durationDays);
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountInScope(tx, actor, userId);
       const target = await tx.user.findUnique({
         where: { id: userId },
         select: { id: true, role: true, isBanned: true, bannedUntil: true },

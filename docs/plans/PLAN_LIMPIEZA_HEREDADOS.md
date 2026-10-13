@@ -14,7 +14,7 @@
 | `/materiales/[id]` (`MaterialDetail`) | El rediseño no tiene página propia del material: se abre en `MaterialPreviewDialog`. | `MaterialPreviewDialog`. |
 | `/validacion/pixel-notebook` | Prototipo del rediseño. | Ninguno. |
 
-**Ya borrado:** el `/ranking` heredado (global, semanal, `/ranking/top` y `/ranking/me`, con `RankCard`, `RankingList` y `LevelsTable`) se borró en 3c-3 (`rankings-acotados`). La URL `/ranking` sigue y muestra los rankings nuevos.
+**Ya borrado:** la lista plana de `/materias` (`SubjectList`) y el explorador `/materiales/[...]` (`MaterialHierarchyPage`, con los endpoints `discovery/hierarchy/*`) se borraron en el cambio 4 (`alcance-por-facultad`); sus URLs redirigen al recorrido por universidades. El `/ranking` heredado (global, semanal, `/ranking/top` y `/ranking/me`, con `RankCard`, `RankingList` y `LevelsTable`) se borró en 3c-3 (`rankings-acotados`). La URL `/ranking` sigue y muestra los rankings nuevos.
 
 ## 2. Diferencias conocidas que no se arreglan
 

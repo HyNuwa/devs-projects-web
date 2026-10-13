@@ -5,11 +5,13 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { ScopeFilterQueryDto } from './dto/scope-filter.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Role } from '../auth/dto/auth-response.dto';
@@ -34,8 +36,11 @@ export class AppealsController {
 
   @Get()
   @ApiOperation({ summary: 'Apelaciones pendientes que podés resolver' })
-  list(@Request() req: AuthedRequest) {
-    return this.queries.list({ id: req.user.id, role: req.user.role });
+  list(@Request() req: AuthedRequest, @Query() query: ScopeFilterQueryDto) {
+    return this.queries.list(
+      { id: req.user.id, role: req.user.role },
+      query.facultyId,
+    );
   }
 
   @Get(':id')

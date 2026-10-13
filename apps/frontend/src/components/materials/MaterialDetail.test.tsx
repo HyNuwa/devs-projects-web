@@ -115,7 +115,7 @@ describe('MaterialDetail management controls', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
   });
 
-  it('shows a moderator the allowed delete control without an edit control', async () => {
+  it('gives a moderator no delete or edit control: staff retire content from a caso', async () => {
     useAuthStore.setState({
       isLoading: false,
       user: { ...baseUser, id: 'moderator-1', role: 'MODERATOR' },
@@ -123,7 +123,7 @@ describe('MaterialDetail management controls', () => {
     renderDetail();
 
     await screen.findByRole('heading', { name: material.title });
-    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
   });
 });

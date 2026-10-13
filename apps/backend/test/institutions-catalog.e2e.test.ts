@@ -81,8 +81,8 @@ describe('GET /institutions (e2e)', () => {
         code: 'CP',
         studyPlans: {
           create: [
+            // One internal plan per carrera (ADR 0003).
             { name: 'Plan 2024', code: 'CP-2024', duration: 5 },
-            { name: 'Plan 2012', code: 'CP-2012', duration: 5 },
           ],
         },
       },
@@ -165,6 +165,7 @@ describe('GET /institutions (e2e)', () => {
               id: ids.agronomia,
               name: 'Ingeniería Agronómica',
               code: 'II',
+              planUrl: null,
               studyPlans: [
                 { id: expect.any(String), name: 'Plan 2020', code: 'IA-2020' },
               ],
@@ -180,14 +181,15 @@ describe('GET /institutions (e2e)', () => {
               id: ids.administracion,
               name: 'Administración',
               code: 'LA',
+              planUrl: null,
               studyPlans: [],
             },
             {
               id: ids.contador,
               name: 'Contador Público',
               code: 'CP',
+              planUrl: null,
               studyPlans: [
-                { id: expect.any(String), name: 'Plan 2012', code: 'CP-2012' },
                 { id: expect.any(String), name: 'Plan 2024', code: 'CP-2024' },
               ],
             },

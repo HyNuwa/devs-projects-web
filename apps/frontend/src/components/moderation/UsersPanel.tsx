@@ -28,9 +28,10 @@ import {
   warnUser,
 } from '@/lib/moderation-users-client';
 import { reportReasonLabels, type ReportReason } from '@/lib/report-client';
-import { promoteToModerator } from '@/lib/trust-client';
+import { promoteToModerator, setModeratorFaculties } from '@/lib/trust-client';
 import { useAuthStore } from '@/stores/authStore';
 
+import { FacultyChecklist } from './FacultyChecklist';
 import { ModerationHeader } from './ModerationHeader';
 
 const MODERATOR_ROLES = new Set(['MODERATOR', 'ADMIN', 'SUPERADMIN']);
@@ -370,6 +371,11 @@ function UserFileView({ file, onChanged }: { file: UserFile; onChanged: () => vo
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Promotion starts from the facultades of the account's carreras.
+  const [promoteFaculties, setPromoteFaculties] = useState<string[]>(file.careerFacultyIds ?? []);
+  const [covered, setCovered] = useState<string[]>(
+    (file.moderatorFaculties ?? []).map((faculty) => faculty.id),
+  );
   const can = (action: SanctionAction) => file.actions.includes(action);
 
   const run = async (action: SanctionAction) => {
@@ -485,6 +491,38 @@ function UserFileView({ file, onChanged }: { file: UserFile; onChanged: () => vo
         )
       ) : null}
 
+      {file.moderatorFaculties ? (
+        <div className="grid gap-3 rounded-xl border-[1.5px] border-border p-3 text-sm">
+          <FacultyChecklist
+            disabled={busy}
+            legend="Facultades que cubre"
+            onChange={setCovered}
+            selected={covered}
+          />
+          <Button
+            className="w-fit"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                await setModeratorFaculties(file.id, covered);
+                setNotice('Guardamos sus facultades.');
+                onChanged();
+              } catch (caught) {
+                setError(getApiError(caught));
+              } finally {
+                setBusy(false);
+              }
+            }}
+            size="sm"
+            variant="outline"
+          >
+            Guardar facultades
+          </Button>
+        </div>
+      ) : null}
+
       {file.eligible ? (
         <div className="grid gap-2 rounded-xl border-[1.5px] border-primary bg-secondary p-3 text-sm">
           <p className="font-extrabold text-link">Elegible para moderar</p>
@@ -493,14 +531,21 @@ function UserFileView({ file, onChanged }: { file: UserFile; onChanged: () => vo
             manual: escribile antes de cambiar su rol.
           </p>
           {file.canPromote ? (
-            <div>
-              <Button
+            <div className="grid gap-3">
+              <FacultyChecklist
                 disabled={busy}
+                legend="Facultades que va a cubrir"
+                onChange={setPromoteFaculties}
+                selected={promoteFaculties}
+              />
+              <Button
+                className="w-fit"
+                disabled={busy || promoteFaculties.length === 0}
                 onClick={async () => {
                   setBusy(true);
                   setError(null);
                   try {
-                    await promoteToModerator(file.id);
+                    await promoteToModerator(file.id, promoteFaculties);
                     setNotice('Ahora es parte de moderación.');
                     onChanged();
                   } catch (caught) {

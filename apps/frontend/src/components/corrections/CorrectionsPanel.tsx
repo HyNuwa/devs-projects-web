@@ -12,6 +12,7 @@ import {
   type CorrectionSuggestion,
 } from '@/lib/trust-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useModerationFaculty } from '@/components/moderation/useModerationFaculty';
 
 import { CorrectionRow } from './CorrectionRow';
 
@@ -32,11 +33,12 @@ export function CorrectionsPanel() {
   const [state, setState] = useState<State>({ status: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const facultyId = useModerationFaculty();
 
   useEffect(() => {
     if (!isModerator) return;
     let active = true;
-    getModerationCorrections()
+    getModerationCorrections(facultyId)
       .then((suggestions) => {
         if (active) setState({ status: 'ready', suggestions });
       })
@@ -46,7 +48,7 @@ export function CorrectionsPanel() {
     return () => {
       active = false;
     };
-  }, [isModerator]);
+  }, [facultyId, isModerator]);
 
   if (!isModerator) {
     return (

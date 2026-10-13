@@ -21,6 +21,10 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role, UserResponseDto } from '../auth/dto/auth-response.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import {
+  requireFaculties,
+  setModeratorFaculties,
+} from '../moderation/scope-assignment';
 
 const ADMIN_ROLES: Role[] = [Role.ADMIN, Role.SUPERADMIN];
 
@@ -118,6 +122,8 @@ export class AdminController {
       if (target.role === body.role) {
         return tx.user.findUniqueOrThrow({ where: { id }, select });
       }
+      const faculties =
+        body.role === Role.MODERATOR ? requireFaculties(body.facultyIds) : [];
       const user = await tx.user.update({
         where: { id },
         data: { role: body.role },
@@ -131,6 +137,14 @@ export class AdminController {
           metadata: { from: target.role, to: body.role },
         },
       });
+      // Becoming MODERATOR sets its facultades; leaving it removes them.
+      if (body.role === Role.MODERATOR || target.role === Role.MODERATOR) {
+        await setModeratorFaculties(tx, {
+          actorId: req.user.id,
+          userId: id,
+          facultyIds: faculties,
+        });
+      }
       return user;
     });
   }

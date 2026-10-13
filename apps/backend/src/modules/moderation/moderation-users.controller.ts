@@ -1,16 +1,22 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
-  Post,
   Param,
   ParseUUIDPipe,
+  Post,
+  Put,
   Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  ModeratorFacultiesDto,
+  PromoteDto,
+} from './dto/moderator-faculties.dto';
 
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -66,7 +72,27 @@ export class ModerationUsersController {
   promote(
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: { user: Actor },
+    @Body() body: PromoteDto,
   ) {
-    return this.users.promote({ id: req.user.id, role: req.user.role }, id);
+    return this.users.promote(
+      { id: req.user.id, role: req.user.role },
+      id,
+      body.facultyIds,
+    );
+  }
+
+  @Put(':id/faculties')
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Cambiar las facultades que cubre una moderadora' })
+  setFaculties(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: Actor },
+    @Body() body: ModeratorFacultiesDto,
+  ) {
+    return this.users.setFaculties(
+      { id: req.user.id, role: req.user.role },
+      id,
+      body.facultyIds,
+    );
   }
 }

@@ -39,8 +39,13 @@ export type AppealDetail = AppealSummary & {
 };
 
 /** Pending appeals the signed-in moderator may answer, and read-only ones for admins. */
-export async function getAppeals() {
-  return (await api.get<AppealSummary[]>('/moderation/appeals')).data;
+export async function getAppeals(facultyId?: string) {
+  return (
+    await api.get<AppealSummary[]>(
+      '/moderation/appeals',
+      facultyId ? { params: { facultyId } } : undefined,
+    )
+  ).data;
 }
 
 export async function getAppeal(appealId: string) {

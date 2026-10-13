@@ -6,10 +6,13 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+
+import { ScopeFilterQueryDto } from '../moderation/dto/scope-filter.dto';
 
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -17,7 +20,7 @@ import { Role } from '../auth/dto/auth-response.dto';
 import { CorrectionsService } from './corrections.service';
 import { CreateCorrectionDto } from './dto/create-correction.dto';
 
-type AuthedRequest = { user: { id: string } };
+type AuthedRequest = { user: { id: string; role: Role } };
 
 /** A trusted student suggests a correction to someone else's material. */
 @ApiTags('Correcciones')
@@ -88,11 +91,18 @@ export class ModerationCorrectionsController {
 
   @Get()
   @ApiOperation({ summary: 'Correcciones que decide moderación' })
-  list(@Request() req: { user: { id: string; role: Role } }) {
+  list(
+    @Request() req: { user: { id: string; role: Role } },
+    @Query() query: ScopeFilterQueryDto,
+  ) {
     // Who suggested proves their good standing on that date: admins only.
     const admin =
       req.user.role === Role.ADMIN || req.user.role === Role.SUPERADMIN;
-    return this.corrections.forModeration(req.user.id, admin);
+    return this.corrections.forModeration(
+      { id: req.user.id, role: req.user.role },
+      admin,
+      query.facultyId,
+    );
   }
 
   @Post(':id/accept')
@@ -102,7 +112,11 @@ export class ModerationCorrectionsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: AuthedRequest,
   ) {
-    return this.corrections.decideAsModeration(id, req.user.id, true);
+    return this.corrections.decideAsModeration(
+      id,
+      { id: req.user.id, role: req.user.role },
+      true,
+    );
   }
 
   @Post(':id/reject')
@@ -112,6 +126,10 @@ export class ModerationCorrectionsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: AuthedRequest,
   ) {
-    return this.corrections.decideAsModeration(id, req.user.id, false);
+    return this.corrections.decideAsModeration(
+      id,
+      { id: req.user.id, role: req.user.role },
+      false,
+    );
   }
 }

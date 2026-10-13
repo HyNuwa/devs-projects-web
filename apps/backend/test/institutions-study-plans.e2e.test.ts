@@ -17,13 +17,13 @@ import {
   type E2eUser,
 } from './support/e2e-app';
 
-type DeclaredPlanBody = {
-  studyPlanId: string;
+type DeclaredCareerBody = {
+  careerId: string;
   status: string;
   faculty: { id: string };
 };
 
-/** Declared study plans (openspec academic-structure/institutions). */
+/** Declared carreras (openspec academic-structure/institutions, ADR 0003). */
 describe('/users/me/study-plans (e2e)', () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
@@ -33,24 +33,26 @@ describe('/users/me/study-plans (e2e)', () => {
   const otherUniversity = randomUUID();
   const otherFaculty = randomUUID();
   const careerIds: string[] = [];
-  let fiPlan: string;
-  let fiOtherPlan: string;
-  let foreignPlan: string;
+  let fiCareer: string;
+  let fiOtherCareer: string;
+  let foreignCareer: string;
 
-  async function career(facultyId: string, name: string) {
+  async function career(facultyId: string, name: string, plan = true) {
     const created = await prisma.career.create({
       data: {
         facultyId,
         name: `${name} ${tag}`,
         code: `C${randomUUID().slice(0, 8)}`,
-        studyPlans: {
-          create: [{ name: 'Plan 2023', code: 'P2023', duration: 5 }],
-        },
+        ...(plan && {
+          studyPlans: {
+            create: [{ name: 'Plan 2023', code: 'P2023', duration: 5 }],
+          },
+        }),
       },
-      select: { id: true, studyPlans: { select: { id: true } } },
+      select: { id: true },
     });
     careerIds.push(created.id);
-    return created.studyPlans[0].id;
+    return created.id;
   }
 
   beforeAll(async () => {
@@ -71,9 +73,9 @@ describe('/users/me/study-plans (e2e)', () => {
         shortName: 'FH',
       },
     });
-    fiPlan = await career(FI_UNJU_FACULTY_ID, 'Informática');
-    fiOtherPlan = await career(FI_UNJU_FACULTY_ID, 'Industrial');
-    foreignPlan = await career(otherFaculty, 'Letras');
+    fiCareer = await career(FI_UNJU_FACULTY_ID, 'Informática');
+    fiOtherCareer = await career(FI_UNJU_FACULTY_ID, 'Industrial');
+    foreignCareer = await career(otherFaculty, 'Letras');
   });
 
   afterAll(async () => {
@@ -94,26 +96,29 @@ describe('/users/me/study-plans (e2e)', () => {
     http()
       .get('/api/v1/users/me/study-plans')
       .set('Authorization', bearer(app, user));
-  const replace = (user: E2eUser, plans: unknown[]) =>
+  const replace = (user: E2eUser, careers: unknown[]) =>
     http()
       .put('/api/v1/users/me/study-plans')
       .set('Authorization', bearer(app, user))
-      .send({ plans });
+      .send({ careers });
 
-  it('starts empty and returns each declared plan with its full path', async () => {
+  it('starts empty and returns each declared carrera with its path and no plan', async () => {
     const student = await createUser(prisma);
     expect((await read(student).expect(200)).body).toEqual([]);
 
     const { body } = await replace(student, [
-      { studyPlanId: fiPlan, status: 'ACTIVE' },
+      { careerId: fiCareer, status: 'ACTIVE' },
     ]).expect(200);
 
     expect(body).toEqual([
       {
-        studyPlanId: fiPlan,
+        careerId: fiCareer,
         status: 'ACTIVE',
-        studyPlan: { id: fiPlan, name: 'Plan 2023', code: 'P2023' },
-        career: expect.objectContaining({ name: `Informática ${tag}` }),
+        declaredAt: expect.any(String),
+        career: expect.objectContaining({
+          id: fiCareer,
+          name: `Informática ${tag}`,
+        }),
         faculty: {
           id: FI_UNJU_FACULTY_ID,
           name: 'Facultad de Ingeniería',
@@ -127,91 +132,82 @@ describe('/users/me/study-plans (e2e)', () => {
       },
     ]);
     expect((await read(student).expect(200)).body).toEqual(body);
+    expect(JSON.stringify(body)).not.toMatch(/studyPlan|Plan 2023/);
   });
 
-  it('replaces the whole list and allows plans of different facultades', async () => {
+  it('replaces the whole list and allows carreras of different facultades', async () => {
     const student = await createUser(prisma);
-    await replace(student, [{ studyPlanId: fiPlan, status: 'ACTIVE' }]).expect(
+    await replace(student, [{ careerId: fiCareer, status: 'ACTIVE' }]).expect(
       200,
     );
 
     const { body } = await replace(student, [
-      { studyPlanId: fiPlan, status: 'COMPLETED' },
-      { studyPlanId: foreignPlan, status: 'ACTIVE' },
+      { careerId: fiCareer, status: 'COMPLETED' },
+      { careerId: foreignCareer, status: 'ACTIVE' },
     ]).expect(200);
 
     expect(
-      (body as DeclaredPlanBody[]).map(
-        (p: {
-          studyPlanId: string;
-          status: string;
-          faculty: { id: string };
-        }) => [p.studyPlanId, p.status, p.faculty.id],
-      ),
+      (body as DeclaredCareerBody[]).map((p) => [
+        p.careerId,
+        p.status,
+        p.faculty.id,
+      ]),
     ).toEqual(
       expect.arrayContaining([
-        [fiPlan, 'COMPLETED', FI_UNJU_FACULTY_ID],
-        [foreignPlan, 'ACTIVE', otherFaculty],
+        [fiCareer, 'COMPLETED', FI_UNJU_FACULTY_ID],
+        [foreignCareer, 'ACTIVE', otherFaculty],
       ]),
     );
     expect(body).toHaveLength(2);
 
     await replace(student, [
-      { studyPlanId: fiOtherPlan, status: 'DROPPED' },
+      { careerId: fiOtherCareer, status: 'DROPPED' },
     ]).expect(200);
     const rows = await prisma.userStudyPlan.findMany({
       where: { userId: student.id },
-      select: { studyPlanId: true, status: true },
+      select: { studyPlan: { select: { careerId: true } }, status: true },
     });
-    expect(rows).toEqual([{ studyPlanId: fiOtherPlan, status: 'DROPPED' }]);
+    expect(rows).toEqual([
+      { studyPlan: { careerId: fiOtherCareer }, status: 'DROPPED' },
+    ]);
   });
 
-  it('rejects duplicates and unknown plans, keeping the previous list', async () => {
+  it('rejects duplicates, unknown carreras and carreras without a plan, keeping the previous list', async () => {
     const student = await createUser(prisma);
-    await replace(student, [{ studyPlanId: fiPlan, status: 'ACTIVE' }]).expect(
+    await replace(student, [{ careerId: fiCareer, status: 'ACTIVE' }]).expect(
       200,
     );
 
     const duplicate = await replace(student, [
-      { studyPlanId: fiOtherPlan, status: 'ACTIVE' },
-      { studyPlanId: fiOtherPlan, status: 'COMPLETED' },
+      { careerId: fiOtherCareer, status: 'ACTIVE' },
+      { careerId: fiOtherCareer, status: 'COMPLETED' },
     ]).expect(400);
-    expect(duplicate.body.code).toBe('DUPLICATE_STUDY_PLAN');
+    expect(duplicate.body.code).toBe('DUPLICATE_CAREER');
     const unknown = await replace(student, [
-      { studyPlanId: randomUUID(), status: 'ACTIVE' },
+      { careerId: randomUUID(), status: 'ACTIVE' },
     ]).expect(400);
-    expect(unknown.body.code).toBe('UNKNOWN_STUDY_PLAN');
+    expect(unknown.body.code).toBe('UNKNOWN_CAREER');
+    const withoutPlan = await career(FI_UNJU_FACULTY_ID, 'Sin plan', false);
+    const planless = await replace(student, [
+      { careerId: withoutPlan, status: 'ACTIVE' },
+    ]).expect(400);
+    expect(planless.body.code).toBe('UNKNOWN_CAREER');
     await replace(student, [
-      { studyPlanId: fiPlan, status: 'GRADUATED' },
+      { careerId: fiCareer, status: 'GRADUATED' },
     ]).expect(400);
 
     const { body } = await read(student).expect(200);
     expect(
-      (body as DeclaredPlanBody[]).map((p) => [p.studyPlanId, p.status]),
-    ).toEqual([[fiPlan, 'ACTIVE']]);
+      (body as DeclaredCareerBody[]).map((p) => [p.careerId, p.status]),
+    ).toEqual([[fiCareer, 'ACTIVE']]);
   });
 
-  it('accepts 10 plans and rejects an 11th by validation', async () => {
-    const career = await prisma.career.create({
-      data: {
-        facultyId: FI_UNJU_FACULTY_ID,
-        name: `Muchos planes ${tag}`,
-        code: `M${randomUUID().slice(0, 8)}`,
-        studyPlans: {
-          create: Array.from({ length: 11 }, (_, i) => ({
-            name: `Plan ${i}`,
-            code: `P${i}`,
-            duration: 5,
-          })),
-        },
-      },
-      select: { id: true, studyPlans: { select: { id: true } } },
-    });
-    careerIds.push(career.id);
-    const choices = career.studyPlans.map(({ id }) => ({
-      studyPlanId: id,
-      status: 'ACTIVE',
-    }));
+  it('accepts 10 carreras and rejects an 11th by validation', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 11; i += 1) {
+      ids.push(await career(FI_UNJU_FACULTY_ID, `Muchas ${i}`));
+    }
+    const choices = ids.map((careerId) => ({ careerId, status: 'ACTIVE' }));
     const student = await createUser(prisma);
 
     const ten = await replace(student, choices.slice(0, 10)).expect(200);
@@ -224,14 +220,30 @@ describe('/users/me/study-plans (e2e)', () => {
     ).toBe(10);
   });
 
+  it('returns declarations made before this change with their carrera and status', async () => {
+    const student = await createUser(prisma);
+    const plan = await prisma.studyPlan.findFirstOrThrow({
+      where: { careerId: fiCareer },
+      select: { id: true },
+    });
+    await prisma.userStudyPlan.create({
+      data: { userId: student.id, studyPlanId: plan.id, status: 'COMPLETED' },
+    });
+
+    const { body } = await read(student).expect(200);
+    expect(
+      (body as DeclaredCareerBody[]).map((p) => [p.careerId, p.status]),
+    ).toEqual([[fiCareer, 'COMPLETED']]);
+  });
+
   it('answers a concurrent save of the same list without a server error', async () => {
     const student = await createUser(prisma);
-    const plans = [{ studyPlanId: fiPlan, status: 'ACTIVE' }];
+    const careers = [{ careerId: fiCareer, status: 'ACTIVE' }];
 
     const responses = await Promise.all([
-      replace(student, plans),
-      replace(student, plans),
-      replace(student, plans),
+      replace(student, careers),
+      replace(student, careers),
+      replace(student, careers),
     ]);
 
     for (const response of responses) {
@@ -242,17 +254,39 @@ describe('/users/me/study-plans (e2e)', () => {
     ).toBe(1);
   });
 
+  it('keeps the order of declaration across saves', async () => {
+    const student = await createUser(prisma);
+    await replace(student, [
+      { careerId: foreignCareer, status: 'ACTIVE' },
+    ]).expect(200);
+    await replace(student, [
+      { careerId: fiCareer, status: 'ACTIVE' },
+      { careerId: foreignCareer, status: 'COMPLETED' },
+    ]).expect(200);
+
+    const { body } = await read(student).expect(200);
+    const byDeclaration = [
+      ...(body as (DeclaredCareerBody & { declaredAt: string })[]),
+    ]
+      .sort((a, b) => a.declaredAt.localeCompare(b.declaredAt))
+      .map((p) => [p.careerId, p.status]);
+    expect(byDeclaration).toEqual([
+      [foreignCareer, 'COMPLETED'],
+      [fiCareer, 'ACTIVE'],
+    ]);
+  });
+
   it('requires a session', async () => {
     await http().get('/api/v1/users/me/study-plans').expect(401);
     await http()
       .put('/api/v1/users/me/study-plans')
-      .send({ plans: [] })
+      .send({ careers: [] })
       .expect(401);
   });
 
-  it('never exposes declared plans on the public profile', async () => {
+  it('never exposes declared carreras on the public profile', async () => {
     const student = await createUser(prisma);
-    await replace(student, [{ studyPlanId: fiPlan, status: 'ACTIVE' }]).expect(
+    await replace(student, [{ careerId: fiCareer, status: 'ACTIVE' }]).expect(
       200,
     );
     const viewer = await createUser(prisma);
@@ -263,12 +297,12 @@ describe('/users/me/study-plans (e2e)', () => {
       .expect(200);
 
     const serialized = JSON.stringify(body);
-    expect(serialized).not.toContain(fiPlan);
+    expect(serialized).not.toContain(fiCareer);
     expect(serialized).not.toContain(`Informática ${tag}`);
     expect(body).not.toHaveProperty('studyPlans');
   });
 
-  it('drops a removed plan from the carreras behind Puente', async () => {
+  it('drops a removed carrera from the carreras behind Puente', async () => {
     const author = await createUser(prisma);
     const { id: subjectId } = await createSubject(prisma);
     const material = await prisma.material.create({
@@ -284,11 +318,9 @@ describe('/users/me/study-plans (e2e)', () => {
       select: { id: true },
     });
     const givers: E2eUser[] = [];
-    for (const plan of [fiPlan, fiOtherPlan, foreignPlan]) {
+    for (const careerId of [fiCareer, fiOtherCareer, foreignCareer]) {
       const giver = await createUser(prisma);
-      await replace(giver, [{ studyPlanId: plan, status: 'ACTIVE' }]).expect(
-        200,
-      );
+      await replace(giver, [{ careerId, status: 'ACTIVE' }]).expect(200);
       await prisma.materialHelpfulness.create({
         data: { userId: giver.id, materialId: material.id },
       });

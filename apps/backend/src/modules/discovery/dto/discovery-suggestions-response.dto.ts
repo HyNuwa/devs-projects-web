@@ -1,4 +1,4 @@
-import { DiscoveryFacultyDto } from './discovery-hierarchy.dto';
+import { DiscoveryFacultyDto } from './discovery-faculty.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MaterialResourceType } from '../../../generated/prisma';
 

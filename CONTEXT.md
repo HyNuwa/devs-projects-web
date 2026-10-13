@@ -11,12 +11,20 @@ An institution that groups one or more facultades.
 _Avoid_: Institution (when you mean a facultad), campus
 
 **Facultad**:
-An academic unit of a universidad that offers carreras. Two universidades may each have a facultad with the same name; they are different facultades. A student belongs to a facultad only through their study plans and may belong to more than one.
+An academic unit of a universidad that offers carreras. Two universidades may each have a facultad with the same name; they are different facultades. A student belongs to a facultad only through their carreras and may belong to more than one.
 _Avoid_: Department, school
 
+**Carrera**:
+A degree program of one facultad, made of materias arranged by año and cuatrimestre. A student declares the carreras they study or finished; the platform does not track curriculum versions.
+_Avoid_: Plan de estudios, study plan, curriculum
+
 **Materia**:
-An academic unit in a study plan of one facultad, and the primary organizing context for resources, reviews, exam experiences, and professors. A materia with the same name in two facultades is two different materias.
+An academic unit taught in one or more carreras of one facultad, and the primary organizing context for resources, reviews, exam experiences, and professors. A materia with the same name in two facultades is two different materias.
 _Avoid_: Course, subject hub
+
+**Ubicación**:
+The universidad and facultad a person is browsing from: the facultad of their carrera when signed in, or the one a visitor chose on their device. It sets where search and rankings start, and never hides content.
+_Avoid_: Campus, location filter
 
 **Recurso académico**:
 A student-contributed file intended to support studying or preparing for an assessment in a materia.
@@ -113,6 +121,10 @@ _Avoid_: Automatic sanction, penalty level
 **Apelación**:
 A single request, within 14 days, that a different moderator review a decision. Its answer is final and always has a written reason.
 _Avoid_: Complaint, second report
+
+**Alcance de moderación**:
+The facultades a moderator covers, assigned by an admin. A moderator acts only on casos whose publication belongs to a materia of those facultades; a moderator without facultades sees no casos. Admins cover every facultad, and casos about publications without a facultad go only to admins.
+_Avoid_: Jurisdiction, moderator region
 
 **Organizador verificado**:
 A student group, chair or institutional office whose identity an admin confirmed, so its members can publish eventos in its name with a visible backing label. Other eventos show that the community published them.

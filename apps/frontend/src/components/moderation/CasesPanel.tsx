@@ -33,6 +33,7 @@ import {
 } from '@/lib/moderation-client';
 import { reportReasonLabels } from '@/lib/report-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
 
@@ -578,6 +579,7 @@ type QueueState =
 export function CasesPanel() {
   const user = useAuthStore((state) => state.user);
   const searchParams = useSearchParams();
+  const facultyId = useModerationFaculty();
   const router = useRouter();
   const pathname = usePathname();
   const requestedCase = searchParams.get('caso');
@@ -604,7 +606,7 @@ export function CasesPanel() {
   useEffect(() => {
     if (!isModerator) return;
     let active = true;
-    getModerationQueue()
+    getModerationQueue(facultyId)
       .then((queue) => {
         if (!active) return;
         setQueueState({ status: 'ready', queue });
@@ -630,7 +632,7 @@ export function CasesPanel() {
     return () => {
       active = false;
     };
-  }, [isModerator, queueKey, requestedCase]);
+  }, [isModerator, queueKey, requestedCase, facultyId]);
 
   useEffect(() => {
     if (!selectedId) return;

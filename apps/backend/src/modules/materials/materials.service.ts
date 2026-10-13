@@ -16,7 +16,6 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
 import { MaterialsQueryDto } from './dto/materials-query.dto';
-import { Role } from '../auth/dto/auth-response.dto';
 import { ContributionPoints } from '../ranking/contribution-points';
 import { HelpfulPoints } from '../ranking/helpful-points';
 import { PioneerBonus } from '../ranking/pioneer-bonus';
@@ -30,8 +29,6 @@ import { toMaterialPreview } from './material-preview.mapper';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
 import type { PriorReviewReason } from '../moderation/rules';
 import { isPubliclyVisible, publicVisibility } from '../moderation/visibility';
-
-const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
 const authorSelect = {
   select: {
@@ -427,6 +424,7 @@ export class MaterialsService {
       isDeleted: false,
       ...publicVisibility(now),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
+      ...(query.facultyId ? { subject: { facultyId: query.facultyId } } : {}),
       ...(searchKey ? { searchKey: { contains: searchKey } } : {}),
       ...(query.resourceType ? { resourceType: query.resourceType } : {}),
       ...(query.academicYear ? { academicYear: query.academicYear } : {}),
@@ -439,6 +437,7 @@ export class MaterialsService {
           transaction.$queryRaw<RankedMaterialId[]>(
             buildMaterialRankingQuery({
               academicYear: query.academicYear,
+              facultyId: query.facultyId,
               limit,
               now,
               offset,
@@ -599,7 +598,11 @@ export class MaterialsService {
     await closeObsolete(tx, material.id);
   }
 
-  async remove(id: string, userId: string, role: Role) {
+  /**
+   * Only the author deletes directly. Staff take content down with a retiro,
+   * which follows the alcance de moderación and stays in the history.
+   */
+  async remove(id: string, userId: string) {
     const material = await this.prisma.material.findUnique({
       where: { id },
     });
@@ -608,8 +611,7 @@ export class MaterialsService {
       throw new NotFoundException('Material no encontrado');
     }
 
-    const isModerator = MODERATOR_ROLES.includes(role);
-    if (material.authorId !== userId && !isModerator) {
+    if (material.authorId !== userId) {
       throw new ForbiddenException(
         'No tienes permisos para eliminar este material',
       );

@@ -10,11 +10,15 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { cn } from '@/components/ui/shadcn/utils';
 import { getModerationSummary, type ModerationSummary } from '@/lib/moderation-client';
+import { getInstitutions, type InstitutionTree } from '@/lib/study-plans-client';
 import { useAuthStore } from '@/stores/authStore';
+
+import { useModerationFaculty } from './useModerationFaculty';
 
 type Tab = 'casos' | 'correcciones' | 'usuarios' | 'apelaciones' | 'historial';
 
@@ -37,10 +41,11 @@ export function ModerationHeader({
   const role = useAuthStore((state) => state.user?.role);
   const isAdmin = Boolean(role && ADMIN_ROLES.has(role));
   const [summary, setSummary] = useState<ModerationSummary | null>(null);
+  const facultyId = useModerationFaculty();
 
   useEffect(() => {
     let active = true;
-    getModerationSummary()
+    getModerationSummary(facultyId)
       .then((data) => {
         if (active) setSummary(data);
       })
@@ -49,7 +54,7 @@ export function ModerationHeader({
     return () => {
       active = false;
     };
-  }, []);
+  }, [facultyId]);
 
   const counts: Record<Tab, number | undefined> = {
     casos: caseCount ?? summary?.openCases,
@@ -66,6 +71,15 @@ export function ModerationHeader({
     { id: 'historial', label: 'Historial', href: '/admin/historial', icon: History },
   ];
   const overdue = isAdmin ? (summary?.overdueCases ?? 0) : 0;
+  const scope = summary?.scope;
+  const covered = scope && !scope.all ? scope.faculties : [];
+  const roleLabel = isAdmin
+    ? 'Tu rol: admin'
+    : covered.length > 0
+      ? `Tu rol: moderación · ${covered
+          .map((faculty) => `${faculty.shortName} ${faculty.university.shortName}`)
+          .join(', ')}`
+      : 'Tu rol: moderación';
 
   return (
     <header className="grid gap-6 font-sans">
@@ -105,9 +119,19 @@ export function ModerationHeader({
         ))}
         <span className="ml-auto hidden items-center gap-2 px-3 text-sm font-semibold sm:flex">
           <ShieldCheck aria-hidden="true" className="size-4" />
-          Tu rol: {isAdmin ? 'admin' : 'moderación'}
+          {roleLabel}
         </span>
       </nav>
+      {scope && !scope.all && scope.faculties.length === 0 ? (
+        <p
+          className="rounded-xl border-[1.5px] border-border bg-card px-4 py-3 text-sm font-semibold"
+          role="status"
+        >
+          Todavía no tenés facultades asignadas: cuando un admin te asigne una, vas a ver sus casos
+          acá.
+        </p>
+      ) : null}
+      {isAdmin ? <FacultyFilter value={facultyId} /> : null}
       {overdue > 0 ? (
         <div
           className="flex flex-wrap items-center gap-3 rounded-xl border-[1.5px] border-destructive bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive-ink"
@@ -128,5 +152,53 @@ export function ModerationHeader({
         <p className="mt-3 max-w-[60ch] text-muted-foreground">{description}</p>
       </div>
     </header>
+  );
+}
+
+/** The admins' facultad filter (openspec moderation/scope, «Panel label and admin filter»). */
+function FacultyFilter({ value }: { value?: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [tree, setTree] = useState<InstitutionTree>([]);
+
+  useEffect(() => {
+    let active = true;
+    getInstitutions()
+      .then((institutions) => {
+        if (active) setTree(institutions);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const choose = (next: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set('facultad', next);
+    else params.delete('facultad');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
+  return (
+    <label className="flex flex-wrap items-center gap-2 text-sm font-bold">
+      Facultad
+      <select
+        className="min-h-11 rounded-xl border-[1.5px] border-foreground bg-background px-3 text-sm font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+        onChange={(event) => choose(event.target.value)}
+        value={value ?? ''}
+      >
+        <option value="">Todas</option>
+        {tree.flatMap((university) =>
+          university.faculties.map((faculty) => (
+            <option key={faculty.id} value={faculty.id}>
+              {faculty.shortName} · {university.shortName}
+            </option>
+          )),
+        )}
+      </select>
+    </label>
   );
 }

@@ -29,8 +29,7 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
 
   const tag = randomUUID().slice(0, 6);
   let careerId: string;
-  let activePlan: string;
-  let completedPlan: string;
+  let planId: string;
   let subjectCode: string;
 
   beforeAll(async () => {
@@ -41,10 +40,7 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
         name: `Carrera contexto ${tag}`,
         code: `K${tag}`,
         studyPlans: {
-          create: [
-            { name: 'Plan A', code: `A${tag}`, duration: 5 },
-            { name: 'Plan B', code: `B${tag}`, duration: 5 },
-          ],
+          create: [{ name: 'Plan A', code: `A${tag}`, duration: 5 }],
         },
       },
       select: {
@@ -53,8 +49,7 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
       },
     });
     careerId = career.id;
-    activePlan = career.studyPlans.find((p) => p.name === 'Plan A')!.id;
-    completedPlan = career.studyPlans.find((p) => p.name === 'Plan B')!.id;
+    planId = career.studyPlans[0].id;
     subjectCode = `M${tag}`;
     await prisma.subject.create({
       data: {
@@ -63,7 +58,7 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
         name: `Materia contexto ${tag}`,
         searchKey: normalizeSearchKey(`Materia contexto ${tag}`, subjectCode),
         studyPlans: {
-          create: [{ studyPlanId: activePlan, year: 2, semester: 1 }],
+          create: [{ studyPlanId: planId, year: 2, semester: 1 }],
         },
       },
     });
@@ -83,37 +78,6 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
   });
 
   const http = () => request(app.getHttpServer());
-
-  it('names each carrera’s facultad and universidad in the materials hierarchy', async () => {
-    const { body } = await http()
-      .get('/api/v1/discovery/hierarchy/careers')
-      .expect(200);
-    const careers = (body as { careers: { id: string; faculty: unknown }[] })
-      .careers;
-    const mine = careers.find((c) => c.id === careerId);
-
-    expect(mine).toEqual(expect.objectContaining({ faculty: FI }));
-    for (const career of careers) {
-      expect(career.faculty).toEqual(
-        expect.objectContaining({
-          id: expect.any(String),
-          name: expect.any(String),
-          shortName: expect.any(String),
-          university: expect.objectContaining({
-            shortName: expect.any(String),
-          }),
-        }),
-      );
-    }
-  });
-
-  it('keeps the facultad on deeper hierarchy levels', async () => {
-    const { body } = await http()
-      .get(`/api/v1/discovery/hierarchy/careers/${careerId}/years`)
-      .expect(200);
-
-    expect(body.career.faculty).toEqual(FI);
-  });
 
   it('includes the facultad in a materia’s plan placements', async () => {
     const { body } = await http()
@@ -149,21 +113,23 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
 
   it('shows moderators the carrera with its facultad, preferring an active plan', async () => {
     const moderator = await createUser(prisma, 'MODERATOR');
+    const admin = await createUser(prisma, 'ADMIN');
     const student = await createUser(prisma);
-    const file = async () =>
+    const file = async (viewer = moderator) =>
       (
         await http()
           .get(`/api/v1/moderation/users/${student.id}`)
-          .set('Authorization', bearer(app, moderator))
+          .set('Authorization', bearer(app, viewer))
           .expect(200)
       ).body;
 
-    expect((await file()).career).toBeNull();
+    // Without a carrera only an admin can open the account (moderation/scope).
+    expect((await file(admin)).career).toBeNull();
 
     await prisma.userStudyPlan.create({
       data: {
         userId: student.id,
-        studyPlanId: completedPlan,
+        studyPlanId: planId,
         status: 'COMPLETED',
       },
     });

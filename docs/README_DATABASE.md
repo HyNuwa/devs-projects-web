@@ -64,7 +64,7 @@ Estas dudas estaban anotadas en el antiguo `README_DATABASE_MODELO.md`.
 
 **¿Por qué la materia se vincula al plan y no a la carrera?** Una misma carrera cambia de plan (Plan 2011, Plan 2023) y la materia puede cambiar de año, de cuatrimestre o desaparecer. `StudyPlanSubject` guarda `year`, `semester` y `credits` para cada plan. Una materia compartida por varias carreras aparece en varios planes sin duplicarse.
 
-**¿Un estudiante puede tener más de una carrera?** Sí. `UserStudyPlan` es la tabla estudiante–plan, con estado ACTIVE, COMPLETED o DROPPED. Reemplazó al `career_id` único del diseño original. Desde el cambio `instituciones`, cada estudiante declara sus planes en *Mi perfil → Mi carrera* (`GET`/`PUT /users/me/study-plans`). Son privados: el perfil público no los muestra.
+**¿Un estudiante puede tener más de una carrera?** Sí. `UserStudyPlan` es la tabla estudiante–plan, con estado ACTIVE, COMPLETED o DROPPED (cursando, terminada, abandonada). Reemplazó al `career_id` único del diseño original. Cada estudiante declara sus carreras en *Mi perfil → Mi carrera* (`GET`/`PUT /users/me/study-plans` con `careerId`; el servidor resuelve el único plan). Guardar conserva las filas que siguen, así que `created_at` dice qué carrera se declaró primero. Son privadas: el perfil público no las muestra.
 
 **¿Cómo se garantiza que una materia pertenezca a una sola facultad?** `Subject.facultyId` es obligatorio y cuatro triggers de la migración `20261011000000_institutions` rechazan con `check_violation` (23514):
 
@@ -73,7 +73,7 @@ Estas dudas estaban anotadas en el antiguo `README_DATABASE_MODELO.md`.
 - `careers_faculty_fixed_with_plans`: mover de facultad una carrera que tiene planes.
 - `study_plans_career_same_faculty`: mover un plan con materias a una carrera de otra facultad.
 
-Las relaciones nuevas usan `onDelete: Restrict`: borrar una facultad o universidad con contenido falla. El código de carrera es único por facultad (`@@unique([facultyId, code])`). UNJU y la Facultad de Ingeniería tienen ids fijos (`institutions.constants.ts`) que comparten la migración, el seed y los tests. Las facultades se cargan por migración o seed; no hay alta desde la interfaz.
+Las relaciones nuevas usan `onDelete: Restrict`: borrar una facultad o universidad con contenido falla. El código de carrera es único por facultad (`@@unique([facultyId, code])`). UNJU y la Facultad de Ingeniería tienen ids fijos (`institutions.constants.ts`) que comparten la migración, el seed y los tests. Las facultades se cargan por migración o seed; el alta desde la interfaz llega con el cambio `catalogo-editable`.
 
 **Rollback:** Prisma no tiene migraciones hacia atrás. `openspec/changes/archive/*-instituciones/rollback.sql` deshace las dos migraciones (`institutions` e `institutions_trigger_locks`) a mano y borra sus filas de `_prisma_migrations`, porque `migrate resolve --rolled-back` solo acepta migraciones fallidas. Aborta si existe una segunda facultad.
 
@@ -85,7 +85,15 @@ Las relaciones nuevas usan `onDelete: Restrict`: borrar una facultad o universid
 
 **¿Por qué la fase de una corrección no se guarda?** Que una sugerencia pase del autor a moderación a los 7 días, o que quede obsoleta porque su campo cambió, se calcula al leer (`created_at` y `current_value` contra el material). No hace falta ninguna tarea programada, y el estado guardado (`CLOSED`) se actualiza cuando alguien la toca o cuando se edita o retira el material. Las migraciones `20261013000000_trust_privileges` y `20261013010000_role_changed_event` agregan la tabla, `reports.priority`, `CORRECTION_ACCEPTED`, la insignia Lupa y la acción `ROLE_CHANGED` del historial. El rollback está en `openspec/changes/archive/*-privilegios-confianza/rollback.sql`. Aborta si ya hay movimientos `CORRECTION_ACCEPTED` o eventos `ROLE_CHANGED`, porque el historial es append-only.
 
-**Pendiente antes de cargar una segunda facultad:** las URLs de materia son globales (`/materias/:code`, búsqueda por `code` sola). Dos facultades con el mismo código de materia chocarían; hay que decidir el esquema de URLs antes.
+**¿Cómo se evitan URLs de materia ambiguas?** El código de materia es único en todo el sistema (`subjects_code_key`, migración `20261014000000_moderator_scopes`), así que `/materias/:code` nombra siempre una sola materia. Si una facultad nueva trae un código repetido, se le agrega un prefijo al cargarla.
+
+**¿Por qué una carrera tiene un solo plan?** La interfaz no habla de planes ([ADR 0003](adr/0003-un-plan-por-carrera.md)): un estudiante declara su carrera. La tabla de planes queda como detalle interno con un plan por carrera (`study_plans_career_id_key`), y `careers.plan_url` guarda el link al plan oficial (solo `https`).
+
+**¿Cómo se resuelven las URLs del recorrido?** `/universidades/[uni]/[facultad]/[carrera]` usan el nombre corto en minúsculas de la universidad y la facultad, y el código de la carrera. Índices únicos sobre `lower(...)` garantizan que cada slug apunte a una sola fila.
+
+**¿Qué facultades cubre un moderador?** `moderator_scopes (user_id, faculty_id)`, con cascada al borrar la cuenta y `Restrict` sobre la facultad. ADMIN y SUPERADMIN cubren todas sin filas. Ver `README_MODERACION.md` §8.1.
+
+**Universidades precargadas:** la migración de datos `20261014010000_catalog_preload` carga las universidades principales del país con sus facultades, sin carreras, con las fuentes en `docs/catalogo/FUENTES_PRECARGA.md`. El rollback de ambas migraciones está en `openspec/changes/archive/*-alcance-por-facultad/rollback.sql`.
 
 **¿Hace falta una tabla para valorar materiales?** Sí, y existe: `MaterialRating` guarda una valoración de 1 a 5 por usuario y material (único por par), con comentario opcional. `Material.avgRating` y `ratingCount` son un caché de esa tabla. El «Me sirvió» es aparte (`MaterialHelpfulness`) y es la señal principal que se muestra.
 
@@ -94,7 +102,6 @@ Las relaciones nuevas usan `onDelete: Restrict`: borrar una facultad o universid
 | Especificación | Cambios en el esquema |
 |---|---|
 | [Moderación](README_MODERACION.md) y [ADR 0001](adr/0001-publicacion-inmediata-con-moderacion-posterior.md) | Caso de moderación que agrupe reportes de cualquier contenido (materiales, reseñas, experiencias, eventos, avisos); ocultamiento preventivo; sanciones con vencimiento; apelaciones; registro de «Ver autor» con motivo; `Material` publicado por defecto. |
-| Alcance por facultad | El modelo `University` → `Faculty` existe desde el cambio `instituciones`. Faltan `ModeratorScope` (moderadores por facultad) y la navegación Universidad → Facultad → Carrera del rediseño: cambio 4 `alcance-por-facultad`. |
 | [Puntos e insignias](README_PUNTOS_E_INSIGNIAS.md) | Códigos de motivo nuevos (`MATERIAL_PUBLISHED`, `EVENT_PUBLISHED`, reversiones); catálogo de insignias con clave estable; privilegios por nivel. |
 | Formularios de experiencias | Nota de promoción, temas y preparación del final, datos de la mesa; `academicYear`, `attempt` y `outcome` pasan a ser obligatorios según el formulario. |
 | Eventos y Clasificados | Modelos nuevos (evento, «Me interesa», organizador verificado; aviso de venta y de tutoría). |

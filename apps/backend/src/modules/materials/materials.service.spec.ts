@@ -6,7 +6,6 @@ import { PublicationPolicy } from '../moderation/publication-policy.service';
 import { ContributionPoints } from '../ranking/contribution-points';
 import { HelpfulPoints } from '../ranking/helpful-points';
 import { PioneerBonus } from '../ranking/pioneer-bonus';
-import { Role } from '../auth/dto/auth-response.dto';
 import { MaterialSort } from './dto/materials-query.dto';
 import { MaterialResourceType } from '../../generated/prisma';
 
@@ -629,21 +628,17 @@ describe('MaterialsService', () => {
   });
 
   describe('remove', () => {
-    it('permite al moderador eliminar un material ajeno', async () => {
+    it('no permite a un moderador eliminar un material ajeno', async () => {
       prisma.material.findUnique.mockResolvedValue({
         id: 'mat-1',
         authorId: 'user-1',
         isDeleted: false,
       });
-      prisma.material.update.mockResolvedValue({ id: 'mat-1' });
 
-      const result = await service.remove('mat-1', 'mod-1', Role.MODERATOR);
-
-      expect(prisma.material.update).toHaveBeenCalledWith({
-        where: { id: 'mat-1' },
-        data: { isDeleted: true },
-      });
-      expect(result).toEqual({ id: 'mat-1' });
+      await expect(service.remove('mat-1', 'mod-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.material.update).not.toHaveBeenCalled();
     });
   });
 });

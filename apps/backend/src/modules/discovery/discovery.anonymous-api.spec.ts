@@ -117,15 +117,9 @@ describe('Discovery anonymous API contract', () => {
     '/discovery/course-reviews/30000000-0000-4000-8000-000000000001',
     '/discovery/exam-experiences?year=2026&session=JULIO&format=ORAL&outcome=APROBADO&page=2&limit=5',
     '/discovery/exam-experiences/30000000-0000-4000-8000-000000000001',
-    '/discovery/hierarchy/careers',
-    '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories',
-    '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories/APUNTE/materials',
-  ])(
-    'permite lectura jerárquica directa sin autenticación: %s',
-    async (path) => {
-      await request(app.getHttpServer()).get(path).expect(200);
-    },
-  );
+  ])('permite lectura directa sin autenticación: %s', async (path) => {
+    await request(app.getHttpServer()).get(path).expect(200);
+  });
 
   it('restaura filtros de reseñas desde la URL sin requerir autenticación', async () => {
     await request(app.getHttpServer())
@@ -158,17 +152,9 @@ describe('Discovery anonymous API contract', () => {
       .expect(400);
   });
 
-  it('valida los límites y categorías de la jerarquía', async () => {
+  it('rechaza un orden de reseñas desconocido', async () => {
     await request(app.getHttpServer())
       .get('/discovery/course-reviews?sort=POPULAR')
-      .expect(400);
-    await request(app.getHttpServer())
-      .get('/discovery/hierarchy/careers?limit=0')
-      .expect(400);
-    await request(app.getHttpServer())
-      .get(
-        '/discovery/hierarchy/subjects/30000000-0000-4000-8000-000000000001/resource-categories/VIDEO/materials',
-      )
       .expect(400);
   });
 });

@@ -100,14 +100,26 @@ export type ModerationSummary = {
   pendingCorrections: number;
   /** Only for admins. */
   pendingProposals: number | null;
+  /** The viewer's alcance de moderación (openspec moderation/scope). */
+  scope: { all: boolean; faculties: ScopeFaculty[] };
 };
 
-export async function getModerationSummary(): Promise<ModerationSummary> {
-  return (await api.get<ModerationSummary>('/moderation/summary')).data;
+export type ScopeFaculty = {
+  id: string;
+  name: string;
+  shortName: string;
+  university: { shortName: string };
+};
+
+/** The admin facultad filter, sent as `facultyId` when set. */
+const scoped = (facultyId?: string) => (facultyId ? { params: { facultyId } } : undefined);
+
+export async function getModerationSummary(facultyId?: string): Promise<ModerationSummary> {
+  return (await api.get<ModerationSummary>('/moderation/summary', scoped(facultyId))).data;
 }
 
-export async function getModerationQueue(): Promise<ModerationQueue> {
-  return (await api.get<ModerationQueue>('/moderation/cases')).data;
+export async function getModerationQueue(facultyId?: string): Promise<ModerationQueue> {
+  return (await api.get<ModerationQueue>('/moderation/cases', scoped(facultyId))).data;
 }
 
 export async function getModerationCase(caseId: string): Promise<CaseDetail> {

@@ -41,7 +41,11 @@ const staff = { id: 'mod-9', role: 'MODERATOR', username: 'moderador_y' };
 
 describe('AppealsQueryService: sanciones from anonymous casos', () => {
   const prisma = {
-    appeal: { findMany: vi.fn(), findUnique: vi.fn() },
+    moderatorScope: {
+      findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
+    appeal: { findMany: vi.fn(), findFirst: vi.fn() },
+    moderationCase: { findMany: vi.fn().mockResolvedValue([]) },
     user: {
       findMany: vi
         .fn()
@@ -93,7 +97,7 @@ describe('AppealsQueryService: sanciones from anonymous casos', () => {
   });
 
   it('shows the detail read-only to a moderator, without the explanation', async () => {
-    prisma.appeal.findUnique.mockResolvedValue(sanctionAppeal(student));
+    prisma.appeal.findFirst.mockResolvedValue(sanctionAppeal(student));
 
     const detail = await service.detail(moderator, 'appeal-user');
 
@@ -110,7 +114,7 @@ describe('AppealsQueryService: sanciones from anonymous casos', () => {
 
   it('lets an admin answer them, seeing the account', async () => {
     prisma.appeal.findMany.mockResolvedValue([sanctionAppeal(student)]);
-    prisma.appeal.findUnique.mockResolvedValue(sanctionAppeal(student));
+    prisma.appeal.findFirst.mockResolvedValue(sanctionAppeal(student));
 
     const [item] = await service.list(admin);
     const detail = await service.detail(admin, 'appeal-user');

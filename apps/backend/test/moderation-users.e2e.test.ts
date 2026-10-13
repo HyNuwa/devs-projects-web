@@ -9,6 +9,7 @@ import {
   createSubject,
   createUser,
   type E2eUser,
+  createStudent,
 } from './support/e2e-app';
 
 const DAY = 24 * 3_600_000;
@@ -68,7 +69,7 @@ describe('Usuarios tab (e2e)', () => {
   }
 
   it('shows the file of an account with two retiros: suggested step and allowed actions', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     const first = await retiredMaterial(student, 40);
     await retiredMaterial(student, 2);
     await prisma.sanction.create({
@@ -103,8 +104,8 @@ describe('Usuarios tab (e2e)', () => {
   });
 
   it('shows report precision only with at least 5 resolved reportes', async () => {
-    const reporter = await createUser(prisma);
-    const author = await createUser(prisma);
+    const reporter = await createStudent(prisma);
+    const author = await createStudent(prisma);
     for (const [index, status] of [
       'CONFIRMED',
       'CONFIRMED',
@@ -132,7 +133,7 @@ describe('Usuarios tab (e2e)', () => {
   });
 
   it('never links an account to its anonymous entries', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     const review = await prisma.courseReview.create({
       data: {
         userId: student.id,
@@ -191,7 +192,7 @@ describe('Usuarios tab (e2e)', () => {
 
   it('shows a moderator the same account before and after retiring its anonymous reseña with «Advertir también»', async () => {
     const decider = await createUser(prisma, 'MODERATOR');
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const { username } = await prisma.user.findUniqueOrThrow({
       where: { id: author.id },
     });
@@ -273,9 +274,9 @@ describe('Usuarios tab (e2e)', () => {
   });
 
   it('filters the list and finds accounts by username', async () => {
-    const suggested = await createUser(prisma);
+    const suggested = await createStudent(prisma);
     await retiredMaterial(suggested, 1);
-    const silenced = await createUser(prisma, 'USER', {
+    const silenced = await createStudent(prisma, {
       isMuted: true,
       mutedUntil: new Date(Date.now() + 3 * DAY),
     });
@@ -330,7 +331,7 @@ describe('Usuarios tab (e2e)', () => {
   });
 
   it('lists pending suspension proposals only for admins', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     await request(app.getHttpServer())
       .post(`/api/v1/moderation/users/${student.id}/suspension-proposals`)
       .set('Authorization', bearer(app, moderator))

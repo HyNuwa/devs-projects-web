@@ -10,6 +10,11 @@ import {
 
 import { CorrectionsPanel } from './CorrectionsPanel';
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/lib/trust-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/trust-client')>()),
   getModerationCorrections: vi.fn(),

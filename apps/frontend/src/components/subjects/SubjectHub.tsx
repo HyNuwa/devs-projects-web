@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft,
   BookOpen,
   FileText,
   GraduationCap,
@@ -11,19 +11,28 @@ import {
   Star,
   Users,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 
 import {
   CourseReviewSummaryCard,
   FinalExperienceSummaryCard,
 } from '@/components/community/CommunitySummaryCards';
 import { MaterialPreviewDialog } from '@/components/discovery/MaterialPreviewDialog';
-import { Button, Chip, EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn';
+import {
+  Breadcrumb,
+  Button,
+  Chip,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/components/ui/shadcn';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
+import { browsePath } from '@/lib/catalog-client';
 import { getMaterialDiscovery } from '@/lib/discovery-client';
 import { courseConditionLabel, resourceTypeLabel } from '@/lib/presentation-labels';
 import { getTopMaterials, type TopMaterial } from '@/lib/ranking-client';
+import { useUbicacionStore } from '@/stores/ubicacionStore';
 import type { Material } from '@/types/material';
 import type {
   CourseReviewResponse,
@@ -35,7 +44,6 @@ type SubjectHubTab = 'reviews' | 'exams' | 'materials';
 
 type SubjectHubData = {
   exams: ExamExperience[];
-  materials: Material[];
   top: TopMaterial[];
   reviews: CourseReviewResponse;
   subject: SubjectHubType;
@@ -156,13 +164,18 @@ function TopMaterials({ entries, subjectName }: { entries: TopMaterial[]; subjec
   );
 }
 
-function MaterialList({ materials }: { materials: Material[] }) {
+function MaterialList({ materials, query }: { materials: Material[]; query: string }) {
   if (materials.length === 0) {
-    return (
+    return query ? (
+      <EmptyState
+        description="Probá con otras palabras o borrá la búsqueda para ver todos."
+        heading={`No encontramos materiales para «${query}»`}
+      />
+    ) : (
       <EmptyState
         action={
           <Button asChild variant="outline">
-            <Link href="/materiales">Explorar materiales</Link>
+            <Link href="/materiales/nuevo">Subir material</Link>
           </Button>
         }
         description="Cuando haya recursos aprobados para esta materia, aparecerán en este archivo."
@@ -209,10 +222,76 @@ function placementLabel(plan: SubjectHubType['studyPlans'][number]): string {
   ].join(' · ');
 }
 
+type Placement = SubjectHubType['studyPlans'][number];
+
+const byCareerName = (a: Placement, b: Placement) =>
+  a.studyPlan.career.name.localeCompare(b.studyPlan.career.name, 'es', { sensitivity: 'base' });
+
+/**
+ * The carrera of the trail (openspec academic-structure/browsing, «Materia
+ * breadcrumb»): the one the link named, else the first carrera the viewer
+ * declared that includes the materia, else the first by name.
+ */
+function trailPlacement(
+  placements: Placement[],
+  named: string | null,
+  declared: readonly { careerId: string; declaredAt: string }[],
+) {
+  const sorted = [...placements].sort(byCareerName);
+  const fromLink = named
+    ? sorted.find((p) => p.studyPlan.career.code.toLowerCase() === named.toLowerCase())
+    : undefined;
+  if (fromLink) return fromLink;
+  const mine = [...declared]
+    .sort((a, b) => a.declaredAt.localeCompare(b.declaredAt))
+    .map((entry) => sorted.find((p) => p.studyPlan.career.id === entry.careerId))
+    .find(Boolean);
+  return mine ?? sorted[0] ?? null;
+}
+
 export function SubjectHub({ code }: { code: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q')?.trim() ?? '';
+  const myCareers = useUbicacionStore((store) => store.myCareers);
   const [attempt, setAttempt] = useState(0);
-  const [activeTab, setActiveTab] = useState<SubjectHubTab>('reviews');
+  const [activeTab, setActiveTab] = useState<SubjectHubTab>(query ? 'materials' : 'reviews');
   const [state, setState] = useState<SubjectHubState>({ status: 'loading' });
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const subjectId = state.status === 'ready' ? state.data.subject.id : null;
+
+  // Materials follow the materia search in the URL (openspec academic-resources/discovery).
+  useEffect(() => {
+    if (!subjectId) return;
+    let isCurrent = true;
+    getMaterialDiscovery({
+      limit: 20,
+      page: 1,
+      sort: query ? 'RELEVANCE' : 'RECENT',
+      subjectId,
+      ...(query ? { search: query } : {}),
+    })
+      .then((result) => {
+        if (isCurrent) setMaterials(result.data);
+      })
+      .catch(() => {
+        if (isCurrent) setMaterials([]);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [subjectId, query]);
+
+  const search = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const next = String(new FormData(event.currentTarget).get('q') ?? '').trim();
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set('q', next);
+    else params.delete('q');
+    const suffix = params.toString();
+    router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
+  };
 
   useEffect(() => {
     let isCurrent = true;
@@ -224,20 +303,12 @@ export function SubjectHub({ code }: { code: string }) {
       // The ranking is a bonus: the materia page loads without it.
       getTopMaterials(code).catch(() => null),
     ])
-      .then(async ([subjectResponse, reviewsResponse, examsResponse, topMaterials]) => {
+      .then(([subjectResponse, reviewsResponse, examsResponse, topMaterials]) => {
         const subject = getData(subjectResponse);
-        const materialResult = await getMaterialDiscovery({
-          limit: 20,
-          page: 1,
-          sort: 'RECENT',
-          subjectId: subject.id,
-        });
-
         if (isCurrent) {
           setState({
             data: {
               exams: getData(examsResponse),
-              materials: materialResult.data,
               reviews: getData(reviewsResponse),
               subject,
               top: topMaterials?.entries ?? [],
@@ -274,7 +345,7 @@ export function SubjectHub({ code }: { code: string }) {
             <div className="flex flex-wrap justify-center gap-3">
               <Button onClick={() => setAttempt((value) => value + 1)}>Reintentar</Button>
               <Button asChild variant="outline">
-                <Link href="/materias">Volver a materias</Link>
+                <Link href="/universidades">Volver a materias</Link>
               </Button>
             </div>
           }
@@ -285,20 +356,40 @@ export function SubjectHub({ code }: { code: string }) {
     );
   }
 
-  const { exams, materials, reviews, subject, top } = state.data;
+  const { exams, reviews, subject, top } = state.data;
   const averageRecommendation = subject.stats.avgRecommendation?.toFixed(1) ?? '—';
+  const placements = [...subject.studyPlans].sort(byCareerName);
+  const here = trailPlacement(placements, searchParams.get('carrera'), myCareers);
+  const career = here?.studyPlan.career ?? null;
+  const careerHref = career
+    ? browsePath.career(career.faculty.university.shortName, career.faculty.shortName, career.code)
+    : browsePath.universities();
 
   return (
     <div className="mx-auto grid w-full max-w-[1180px] gap-8 px-3 py-7 sm:px-6 sm:py-10">
-      <nav aria-label="Ruta de materia">
-        <Link
-          className="inline-flex min-h-11 items-center gap-2 font-sans text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          href="/materias"
-        >
-          <ArrowLeft aria-hidden="true" className="size-4" />
-          Materias
-        </Link>
-      </nav>
+      <Breadcrumb
+        aria-label="Ruta"
+        items={[
+          { href: browsePath.universities(), label: 'Universidades' },
+          ...(career
+            ? [
+                {
+                  href: browsePath.university(career.faculty.university.shortName),
+                  label: career.faculty.university.shortName,
+                },
+                {
+                  href: browsePath.faculty(
+                    career.faculty.university.shortName,
+                    career.faculty.shortName,
+                  ),
+                  label: career.faculty.shortName,
+                },
+                { href: careerHref, label: career.name },
+              ]
+            : []),
+          { label: subject.name },
+        ]}
+      />
 
       <header className="grid gap-6 border-b border-line pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
@@ -316,7 +407,7 @@ export function SubjectHub({ code }: { code: string }) {
           ) : null}
           <div className="mt-5 flex flex-wrap gap-2">
             {subject.code ? <Chip tone="neutral">Código {subject.code}</Chip> : null}
-            {subject.studyPlans.map((placement) => (
+            {placements.map((placement) => (
               <Chip key={placementLabel(placement)} tone="neutral">
                 {placementLabel(placement)}
               </Chip>
@@ -324,9 +415,9 @@ export function SubjectHub({ code }: { code: string }) {
           </div>
         </div>
         <Button asChild className="lg:justify-self-end" variant="outline">
-          <Link href="/materiales">
+          <Link href={careerHref}>
             <BookOpen aria-hidden="true" className="size-4" />
-            Explorar materiales
+            {career ? 'Ver la carrera' : 'Explorar materias'}
           </Link>
         </Button>
       </header>
@@ -526,9 +617,26 @@ export function SubjectHub({ code }: { code: string }) {
                 <Link href="/materiales/nuevo">Subir material</Link>
               </Button>
             </div>
+            <form className="mt-6 flex flex-wrap gap-2" onSubmit={search} role="search">
+              <label className="sr-only" htmlFor="subject-material-search">
+                Buscar en {subject.name}
+              </label>
+              <input
+                className="min-h-11 min-w-0 flex-1 rounded-xl border-[1.5px] border-foreground bg-background px-3 font-sans text-sm font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                defaultValue={query}
+                id="subject-material-search"
+                key={query}
+                name="q"
+                placeholder="Parcial 1, resumen, final…"
+                type="search"
+              />
+              <Button type="submit" variant="outline">
+                Buscar
+              </Button>
+            </form>
             <div className="mt-6 grid gap-6">
-              <TopMaterials entries={top} subjectName={subject.name} />
-              <MaterialList materials={materials} />
+              {query ? null : <TopMaterials entries={top} subjectName={subject.name} />}
+              <MaterialList materials={materials} query={query} />
             </div>
           </section>
         ) : null}

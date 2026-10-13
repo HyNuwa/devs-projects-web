@@ -71,8 +71,13 @@ export async function decideMyCorrection(id: string, accept: boolean) {
   await api.post(`/correction-suggestions/${id}/${accept ? 'accept' : 'reject'}`);
 }
 
-export async function getModerationCorrections(): Promise<CorrectionSuggestion[]> {
-  const { data } = await api.get<CorrectionSuggestion[]>('/moderation/corrections');
+export async function getModerationCorrections(
+  facultyId?: string,
+): Promise<CorrectionSuggestion[]> {
+  const { data } = await api.get<CorrectionSuggestion[]>(
+    '/moderation/corrections',
+    facultyId ? { params: { facultyId } } : undefined,
+  );
   return data;
 }
 
@@ -80,8 +85,14 @@ export async function decideModerationCorrection(id: string, accept: boolean) {
   await api.post(`/moderation/corrections/${id}/${accept ? 'accept' : 'reject'}`);
 }
 
-export async function promoteToModerator(userId: string) {
-  await api.post(`/moderation/users/${userId}/promote`);
+/** Promotion needs at least one facultad (openspec moderation/scope). */
+export async function promoteToModerator(userId: string, facultyIds: string[]) {
+  await api.post(`/moderation/users/${userId}/promote`, { facultyIds });
+}
+
+/** Replaces the facultades a moderator covers (admins only). */
+export async function setModeratorFaculties(userId: string, facultyIds: string[]) {
+  await api.put(`/moderation/users/${userId}/faculties`, { facultyIds });
 }
 
 /**

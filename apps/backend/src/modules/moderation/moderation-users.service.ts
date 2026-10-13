@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { accountWhere, assertAccountInScope, scopeOf } from './scope';
+import { requireFaculties, setModeratorFaculties } from './scope-assignment';
 
 import type { Prisma, Role } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -95,9 +97,22 @@ export class ModerationUsersService {
     const now = new Date();
     const anonymous = anonymousHistoryFor(viewer.role);
     const q = input.q?.trim();
+    // A moderator's accounts narrow every query before its limit, so accounts of
+    // other facultades never crowd out the ones they can see.
+    const scope = await scopeOf(this.prisma, viewer);
+    const visible = await accountWhere(this.prisma, scope);
+    const visibleIds =
+      scope === 'ALL'
+        ? undefined
+        : (
+            await this.prisma.user.findMany({
+              where: visible,
+              select: { id: true },
+            })
+          ).map((user) => user.id);
     // A search looks at every account first, then the filter applies within it,
     // so no match is lost to the candidate limit.
-    const within = q ? await this.searchIds(q) : undefined;
+    const within = q ? await this.searchIds(q, visibleIds) : visibleIds;
     const ids =
       q && !input.filter
         ? (within ?? [])
@@ -106,8 +121,13 @@ export class ModerationUsersService {
     // author of an anonymous entry just retired.
     const accounts = await this.prisma.user.findMany({
       where: {
-        id: { in: ids },
-        ...(q ? { username: { contains: q, mode: 'insensitive' } } : {}),
+        AND: [
+          {
+            id: { in: ids },
+            ...(q ? { username: { contains: q, mode: 'insensitive' } } : {}),
+          },
+          visible,
+        ],
       },
       orderBy: { username: 'asc' },
       select: accountSelect,
@@ -153,6 +173,7 @@ export class ModerationUsersService {
   }
 
   async file(viewer: Actor, userId: string) {
+    await assertAccountInScope(this.prisma, viewer, userId);
     const now = new Date();
     const since = new Date(now.getTime() - ESCALERA_WINDOW_DAYS * DAY_MS);
     const account = await this.prisma.user.findUnique({
@@ -320,8 +341,46 @@ export class ModerationUsersService {
         ? {
             eligible: await this.trust.isEligibleToModerate(account.id),
             canPromote: account.role === 'USER' && account.id !== viewer.id,
+            ...(await this.facultiesForAdmin(account.id, account.role)),
           }
         : {}),
+    };
+  }
+
+  /**
+   * For admins only (openspec moderation/scope): the facultades a moderator
+   * covers, and those of the account's carreras to preselect when promoting.
+   */
+  private async facultiesForAdmin(userId: string, role: string) {
+    const [plans, scopes] = await Promise.all([
+      this.prisma.userStudyPlan.findMany({
+        where: { userId },
+        select: {
+          studyPlan: { select: { career: { select: { facultyId: true } } } },
+        },
+      }),
+      role === 'MODERATOR'
+        ? this.prisma.moderatorScope.findMany({
+            where: { userId },
+            orderBy: { faculty: { name: 'asc' } },
+            select: {
+              faculty: {
+                select: {
+                  id: true,
+                  name: true,
+                  shortName: true,
+                  university: { select: { shortName: true } },
+                },
+              },
+            },
+          })
+        : null,
+    ]);
+    return {
+      careerFacultyIds: [
+        ...new Set(plans.map((plan) => plan.studyPlan.career.facultyId)),
+      ],
+      moderatorFaculties: scopes ? scopes.map((scope) => scope.faculty) : null,
     };
   }
 
@@ -329,7 +388,8 @@ export class ModerationUsersService {
    * «Hacer moderador»: an admin makes a USER account a MODERATOR. Only that
    * change, recorded in the moderation history.
    */
-  async promote(viewer: Actor, userId: string) {
+  async promote(viewer: Actor, userId: string, facultyIds?: string[]) {
+    const faculties = requireFaculties(facultyIds);
     return this.prisma.$transaction(async (tx) => {
       const [account] = await tx.$queryRaw<{ role: string }[]>`
         SELECT "role"::text AS "role" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
@@ -351,7 +411,33 @@ export class ModerationUsersService {
           metadata: { from: 'USER', to: 'MODERATOR' },
         },
       });
-      return { role: 'MODERATOR' as const };
+      const covered = await setModeratorFaculties(tx, {
+        actorId: viewer.id,
+        userId,
+        facultyIds: faculties,
+      });
+      return { role: 'MODERATOR' as const, facultyIds: covered };
+    });
+  }
+
+  /** Replaces the facultades of a MODERATOR (admins only, from the account file). */
+  async setFaculties(viewer: Actor, userId: string, facultyIds: string[]) {
+    return this.prisma.$transaction(async (tx) => {
+      const [account] = await tx.$queryRaw<{ role: string }[]>`
+        SELECT "role"::text AS "role" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+      if (!account) throw new NotFoundException('Cuenta no encontrada');
+      if (account.role !== 'MODERATOR') {
+        throw new ConflictException(
+          'Solo una cuenta moderadora tiene facultades asignadas.',
+        );
+      }
+      return {
+        facultyIds: await setModeratorFaculties(tx, {
+          actorId: viewer.id,
+          userId,
+          facultyIds,
+        }),
+      };
     });
   }
 
@@ -364,9 +450,12 @@ export class ModerationUsersService {
     return eligible;
   }
 
-  private async searchIds(q: string): Promise<string[]> {
+  private async searchIds(q: string, among?: string[]): Promise<string[]> {
     const found = await this.prisma.user.findMany({
-      where: { username: { contains: q, mode: 'insensitive' } },
+      where: {
+        username: { contains: q, mode: 'insensitive' },
+        ...(among ? { id: { in: among } } : {}),
+      },
       orderBy: { username: 'asc' },
       take: LIST_LIMIT,
       select: { id: true },
@@ -423,6 +512,8 @@ export class ModerationUsersService {
           maxLevel: { gte: MODERATE_LEVEL },
           createdAt: { lte: oldEnough },
         },
+        // Newest first, so the cap keeps a stable, recent slice.
+        orderBy: { createdAt: 'desc' },
         take: 200,
         select: { id: true },
       });

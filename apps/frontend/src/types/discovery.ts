@@ -1,4 +1,4 @@
-import type { DiscoveryHierarchyFaculty } from './discovery-hierarchy';
+import type { FacultyRef as DiscoveryHierarchyFaculty } from './institution';
 import type { MaterialResourceType } from './material';
 
 export interface DiscoverySubjectSuggestion {

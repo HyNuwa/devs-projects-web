@@ -6,6 +6,7 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
   createE2eApp,
+  createStudent,
   createSubject,
   createUser,
   type E2eUser,
@@ -201,7 +202,8 @@ describe('conflict of interest when sanctioning from Usuarios (e2e)', () => {
   });
 
   it('does not let a report on anonymous content block, so it reveals nothing', async () => {
-    const author = await createUser(prisma);
+    // A carrera in FI keeps the account visible: the anonymous report never does.
+    const author = await createStudent(prisma);
     await reportAnonymousReview(author);
 
     await post(`/users/${author.id}/warn`, { reason: 'Advertencia.' }).expect(
