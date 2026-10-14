@@ -10,7 +10,7 @@ Convenciones:
 - Se incluyen "escuelas superiores" e "institutos" solo cuando la universidad los lista al mismo nivel que sus facultades; en cada caso se aclara en una nota. Se excluyen colegios, escuelas de nivel medio o primario, hospitales y departamentos.
 - Los nombres cortos de universidad (UNJU, UNSa, UNT, UNCA, UNSE, UBA, UNC, UNLP, UTN, UNR, UNCuyo, UNL, UNNE) son únicos sin distinguir mayúsculas.
 
-Revisión: el 12 de octubre de 2026 el responsable del proyecto aprobó la lista con las decisiones de la sección «Decisiones de la revisión». Los nombres cortos marcados «(propuesto)» quedan aceptados; se podrán corregir desde la interfaz con el cambio `catalogo-editable`. La migración `20261014010000_catalog_preload` carga exactamente las filas de estas tablas.
+Revisión: el 12 de octubre de 2026 el responsable del proyecto aprobó la lista con las decisiones de la sección «Decisiones de la revisión». Los nombres cortos marcados «(propuesto)» quedan aceptados; desde el cambio `catalogo-editable` se corrigen en la pestaña Catálogo del panel, y el nombre corto anterior sigue redirigiendo. Estas tablas reflejan la carga inicial, no el estado actual del catálogo. La migración `20261014010000_catalog_preload` carga exactamente las filas de estas tablas.
 
 ---
 

@@ -33,7 +33,21 @@ const ADMIN_ONLY_ACTIONS: ModerationEventAction[] = [
   'AUTHOR_REVEALED',
   'ROLE_CHANGED',
   'MODERATOR_SCOPE_CHANGED',
+  // The catálogo belongs to no facultad's moderation (catalog-editing).
+  'CATALOG_CREATED',
+  'CATALOG_UPDATED',
+  'CATALOG_DELETED',
+  'CAREER_PUBLISHED',
+  'CAREER_UNPUBLISHED',
+  'CATALOG_PLACEMENT_CHANGED',
+  'CATALOG_BULK_APPLIED',
+  'CAREER_REQUEST_RESOLVED',
 ];
+const CATALOG_ACTIONS: ReadonlySet<ModerationEventAction> = new Set(
+  ADMIN_ONLY_ACTIONS.filter(
+    (action) => action.startsWith('CATALOG_') || action.startsWith('CAREER_'),
+  ),
+);
 // Events about the account. Its file and the Apelaciones tab show the account
 // with the same reason, text and time, so for a moderator an event from an
 // anonymous caso keeps no reason, caso or content (README_MODERACION §9).
@@ -153,6 +167,9 @@ export class HistoryService {
         kind?: string;
         from?: string;
         to?: string;
+        id?: string;
+        before?: unknown;
+        after?: unknown;
       } | null;
       const label = metadata?.label ?? null;
       // A sanción, or an appeal of one, is about the account: unlinked from the
@@ -188,6 +205,16 @@ export class HistoryService {
         roleChange:
           event.action === 'ROLE_CHANGED' && metadata?.from && metadata.to
             ? { from: metadata.from, to: metadata.to }
+            : null,
+        catalog:
+          CATALOG_ACTIONS.has(event.action) && metadata
+            ? {
+                kind: metadata.kind ?? null,
+                id: metadata.id ?? null,
+                label,
+                before: metadata.before ?? null,
+                after: metadata.after ?? null,
+              }
             : null,
       };
     });

@@ -91,6 +91,14 @@ export type HistoryItem = {
   reason: string | null;
   /** Only for ROLE_CHANGED, which only admins see. */
   roleChange?: { from: string; to: string } | null;
+  /** Only for catálogo events, which only admins see (catalog-editing). */
+  catalog?: {
+    kind: 'UNIVERSITY' | 'FACULTY' | 'CAREER' | 'SUBJECT' | null;
+    id: string | null;
+    label: string | null;
+    before: Record<string, unknown> | null;
+    after: Record<string, unknown> | null;
+  } | null;
 };
 
 export type ModerationSummary = {

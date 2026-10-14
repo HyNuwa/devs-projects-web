@@ -6,7 +6,13 @@ import { BrowseShell, count } from './BrowseShell';
 
 const ordinal = (value: number) => `${value}.º`;
 
-/** Materias grouped by año, then by cuatrimestre, keeping the server's order. */
+/** 0 is anual (catalog-editing); it goes first in its año. */
+const semesterLabel = (semester: number) =>
+  semester === 0 ? 'Anual' : `${ordinal(semester)} cuatrimestre`;
+const semesterId = (year: number, semester: number) =>
+  semester === 0 ? `anio-${year}-anual` : `anio-${year}-c${semester}`;
+
+/** Materias grouped by año, then anuales and each cuatrimestre, keeping the server's order. */
 function group(subjects: CareerSubject[]) {
   const years = new Map<number, Map<number, CareerSubject[]>>();
   for (const subject of subjects) {
@@ -14,7 +20,11 @@ function group(subjects: CareerSubject[]) {
     semesters.set(subject.semester, [...(semesters.get(subject.semester) ?? []), subject]);
     years.set(subject.year, semesters);
   }
-  return [...years.entries()];
+  return [...years.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(
+      ([year, semesters]) => [year, [...semesters.entries()].sort(([a], [b]) => a - b)] as const,
+    );
 }
 
 /** Step 4: a carrera's materias by año and cuatrimestre, without plans (ADR 0003). */
@@ -74,15 +84,15 @@ export function CareerView({ data }: { data: CareerPage }) {
               {ordinal(year)} año
             </h2>
             <div className="mt-4 grid gap-5 md:grid-cols-2">
-              {[...semesters.entries()].map(([semester, list]) => (
+              {semesters.map(([semester, list]) => (
                 <div className="min-w-0" key={semester}>
                   <h3
                     className="text-xs font-bold uppercase tracking-[0.15em] text-link"
-                    id={`anio-${year}-c${semester}`}
+                    id={semesterId(year, semester)}
                   >
-                    {ordinal(semester)} cuatrimestre
+                    {semesterLabel(semester)}
                   </h3>
-                  <ul aria-labelledby={`anio-${year}-c${semester}`} className="mt-2 grid gap-2">
+                  <ul aria-labelledby={semesterId(year, semester)} className="mt-2 grid gap-2">
                     {list.map((subject) => (
                       <li key={subject.id}>
                         <Link

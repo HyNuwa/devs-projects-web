@@ -28,7 +28,35 @@ const ACTION_LABEL: Record<string, string> = {
   AUTHOR_REVEALED: 'Ver autor',
   LEGACY_ACTION: 'Acción anterior',
   ROLE_CHANGED: 'Cambio de rol',
+  CATALOG_CREATED: 'Catálogo: alta',
+  CATALOG_UPDATED: 'Catálogo: edición',
+  CATALOG_DELETED: 'Catálogo: baja',
+  CAREER_PUBLISHED: 'Carrera publicada',
+  CAREER_UNPUBLISHED: 'Carrera a borrador',
+  CATALOG_PLACEMENT_CHANGED: 'Materias de una carrera',
+  CATALOG_BULK_APPLIED: 'Carga masiva',
+  CAREER_REQUEST_RESOLVED: 'Solicitud de carrera',
 };
+
+const CATALOG_KIND: Record<string, string> = {
+  UNIVERSITY: 'Universidad',
+  FACULTY: 'Facultad',
+  CAREER: 'Carrera',
+  SUBJECT: 'Materia',
+};
+
+/** «Facultad Exactas · shortName: FCEx → FCE» for a catálogo event. */
+function catalogLabel(catalog: NonNullable<HistoryItem['catalog']>) {
+  const name = [catalog.kind ? CATALOG_KIND[catalog.kind] : null, catalog.label]
+    .filter(Boolean)
+    .join(' ');
+  const before = catalog.before ?? {};
+  const after = catalog.after ?? {};
+  const changes = Object.keys(after)
+    .filter((key) => key in before)
+    .map((key) => `${key}: ${String(before[key] ?? '—')} → ${String(after[key] ?? '—')}`);
+  return [name, ...changes].join(' · ');
+}
 
 const ROLE_LABEL: Record<string, string> = {
   USER: 'Estudiante',
@@ -195,7 +223,7 @@ export function HistoryPanel() {
                         {item.target.label}
                       </Link>
                     ) : (
-                      (item.target?.label ?? '—')
+                      (item.target?.label ?? (item.catalog ? catalogLabel(item.catalog) : '—'))
                     )}
                     {item.targetUser?.username ? (
                       <span className="block text-xs text-muted-foreground">

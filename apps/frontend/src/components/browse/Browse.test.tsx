@@ -70,8 +70,10 @@ describe('UniversitiesView', () => {
     expect(items[1]).toHaveTextContent('7 facultades');
     expect(items[1]).toHaveTextContent('120 materiales');
     expect(screen.queryByText(/estudiantes|Próximamente|Avisame/i)).toBeNull();
-    expect(screen.getByText('¿No está la tuya?')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Proponer|Sumar/ })).toBeNull();
+    expect(screen.getByRole('link', { name: /¿No está la tuya\?/ })).toHaveAttribute(
+      'href',
+      '/universidades/pedir',
+    );
   });
 
   it('puts the ubicación’s universidad first', () => {
@@ -177,6 +179,10 @@ describe('FacultyView', () => {
     render(<FacultyView data={{ ...data, careers: [] }} />);
     expect(screen.getByText('Todavía no cargamos sus carreras.')).toBeInTheDocument();
     expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Pedí tu carrera' })).toHaveAttribute(
+      'href',
+      `/universidades/pedir?facultad=${data.faculty.id}`,
+    );
   });
 });
 
@@ -238,6 +244,37 @@ describe('CareerView', () => {
     expect(screen.getByRole('region', { name: '2.º año' })).toHaveTextContent('Bases de Datos');
     expect(screen.getByText('5 años')).toBeInTheDocument();
     expect(screen.getByText('22 créditos')).toBeInTheDocument();
+  });
+
+  it('lists materias anuales first in their año', () => {
+    render(
+      <CareerView
+        data={{
+          ...data,
+          subjects: [
+            ...data.subjects.slice(0, 1),
+            {
+              id: 's4',
+              code: 'AN',
+              name: 'Anatomía',
+              year: 1,
+              semester: 0,
+              credits: null,
+              materialCount: 0,
+            },
+            ...data.subjects.slice(1),
+          ],
+        }}
+      />,
+    );
+    const year1 = screen.getByRole('region', { name: '1.º año' });
+    const lists = within(year1).getAllByRole('list');
+    expect(lists.map((list) => list.getAttribute('aria-labelledby'))).toEqual([
+      'anio-1-anual',
+      'anio-1-c1',
+      'anio-1-c2',
+    ]);
+    expect(within(year1).getByRole('list', { name: 'Anual' })).toHaveTextContent('Anatomía');
   });
 
   it('links the official plan in a new tab and never names a plan', () => {

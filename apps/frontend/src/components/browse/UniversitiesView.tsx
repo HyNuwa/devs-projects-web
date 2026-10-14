@@ -58,8 +58,13 @@ export function UniversitiesView({ universities }: { universities: UniversityCar
         ))}
       </ul>
       <p className="rounded-2xl border-[1.5px] border-dashed border-line p-5 text-sm font-semibold text-muted-foreground">
-        <strong className="text-foreground">¿No está la tuya?</strong> Estamos sumando universidades
-        y facultades de a poco.
+        <Link
+          className="font-extrabold text-foreground underline underline-offset-4 hover:text-link"
+          href="/universidades/pedir"
+        >
+          ¿No está la tuya? Pedí tu carrera
+        </Link>{' '}
+        con el link a su plan de estudios y la sumamos.
       </p>
     </BrowseShell>
   );

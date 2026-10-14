@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Button, ErrorState, LoadingState } from '@/components/ui/shadcn';
@@ -256,6 +257,16 @@ export function MyCareers() {
             >
               Agregar carrera
             </Button>
+            <Link
+              className="ml-4 text-sm font-bold text-link underline-offset-4 hover:underline"
+              href={
+                draft.facultyId
+                  ? `/universidades/pedir?facultad=${encodeURIComponent(draft.facultyId)}`
+                  : '/universidades/pedir'
+              }
+            >
+              No encuentro mi carrera
+            </Link>
             {careers.length >= MAX_CAREERS ? (
               <p className="mt-2 text-sm text-muted-foreground">
                 Llegaste al máximo de {MAX_CAREERS} carreras. Quitá una para agregar otra.

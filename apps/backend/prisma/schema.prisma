@@ -130,27 +130,30 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")
 
-  studyPlans            UserStudyPlan[]
-  materials             Material[]
-  materialRatings       MaterialRating[]
-  materialHelpfulness   MaterialHelpfulness[]
-  savedMaterials        SavedMaterial[]
-  guides                Guide[]
-  courseReviews         CourseReview[]         @relation("CourseReviewAuthor")
-  examExperiences       ExamExperience[]       @relation("ExamExperienceAuthor")
-  reports               Report[]               @relation("ReportReporter")
-  decidedCases          ModerationCase[]       @relation("ModerationCaseDecidedBy")
-  badges                UserBadge[]
-  refreshTokens         RefreshToken[]
-  emailVerifications    EmailVerification[]
-  passwordResets        PasswordResetRequest[]
-  pointTransactions     PointTransaction[]
-  sanctions             Sanction[]             @relation("SanctionUser")
-  suspensionProposals   SuspensionProposal[]   @relation("SuspensionProposalUser")
-  appeals               Appeal[]               @relation("AppealAppellant")
-  profileCustomization  ProfileCustomization?
-  correctionSuggestions CorrectionSuggestion[] @relation("CorrectionSuggester")
-  moderatorScopes       ModeratorScope[]
+  studyPlans              UserStudyPlan[]
+  materials               Material[]
+  materialRatings         MaterialRating[]
+  materialHelpfulness     MaterialHelpfulness[]
+  savedMaterials          SavedMaterial[]
+  guides                  Guide[]
+  courseReviews           CourseReview[]           @relation("CourseReviewAuthor")
+  examExperiences         ExamExperience[]         @relation("ExamExperienceAuthor")
+  reports                 Report[]                 @relation("ReportReporter")
+  decidedCases            ModerationCase[]         @relation("ModerationCaseDecidedBy")
+  badges                  UserBadge[]
+  refreshTokens           RefreshToken[]
+  emailVerifications      EmailVerification[]
+  passwordResets          PasswordResetRequest[]
+  pointTransactions       PointTransaction[]
+  sanctions               Sanction[]               @relation("SanctionUser")
+  suspensionProposals     SuspensionProposal[]     @relation("SuspensionProposalUser")
+  appeals                 Appeal[]                 @relation("AppealAppellant")
+  profileCustomization    ProfileCustomization?
+  correctionSuggestions   CorrectionSuggestion[]   @relation("CorrectionSuggester")
+  moderatorScopes         ModeratorScope[]
+  careerRequests          CareerRequest[]          @relation("CareerRequestAuthor")
+  resolvedCareerRequests  CareerRequest[]          @relation("CareerRequestResolver")
+  supportedCareerRequests CareerRequestSupporter[]
 
   @@map("users")
 }
@@ -204,10 +207,11 @@ model Faculty {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  university University       @relation(fields: [universityId], references: [id], onDelete: Restrict)
-  careers    Career[]
-  subjects   Subject[]
-  moderators ModeratorScope[]
+  university     University       @relation(fields: [universityId], references: [id], onDelete: Restrict)
+  careers        Career[]
+  subjects       Subject[]
+  moderators     ModeratorScope[]
+  careerRequests CareerRequest[]
 
   @@unique([universityId, name])
   @@unique([universityId, shortName])
@@ -215,17 +219,20 @@ model Faculty {
 }
 
 model Career {
-  id        String   @id @default(uuid()) @db.Uuid
-  facultyId String   @map("faculty_id") @db.Uuid
-  name      String   @db.VarChar(100)
-  code      String   @db.VarChar(20)
+  id        String       @id @default(uuid()) @db.Uuid
+  facultyId String       @map("faculty_id") @db.Uuid
+  name      String       @db.VarChar(100)
+  code      String       @db.VarChar(20)
   /// Official plan on the universidad's website, https only (ADR 0003).
-  planUrl   String?  @map("plan_url") @db.VarChar(500)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  planUrl   String?      @map("plan_url") @db.VarChar(500)
+  /// A carrera en borrador is hidden until an admin publishes it (catalogo-editable).
+  status    CareerStatus @default(DRAFT)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
 
-  faculty    Faculty     @relation(fields: [facultyId], references: [id], onDelete: Restrict)
+  faculty    Faculty         @relation(fields: [facultyId], references: [id], onDelete: Restrict)
   studyPlans StudyPlan[]
+  requests   CareerRequest[]
 
   @@unique([facultyId, code])
   @@map("careers")
@@ -268,7 +275,7 @@ model UserStudyPlan {
 model Subject {
   id            String   @id @default(uuid()) @db.Uuid
   facultyId     String   @map("faculty_id") @db.Uuid
-  code          String?  @unique @db.VarChar(20)
+  code          String?  @unique @db.VarChar(60)
   name          String   @db.VarChar(150)
   searchKey     String   @default("") @map("search_key") @db.VarChar(200)
   description   String?  @db.Text
@@ -293,6 +300,7 @@ model StudyPlanSubject {
   studyPlanId String @map("study_plan_id") @db.Uuid
   subjectId   String @map("subject_id") @db.Uuid
   year        Int    @db.SmallInt
+  /// 0 = anual, 1 and 2 = cuatrimestres.
   semester    Int    @db.SmallInt
   credits     Int?   @db.SmallInt
 
@@ -751,6 +759,15 @@ enum ModerationEventAction {
   /// An admin changed an account's role (openspec reputation/trust-privileges).
   ROLE_CHANGED
   MODERATOR_SCOPE_CHANGED
+  /// Catálogo changes (openspec academic-structure/catalog-editing), admin-only.
+  CATALOG_CREATED
+  CATALOG_UPDATED
+  CATALOG_DELETED
+  CAREER_PUBLISHED
+  CAREER_UNPUBLISHED
+  CATALOG_PLACEMENT_CHANGED
+  CATALOG_BULK_APPLIED
+  CAREER_REQUEST_RESOLVED
 }
 
 model ModerationCase {
@@ -1015,4 +1032,86 @@ model ModeratorScope {
   @@id([userId, facultyId])
   @@index([facultyId])
   @@map("moderator_scopes")
+}
+
+enum CareerStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CatalogSlugKind {
+  UNIVERSITY
+  FACULTY
+  CAREER
+  SUBJECT
+}
+
+/// Old slug of a renamed universidad, facultad, carrera or materia; it redirects
+/// to the entity's current address. `parentId` is the universidad of a facultad
+/// and the facultad of a carrera. `targetId` has no FK (four target tables).
+/// Unique on (kind, coalesce(parent_id, nil uuid), slug), an expression index
+/// in the migration.
+model CatalogSlugAlias {
+  id        String          @id @default(uuid()) @db.Uuid
+  kind      CatalogSlugKind
+  parentId  String?         @map("parent_id") @db.Uuid
+  slug      String          @db.VarChar(60)
+  targetId  String          @map("target_id") @db.Uuid
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([targetId])
+  @@map("catalog_slug_aliases")
+}
+
+enum CareerRequestStatus {
+  PENDING
+  ACCEPTED
+  PUBLISHED
+  REJECTED
+  ALREADY_LOADED
+  WITHDRAWN
+}
+
+/// Solicitud de carrera (openspec academic-structure/career-requests).
+model CareerRequest {
+  id              String              @id @default(uuid()) @db.Uuid
+  authorId        String              @map("author_id") @db.Uuid
+  facultyId       String?             @map("faculty_id") @db.Uuid
+  facultyText     String?             @map("faculty_text") @db.VarChar(150)
+  universityText  String?             @map("university_text") @db.VarChar(150)
+  careerName      String              @map("career_name") @db.VarChar(100)
+  planUrl         String              @map("plan_url") @db.VarChar(500)
+  comment         String?             @db.VarChar(500)
+  status          CareerRequestStatus @default(PENDING)
+  rejectionReason String?             @map("rejection_reason") @db.VarChar(500)
+  careerId        String?             @map("career_id") @db.Uuid
+  resolvedById    String?             @map("resolved_by_id") @db.Uuid
+  resolvedAt      DateTime?           @map("resolved_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  author     User                     @relation("CareerRequestAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  faculty    Faculty?                 @relation(fields: [facultyId], references: [id], onDelete: SetNull)
+  career     Career?                  @relation(fields: [careerId], references: [id], onDelete: SetNull)
+  resolvedBy User?                    @relation("CareerRequestResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  supporters CareerRequestSupporter[]
+
+  @@index([authorId, status])
+  @@index([facultyId, status])
+  @@index([status, updatedAt])
+  @@index([careerId])
+  @@map("career_requests")
+}
+
+model CareerRequestSupporter {
+  requestId String   @map("request_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  request CareerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([requestId, userId])
+  @@index([userId])
+  @@map("career_request_supporters")
 }

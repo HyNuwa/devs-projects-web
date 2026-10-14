@@ -36,6 +36,7 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
     ({ app, prisma } = await createE2eApp());
     const career = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: FI_UNJU_FACULTY_ID,
         name: `Carrera contexto ${tag}`,
         code: `K${tag}`,
@@ -137,6 +138,7 @@ describe('facultad in discovery, materia context and moderation (e2e)', () => {
 
     const other = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: FI_UNJU_FACULTY_ID,
         name: `Carrera activa ${tag}`,
         code: `Z${tag}`,

@@ -2,6 +2,7 @@
 
 import {
   AlarmClock,
+  Building2,
   History,
   MessagesSquare,
   PencilLine,
@@ -14,13 +15,14 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { cn } from '@/components/ui/shadcn/utils';
+import { catalogAdmin } from '@/lib/catalog-admin-client';
 import { getModerationSummary, type ModerationSummary } from '@/lib/moderation-client';
 import { getInstitutions, type InstitutionTree } from '@/lib/study-plans-client';
 import { useAuthStore } from '@/stores/authStore';
 
 import { useModerationFaculty } from './useModerationFaculty';
 
-type Tab = 'casos' | 'correcciones' | 'usuarios' | 'apelaciones' | 'historial';
+type Tab = 'casos' | 'correcciones' | 'usuarios' | 'apelaciones' | 'historial' | 'catalogo';
 
 const ADMIN_ROLES = new Set(['ADMIN', 'SUPERADMIN']);
 
@@ -30,6 +32,7 @@ export function ModerationHeader({
   caseCount,
   correctionCount,
   description,
+  requestCount,
 }: {
   active: Tab;
   /** The Casos panel passes its live count; other pages use the summary. */
@@ -37,11 +40,14 @@ export function ModerationHeader({
   /** Same for the Correcciones panel. */
   correctionCount?: number;
   description: string;
+  /** The Catálogo panel passes its live count of pending solicitudes. */
+  requestCount?: number;
 }) {
   const role = useAuthStore((state) => state.user?.role);
   const isAdmin = Boolean(role && ADMIN_ROLES.has(role));
   const [summary, setSummary] = useState<ModerationSummary | null>(null);
   const facultyId = useModerationFaculty();
+  const [pendingRequests, setPendingRequests] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     let active = true;
@@ -56,12 +62,27 @@ export function ModerationHeader({
     };
   }, [facultyId]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    let active = true;
+    catalogAdmin
+      .requestCount()
+      .then((count) => {
+        if (active) setPendingRequests(count);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [isAdmin]);
+
   const counts: Record<Tab, number | undefined> = {
     casos: caseCount ?? summary?.openCases,
     correcciones: correctionCount ?? summary?.pendingCorrections,
     usuarios: isAdmin ? (summary?.pendingProposals ?? undefined) : undefined,
     apelaciones: summary?.pendingAppeals,
     historial: undefined,
+    catalogo: isAdmin ? (requestCount ?? pendingRequests) : undefined,
   };
   const tabs: Array<{ id: Tab; label: string; href: string; icon: typeof History }> = [
     { id: 'casos', label: 'Casos', href: '/admin', icon: MessagesSquare },
@@ -69,6 +90,10 @@ export function ModerationHeader({
     { id: 'usuarios', label: 'Usuarios', href: '/admin/usuarios', icon: Users },
     { id: 'apelaciones', label: 'Apelaciones', href: '/admin/apelaciones', icon: Scale },
     { id: 'historial', label: 'Historial', href: '/admin/historial', icon: History },
+    // The catálogo is for admins only (openspec academic-structure/catalog-editing).
+    ...(isAdmin
+      ? [{ id: 'catalogo' as const, label: 'Catálogo', href: '/admin/catalogo', icon: Building2 }]
+      : []),
   ];
   const overdue = isAdmin ? (summary?.overdueCases ?? 0) : 0;
   const scope = summary?.scope;

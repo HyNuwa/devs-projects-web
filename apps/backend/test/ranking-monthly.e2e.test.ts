@@ -51,6 +51,7 @@ describe('monthly ranking per carrera (e2e)', () => {
     const code = tag();
     const created = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: FI_UNJU_FACULTY_ID,
         name: `Carrera ranking ${code}`,
         code: `R${code}`,
@@ -351,7 +352,9 @@ describe('monthly ranking per carrera (e2e)', () => {
   });
 
   it('shows the first carrera by name without careerId, publicly', async () => {
+    // Carreras en borrador are not public (catalog-editing).
     const careers = await prisma.career.findMany({
+      where: { status: 'PUBLISHED' },
       select: { id: true, name: true },
     });
     const collator = new Intl.Collator('es', {

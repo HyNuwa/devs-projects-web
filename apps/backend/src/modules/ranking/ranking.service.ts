@@ -321,8 +321,8 @@ export class RankingService {
   }
 
   private async career(id: string) {
-    const career = await this.prisma.career.findUnique({
-      where: { id },
+    const career = await this.prisma.career.findFirst({
+      where: { id, status: 'PUBLISHED' },
       select: { id: true, name: true },
     });
     if (!career) throw new NotFoundException('Carrera no encontrada');
@@ -331,6 +331,7 @@ export class RankingService {
 
   private async firstCareer() {
     const careers = await this.prisma.career.findMany({
+      where: { status: 'PUBLISHED' },
       select: { id: true, name: true },
     });
     const [first] = careers.sort((a, b) => collator.compare(a.name, b.name));

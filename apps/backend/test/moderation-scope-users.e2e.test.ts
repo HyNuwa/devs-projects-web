@@ -54,6 +54,7 @@ describe('Accounts a moderator can see (e2e)', () => {
     }
     const career = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: faculties.A,
         name: `Carrera ${tag}`,
         code: 'CA',

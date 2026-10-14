@@ -122,6 +122,7 @@ async function main() {
   // Carrera
   const career = await prisma.career.create({
     data: {
+      status: 'PUBLISHED',
       facultyId: FI_UNJU_FACULTY_ID,
       name: 'Ingeniería Informática',
       code: 'II',

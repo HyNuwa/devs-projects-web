@@ -113,6 +113,13 @@ describe('MyCareers («Mi carrera»)', () => {
     ).toBeNull();
   });
 
+  it('offers «No encuentro mi carrera» with the chosen facultad', async () => {
+    vi.mocked(getMyCareers).mockResolvedValue([]);
+    render(<MyCareers />);
+    const link = await screen.findByRole('link', { name: 'No encuentro mi carrera' });
+    expect(link).toHaveAttribute('href', '/universidades/pedir?facultad=f-fi');
+  });
+
   it('sends the full list when a status changes or a carrera is removed', async () => {
     const user = userEvent.setup();
     const inf = declared(informatica, 'ACTIVE');

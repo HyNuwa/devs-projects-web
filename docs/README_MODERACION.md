@@ -182,7 +182,7 @@ Las acciones bloqueadas se muestran deshabilitadas con la explicación («Estás
 |---|---|---|
 | `USER` | — | Publicar, reportar, apelar |
 | `MODERATOR` | **Una o más facultades asignadas** | Resolver casos, retirar y restaurar, advertir y silenciar, aprobar o rechazar la revisión previa, resolver apelaciones de otros moderadores |
-| `ADMIN` | Todas las facultades | Todo lo anterior, suspender, verificar organizadores, asignar moderadores y su facultad |
+| `ADMIN` | Todas las facultades | Todo lo anterior, suspender, verificar organizadores, asignar moderadores y su facultad, editar el catálogo y resolver solicitudes de carrera (§8.2) |
 | `SUPERADMIN` | Toda la plataforma | Todo lo anterior, gestionar admins y la configuración (umbrales de §4.4, límites de §3.2) |
 
 **Quién sanciona a quién:** nadie se sanciona a sí mismo. Un `MODERATOR` no sanciona a otro `MODERATOR`, `ADMIN` ni `SUPERADMIN`: a un moderador lo sanciona un `ADMIN`, y a un `ADMIN` solo un `SUPERADMIN`. Tampoco se sanciona a una cuenta desde un caso que uno reportó, ni desde *Usuarios* a una cuenta cuyo contenido **no anónimo** uno reportó en los últimos 90 días («Reportaste contenido de esta cuenta: lo resuelve otra persona de moderación»). Solo la advertencia al decidir un caso («Advertir también») queda afuera de esta regla: ahí aplica la del caso, y rechazarla por otro reporte podría revelar quién escribió una publicación anónima. Con contenido anónimo no se bloquea: el bloqueo mismo revelaría la autoría.
@@ -199,6 +199,17 @@ Desde el cambio `alcance-por-facultad` (spec `moderation/scope`):
 - **Usuarios:** ve y puede sancionar a las cuentas con una carrera declarada en sus facultades o autoras con nombre de un caso en ellas. Un caso anónimo nunca hace visible a su autor. La ficha muestra todo el historial de la cuenta, también de otras facultades, porque la escalera cuenta todo.
 - **Apelaciones:** las revisa otro moderador que cubra esa facultad; si no hay otro, esperan a un `ADMIN`.
 - **Panel:** «Tu rol: moderación · FI UNJU». Los `ADMIN` filtran Casos, Correcciones, Apelaciones e Historial por facultad (`?facultad=`).
+
+### 8.2 Catálogo y solicitudes de carrera
+
+Desde el cambio `catalogo-editable` (specs `academic-structure/catalog-editing` y `academic-structure/career-requests`), la pestaña **Catálogo** del panel es solo para `ADMIN` y `SUPERADMIN`:
+
+- **Árbol:** universidad → facultad → carrera → materias. Se crean y editan universidades, facultades, carreras y materias; los nombres cortos y códigos viejos quedan como alias que redirigen. Solo se borra lo vacío.
+- **Carreras en borrador:** una carrera nueva no aparece en el recorrido ni se puede declarar hasta que un admin la publica. Una publicada vuelve a borrador solo si nadie la declaró.
+- **Carga masiva:** `año;cuatrimestre;nombre[;créditos]` por línea (cuatrimestre `1`, `2` o `A` para anual), con vista previa; solo agrega o actualiza.
+- **Solicitudes:** los estudiantes piden su carrera con el link al plan oficial y se suman con «Yo también». Un admin la acepta (crea la carrera en borrador), la rechaza con motivo o la marca como ya cargada. Quienes la pidieron reciben un email al rechazarla o al publicarse la carrera.
+
+Los `MODERATOR` no editan el catálogo.
 
 **Cómo se llega a moderar:** por invitación de un `ADMIN`. Cumplir los requisitos de *Invitación a moderar* (`README_PUNTOS_E_INSIGNIAS.md` §5) solo hace elegible. Solo ADMIN y SUPERADMIN ven la marca «Elegible» y su filtro en *Usuarios*, porque los requisitos cuentan retiros de contenido anónimo. Desde la ficha, «Hacer moderador» pasa la cuenta de USER a MODERATOR.
 
@@ -226,7 +237,7 @@ Las sanciones sobre una publicación anónima se aplican a la cuenta del autor s
 
 ## 11. Historial y auditoría
 
-Todo queda registrado, sin excepción: decisiones sobre casos, revisiones previas, sanciones, apelaciones, cambios de rol, verificaciones de organizadores y cada uso de **Ver autor**. Cada registro guarda quién, qué, sobre qué, cuándo y la razón.
+Todo queda registrado, sin excepción: decisiones sobre casos, revisiones previas, sanciones, apelaciones, cambios de rol, verificaciones de organizadores, cada uso de **Ver autor** y cada cambio del catálogo (altas, ediciones, bajas, publicaciones, materias de una carrera, cargas masivas y solicitudes resueltas, con el antes y el después). Cada registro guarda quién, qué, sobre qué, cuándo y la razón.
 
 El historial es de solo lectura: nadie puede editar ni borrar un registro.
 
@@ -270,7 +281,7 @@ No ve el email completo ni cuáles publicaciones anónimas son de esa persona, s
 
 ### 13.2 Historial
 
-- Cada `MODERATOR` ve el historial de **sus facultades** (§8.1), con filtros por tipo de acción, moderador, contenido y fecha. No ve los cambios de rol ni de facultades.
+- Cada `MODERATOR` ve el historial de **sus facultades** (§8.1), con filtros por tipo de acción, moderador, contenido y fecha. No ve los cambios de rol ni de facultades, ni los del catálogo (§8.2).
 - `ADMIN` ve el de todas las facultades.
 - El registro de usos de **Ver autor** lo ven **solo los `ADMIN`**, para detectar abusos de esa función.
 

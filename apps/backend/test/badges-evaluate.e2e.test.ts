@@ -143,6 +143,7 @@ describe('BadgeService.evaluate (e2e)', () => {
       const giver = await createUser(prisma);
       const career = await prisma.career.create({
         data: {
+          status: 'PUBLISHED',
           facultyId: FI_UNJU_FACULTY_ID,
           name: `Carrera ${randomUUID().slice(0, 6)}`,
           code: `C${randomUUID().slice(0, 8)}`,

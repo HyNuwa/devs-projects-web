@@ -19,6 +19,7 @@ import { avatarSrc } from '@/components/layout/account';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { Button, Input, useToast } from '@/components/ui';
+import { MyCareerRequests } from './MyCareerRequests';
 import { MyCareers } from './MyCareers';
 import { PublicProfileEditor } from './PublicProfileEditor';
 import { MySubmissions } from './MySubmissions';
@@ -339,6 +340,7 @@ export function ProfilePage() {
           {user && <PublicProfileEditor onSaved={() => void checkAuth()} user={user} />}
 
           {user && <MyCareers />}
+          {user && <MyCareerRequests />}
 
           {user && <MySubmissions />}
         </div>

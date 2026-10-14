@@ -187,7 +187,7 @@ describe('SubjectHub', () => {
                 },
                 {
                   year: 3,
-                  semester: 2,
+                  semester: 0,
                   credits: 6,
                   studyPlan: {
                     name: 'Plan 2019',
@@ -211,7 +211,7 @@ describe('SubjectHub', () => {
       await screen.findByText('FI (UNJU) · Ingeniería Informática · Año 2 · Cuatrimestre 1'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('FI (UNJU) · Ingeniería Industrial · Año 3 · Cuatrimestre 2 · 6 créditos'),
+      screen.getByText('FI (UNJU) · Ingeniería Industrial · Año 3 · Anual · 6 créditos'),
     ).toBeInTheDocument();
   });
 

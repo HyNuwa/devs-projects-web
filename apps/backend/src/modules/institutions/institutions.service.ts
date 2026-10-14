@@ -36,6 +36,7 @@ export class InstitutionsService {
             name: true,
             shortName: true,
             careers: {
+              where: { status: 'PUBLISHED' },
               select: {
                 id: true,
                 name: true,
@@ -129,8 +130,9 @@ export class InstitutionsService {
         message: 'Esa carrera ya está en tu lista.',
       });
     }
+    // Only published carreras are declarable (catalog-editing).
     const plans = await this.prisma.studyPlan.findMany({
-      where: { careerId: { in: ids } },
+      where: { careerId: { in: ids }, career: { status: 'PUBLISHED' } },
       select: { id: true, careerId: true },
     });
     const planOf = new Map(plans.map((plan) => [plan.careerId, plan.id]));
@@ -145,6 +147,17 @@ export class InstitutionsService {
       // Kept entries keep their row, so the order of declaration survives a
       // status change; new ones are stamped in the order they were sent.
       await this.prisma.$transaction(async (tx) => {
+        // Waits for a concurrent unpublish of these carreras, then re-checks.
+        const published = await tx.$queryRaw<{ id: string }[]>`
+          SELECT "id" FROM "careers"
+          WHERE "id" = ANY(${ids}::uuid[]) AND "status" = 'PUBLISHED'
+          FOR SHARE`;
+        if (published.length !== ids.length) {
+          throw new BadRequestException({
+            code: 'UNKNOWN_CAREER',
+            message: 'Alguna de las carreras no existe.',
+          });
+        }
         const planIds = careers.map((career) => planOf.get(career.careerId)!);
         await tx.userStudyPlan.deleteMany({
           where: { userId, studyPlanId: { notIn: planIds } },

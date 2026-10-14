@@ -5,7 +5,12 @@ import { isIPv6 } from 'node:net';
 import { emailHmac } from './email-key';
 
 export type RateLimitPolicy =
-  'login' | 'signup' | 'recovery' | 'appeal' | 'communityWrite';
+  | 'login'
+  | 'signup'
+  | 'recovery'
+  | 'appeal'
+  | 'communityWrite'
+  | 'careerRequest';
 
 /** What the policies read from a request (Express request after the JWT guard). */
 export type RateLimitRequest = {
@@ -72,6 +77,15 @@ export class RateLimitPolicies {
             key: `community:${action}:${req.user?.id ?? `ip:${ip}`}`,
             limit: this.communityLimit,
             windowMs: this.communityWindowMs,
+          },
+        ];
+      case 'careerRequest':
+        // Asking and «Yo también» share one allowance per account.
+        return [
+          {
+            key: `career-request:${req.user?.id ?? `ip:${ip}`}`,
+            limit: 10,
+            windowMs: HOUR,
           },
         ];
     }

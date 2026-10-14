@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { browsePath, type FacultyPage } from '@/lib/catalog-client';
 
 import { BrowseCard, BrowseShell, count } from './BrowseShell';
@@ -17,9 +19,15 @@ export function FacultyView({ data }: { data: FacultyPage }) {
       ]}
     >
       {careers.length === 0 ? (
-        <p className="rounded-2xl border-[1.5px] border-dashed border-line p-6 text-center text-sm font-semibold text-muted-foreground">
-          Todavía no cargamos sus carreras.
-        </p>
+        <div className="grid justify-items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-line p-6 text-center text-sm font-semibold text-muted-foreground">
+          <p>Todavía no cargamos sus carreras.</p>
+          <Link
+            className="inline-flex min-h-11 items-center rounded-full border-[1.5px] border-foreground px-4 font-extrabold text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+            href={`/universidades/pedir?facultad=${encodeURIComponent(faculty.id)}`}
+          >
+            Pedí tu carrera
+          </Link>
+        </div>
       ) : (
         <ul aria-label="Carreras" className="grid gap-4 sm:grid-cols-2">
           {careers.map((career) => (

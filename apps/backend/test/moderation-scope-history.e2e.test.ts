@@ -53,6 +53,7 @@ describe('History within the moderator facultades (e2e)', () => {
     }
     const career = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: faculties.A,
         name: `Carrera ${tag}`,
         code: 'CA',

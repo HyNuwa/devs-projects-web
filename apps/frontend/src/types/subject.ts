@@ -27,6 +27,7 @@ export interface SubjectHub extends Subject {
   faculty: DiscoveryHierarchyFaculty;
   studyPlans: {
     year: number;
+    /** 0 = anual, 1 and 2 = cuatrimestres. */
     semester: number;
     credits: number | null;
     studyPlan: {

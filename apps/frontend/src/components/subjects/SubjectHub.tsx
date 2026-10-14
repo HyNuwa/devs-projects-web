@@ -217,7 +217,7 @@ function placementLabel(plan: SubjectHubType['studyPlans'][number]): string {
     `${career.faculty.shortName} (${career.faculty.university.shortName})`,
     career.name,
     `Año ${plan.year}`,
-    `Cuatrimestre ${plan.semester}`,
+    plan.semester === 0 ? 'Anual' : `Cuatrimestre ${plan.semester}`,
     ...(plan.credits ? [`${plan.credits} créditos`] : []),
   ].join(' · ');
 }

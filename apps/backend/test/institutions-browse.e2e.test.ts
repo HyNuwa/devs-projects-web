@@ -49,6 +49,7 @@ describe('Browse the catalog (e2e)', () => {
     }
     const careerA = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: full.id,
         name: 'Ingeniería A',
         code: 'IA',
@@ -90,6 +91,7 @@ describe('Browse the catalog (e2e)', () => {
     careerAId = careerA.id;
     await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: full.id,
         name: 'Ingeniería B',
         code: 'IB',

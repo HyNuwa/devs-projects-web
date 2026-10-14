@@ -40,6 +40,7 @@ describe('/users/me/study-plans (e2e)', () => {
   async function career(facultyId: string, name: string, plan = true) {
     const created = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId,
         name: `${name} ${tag}`,
         code: `C${randomUUID().slice(0, 8)}`,

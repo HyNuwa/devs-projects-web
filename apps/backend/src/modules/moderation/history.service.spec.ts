@@ -137,11 +137,14 @@ describe('HistoryService', () => {
         TemplateStringsArray,
         Prisma.Sql,
       ];
-      expect(where.values).toContainEqual([
-        'AUTHOR_REVEALED',
-        'ROLE_CHANGED',
-        'MODERATOR_SCOPE_CHANGED',
-      ]);
+      expect(where.values).toContainEqual(
+        expect.arrayContaining([
+          'AUTHOR_REVEALED',
+          'ROLE_CHANGED',
+          'MODERATOR_SCOPE_CHANGED',
+          'CATALOG_UPDATED',
+        ]),
+      );
     });
 
     it('shows revelación de autor records to admins', async () => {

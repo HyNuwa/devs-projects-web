@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { resolveAlias } from '../catalog/slug-aliases';
 import {
   publicVisibility,
   publicVisibilitySql,
@@ -15,6 +16,17 @@ const byName = <T extends { name: string }>(a: T, b: T) =>
 
 /** Browsing segments are the lowercase short names and codes. */
 const slug = (value: string) => value.toLowerCase();
+
+/**
+ * A segment that is an old slug answers with the current address, which the
+ * page turns into a permanent redirect (catalog-editing, «Old slugs keep working»).
+ */
+const redirect = (...segments: string[]) => ({
+  redirect: ['/universidades', ...segments.map(slug)].join('/'),
+});
+
+type Found<T> = { row: T; moved: boolean };
+type Level = { id: string; name: string; shortName: string };
 
 const notFound = () =>
   new NotFoundException({
@@ -55,7 +67,8 @@ export class CatalogBrowseService {
   }
 
   async university(uni: string) {
-    const university = await this.findUniversity(uni);
+    const { row: university, moved } = await this.findUniversity(uni);
+    if (moved) return redirect(university.shortName);
     const [faculties, materialsByFaculty] = await Promise.all([
       this.prisma.faculty.findMany({
         where: { universityId: university.id },
@@ -63,7 +76,7 @@ export class CatalogBrowseService {
           id: true,
           name: true,
           shortName: true,
-          _count: { select: { careers: true } },
+          _count: { select: { careers: { where: { status: 'PUBLISHED' } } } },
         },
       }),
       this.materialsByFaculty(),
@@ -83,10 +96,12 @@ export class CatalogBrowseService {
   }
 
   async faculty(uni: string, fac: string) {
-    const university = await this.findUniversity(uni);
-    const faculty = await this.findFaculty(university.id, fac);
+    const u = await this.findUniversity(uni);
+    const f = await this.findFaculty(u.row.id, fac);
+    if (u.moved || f.moved) return redirect(u.row.shortName, f.row.shortName);
+    const [university, faculty] = [u.row, f.row];
     const careers = await this.prisma.career.findMany({
-      where: { facultyId: faculty.id },
+      where: { facultyId: faculty.id, status: 'PUBLISHED' },
       select: {
         id: true,
         name: true,
@@ -122,13 +137,39 @@ export class CatalogBrowseService {
   }
 
   async career(uni: string, fac: string, code: string) {
-    const university = await this.findUniversity(uni);
-    const faculty = await this.findFaculty(university.id, fac);
-    const career = await this.prisma.career.findFirst({
-      where: {
-        facultyId: faculty.id,
-        code: { equals: code, mode: 'insensitive' },
-      },
+    const u = await this.findUniversity(uni);
+    const f = await this.findFaculty(u.row.id, fac);
+    const [university, faculty] = [u.row, f.row];
+    const published = { facultyId: faculty.id, status: 'PUBLISHED' as const };
+    let career = await this.prisma.career.findFirst({
+      where: { ...published, code: { equals: code, mode: 'insensitive' } },
+      select: { id: true, code: true },
+    });
+    let moved = u.moved || f.moved;
+    if (!career) {
+      const id = await resolveAlias(this.prisma, 'CAREER', faculty.id, code);
+      career = id
+        ? await this.prisma.career.findFirst({
+            where: { ...published, id },
+            select: { id: true, code: true },
+          })
+        : null;
+      moved = true;
+    }
+    if (!career) throw notFound();
+    if (moved) {
+      return redirect(university.shortName, faculty.shortName, career.code);
+    }
+    return this.careerPage(university, faculty, career.id);
+  }
+
+  private async careerPage(
+    university: { id: string; name: string; shortName: string },
+    faculty: { id: string; name: string; shortName: string },
+    careerId: string,
+  ) {
+    const career = await this.prisma.career.findUnique({
+      where: { id: careerId },
       select: {
         id: true,
         name: true,
@@ -187,22 +228,36 @@ export class CatalogBrowseService {
     return { ...row, slug: slug(row.shortName) };
   }
 
-  private async findUniversity(uni: string) {
-    const university = await this.prisma.university.findFirst({
+  private async findUniversity(uni: string): Promise<Found<Level>> {
+    const select = { id: true, name: true, shortName: true };
+    const current = await this.prisma.university.findFirst({
       where: { shortName: { equals: uni, mode: 'insensitive' } },
-      select: { id: true, name: true, shortName: true },
+      select,
     });
-    if (!university) throw notFound();
-    return university;
+    if (current) return { row: current, moved: false };
+    const id = await resolveAlias(this.prisma, 'UNIVERSITY', null, uni);
+    const renamed =
+      id &&
+      (await this.prisma.university.findUnique({ where: { id }, select }));
+    if (!renamed) throw notFound();
+    return { row: renamed, moved: true };
   }
 
-  private async findFaculty(universityId: string, fac: string) {
-    const faculty = await this.prisma.faculty.findFirst({
+  private async findFaculty(
+    universityId: string,
+    fac: string,
+  ): Promise<Found<Level>> {
+    const select = { id: true, name: true, shortName: true };
+    const current = await this.prisma.faculty.findFirst({
       where: { universityId, shortName: { equals: fac, mode: 'insensitive' } },
-      select: { id: true, name: true, shortName: true },
+      select,
     });
-    if (!faculty) throw notFound();
-    return faculty;
+    if (current) return { row: current, moved: false };
+    const id = await resolveAlias(this.prisma, 'FACULTY', universityId, fac);
+    const renamed =
+      id && (await this.prisma.faculty.findUnique({ where: { id }, select }));
+    if (!renamed) throw notFound();
+    return { row: renamed, moved: true };
   }
 
   private async materialsByFaculty() {

@@ -18,6 +18,18 @@ _Avoid_: Department, school
 A degree program of one facultad, made of materias arranged by año and cuatrimestre. A student declares the carreras they study or finished; the platform does not track curriculum versions.
 _Avoid_: Plan de estudios, study plan, curriculum
 
+**Catálogo**:
+The universidades, facultades, carreras and materias the platform knows. Only admins change it.
+_Avoid_: Directory, institution list
+
+**Carrera en borrador**:
+A carrera still being loaded into the catálogo. It is not shown in browsing and nobody can declare it until an admin publishes it.
+_Avoid_: Hidden carrera, pending carrera
+
+**Solicitud de carrera**:
+A signed-in student's request to add a carrera to the catálogo, with the link to its official plan. It may name a facultad or universidad the catálogo does not have yet. An admin resolves it.
+_Avoid_: Corrección, suggestion, pedido
+
 **Materia**:
 An academic unit taught in one or more carreras of one facultad, and the primary organizing context for resources, reviews, exam experiences, and professors. A materia with the same name in two facultades is two different materias.
 _Avoid_: Course, subject hub

@@ -167,6 +167,7 @@ describe('Moderator facultades (e2e)', () => {
   it('shows admins, in the account file, the facultades covered and those of its carreras', async () => {
     const career = await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         facultyId: facultyB,
         name: `Carrera ${tag}`,
         code: 'CB',

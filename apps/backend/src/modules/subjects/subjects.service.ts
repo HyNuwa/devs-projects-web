@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
+import { resolveAlias } from '../catalog/slug-aliases';
 import { CreateCourseReviewDto } from './dto/create-course-review.dto';
 import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { ContributionPoints } from '../ranking/contribution-points';
@@ -245,6 +246,8 @@ export class SubjectsService {
       include: {
         faculty: { select: facultySelect },
         studyPlans: {
+          // Carreras en borrador are not public yet (catalog-editing).
+          where: { studyPlan: { career: { status: 'PUBLISHED' } } },
           orderBy: [
             { studyPlan: { career: { name: 'asc' } } },
             { studyPlan: { name: 'asc' } },
@@ -293,6 +296,22 @@ export class SubjectsService {
         materialCount,
       },
     };
+  }
+
+  /** The current code of a materia whose old code is `code`, if any. */
+  async renamedCode(code: string) {
+    const exists = await this.prisma.subject.findFirst({
+      where: { code },
+      select: { id: true },
+    });
+    if (exists) return null;
+    const id = await resolveAlias(this.prisma, 'SUBJECT', null, code);
+    if (!id) return null;
+    const subject = await this.prisma.subject.findUnique({
+      where: { id },
+      select: { code: true },
+    });
+    return subject?.code ?? null;
   }
 
   async getReviews(code: string) {

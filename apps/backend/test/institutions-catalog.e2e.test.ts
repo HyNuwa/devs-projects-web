@@ -75,6 +75,7 @@ describe('GET /institutions (e2e)', () => {
     });
     await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         id: ids.contador,
         facultyId: ids.economicas,
         name: 'Contador Público',
@@ -89,6 +90,7 @@ describe('GET /institutions (e2e)', () => {
     });
     await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         id: ids.administracion,
         facultyId: ids.economicas,
         name: 'Administración',
@@ -98,6 +100,7 @@ describe('GET /institutions (e2e)', () => {
     // Same code as the FI carrera: unique only within its facultad.
     await prisma.career.create({
       data: {
+        status: 'PUBLISHED',
         id: ids.agronomia,
         facultyId: ids.agrarias,
         name: 'Ingeniería Agronómica',

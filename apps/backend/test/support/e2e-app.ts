@@ -89,6 +89,7 @@ async function sharedFiPlan(prisma: PrismaService) {
     try {
       career = await prisma.career.create({
         data: {
+          status: 'PUBLISHED',
           facultyId: FI_UNJU_FACULTY_ID,
           name: 'Carrera e2e',
           code: 'E2E',

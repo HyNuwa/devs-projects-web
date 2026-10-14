@@ -1,3 +1,5 @@
+import { permanentRedirect } from 'next/navigation';
+
 /** One level of the browsing pages (openspec academic-structure/browsing). */
 export type BrowseLevel = { id: string; name: string; shortName: string; slug: string };
 
@@ -19,6 +21,7 @@ export type CareerSubject = {
   code: string | null;
   name: string;
   year: number;
+  /** 0 = anual, 1 and 2 = cuatrimestres. */
   semester: number;
   credits: number | null;
   materialCount: number;
@@ -54,7 +57,35 @@ async function browse<T>(path: string): Promise<T | null> {
   });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`No se pudo leer el catálogo (${response.status}).`);
-  return (await response.json()) as T;
+  const body = (await response.json()) as T | { redirect: string };
+  // An old slug of a renamed universidad, facultad or carrera (catalog-editing).
+  if (isRedirect(body)) permanentRedirect(body.redirect);
+  return body;
+}
+
+const isRedirect = (body: unknown): body is { redirect: string } =>
+  typeof body === 'object' &&
+  body !== null &&
+  typeof (body as { redirect?: unknown }).redirect === 'string';
+
+/**
+ * The materia page's server check: an old code of a renamed materia redirects
+ * permanently to the current one, keeping `query` (like `carrera=ii`).
+ */
+export async function redirectOldSubjectCode(code: string, query: string) {
+  let target: string | null = null;
+  try {
+    const response = await fetch(`${API_URL}/subjects/${encodeURIComponent(code)}/current`, {
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+    if (response.ok) {
+      const body = (await response.json()) as { redirect?: unknown };
+      if (typeof body.redirect === 'string') target = body.redirect;
+    }
+  } catch {
+    // The check is a convenience: the page renders without it.
+  }
+  if (target) permanentRedirect(query ? `${target}?${query}` : target);
 }
 
 const segment = (value: string) => `/${encodeURIComponent(value.toLowerCase())}`;

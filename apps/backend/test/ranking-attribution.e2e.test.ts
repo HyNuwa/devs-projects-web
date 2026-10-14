@@ -133,6 +133,7 @@ describe('ranking attribution (e2e)', () => {
     const career = (code: string) =>
       prisma.career.create({
         data: {
+          status: 'PUBLISHED',
           facultyId: FI_UNJU_FACULTY_ID,
           name: `Carrera atribución ${code}${tag}`,
           code: `${code}${tag}`,
