@@ -7,7 +7,7 @@ Model the institutions DevsProject serves (universidad → facultad → carrera 
 ## Requirements
 
 ### Requirement: Institutional hierarchy
-The system SHALL organize academic structure as universidad → facultad → carrera → materia. Every facultad MUST belong to exactly one universidad, every carrera to exactly one facultad, and every materia to exactly one facultad. A carrera's code MUST be unique within its facultad, and two universidades MAY each have a facultad with the same name. A materia's code, when it has one, MUST be unique across the whole system. Each carrera SHALL have exactly one internal arrangement of materias by año and cuatrimestre; the product SHALL NOT keep or show versions of it.
+The system SHALL organize academic structure as universidad → facultad → carrera → materia. Every facultad MUST belong to exactly one universidad, every carrera to exactly one facultad, and every materia to exactly one facultad. A carrera's code MUST be unique within its facultad, and two universidades MAY each have a facultad with the same name. A materia's code, when it has one, MUST be unique across the whole system. Each carrera SHALL have exactly one internal arrangement of materias by año and cuatrimestre, where a materia's cuatrimestre is 1.º, 2.º or anual; the product SHALL NOT keep or show versions of it.
 
 #### Scenario: Same facultad name in two universidades
 - **WHEN** two universidades each have a «Facultad de Ingeniería»
@@ -24,6 +24,10 @@ The system SHALL organize academic structure as universidad → facultad → car
 #### Scenario: Second arrangement for a carrera
 - **WHEN** an attempt is made to add a second arrangement of materias to a carrera that has one
 - **THEN** the system rejects it
+
+#### Scenario: Materia anual
+- **WHEN** a carrera places «Anatomía» in 1.º año as anual
+- **THEN** the carrera keeps it as anual, not as 1.º or 2.º cuatrimestre
 
 ### Requirement: Materias belong to one facultad
 A carrera SHALL only include materias of its own facultad. A materia taught under the same name in two facultades MUST be two different materias with separate resources, reviews, exam experiences and professor links.
@@ -44,15 +48,23 @@ On adoption, the system SHALL place every existing carrera and materia under the
 - **THEN** each carrera and materia belongs to FI-UNJU afterwards, and every plan, materia, contribution and account is otherwise unchanged
 
 ### Requirement: Public institutional catalog
-The system SHALL expose a public, read-only catalog of universidades, their facultades and their carreras, ordered by name, without requiring sign-in. Each carrera SHALL include its link to the official plan when it has one. Universidades, facultades, carreras and materias MUST NOT be creatable or editable from the product interface.
+The system SHALL expose a public, read-only catalog of universidades, their facultades and their published carreras, ordered by name, without requiring sign-in. Each carrera SHALL include its link to the official plan when it has one. A carrera en borrador MUST NOT appear in it. Universidades, facultades, carreras and materias SHALL be creatable and editable only by ADMIN and SUPERADMIN, through the Catálogo tab described in academic-structure/catalog-editing.
 
 #### Scenario: Visitor reads the catalog
 - **WHEN** a visitor without a session requests the catalog
-- **THEN** the system returns every universidad with its facultades and carreras, including preloaded ones without carreras
+- **THEN** the system returns every universidad with its facultades and published carreras, including preloaded ones without carreras
+
+#### Scenario: Carrera en borrador
+- **WHEN** a facultad has a carrera en borrador and a published one
+- **THEN** the catalog lists only the published one
 
 #### Scenario: Admin looks for a way to add a facultad
-- **WHEN** an admin uses the product interface
-- **THEN** no action exists to create, rename or delete a universidad, facultad, carrera or materia
+- **WHEN** an admin opens the Catálogo tab of the panel
+- **THEN** they can create, rename and delete universidades, facultades, carreras and materias there
+
+#### Scenario: Student looks for a way to add a facultad
+- **WHEN** a student without a staff role uses the product interface
+- **THEN** no action exists to create, rename or delete a universidad, facultad, carrera or materia, only to ask for a carrera
 
 ### Requirement: Main universidades are preloaded
 The catalog SHALL include, from this change on, these universidades with their facultades (or, for the UTN, its facultades regionales), each taken from an official source that is recorded: UNJU, UNSa, UNT, UNCA, UNSE, UBA, UNC, UNLP, UTN, UNR, UNCuyo, UNL and UNNE. Loading them SHALL NOT create carreras or materias for them, and SHALL NOT change the existing FI-UNJU carreras, materias, contributions or accounts.
@@ -106,3 +118,10 @@ A signed-in student SHALL be able to declare one or more carreras, chosen throug
 #### Scenario: Unauthenticated change
 - **WHEN** a request without a session tries to read or change declared carreras
 - **THEN** the system rejects it with an authentication error
+
+### Requirement: Only published carreras are declarable
+A student SHALL be able to declare only published carreras. A declaration of a carrera en borrador SHALL be refused as invalid.
+
+#### Scenario: Declaring a carrera en borrador
+- **WHEN** a student sends a declaration for a carrera en borrador by its id
+- **THEN** the system refuses it and their declared carreras stay as they were
