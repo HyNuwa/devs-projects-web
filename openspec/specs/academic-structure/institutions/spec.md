@@ -7,7 +7,7 @@ Model the institutions DevsProject serves (universidad → facultad → carrera 
 ## Requirements
 
 ### Requirement: Institutional hierarchy
-The system SHALL organize academic structure as universidad → facultad → carrera → materia. Every facultad MUST belong to exactly one universidad, every carrera to exactly one facultad, and every materia to exactly one facultad. A carrera's code MUST be unique within its facultad, and two universidades MAY each have a facultad with the same name. A materia's code, when it has one, MUST be unique across the whole system. Each carrera SHALL have exactly one internal arrangement of materias by año and cuatrimestre, where a materia's cuatrimestre is 1.º, 2.º or anual; the product SHALL NOT keep or show versions of it.
+The system SHALL organize academic structure as universidad → facultad → carrera → materia. Every facultad MUST belong to exactly one universidad, every carrera to exactly one facultad, and every materia to exactly one facultad. A carrera's code MUST be unique within its facultad, and two universidades MAY each have a facultad with the same name. A materia's code, when it has one, MUST be unique across the whole system. Each carrera SHALL have exactly one internal arrangement of materias: each materia is either placed in an año and cuatrimestre, where the cuatrimestre is 1.º, 2.º or anual, or is an optativa with no año or cuatrimestre; the product SHALL NOT keep or show versions of it.
 
 #### Scenario: Same facultad name in two universidades
 - **WHEN** two universidades each have a «Facultad de Ingeniería»
@@ -28,6 +28,14 @@ The system SHALL organize academic structure as universidad → facultad → car
 #### Scenario: Materia anual
 - **WHEN** a carrera places «Anatomía» in 1.º año as anual
 - **THEN** the carrera keeps it as anual, not as 1.º or 2.º cuatrimestre
+
+#### Scenario: Optativa
+- **WHEN** a carrera lists «Robótica» as an optativa
+- **THEN** the carrera keeps it with no año or cuatrimestre
+
+#### Scenario: Optativa in one carrera, placed in another
+- **WHEN** «Robótica» is an optativa of Ingeniería Informática and placed in 4.º año of Ingeniería Electrónica in the same facultad
+- **THEN** both carreras keep their own arrangement and the materia keeps one set of content
 
 ### Requirement: Materias belong to one facultad
 A carrera SHALL only include materias of its own facultad. A materia taught under the same name in two facultades MUST be two different materias with separate resources, reviews, exam experiences and professor links.
