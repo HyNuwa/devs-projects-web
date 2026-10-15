@@ -143,6 +143,7 @@ describe('HistoryService', () => {
           'ROLE_CHANGED',
           'MODERATOR_SCOPE_CHANGED',
           'CATALOG_UPDATED',
+          'CATALOG_PLAN_READ',
         ]),
       );
     });

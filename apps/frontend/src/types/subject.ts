@@ -26,9 +26,10 @@ export interface SubjectUser {
 export interface SubjectHub extends Subject {
   faculty: DiscoveryHierarchyFaculty;
   studyPlans: {
-    year: number;
+    /** Null, like semester, for an optativa. */
+    year: number | null;
     /** 0 = anual, 1 and 2 = cuatrimestres. */
-    semester: number;
+    semester: number | null;
     credits: number | null;
     studyPlan: {
       name: string;

@@ -87,6 +87,21 @@ Estado: ✅ hecho · 🟡 parcial · ⬜ pendiente.
 
 Todo cambio que toque autenticación, subida de archivos, permisos o datos personales necesita que otra persona lo revise antes de entrar a `main`.
 
+## Lectura del plan con IA
+
+Decisiones del cambio `borrador-por-bot` (spec `academic-structure/plan-reading`). El link al plan lo escribe un estudiante, así que el servidor lo descarga con `safe-fetch.ts`:
+
+| Medida | Detalle |
+|---|---|
+| Solo `https` | También en cada redirección; sin usuario ni contraseña en la URL |
+| Sin direcciones internas | `blocked-address.ts` rechaza rangos privados, loopback, link-local (incluido `169.254.169.254`), CGNAT, multicast, reservados, de documentación y túneles (6to4, Teredo), en IPv4, IPv6 e IPv4 mapeada |
+| Sin cambio de DNS entre control y uso | El control corre en el `lookup` del socket, sin agente que reutilice conexiones, así que la IP revisada es la que se conecta |
+| Topes | 3 redirecciones, 20 s en total, 15 MB leídos en streaming |
+| Tipos | Solo HTML o PDF (también `octet-stream` que empieza con `%PDF-`) |
+| HTML hostil | `html-to-text.ts` lee como mucho 3 MB y sus patrones nunca cruzan un `<`, así que una página armada para trabar expresiones regulares se procesa en tiempo lineal |
+
+El contenido del plan es un dato: la instrucción del modelo lo dice, el modelo no tiene herramientas, la respuesta tiene que cumplir un esquema JSON y el servidor arma las líneas validando año, cuatrimestre, nombre y créditos. Lo peor que puede salir es una propuesta mala que el admin ve antes de confirmar. A Gemini solo van el plan y los nombres de la carrera, la facultad y la universidad; nunca datos de quien pidió la carrera. La clave `API_KEY_GEMINI` va en un header, nunca en la URL ni en los logs.
+
 ## Límites de frecuencia
 
 Decisiones del cambio `moderacion-ajustes`:

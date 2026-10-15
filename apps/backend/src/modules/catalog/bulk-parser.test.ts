@@ -11,6 +11,7 @@ describe('parseBulk', () => {
         semester: 1,
         name: 'Álgebra Lineal',
         credits: 6,
+        optativa: false,
         errors: [],
       },
       {
@@ -19,10 +20,45 @@ describe('parseBulk', () => {
         semester: 2,
         name: 'Física I',
         credits: null,
+        optativa: false,
         errors: [],
       },
     ]);
   });
+
+  it('reads O and o as optativa, without año or cuatrimestre', () => {
+    expect(parseBulk('O;;Robótica\no;;Inteligencia Artificial;6')).toEqual([
+      {
+        line: 1,
+        year: null,
+        semester: null,
+        name: 'Robótica',
+        credits: null,
+        optativa: true,
+        errors: [],
+      },
+      {
+        line: 2,
+        year: null,
+        semester: null,
+        name: 'Inteligencia Artificial',
+        credits: 6,
+        optativa: true,
+        errors: [],
+      },
+    ]);
+  });
+
+  it.each(['O;2;Robótica', 'O;A;Robótica'])(
+    'refuses a cuatrimestre on an optativa: %s',
+    (line) => {
+      const [row] = parseBulk(line);
+      expect(row.optativa).toBe(true);
+      expect(row.errors).toEqual([
+        'Una optativa no lleva cuatrimestre: O;;nombre;créditos.',
+      ]);
+    },
+  );
 
   it('reads A and a as anual', () => {
     const rows = parseBulk('2;A;Anatomía\n3;a;Fisiología');

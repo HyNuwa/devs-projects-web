@@ -36,6 +36,7 @@ const ACTION_LABEL: Record<string, string> = {
   CATALOG_PLACEMENT_CHANGED: 'Materias de una carrera',
   CATALOG_BULK_APPLIED: 'Carga masiva',
   CAREER_REQUEST_RESOLVED: 'Solicitud de carrera',
+  CATALOG_PLAN_READ: 'Lectura del plan',
 };
 
 const CATALOG_KIND: Record<string, string> = {
@@ -45,11 +46,33 @@ const CATALOG_KIND: Record<string, string> = {
   SUBJECT: 'Materia',
 };
 
+const PLAN_READ_ERROR: Record<string, string> = {
+  PLAN_URL_FORBIDDEN: 'Link no permitido',
+  PLAN_UNREACHABLE: 'No se pudo abrir el link',
+  PLAN_TOO_LARGE: 'Archivo demasiado grande',
+  PLAN_UNSUPPORTED_TYPE: 'No es página ni PDF',
+  PLAN_NOT_FOUND: 'No encontró el plan',
+  AI_NOT_CONFIGURED: 'IA sin configurar',
+  AI_QUOTA: 'Cuota de IA agotada',
+  AI_FAILED: 'La IA falló',
+  UNEXPECTED: 'Error inesperado',
+};
+
+/** «Carrera LF · link → PDF · 42 materias, 2 avisos», or the error, for a lectura del plan. */
+function planReadLabel(name: string, after: Record<string, unknown>) {
+  const source = [after.url, after.linked].filter(Boolean).map(String).join(' → ');
+  const result = after.error
+    ? (PLAN_READ_ERROR[String(after.error)] ?? String(after.error))
+    : `${Number(after.lines ?? 0)} materias, ${Number(after.notices ?? 0)} avisos`;
+  return [name, source, result].filter(Boolean).join(' · ');
+}
+
 /** «Facultad Exactas · shortName: FCEx → FCE» for a catálogo event. */
-function catalogLabel(catalog: NonNullable<HistoryItem['catalog']>) {
+function catalogLabel(catalog: NonNullable<HistoryItem['catalog']>, action: string) {
   const name = [catalog.kind ? CATALOG_KIND[catalog.kind] : null, catalog.label]
     .filter(Boolean)
     .join(' ');
+  if (action === 'CATALOG_PLAN_READ') return planReadLabel(name, catalog.after ?? {});
   const before = catalog.before ?? {};
   const after = catalog.after ?? {};
   const changes = Object.keys(after)
@@ -223,7 +246,8 @@ export function HistoryPanel() {
                         {item.target.label}
                       </Link>
                     ) : (
-                      (item.target?.label ?? (item.catalog ? catalogLabel(item.catalog) : '—'))
+                      (item.target?.label ??
+                      (item.catalog ? catalogLabel(item.catalog, item.action) : '—'))
                     )}
                     {item.targetUser?.username ? (
                       <span className="block text-xs text-muted-foreground">

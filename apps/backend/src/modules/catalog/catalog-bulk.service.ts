@@ -9,7 +9,7 @@ import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { parseBulk, type Semester } from './bulk-parser';
 import { CatalogService } from './catalog.service';
-import type { BulkRowDto } from './dto/catalog.dto';
+import { type BulkRowDto, placementValue } from './dto/catalog.dto';
 
 type Tx = Prisma.TransactionClient;
 
@@ -22,6 +22,7 @@ export type PreviewRow = {
   semester: Semester | null;
   name: string;
   credits: number | null;
+  optativa: boolean;
   errors: string[];
   /** reuse a materia of the facultad, create a new one, or nothing (invalid). */
   action: 'reuse' | 'new' | 'invalid';
@@ -144,11 +145,7 @@ export class CatalogBulkService {
             );
             created += 1;
           }
-          const value = {
-            year: row.year,
-            semester: row.semester,
-            credits: row.credits ?? null,
-          };
+          const value = placementValue(row);
           if (placements.has(subjectId)) updated += 1;
           else added += 1;
           await tx.studyPlanSubject.upsert({

@@ -26,6 +26,8 @@ export type CareerSubject = {
   credits: number | null;
   materialCount: number;
 };
+/** A materia the carrera lists with no año or cuatrimestre. */
+export type CareerOptativa = Omit<CareerSubject, 'year' | 'semester'>;
 export type CareerPage = {
   university: BrowseLevel;
   faculty: BrowseLevel;
@@ -40,6 +42,7 @@ export type CareerPage = {
     subjectCount: number;
   };
   subjects: CareerSubject[];
+  optativas: CareerOptativa[];
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';

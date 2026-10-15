@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { PlanReadingModule } from './modules/plan-reading/plan-reading.module';
 import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { GuidesModule } from './modules/guides/guides.module';
 import { InstitutionsModule } from './modules/institutions/institutions.module';
@@ -79,6 +80,7 @@ import { validate } from './config/env.validation';
     GuidesModule,
     InstitutionsModule,
     CatalogModule,
+    PlanReadingModule,
     MailModule,
     MaterialsModule,
     ModerationModule,

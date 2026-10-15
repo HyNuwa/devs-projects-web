@@ -10,7 +10,8 @@ export type RateLimitPolicy =
   | 'recovery'
   | 'appeal'
   | 'communityWrite'
-  | 'careerRequest';
+  | 'careerRequest'
+  | 'planReading';
 
 /** What the policies read from a request (Express request after the JWT guard). */
 export type RateLimitRequest = {
@@ -85,6 +86,15 @@ export class RateLimitPolicies {
           {
             key: `career-request:${req.user?.id ?? `ip:${ip}`}`,
             limit: 10,
+            windowMs: HOUR,
+          },
+        ];
+      case 'planReading':
+        // Each lectura del plan calls the AI (openspec academic-structure/plan-reading).
+        return [
+          {
+            key: `plan-reading:${req.user?.id ?? `ip:${ip}`}`,
+            limit: 20,
             windowMs: HOUR,
           },
         ];

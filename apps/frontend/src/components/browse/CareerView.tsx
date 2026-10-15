@@ -1,6 +1,11 @@
 import Link from 'next/link';
 
-import { browsePath, type CareerPage, type CareerSubject } from '@/lib/catalog-client';
+import {
+  browsePath,
+  type CareerOptativa,
+  type CareerPage,
+  type CareerSubject,
+} from '@/lib/catalog-client';
 
 import { BrowseShell, count } from './BrowseShell';
 
@@ -27,9 +32,30 @@ function group(subjects: CareerSubject[]) {
     );
 }
 
-/** Step 4: a carrera's materias by año and cuatrimestre, without plans (ADR 0003). */
+function SubjectLink({ subject, career }: { subject: CareerOptativa; career: string }) {
+  return (
+    <li>
+      <Link
+        className="flex min-h-11 items-center justify-between gap-3 rounded-xl border-[1.5px] border-line bg-background px-3 py-2 hover:border-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        href={`/materias/${encodeURIComponent(subject.code ?? subject.id)}?carrera=${career}`}
+      >
+        <span className="min-w-0 break-words font-bold">{subject.name}</span>
+        <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+          {count(subject.materialCount, 'material', 'materiales')}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+const sectionClass = 'rounded-2xl border-[1.5px] border-foreground bg-card p-5 shadow-pop';
+
+/**
+ * Step 4: a carrera's materias by año and cuatrimestre, then its optativas,
+ * without plans (ADR 0003).
+ */
 export function CareerView({ data }: { data: CareerPage }) {
-  const { university, faculty, career, subjects } = data;
+  const { university, faculty, career, subjects, optativas } = data;
   const facts = [
     career.years ? count(career.years, 'año', 'años') : null,
     count(career.subjectCount, 'materia', 'materias'),
@@ -69,17 +95,13 @@ export function CareerView({ data }: { data: CareerPage }) {
           <span key={fact}>{fact}</span>
         ))}
       </p>
-      {subjects.length === 0 ? (
+      {subjects.length === 0 && optativas.length === 0 ? (
         <p className="rounded-2xl border-[1.5px] border-dashed border-line p-6 text-center text-sm font-semibold text-muted-foreground">
           Todavía no cargamos sus materias.
         </p>
       ) : (
         group(subjects).map(([year, semesters]) => (
-          <section
-            aria-labelledby={`anio-${year}`}
-            className="rounded-2xl border-[1.5px] border-foreground bg-card p-5 shadow-pop"
-            key={year}
-          >
+          <section aria-labelledby={`anio-${year}`} className={sectionClass} key={year}>
             <h2 className="text-2xl font-extrabold tracking-[-0.04em]" id={`anio-${year}`}>
               {ordinal(year)} año
             </h2>
@@ -94,17 +116,7 @@ export function CareerView({ data }: { data: CareerPage }) {
                   </h3>
                   <ul aria-labelledby={semesterId(year, semester)} className="mt-2 grid gap-2">
                     {list.map((subject) => (
-                      <li key={subject.id}>
-                        <Link
-                          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border-[1.5px] border-line bg-background px-3 py-2 hover:border-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          href={`/materias/${encodeURIComponent(subject.code ?? subject.id)}?carrera=${career.slug}`}
-                        >
-                          <span className="min-w-0 break-words font-bold">{subject.name}</span>
-                          <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-                            {count(subject.materialCount, 'material', 'materiales')}
-                          </span>
-                        </Link>
-                      </li>
+                      <SubjectLink career={career.slug} key={subject.id} subject={subject} />
                     ))}
                   </ul>
                 </div>
@@ -113,6 +125,18 @@ export function CareerView({ data }: { data: CareerPage }) {
           </section>
         ))
       )}
+      {optativas.length > 0 ? (
+        <section aria-labelledby="optativas" className={sectionClass}>
+          <h2 className="text-2xl font-extrabold tracking-[-0.04em]" id="optativas">
+            Optativas
+          </h2>
+          <ul aria-labelledby="optativas" className="mt-4 grid gap-2 md:grid-cols-2">
+            {optativas.map((subject) => (
+              <SubjectLink career={career.slug} key={subject.id} subject={subject} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </BrowseShell>
   );
 }

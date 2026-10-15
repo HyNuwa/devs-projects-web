@@ -1,6 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 
 import { AppModule } from '../../src/app.module';
@@ -10,10 +10,13 @@ import { FI_UNJU_FACULTY_ID } from '../../src/modules/institutions/institutions.
 import { PrismaService } from '../../src/prisma/prisma.service';
 
 /** Boots the whole API with the same pipeline as `main.ts`. */
-export async function createE2eApp() {
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule],
-  }).compile();
+export async function createE2eApp(
+  /** Replaces providers, such as the network and the AI in plan-reading. */
+  override: (builder: TestingModuleBuilder) => TestingModuleBuilder = (b) => b,
+) {
+  const moduleRef = await override(
+    Test.createTestingModule({ imports: [AppModule] }),
+  ).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     logger: false,
   });

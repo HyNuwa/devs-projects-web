@@ -105,6 +105,8 @@ Las relaciones nuevas usan `onDelete: Restrict`: borrar una facultad o universid
 
 El rollback está en `openspec/changes/archive/*-catalogo-editable/rollback.sql`. Aborta si hay códigos de más de 20 caracteres, materias anuales o eventos del catálogo.
 
+**¿Cómo se guarda una optativa?** Desde el cambio `borrador-por-bot` (migración `20261020000000_optativas_and_plan_reading`), `study_plan_subjects.year` y `semester` admiten `NULL`, y un CHECK exige que sean nulos los dos o ninguno. Una fila con ambos nulos es una optativa: la carrera la lista aparte, no suma a los años (`study_plans.duration` sale de `max(year)`) ni a los créditos de la tarjeta. La misma migración agrega `CATALOG_PLAN_READ`, el evento de cada lectura del plan con IA (`metadata.after`: link, enlace seguido (`linked`), modelo, cantidad de líneas y avisos o el código de error, duración). Ese evento también sirve para contar el tope diario de lecturas. El rollback (`openspec/changes/archive/*-borrador-por-bot/rollback.sql`) aborta si hay optativas; el valor del enum queda.
+
 **¿Hace falta una tabla para valorar materiales?** Sí, y existe: `MaterialRating` guarda una valoración de 1 a 5 por usuario y material (único por par), con comentario opcional. `Material.avgRating` y `ratingCount` son un caché de esa tabla. El «Me sirvió» es aparte (`MaterialHelpfulness`) y es la señal principal que se muestra.
 
 ## Lo que falta para las especificaciones

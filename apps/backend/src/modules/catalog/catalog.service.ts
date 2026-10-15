@@ -21,6 +21,7 @@ import type {
   UpdateSubjectDto,
   UpdateUniversityDto,
 } from './dto/catalog.dto';
+import { placementValue } from './dto/catalog.dto';
 
 type Tx = Prisma.TransactionClient;
 export type CatalogKind = 'UNIVERSITY' | 'FACULTY' | 'CAREER' | 'SUBJECT';
@@ -32,6 +33,14 @@ const collator = new Intl.Collator('es', {
 });
 const byName = <T extends { name: string }>(a: T, b: T) =>
   collator.compare(a.name, b.name);
+
+type Placed = { name: string; year: number | null; semester: number | null };
+/** By año and cuatrimestre (anual first), then optativas, each by name. */
+export const byPlacement = (a: Placed, b: Placed) =>
+  Number(a.year === null) - Number(b.year === null) ||
+  (a.year ?? 0) - (b.year ?? 0) ||
+  (a.semester ?? 0) - (b.semester ?? 0) ||
+  byName(a, b);
 
 const duplicate = (field: string, message: string) =>
   new ConflictException({ code: 'CATALOG_DUPLICATE', field, message });
@@ -187,9 +196,7 @@ export class CatalogService {
         code: subject.code,
         ...placement,
       }))
-      .sort(
-        (a, b) => a.year - b.year || a.semester - b.semester || byName(a, b),
-      );
+      .sort(byPlacement);
     const { studyPlans: _plans, ...rest } = career;
     return {
       ...rest,
@@ -626,11 +633,7 @@ export class CatalogService {
         careerId,
         subjectId,
       );
-      const value = {
-        year: dto.year,
-        semester: dto.semester,
-        credits: dto.credits ?? null,
-      };
+      const value = placementValue(dto);
       const before = await tx.studyPlanSubject.findUnique({
         where: { studyPlanId_subjectId: { studyPlanId: planId, subjectId } },
         select: { year: true, semester: true, credits: true },

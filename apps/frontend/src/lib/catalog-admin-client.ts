@@ -27,10 +27,15 @@ export type Placement = {
   subjectId: string;
   name: string;
   code: string | null;
-  year: number;
-  semester: Semester;
+  /** Null, like semester, for an optativa. */
+  year: number | null;
+  semester: Semester | null;
   credits: number | null;
 };
+/** Where a materia goes in a carrera: an año and cuatrimestre, or the optativas. */
+export type PlacementBody =
+  | { year: number; semester: Semester; credits: number | null }
+  | { optativa: true; credits: number | null };
 export type AdminCareerDetail = AdminCareer & {
   declarationCount: number;
   faculty: {
@@ -48,6 +53,7 @@ export type BulkPreviewRow = {
   semester: Semester | null;
   name: string;
   credits: number | null;
+  optativa: boolean;
   errors: string[];
   action: 'reuse' | 'new' | 'invalid';
   subjectId: string | null;
@@ -59,9 +65,13 @@ export type BulkRow = {
   subjectId?: string;
   name?: string;
   code?: string;
-  year: number;
-  semester: Semester;
-  credits: number | null;
+} & PlacementBody;
+
+/** A lectura del plan: carga masiva text for the admin to preview. */
+export type PlanReading = {
+  text: string;
+  notices: string[];
+  sources: { url: string; kind: 'html' | 'pdf' }[];
 };
 
 export type AliasHolder = {
@@ -161,11 +171,8 @@ export const catalogAdmin = {
   updateSubject: async (subjectId: string, body: { name?: string; code?: string }) =>
     (await api.patch(`${base}/subjects/${id(subjectId)}`, body)).data,
 
-  setPlacement: async (
-    careerId: string,
-    subjectId: string,
-    body: { year: number; semester: Semester; credits: number | null },
-  ) => (await api.put(`${base}/careers/${id(careerId)}/placements/${id(subjectId)}`, body)).data,
+  setPlacement: async (careerId: string, subjectId: string, body: PlacementBody) =>
+    (await api.put(`${base}/careers/${id(careerId)}/placements/${id(subjectId)}`, body)).data,
   removePlacement: async (careerId: string, subjectId: string) => {
     await api.delete(`${base}/careers/${id(careerId)}/placements/${id(subjectId)}`);
   },
@@ -197,6 +204,9 @@ export const catalogAdmin = {
         { rows },
       )
     ).data,
+
+  readPlan: async (careerId: string) =>
+    (await api.post<PlanReading>(`${base}/careers/${id(careerId)}/plan-reading`)).data,
 
   requests: async () => (await api.get<AdminCareerRequest[]>(`${base}/requests`)).data,
   requestCount: async () =>

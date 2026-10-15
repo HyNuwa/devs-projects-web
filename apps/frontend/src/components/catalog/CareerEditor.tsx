@@ -19,6 +19,8 @@ import {
   type BulkPreviewRow,
   type BulkRow,
   type Placement,
+  type PlacementBody,
+  type PlanReading,
   type Semester,
 } from '@/lib/catalog-admin-client';
 
@@ -30,14 +32,20 @@ const SEMESTERS: { value: Semester; label: string }[] = [
   { value: 2, label: '2.º cuatrimestre' },
   { value: 0, label: 'Anual' },
 ];
+/** The año select's value for an optativa. */
+const OPTATIVA = 'O';
 const SLUG = /^[A-Za-z0-9-]+$/;
 const selectClass =
   'min-h-11 rounded-md border-[1.5px] border-input bg-card px-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring';
 
-/** Placements by año; within it anuales first, then each cuatrimestre, then by name. */
+/**
+ * Placements by año; within it anuales first, then each cuatrimestre, then by
+ * name. Optativas have no año and are left out.
+ */
 function byYear(placements: Placement[]) {
   const years = new Map<number, Placement[]>();
   for (const placement of placements) {
+    if (placement.year === null) continue;
     years.set(placement.year, [...(years.get(placement.year) ?? []), placement]);
   }
   return [...years.entries()]
@@ -46,9 +54,34 @@ function byYear(placements: Placement[]) {
       ([year, list]) =>
         [
           year,
-          list.sort((a, b) => a.semester - b.semester || a.name.localeCompare(b.name, 'es')),
+          list.sort(
+            (a, b) => (a.semester ?? 0) - (b.semester ?? 0) || a.name.localeCompare(b.name, 'es'),
+          ),
         ] as const,
     );
+}
+
+/** The body for a placement: an optativa has neither año nor cuatrimestre. */
+function placementBody(
+  year: number | typeof OPTATIVA,
+  semester: Semester,
+  credits: number | null,
+): PlacementBody {
+  return year === OPTATIVA ? { optativa: true, credits } : { year, semester, credits };
+}
+
+/** The año select: 1.º to 10.º, then «Optativa». */
+function YearOptions() {
+  return (
+    <>
+      {YEARS.map((value) => (
+        <option key={value} value={value}>
+          {value}.º
+        </option>
+      ))}
+      <option value={OPTATIVA}>Optativa</option>
+    </>
+  );
 }
 
 /** A carrera's materias by año, editable one by one or with the carga masiva. */
@@ -93,11 +126,12 @@ export function CareerEditor({ careerId }: { careerId: string }) {
     setRowError(null);
     try {
       const next = { ...placement, ...change };
-      await catalogAdmin.setPlacement(careerId, placement.subjectId, {
-        year: next.year,
-        semester: next.semester,
-        credits: next.credits,
-      });
+      // An optativa moved to an año starts in the 1.º cuatrimestre.
+      await catalogAdmin.setPlacement(
+        careerId,
+        placement.subjectId,
+        placementBody(next.year ?? OPTATIVA, next.semester ?? 1, next.credits),
+      );
       await load();
     } catch (caught) {
       setRowError(errorMessage(caught));
@@ -115,6 +149,9 @@ export function CareerEditor({ careerId }: { careerId: string }) {
   };
 
   const placed = new Set(career.placements.map((p) => p.subjectId));
+  const optativas = career.placements
+    .filter((p) => p.year === null)
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 
   return (
     <section
@@ -139,81 +176,18 @@ export function CareerEditor({ careerId }: { careerId: string }) {
             <h3 className="text-lg font-extrabold" id={`editor-anio-${year}`}>
               {year}.º año
             </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[36rem] text-left text-sm">
-                <thead className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                  <tr>
-                    <th className="p-2" scope="col">
-                      Materia
-                    </th>
-                    <th className="p-2" scope="col">
-                      Año
-                    </th>
-                    <th className="p-2" scope="col">
-                      Cuatrimestre
-                    </th>
-                    <th className="p-2" scope="col">
-                      <span className="sr-only">Acciones</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((placement) => (
-                    <tr className="border-t border-line" key={placement.subjectId}>
-                      <td className="p-2 font-semibold">{placement.name}</td>
-                      <td className="p-2">
-                        <select
-                          aria-label={`Año de ${placement.name}`}
-                          className={selectClass}
-                          onChange={(event) =>
-                            void place(placement, { year: Number(event.target.value) })
-                          }
-                          value={placement.year}
-                        >
-                          {YEARS.map((value) => (
-                            <option key={value} value={value}>
-                              {value}.º
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-2">
-                        <select
-                          aria-label={`Cuatrimestre de ${placement.name}`}
-                          className={selectClass}
-                          onChange={(event) =>
-                            void place(placement, {
-                              semester: Number(event.target.value) as Semester,
-                            })
-                          }
-                          value={placement.semester}
-                        >
-                          {SEMESTERS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-2 text-right">
-                        <Button
-                          aria-label={`Quitar ${placement.name}`}
-                          onClick={() => void remove(placement)}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          Quitar
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PlacementTable list={list} onPlace={place} onRemove={remove} />
           </section>
         ))
       )}
+      {optativas.length > 0 ? (
+        <section aria-labelledby="editor-optativas" className="grid gap-2">
+          <h3 className="text-lg font-extrabold" id="editor-optativas">
+            Optativas
+          </h3>
+          <PlacementTable list={optativas} onPlace={place} onRemove={remove} />
+        </section>
+      ) : null}
 
       <AddPlacement
         careerId={careerId}
@@ -221,8 +195,100 @@ export function CareerEditor({ careerId }: { careerId: string }) {
         onAdded={load}
         subjects={subjects.filter((subject) => !placed.has(subject.id))}
       />
-      <BulkLoad careerId={careerId} facultyId={career.faculty.id} onApplied={load} />
+      <BulkLoad
+        careerId={careerId}
+        facultyId={career.faculty.id}
+        onApplied={load}
+        plan={career.status === 'DRAFT' ? career.planUrl : undefined}
+      />
     </section>
+  );
+}
+
+/** A group's materias, each with its año (or «Optativa») and cuatrimestre. */
+function PlacementTable({
+  list,
+  onPlace,
+  onRemove,
+}: {
+  list: Placement[];
+  onPlace: (placement: Placement, change: Partial<Placement>) => Promise<void>;
+  onRemove: (placement: Placement) => Promise<void>;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[36rem] text-left text-sm">
+        <thead className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          <tr>
+            <th className="p-2" scope="col">
+              Materia
+            </th>
+            <th className="p-2" scope="col">
+              Año
+            </th>
+            <th className="p-2" scope="col">
+              Cuatrimestre
+            </th>
+            <th className="p-2" scope="col">
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((placement) => (
+            <tr className="border-t border-line" key={placement.subjectId}>
+              <td className="p-2 font-semibold">{placement.name}</td>
+              <td className="p-2">
+                <select
+                  aria-label={`Año de ${placement.name}`}
+                  className={selectClass}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    void onPlace(placement, { year: value === OPTATIVA ? null : Number(value) });
+                  }}
+                  value={placement.year ?? OPTATIVA}
+                >
+                  <YearOptions />
+                </select>
+              </td>
+              <td className="p-2">
+                {placement.semester === null ? (
+                  <span className="text-muted-foreground">—</span>
+                ) : (
+                  <select
+                    aria-label={`Cuatrimestre de ${placement.name}`}
+                    className={selectClass}
+                    onChange={(event) =>
+                      void onPlace(placement, {
+                        semester: Number(event.target.value) as Semester,
+                      })
+                    }
+                    value={placement.semester}
+                  >
+                    {SEMESTERS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </td>
+              <td className="p-2 text-right">
+                <Button
+                  aria-label={`Quitar ${placement.name}`}
+                  onClick={() => void onRemove(placement)}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  Quitar
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -242,7 +308,7 @@ function AddPlacement({
   const [subjectId, setSubjectId] = useState('');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [year, setYear] = useState(1);
+  const [year, setYear] = useState<number | typeof OPTATIVA>(1);
   const [semester, setSemester] = useState<Semester>(1);
   const [credits, setCredits] = useState('');
   const [created, setCreated] = useState<string | null>(null);
@@ -277,11 +343,11 @@ function AddPlacement({
         ).id;
         setCreated(target);
       }
-      await catalogAdmin.setPlacement(careerId, target, {
-        year,
-        semester,
-        credits: credits ? Number(credits) : null,
-      });
+      await catalogAdmin.setPlacement(
+        careerId,
+        target,
+        placementBody(year, semester, credits ? Number(credits) : null),
+      );
       setOpen(false);
       setSubjectId('');
       setName('');
@@ -347,31 +413,32 @@ function AddPlacement({
         <select
           className={selectClass}
           id={`${id}-year`}
-          onChange={(event) => setYear(Number(event.target.value))}
+          onChange={(event) => {
+            const value = event.target.value;
+            setYear(value === OPTATIVA ? OPTATIVA : Number(value));
+          }}
           value={year}
         >
-          {YEARS.map((value) => (
-            <option key={value} value={value}>
-              {value}.º
-            </option>
-          ))}
+          <YearOptions />
         </select>
       </Field>
-      <Field>
-        <FieldLabel htmlFor={`${id}-semester`}>Cuatrimestre</FieldLabel>
-        <select
-          className={selectClass}
-          id={`${id}-semester`}
-          onChange={(event) => setSemester(Number(event.target.value) as Semester)}
-          value={semester}
-        >
-          {SEMESTERS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </Field>
+      {year === OPTATIVA ? null : (
+        <Field>
+          <FieldLabel htmlFor={`${id}-semester`}>Cuatrimestre</FieldLabel>
+          <select
+            className={selectClass}
+            id={`${id}-semester`}
+            onChange={(event) => setSemester(Number(event.target.value) as Semester)}
+            value={semester}
+          >
+            {SEMESTERS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Field>
         <FieldLabel htmlFor={`${id}-credits`}>Créditos (opcional)</FieldLabel>
         <Input
@@ -400,15 +467,123 @@ const PLACEMENT_LABEL = {
   unchanged: 'Sin cambios',
 } as const;
 
+/**
+ * «Leer plan con IA» (openspec academic-structure/plan-reading): fills the
+ * carga masiva box with what the AI read from the plan link, for the admin to
+ * preview. It never changes the carrera by itself.
+ */
+function PlanReader({
+  careerId,
+  hasText,
+  onRead,
+}: {
+  careerId: string;
+  hasText: boolean;
+  onRead: (text: string) => void;
+}) {
+  const [reading, setReading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [result, setResult] = useState<PlanReading | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const read = async () => {
+    setConfirming(false);
+    setError(null);
+    setReading(true);
+    try {
+      const reading = await catalogAdmin.readPlan(careerId);
+      setResult(reading);
+      onRead(reading.text);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setReading(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-2 rounded-xl border-[1.5px] border-dashed border-line p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          disabled={reading}
+          onClick={() => (hasText ? setConfirming(true) : void read())}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {reading ? 'Leyendo el plan…' : 'Leer plan con IA'}
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          La IA propone las materias desde el plan oficial; revisalas en la vista previa antes de
+          confirmar.
+        </p>
+      </div>
+      {reading ? (
+        <p className="text-sm" role="status">
+          Leyendo el plan… puede tardar hasta un par de minutos.
+        </p>
+      ) : null}
+      {confirming ? (
+        <div className="flex flex-wrap items-center gap-2" role="group">
+          <p className="text-sm font-semibold">
+            El cuadro ya tiene texto. ¿Reemplazarlo con lo que lea la IA?
+          </p>
+          <Button onClick={() => void read()} size="sm" type="button">
+            Leer y reemplazar
+          </Button>
+          <Button onClick={() => setConfirming(false)} size="sm" type="button" variant="ghost">
+            Cancelar lectura
+          </Button>
+        </div>
+      ) : null}
+      <FieldError>{error}</FieldError>
+      {result ? (
+        <div className="grid gap-1 text-sm">
+          {result.sources.length > 0 ? (
+            <p>
+              Leído de:{' '}
+              {result.sources.map((source, index) => (
+                // The same address can be read twice, after a redirect.
+                <span key={index}>
+                  {index > 0 ? ', ' : null}
+                  <a
+                    className="font-semibold underline break-all"
+                    href={source.url}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {source.url}
+                  </a>
+                </span>
+              ))}
+            </p>
+          ) : null}
+          {result.notices.length > 0 ? (
+            <ul aria-label="Avisos de la lectura" className="list-disc pl-5">
+              {result.notices.map((notice, index) => (
+                // The model can repeat a notice.
+                <li key={index}>{notice}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** Paste → preview → adjust each row → confirm, all or nothing. */
 function BulkLoad({
   careerId,
   facultyId,
   onApplied,
+  plan,
 }: {
   careerId: string;
   facultyId: string;
   onApplied: () => Promise<void>;
+  /** A carrera en borrador can be read from its plan link; null without one. */
+  plan?: string | null;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -464,24 +639,12 @@ function BulkLoad({
 
   const apply = async () => {
     if (!rows) return;
-    const payload: BulkRow[] = rows.map((row) =>
-      row.action === 'reuse'
-        ? {
-            action: 'reuse',
-            subjectId: row.subjectId!,
-            year: row.year!,
-            semester: row.semester!,
-            credits: row.credits,
-          }
-        : {
-            action: 'new',
-            name: row.name,
-            code: (row.code ?? '').trim(),
-            year: row.year!,
-            semester: row.semester!,
-            credits: row.credits,
-          },
-    );
+    const payload: BulkRow[] = rows.map((row) => ({
+      ...(row.action === 'reuse'
+        ? { action: 'reuse' as const, subjectId: row.subjectId! }
+        : { action: 'new' as const, name: row.name, code: (row.code ?? '').trim() }),
+      ...placementBody(row.optativa ? OPTATIVA : row.year!, row.semester ?? 1, row.credits),
+    }));
     setError(null);
     try {
       const done = await catalogAdmin.bulkApply(careerId, payload);
@@ -510,15 +673,30 @@ function BulkLoad({
 
   return (
     <div className="grid gap-3 rounded-2xl border-[1.5px] border-line bg-background p-4">
+      {plan ? (
+        <PlanReader
+          careerId={careerId}
+          hasText={text.trim() !== ''}
+          onRead={(read) => {
+            setText(read);
+            setRows(null);
+          }}
+        />
+      ) : plan === null ? (
+        <p className="text-sm text-muted-foreground">
+          Para leer el plan con IA, agregá el link al plan oficial de la carrera.
+        </p>
+      ) : null}
       <Field>
         <FieldLabel htmlFor={`${id}-text`}>
-          Una materia por línea: año;cuatrimestre;nombre;créditos (cuatrimestre 1, 2 o A para anual)
+          Una materia por línea: año;cuatrimestre;nombre;créditos (cuatrimestre 1, 2 o A para anual;
+          O;;nombre para una optativa)
         </FieldLabel>
         <textarea
           className="min-h-40 rounded-md border-[1.5px] border-input bg-card p-3 font-mono text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
           id={`${id}-text`}
           onChange={(event) => setText(event.target.value)}
-          placeholder={'1;1;Análisis Matemático I;8\n1;A;Física General'}
+          placeholder={'1;1;Análisis Matemático I;8\n1;A;Física General\nO;;Robótica;6'}
           value={text}
         />
       </Field>
@@ -560,9 +738,11 @@ function BulkLoad({
                     <td className="p-2">{row.line}</td>
                     <td className="p-2 font-semibold">{row.name || '—'}</td>
                     <td className="p-2">
-                      {row.year && row.semester !== null
-                        ? `${row.year}.º año · ${SEMESTERS.find((s) => s.value === row.semester)?.label}`
-                        : '—'}
+                      {row.optativa && row.action !== 'invalid'
+                        ? 'Optativa'
+                        : row.year && row.semester !== null
+                          ? `${row.year}.º año · ${SEMESTERS.find((s) => s.value === row.semester)?.label}`
+                          : '—'}
                     </td>
                     <td className="grid gap-2 p-2">
                       {row.action === 'invalid' ? (

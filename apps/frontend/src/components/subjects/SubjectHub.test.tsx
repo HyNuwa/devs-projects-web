@@ -199,6 +199,20 @@ describe('SubjectHub', () => {
                     },
                   },
                 },
+                {
+                  year: null,
+                  semester: null,
+                  credits: 4,
+                  studyPlan: {
+                    name: 'Plan 2020',
+                    career: {
+                      id: 'c-ele',
+                      name: 'Ingeniería Electrónica',
+                      code: 'IE',
+                      faculty: fiUnju,
+                    },
+                  },
+                },
               ],
             },
           })
@@ -212,6 +226,9 @@ describe('SubjectHub', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText('FI (UNJU) · Ingeniería Industrial · Año 3 · Anual · 6 créditos'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('FI (UNJU) · Ingeniería Electrónica · Optativa · 4 créditos'),
     ).toBeInTheDocument();
   });
 

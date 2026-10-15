@@ -199,17 +199,24 @@ export class CatalogBrowseService {
     const materials = await this.materialsBySubject(
       placements.map((p) => p.subject.id),
     );
-    const subjects = placements
-      .map(({ subject, year, semester, credits }) => ({
-        ...subject,
-        year,
-        semester,
-        credits,
-        materialCount: materials.get(subject.id) ?? 0,
-      }))
+    const rows = placements.map(({ subject, year, semester, credits }) => ({
+      ...subject,
+      year,
+      semester,
+      credits,
+      materialCount: materials.get(subject.id) ?? 0,
+    }));
+    // Optativas have no año: they go in their own section and add no créditos.
+    const subjects = rows
+      .filter((row) => row.year !== null)
+      .map((row) => ({ ...row, year: row.year!, semester: row.semester! }))
       .sort(
         (a, b) => a.year - b.year || a.semester - b.semester || byName(a, b),
       );
+    const optativas = rows
+      .filter((row) => row.year === null)
+      .map(({ year: _year, semester: _semester, ...row }) => row)
+      .sort(byName);
     return {
       university: this.level(university),
       faculty: this.level(faculty),
@@ -217,10 +224,11 @@ export class CatalogBrowseService {
         ...fields,
         slug: slug(fields.code),
         years: plan?.duration ?? null,
-        credits: placements.reduce((sum, p) => sum + (p.credits ?? 0), 0),
-        subjectCount: subjects.length,
+        credits: subjects.reduce((sum, p) => sum + (p.credits ?? 0), 0),
+        subjectCount: rows.length,
       },
       subjects,
+      optativas,
     };
   }
 

@@ -299,9 +299,10 @@ model StudyPlanSubject {
   id          String @id @default(uuid()) @db.Uuid
   studyPlanId String @map("study_plan_id") @db.Uuid
   subjectId   String @map("subject_id") @db.Uuid
-  year        Int    @db.SmallInt
-  /// 0 = anual, 1 and 2 = cuatrimestres.
-  semester    Int    @db.SmallInt
+  /// Null together with `semester` for an optativa.
+  year        Int?   @db.SmallInt
+  /// 0 = anual, 1 and 2 = cuatrimestres; null for an optativa.
+  semester    Int?   @db.SmallInt
   credits     Int?   @db.SmallInt
 
   studyPlan StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
@@ -768,6 +769,7 @@ enum ModerationEventAction {
   CATALOG_PLACEMENT_CHANGED
   CATALOG_BULK_APPLIED
   CAREER_REQUEST_RESOLVED
+  CATALOG_PLAN_READ
 }
 
 model ModerationCase {

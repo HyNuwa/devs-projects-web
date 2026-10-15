@@ -206,7 +206,8 @@ Desde el cambio `catalogo-editable` (specs `academic-structure/catalog-editing` 
 
 - **Árbol:** universidad → facultad → carrera → materias. Se crean y editan universidades, facultades, carreras y materias; los nombres cortos y códigos viejos quedan como alias que redirigen. Solo se borra lo vacío.
 - **Carreras en borrador:** una carrera nueva no aparece en el recorrido ni se puede declarar hasta que un admin la publica. Una publicada vuelve a borrador solo si nadie la declaró.
-- **Carga masiva:** `año;cuatrimestre;nombre[;créditos]` por línea (cuatrimestre `1`, `2` o `A` para anual), con vista previa; solo agrega o actualiza.
+- **Carga masiva:** `año;cuatrimestre;nombre[;créditos]` por línea (cuatrimestre `1`, `2` o `A` para anual), u `O;;nombre[;créditos]` para una optativa, con vista previa; solo agrega o actualiza.
+- **Lectura del plan** (cambio `borrador-por-bot`, spec `academic-structure/plan-reading`): en una carrera en borrador con link al plan, «Leer plan con IA» llena el cuadro de la carga masiva con las materias que Gemini lee del plan, y muestra avisos (qué versión usó, qué enlace siguió, qué quedó dudoso). No cambia el catálogo: el admin revisa en la vista previa y confirma. Cada lectura, exitosa o no, queda en el historial como «Lectura del plan». Límites: 20 por hora por admin y un tope diario para todos (`PLAN_READING_DAILY_LIMIT`, 100 por defecto).
 - **Solicitudes:** los estudiantes piden su carrera con el link al plan oficial y se suman con «Yo también». Un admin la acepta (crea la carrera en borrador), la rechaza con motivo o la marca como ya cargada. Quienes la pidieron reciben un email al rechazarla o al publicarse la carrera.
 
 Los `MODERATOR` no editan el catálogo.

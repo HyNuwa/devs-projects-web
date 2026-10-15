@@ -15,7 +15,7 @@ An academic unit of a universidad that offers carreras. Two universidades may ea
 _Avoid_: Department, school
 
 **Carrera**:
-A degree program of one facultad, made of materias arranged by año and cuatrimestre. A student declares the carreras they study or finished; the platform does not track curriculum versions.
+A degree program of one facultad, made of materias arranged by año and cuatrimestre, plus its optativas. A student declares the carreras they study or finished; the platform does not track curriculum versions.
 _Avoid_: Plan de estudios, study plan, curriculum
 
 **Catálogo**:
@@ -26,6 +26,10 @@ _Avoid_: Directory, institution list
 A carrera still being loaded into the catálogo. It is not shown in browsing and nobody can declare it until an admin publishes it.
 _Avoid_: Hidden carrera, pending carrera
 
+**Lectura del plan**:
+A proposal of materias for a carrera en borrador that AI builds from the carrera's official plan. An admin reviews it in the carga masiva; it never changes the catálogo by itself.
+_Avoid_: Bot, scraping, automatic import
+
 **Solicitud de carrera**:
 A signed-in student's request to add a carrera to the catálogo, with the link to its official plan. It may name a facultad or universidad the catálogo does not have yet. An admin resolves it.
 _Avoid_: Corrección, suggestion, pedido
@@ -33,6 +37,10 @@ _Avoid_: Corrección, suggestion, pedido
 **Materia**:
 An academic unit taught in one or more carreras of one facultad, and the primary organizing context for resources, reviews, exam experiences, and professors. A materia with the same name in two facultades is two different materias.
 _Avoid_: Course, subject hub
+
+**Optativa**:
+A materia a carrera lists for students to choose, with no año or cuatrimestre of its own; a student takes it once they pass its correlativas. The same materia can be an optativa in one carrera and have an año in another. A slot in the plan such as «Optativa I» is not a materia.
+_Avoid_: Electiva, elective
 
 **Ubicación**:
 The universidad and facultad a person is browsing from: the facultad of their carrera when signed in, or the one a visitor chose on their device. It sets where search and rankings start, and never hides content.

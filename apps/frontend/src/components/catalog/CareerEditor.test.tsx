@@ -13,6 +13,7 @@ const catalog = vi.hoisted(() => ({
   codeProposal: vi.fn(),
   bulkPreview: vi.fn(),
   bulkApply: vi.fn(),
+  readPlan: vi.fn(),
 }));
 vi.mock('@/lib/catalog-admin-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/catalog-admin-client')>()),
@@ -47,6 +48,7 @@ const row = (extra: Partial<BulkPreviewRow>): BulkPreviewRow => ({
   semester: 1,
   name: 'Química',
   credits: null,
+  optativa: false,
   errors: [],
   action: 'new',
   subjectId: null,
@@ -111,6 +113,175 @@ describe('CareerEditor', () => {
     });
     await user.click(within(year2).getByRole('button', { name: 'Quitar Mecánica' }));
     expect(catalog.removePlacement).toHaveBeenCalledWith('c-lf', 's-mec');
+  });
+
+  describe('optativas', () => {
+    beforeEach(() => {
+      catalog.career.mockResolvedValue({
+        ...detail,
+        placements: [
+          ...detail.placements,
+          {
+            subjectId: 's-rob',
+            name: 'Robótica',
+            code: 'rob',
+            year: null,
+            semester: null,
+            credits: 6,
+          },
+        ],
+      });
+    });
+
+    it('lists optativas in their own group, after the años, without cuatrimestre', async () => {
+      render(<CareerEditor careerId="c-lf" />);
+      const optativas = await screen.findByRole('region', { name: 'Optativas' });
+      expect(
+        screen
+          .getAllByRole('region')
+          .map((r) => r.getAttribute('aria-labelledby'))
+          .filter(Boolean),
+      ).toEqual(['editor-anio-1', 'editor-anio-2', 'editor-optativas']);
+      expect(within(optativas).getByLabelText('Año de Robótica')).toHaveValue('O');
+      expect(within(optativas).queryByLabelText('Cuatrimestre de Robótica')).toBeNull();
+    });
+
+    it('moves a materia between an año and the optativas', async () => {
+      const user = userEvent.setup();
+      render(<CareerEditor careerId="c-lf" />);
+      const optativas = await screen.findByRole('region', { name: 'Optativas' });
+      await user.selectOptions(within(optativas).getByLabelText('Año de Robótica'), '4');
+      expect(catalog.setPlacement).toHaveBeenCalledWith('c-lf', 's-rob', {
+        year: 4,
+        semester: 1,
+        credits: 6,
+      });
+      const year2 = screen.getByRole('region', { name: '2.º año' });
+      await user.selectOptions(within(year2).getByLabelText('Año de Mecánica'), 'O');
+      expect(catalog.setPlacement).toHaveBeenCalledWith('c-lf', 's-mec', {
+        optativa: true,
+        credits: null,
+      });
+    });
+  });
+
+  it('adds a materia as an optativa', async () => {
+    const user = userEvent.setup();
+    render(<CareerEditor careerId="c-lf" />);
+    await screen.findByRole('region', { name: '1.º año' });
+    await user.click(screen.getByRole('button', { name: 'Agregar materia' }));
+    await user.selectOptions(screen.getByLabelText('Materia'), 's-opt');
+    await user.selectOptions(screen.getByLabelText('Año'), 'O');
+    expect(screen.queryByLabelText('Cuatrimestre')).toBeNull();
+    await user.type(screen.getByLabelText('Créditos (opcional)'), '4');
+    await user.click(screen.getByRole('button', { name: 'Agregar' }));
+    expect(catalog.setPlacement).toHaveBeenCalledWith('c-lf', 's-opt', {
+      optativa: true,
+      credits: 4,
+    });
+  });
+
+  it('previews and applies optativa lines', async () => {
+    const user = userEvent.setup();
+    catalog.bulkPreview.mockResolvedValue([
+      row({ line: 1, name: 'Robótica', year: null, semester: null, optativa: true, credits: 6 }),
+    ]);
+    render(<CareerEditor careerId="c-lf" />);
+    await screen.findByRole('region', { name: '1.º año' });
+    await user.click(screen.getByRole('button', { name: 'Carga masiva' }));
+    await user.type(screen.getByLabelText(/Una materia por línea/), 'O;;Robótica;6');
+    await user.click(screen.getByRole('button', { name: 'Vista previa' }));
+    const preview = await screen.findByRole('table', { name: 'Vista previa' });
+    expect(within(preview).getByText('Optativa')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirmar carga' }));
+    expect(catalog.bulkApply).toHaveBeenCalledWith('c-lf', [
+      { action: 'new', name: 'Robótica', code: 'unsa-fce-quimica', optativa: true, credits: 6 },
+    ]);
+  });
+
+  describe('lectura del plan', () => {
+    const withPlan = { ...detail, planUrl: 'https://exactas.unsa.edu.ar/lf.pdf' };
+    const openBulk = async (user: ReturnType<typeof userEvent.setup>) => {
+      await screen.findByRole('region', { name: '1.º año' });
+      await user.click(screen.getByRole('button', { name: 'Carga masiva' }));
+    };
+
+    it('asks for the plan link when the carrera has none', async () => {
+      const user = userEvent.setup();
+      render(<CareerEditor careerId="c-lf" />);
+      await openBulk(user);
+      expect(screen.queryByRole('button', { name: 'Leer plan con IA' })).toBeNull();
+      expect(screen.getByText(/agregá el link al plan oficial/i)).toBeInTheDocument();
+    });
+
+    it('is not offered for a published carrera', async () => {
+      const user = userEvent.setup();
+      catalog.career.mockResolvedValue({ ...withPlan, status: 'PUBLISHED' });
+      render(<CareerEditor careerId="c-lf" />);
+      await openBulk(user);
+      expect(screen.queryByRole('button', { name: 'Leer plan con IA' })).toBeNull();
+      expect(screen.queryByText(/agregá el link al plan oficial/i)).toBeNull();
+    });
+
+    it('fills the box with the lectura and shows its notices and sources', async () => {
+      const user = userEvent.setup();
+      catalog.career.mockResolvedValue(withPlan);
+      let finish: (value: unknown) => void = () => {};
+      catalog.readPlan.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+      render(<CareerEditor careerId="c-lf" />);
+      await openBulk(user);
+      await user.click(screen.getByRole('button', { name: 'Leer plan con IA' }));
+
+      expect(catalog.readPlan).toHaveBeenCalledWith('c-lf');
+      expect(screen.getByRole('button', { name: /Leyendo el plan/ })).toBeDisabled();
+      finish({
+        text: '1;1;Análisis I\nO;;Robótica',
+        notices: ['Usé el plan 2023.'],
+        sources: [{ url: 'https://exactas.unsa.edu.ar/lf.pdf', kind: 'pdf' }],
+      });
+
+      expect(await screen.findByText('Usé el plan 2023.')).toBeInTheDocument();
+      expect(screen.getByLabelText(/Una materia por línea/)).toHaveValue(
+        '1;1;Análisis I\nO;;Robótica',
+      );
+      expect(screen.getByRole('link', { name: /lf\.pdf/ })).toHaveAttribute(
+        'href',
+        'https://exactas.unsa.edu.ar/lf.pdf',
+      );
+      expect(screen.getByRole('button', { name: 'Leer plan con IA' })).toBeEnabled();
+    });
+
+    it('asks before replacing text already in the box', async () => {
+      const user = userEvent.setup();
+      catalog.career.mockResolvedValue(withPlan);
+      catalog.readPlan.mockResolvedValue({ text: '1;1;Nueva', notices: [], sources: [] });
+      render(<CareerEditor careerId="c-lf" />);
+      await openBulk(user);
+      await user.type(screen.getByLabelText(/Una materia por línea/), '2;1;Mía');
+      await user.click(screen.getByRole('button', { name: 'Leer plan con IA' }));
+      expect(catalog.readPlan).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Cancelar lectura' }));
+      expect(screen.getByLabelText(/Una materia por línea/)).toHaveValue('2;1;Mía');
+
+      await user.click(screen.getByRole('button', { name: 'Leer plan con IA' }));
+      await user.click(screen.getByRole('button', { name: 'Leer y reemplazar' }));
+      await waitFor(() =>
+        expect(screen.getByLabelText(/Una materia por línea/)).toHaveValue('1;1;Nueva'),
+      );
+    });
+
+    it('shows the error and keeps the text', async () => {
+      const user = userEvent.setup();
+      catalog.career.mockResolvedValue(withPlan);
+      catalog.readPlan.mockRejectedValue({
+        response: { data: { code: 'AI_QUOTA', message: 'Se agotó la cuota de la IA por ahora.' } },
+      });
+      render(<CareerEditor careerId="c-lf" />);
+      await openBulk(user);
+      await user.click(screen.getByRole('button', { name: 'Leer plan con IA' }));
+      expect(await screen.findByText('Se agotó la cuota de la IA por ahora.')).toBeInTheDocument();
+      expect(screen.getByLabelText(/Una materia por línea/)).toHaveValue('');
+    });
   });
 
   it('previews a carga masiva, lets each row change, and applies it', async () => {

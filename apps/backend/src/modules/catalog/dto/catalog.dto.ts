@@ -1,9 +1,11 @@
+import { BadRequestException } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -177,17 +179,28 @@ export class UpdateSubjectDto {
   code?: string;
 }
 
+const placed = (dto: PlacementDto) => dto.optativa !== true;
+
 export class PlacementDto {
-  @ApiProperty({ minimum: 1, maximum: YEAR_MAX })
+  /** An optativa has no año or cuatrimestre. */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  optativa?: boolean;
+
+  /** Required unless optativa; `placementValue` refuses it on an optativa. */
+  @ApiPropertyOptional({ minimum: 1, maximum: YEAR_MAX })
+  @ValidateIf(placed)
   @IsInt()
   @Min(1)
   @Max(YEAR_MAX)
-  year: number;
+  year?: number;
 
   /** 0 = anual. */
-  @ApiProperty({ enum: [0, 1, 2] })
+  @ApiPropertyOptional({ enum: [0, 1, 2] })
+  @ValidateIf(placed)
   @IsIn([0, 1, 2])
-  semester: 0 | 1 | 2;
+  semester?: 0 | 1 | 2;
 
   @ApiPropertyOptional({ minimum: 0, maximum: CREDITS_MAX, nullable: true })
   @IsOptional()
@@ -195,6 +208,23 @@ export class PlacementDto {
   @Min(0)
   @Max(CREDITS_MAX)
   credits?: number | null;
+}
+
+/** The stored año, cuatrimestre and créditos; an optativa has neither año nor cuatrimestre. */
+export function placementValue(dto: PlacementDto) {
+  if (dto.optativa) {
+    if (dto.year != null || dto.semester != null) {
+      throw new BadRequestException(
+        'Una optativa no lleva año ni cuatrimestre.',
+      );
+    }
+    return { year: null, semester: null, credits: dto.credits ?? null };
+  }
+  return {
+    year: dto.year!,
+    semester: dto.semester!,
+    credits: dto.credits ?? null,
+  };
 }
 
 export class SlugCheckQueryDto {

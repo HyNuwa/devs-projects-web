@@ -229,6 +229,7 @@ describe('CareerView', () => {
         materialCount: 1,
       },
     ],
+    optativas: [],
   };
 
   it('groups materias by año and cuatrimestre, linking with the carrera', () => {
@@ -277,6 +278,44 @@ describe('CareerView', () => {
     expect(within(year1).getByRole('list', { name: 'Anual' })).toHaveTextContent('Anatomía');
   });
 
+  it('lists optativas by name in their own section after the last año', () => {
+    render(
+      <CareerView
+        data={{
+          ...data,
+          optativas: [
+            { id: 'o1', code: 'IA', name: 'Inteligencia Artificial', credits: 6, materialCount: 2 },
+            { id: 'o2', code: 'ROB', name: 'Robótica', credits: null, materialCount: 0 },
+          ],
+        }}
+      />,
+    );
+    const sections = screen.getAllByRole('region');
+    expect(sections.map((section) => section.getAttribute('aria-labelledby'))).toEqual([
+      'anio-1',
+      'anio-2',
+      'optativas',
+    ]);
+    const optativas = screen.getByRole('region', { name: 'Optativas' });
+    expect(
+      within(optativas).getByRole('link', { name: /Inteligencia Artificial/ }),
+    ).toHaveAttribute('href', '/materias/IA?carrera=ii');
+    expect(within(optativas).getByRole('link', { name: /Robótica/ })).toBeInTheDocument();
+  });
+
+  it('shows optativas even before materias by año are loaded', () => {
+    render(
+      <CareerView
+        data={{
+          ...data,
+          subjects: [],
+          optativas: [{ id: 'o2', code: 'ROB', name: 'Robótica', credits: null, materialCount: 0 }],
+        }}
+      />,
+    );
+    expect(screen.getByRole('region', { name: 'Optativas' })).toHaveTextContent('Robótica');
+  });
+
   it('links the official plan in a new tab and never names a plan', () => {
     render(<CareerView data={data} />);
     const plan = screen.getByRole('link', { name: /Plan oficial/ });
@@ -288,7 +327,9 @@ describe('CareerView', () => {
 
   it('says when no materias are loaded, and hides the plan link without one', () => {
     render(
-      <CareerView data={{ ...data, career: { ...data.career, planUrl: null }, subjects: [] }} />,
+      <CareerView
+        data={{ ...data, career: { ...data.career, planUrl: null }, subjects: [], optativas: [] }}
+      />,
     );
     expect(screen.getByText('Todavía no cargamos sus materias.')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Plan oficial/ })).toBeNull();

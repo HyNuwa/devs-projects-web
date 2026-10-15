@@ -42,6 +42,7 @@ const ADMIN_ONLY_ACTIONS: ModerationEventAction[] = [
   'CATALOG_PLACEMENT_CHANGED',
   'CATALOG_BULK_APPLIED',
   'CAREER_REQUEST_RESOLVED',
+  'CATALOG_PLAN_READ',
 ];
 const CATALOG_ACTIONS: ReadonlySet<ModerationEventAction> = new Set(
   ADMIN_ONLY_ACTIONS.filter(
