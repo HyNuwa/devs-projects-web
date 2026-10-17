@@ -25,7 +25,7 @@ describe('SiteFooter', () => {
       ['DevsProject', '/'],
       ['Inicio', '/'],
       ['Materias', '/universidades'],
-      ['Experiencias', '/resenas'],
+      ['Experiencias', '/experiencias'],
       ['Subir material', '/materiales/nuevo'],
       ['Normas', '/normas'],
     ]);

@@ -60,6 +60,16 @@ export class DiscoveryCourseReviewsQueryDto {
   @IsEnum(CourseAttempt)
   attempt?: CourseAttempt;
 
+  @ApiPropertyOptional({ enum: Shift })
+  @IsOptional()
+  @IsEnum(Shift)
+  shift?: Shift;
+
+  @ApiPropertyOptional({ enum: CourseCondition })
+  @IsOptional()
+  @IsEnum(CourseCondition)
+  condition?: CourseCondition;
+
   @ApiPropertyOptional({
     enum: DiscoveryCourseReviewSort,
     default: DiscoveryCourseReviewSort.RECENT,

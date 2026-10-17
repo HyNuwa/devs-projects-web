@@ -13,6 +13,28 @@ const mocks = vi.hoisted(() => ({
   myCareers: [] as { careerId: string; status: string; declaredAt: string }[],
 }));
 
+vi.mock('@/lib/experiences-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/experiences-client')>()),
+  getSubjectExperiencesSummary: vi.fn().mockResolvedValue({
+    exams: {
+      count: 0,
+      formats: { counts: {}, top: null },
+      grade: { average: null, count: 0 },
+      outcomes: { answered: 0, aprobado: 0, desaprobado: 0, percent: null, undeclared: 0 },
+      practice: { average: null, count: 0 },
+      theory: { average: null, count: 0 },
+      topSession: null,
+    },
+    reviews: {
+      count: 0,
+      difficulty: { answered: 0, counts: {}, top: null, unanswered: 0 },
+      recommendation: { average: null, count: 0 },
+      results: { answered: 0, libre: 0, percents: null, promo: 0, regular: 0, unanswered: 0 },
+    },
+    subject: { code: 'ED-01', id: 'subject-1', name: 'Estructuras de Datos' },
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/materias/AL-01',
   useRouter: () => ({ replace: mocks.replace }),
@@ -118,6 +140,10 @@ describe('SubjectHub: academic context', () => {
       '/universidades/unju/fi/ii',
     );
     expect(within(nav).getByText('Álgebra Lineal')).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Ver experiencias' })).toHaveAttribute(
+      'href',
+      '/experiencias/AL-01?carrera=c-inf',
+    );
   });
 
   it('falls back to the viewer’s first declared carrera that includes the materia', async () => {

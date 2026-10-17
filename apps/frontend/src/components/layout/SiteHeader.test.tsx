@@ -49,7 +49,7 @@ describe('SiteHeader', () => {
     ).toEqual(['Inicio', 'Materias', 'Experiencias']);
     expect(within(menu).getByRole('link', { name: 'Experiencias' })).toHaveAttribute(
       'href',
-      '/resenas',
+      '/experiencias',
     );
 
     expect(screen.getByRole('link', { name: 'Subir material' })).toHaveAttribute(

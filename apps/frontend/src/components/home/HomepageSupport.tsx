@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpenText, FileText, MessageCircle, Upload } from 'lucide-react';
 
-import { CourseReviewSummaryCard } from '@/components/community/CommunitySummaryCards';
+import { ExperienceCard } from '@/components/experiences/ExperienceCard';
 import { getCourseReviewDiscovery, getMaterialDiscovery } from '@/lib/discovery-client';
 import { resourceTypeLabel } from '@/lib/presentation-labels';
 import type { DiscoveryCourseReview, DiscoverySubjectLink } from '@/types/discovery';
@@ -84,27 +84,12 @@ function SectionFailure({ description }: { description: string }) {
 }
 
 function ReviewRows({ reviews }: { reviews: DiscoveryCourseReview[] }) {
+  const [now] = useState(() => new Date());
+
   return (
     <div className="grid gap-4">
       {reviews.map((review) => (
-        <CourseReviewSummaryCard
-          key={review.id}
-          summary={{
-            academicYear: review.academicYear,
-            attempt: review.attempt,
-            author: review.author,
-            condition: review.condition,
-            createdAt: review.createdAt,
-            difficulty: review.difficulty,
-            excerpt: review.excerpt,
-            id: review.id,
-            professorName: review.professor?.name ?? review.professorName,
-            recommendation: review.recommendation,
-            shift: review.shift,
-            subject: review.subject,
-            updatedAt: review.updatedAt,
-          }}
-        />
+        <ExperienceCard entry={{ kind: 'review', review }} key={review.id} now={now} />
       ))}
     </div>
   );

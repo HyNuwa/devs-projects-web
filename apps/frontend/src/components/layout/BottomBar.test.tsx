@@ -27,7 +27,7 @@ describe('BottomBar', () => {
       ['Inicio', '/'],
       ['Materias', '/universidades'],
       ['Subir', '/materiales/nuevo'],
-      ['Experiencias', '/resenas'],
+      ['Experiencias', '/experiencias'],
     ]);
   });
 

@@ -14,7 +14,7 @@ import {
   type CommunityEntryKind,
   type CommunityManagementView,
 } from '@/lib/community-management-client';
-import { formatCommunityDate } from '@/components/community/CommunitySummaryCards';
+import { formatCommunityDate } from '@/components/experiences/facts';
 import { useAuthStore } from '@/stores/authStore';
 
 type ManagementState =

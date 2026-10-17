@@ -56,6 +56,7 @@ Prefijo global `/api/v1`. Todo requiere sesión salvo lo marcado con `@Public()`
 | `subjects` (moderación comunitaria) | `POST reviews/:id/reports`, `exams/:id/reports` · `GET community/reports` · `GET …/:id/management` · `POST …/:id/moderation/remove` y `restore` | Reportes y retiro reversible de reseñas y experiencias |
 | `materials` | `GET/POST /` · `GET mine` · `GET pending` · `GET/PATCH/DELETE :id` · `POST :id/approve`, `reject` · `GET :id/download` · `POST :id/rate` · `GET :id/ratings`, `viewer-state` · `PUT :id/helpfulness`, `saved` | Recursos académicos: subida, vista previa, descarga, «Me sirvió», guardado, valoraciones |
 | `discovery` | `GET suggestions` · `GET course-reviews[/:id]`, `exam-experiences[/:id]` · `GET hierarchy/careers`, `careers/:id/years`, `subjects/:id/resource-categories` | Búsqueda, navegación Universidad → Carrera → Año → Materia |
+| `discovery` (Experiencias) | `GET experiences/overview?facultyId&careerId&year&kind` · `GET subjects/:code/experiences-summary` · `GET course-reviews/:id/related`, `exam-experiences/:id/related` | Lecturas públicas de Experiencias: materias más comentadas y recién publicadas, resumen por materia y otras experiencias con el mismo contexto. `GET course-reviews` también filtra por `shift` y `condition` |
 | `ranking` | `GET /`, `me`, `levels`, `top` | Puntos y niveles |
 | `admin` | `GET users`, `users/:id`, `stats` · `PATCH users/:id/role` | Administración (ADMIN, SUPERADMIN) |
 | `mail` | — | Servicio interno de envío |

@@ -1,5 +1,10 @@
 import { permanentRedirect } from 'next/navigation';
 
+import type { SubjectHub } from '@/types/subject';
+
+import { api } from '@/lib/api';
+import { getData } from '@/lib/apiHelpers';
+
 /** One level of the browsing pages (openspec academic-structure/browsing). */
 export type BrowseLevel = { id: string; name: string; shortName: string; slug: string };
 
@@ -12,6 +17,8 @@ export type CareerCard = {
   slug: string;
   subjectCount: number;
   materialCount: number;
+  /** Highest placement year in the plan (null when optativa-only). */
+  years: number | null;
 };
 
 export type UniversityPage = { university: BrowseLevel; faculties: FacultyCard[] };
@@ -72,10 +79,25 @@ const isRedirect = (body: unknown): body is { redirect: string } =>
   typeof (body as { redirect?: unknown }).redirect === 'string';
 
 /**
+ * The API reports a renamed materia as an alias pointing at `/materias/<code>`;
+ * only that known target shape is remapped to the caller's prefix.
+ */
+function remapSubjectAlias(target: string, prefix: '/materias' | '/experiencias') {
+  // Only the known one-segment alias shape; no nested/query/fragment/absolute.
+  return /^\/materias\/[^/?#\s]+$/.test(target)
+    ? `${prefix}/${target.slice('/materias/'.length)}`
+    : null;
+}
+
+/**
  * The materia page's server check: an old code of a renamed materia redirects
  * permanently to the current one, keeping `query` (like `carrera=ii`).
  */
-export async function redirectOldSubjectCode(code: string, query: string) {
+export async function redirectOldSubjectCode(
+  code: string,
+  query: string,
+  prefix: '/materias' | '/experiencias' = '/materias',
+) {
   let target: string | null = null;
   try {
     const response = await fetch(`${API_URL}/subjects/${encodeURIComponent(code)}/current`, {
@@ -83,12 +105,40 @@ export async function redirectOldSubjectCode(code: string, query: string) {
     });
     if (response.ok) {
       const body = (await response.json()) as { redirect?: unknown };
-      if (typeof body.redirect === 'string') target = body.redirect;
+      if (typeof body.redirect === 'string') {
+        target = remapSubjectAlias(body.redirect, prefix);
+      }
     }
   } catch {
     // The check is a convenience: the page renders without it.
   }
   if (target) permanentRedirect(query ? `${target}?${query}` : target);
+}
+
+/**
+ * The materia's public metadata for the server shell of a subject page
+ * (`/materias` and `/experiencias` share it). A 404 resolves to `null`, any
+ * other failure throws to the segment error UI. An API alias to the renamed
+ * code redirects permanently under the requested prefix; unrelated alias
+ * targets throw instead of being mistaken for metadata.
+ */
+export async function getSubjectPage(
+  code: string,
+  query: string = '',
+  prefix: '/materias' | '/experiencias' = '/materias',
+): Promise<SubjectHub | null> {
+  const response = await fetch(`${API_URL}/subjects/${encodeURIComponent(code)}`, {
+    cache: 'no-store',
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`No se pudo leer la materia (${response.status}).`);
+  const body = (await response.json()) as SubjectHub | { redirect: string };
+  if (isRedirect(body)) {
+    const target = remapSubjectAlias(body.redirect, prefix);
+    if (!target) throw new Error('Alias de materia desconocido.');
+    permanentRedirect(query ? `${target}?${query}` : target);
+  }
+  return body;
 }
 
 const segment = (value: string) => `/${encodeURIComponent(value.toLowerCase())}`;
@@ -107,6 +157,20 @@ export function getFacultyPage(uni: string, fac: string) {
 
 export function getCareerPage(uni: string, fac: string, career: string) {
   return browse<CareerPage>(segment(uni) + segment(fac) + segment(career));
+}
+
+/**
+ * Client-side facultad browse (openspec academic-community/experiences): the
+ * landing reads the published carreras this way. A moved or unknown slug
+ * resolves to `null` instead of redirecting.
+ */
+export async function getFacultyBrowse(uni: string, fac: string): Promise<FacultyPage | null> {
+  const response = await api.get<FacultyPage | { redirect: string }>(
+    `/institutions/browse${segment(uni)}${segment(fac)}`,
+    { skipAuthRedirect: true },
+  );
+  const body = getData(response);
+  return isRedirect(body) ? null : body;
 }
 
 /** Browsing addresses: lowercase short names and the carrera code. */

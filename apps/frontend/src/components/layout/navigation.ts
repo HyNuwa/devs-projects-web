@@ -30,9 +30,11 @@ export const primaryDestinations: readonly Destination[] = [
   {
     id: 'experiencias',
     label: 'Experiencias',
-    href: '/resenas',
+    href: '/experiencias',
     icon: MessagesSquare,
     match: [
+      '/experiencias',
+      '/experiencias/**',
       '/resenas',
       '/resenas/**',
       '/finales',

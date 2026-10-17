@@ -106,7 +106,9 @@ export class CatalogBrowseService {
         id: true,
         name: true,
         code: true,
-        studyPlans: { select: { subjects: { select: { subjectId: true } } } },
+        studyPlans: {
+          select: { subjects: { select: { subjectId: true, year: true } } },
+        },
       },
     });
     const materials = await this.materialsBySubject(
@@ -123,10 +125,15 @@ export class CatalogBrowseService {
         const subjectIds = studyPlans.flatMap((plan) =>
           plan.subjects.map((s) => s.subjectId),
         );
+        // «años» is the highest placement year; optativa-only careers have none.
+        const placedYears = studyPlans
+          .flatMap((plan) => plan.subjects.map((s) => s.year))
+          .filter((year): year is number => year !== null);
         return {
           ...career,
           slug: slug(career.code),
           subjectCount: subjectIds.length,
+          years: placedYears.length ? Math.max(...placedYears) : null,
           materialCount: subjectIds.reduce(
             (sum, id) => sum + (materials.get(id) ?? 0),
             0,

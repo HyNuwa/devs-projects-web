@@ -193,17 +193,76 @@ describe('Browse the catalog (e2e)', () => {
           slug: string;
           subjectCount: number;
           materialCount: number;
+          years: number | null;
         }[]
-      ).map((c) => [c.slug, c.subjectCount, c.materialCount]),
+      ).map((c) => [c.slug, c.subjectCount, c.materialCount, c.years]),
     ).toEqual([
-      ['ia', 3, 3],
-      ['ib', 0, 0],
+      // «años» is the highest placement year, not the plan's duration:
+      // IA places materias up to 2° (duration 5), IB has no subjects (duration 3).
+      ['ia', 3, 3, 2],
+      ['ib', 0, 0, null],
     ]);
 
     const empty = await http()
       .get(`/api/v1/institutions/browse/${uniShort.toLowerCase()}/vac`)
       .expect(200);
     expect(empty.body.careers).toEqual([]);
+  });
+
+  it('reports null años for a carrera whose placements are all optativas', async () => {
+    const subject = await prisma.subject.create({
+      data: {
+        facultyId: fullFacultyId,
+        code: `OP${tag}`,
+        name: `Optativa ${tag}`,
+      },
+      select: { id: true },
+    });
+    let careerId: string | null = null;
+
+    try {
+      ({ id: careerId } = await prisma.career.create({
+        data: {
+          status: 'PUBLISHED',
+          facultyId: fullFacultyId,
+          name: 'Ingeniería Optativa',
+          code: 'OP',
+          studyPlans: {
+            create: [
+              {
+                name: 'Plan',
+                code: 'OP-1',
+                duration: 4,
+                subjects: {
+                  // Optativa: the CHECK requires year NULL iff semester NULL.
+                  create: [
+                    {
+                      subjectId: subject.id,
+                      year: null,
+                      semester: null,
+                      credits: 4,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        select: { id: true },
+      }));
+
+      const res = await http()
+        .get(`/api/v1/institutions/browse/${uniShort.toLowerCase()}/lle`)
+        .expect(200);
+      const found = (
+        res.body.careers as { slug: string; years: number | null }[]
+      ).find((c) => c.slug === 'op');
+      expect(found).toBeDefined();
+      expect(found?.years).toBeNull();
+    } finally {
+      if (careerId) await prisma.career.delete({ where: { id: careerId } });
+      await prisma.subject.delete({ where: { id: subject.id } });
+    }
   });
 
   it('opens a carrera with its materias by año and cuatrimestre, años, créditos and plan link', async () => {

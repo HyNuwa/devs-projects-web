@@ -84,7 +84,7 @@ export function UbicacionChip() {
   );
 }
 
-function UbicacionPanel({
+export function UbicacionPanel({
   current,
   onClose,
   onSave,

@@ -7,7 +7,7 @@ describe('primary destinations', () => {
     expect(primaryDestinations.map(({ label, href }) => [label, href])).toEqual([
       ['Inicio', '/'],
       ['Materias', '/universidades'],
-      ['Experiencias', '/resenas'],
+      ['Experiencias', '/experiencias'],
     ]);
   });
 
@@ -24,6 +24,9 @@ describe('currentDestination', () => {
     ['/universidades/unju/fi/ii', 'materias'],
     ['/materias/IP-101', 'materias'],
     ['/materiales/abc123', 'materias'],
+    ['/experiencias', 'experiencias'],
+    ['/experiencias/06', 'experiencias'],
+    ['/experiencias/escribir', 'experiencias'],
     ['/resenas', 'experiencias'],
     ['/resenas/r-1', 'experiencias'],
     ['/finales', 'experiencias'],
@@ -39,6 +42,7 @@ describe('currentDestination', () => {
     ['/profesores/p-1', null],
     ['/ranking', null],
     ['/materiasx', null],
+    ['/experienciasx', null],
   ])('%s → %s', (pathname, expected) => {
     expect(currentDestination(pathname)).toBe(expected);
   });

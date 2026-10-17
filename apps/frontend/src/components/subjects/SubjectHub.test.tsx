@@ -1,10 +1,12 @@
 import { fiUnju } from '@/test/institutions';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api';
 import { getMaterialDiscovery } from '@/lib/discovery-client';
+import { getSubjectExperiencesSummary } from '@/lib/experiences-client';
+import { summaryFixture } from '@/test/experiences';
 import { getTopMaterials, type TopMaterials } from '@/lib/ranking-client';
 import type { SubjectHub as SubjectHubType } from '@/types/subject';
 
@@ -36,6 +38,11 @@ vi.mock('@/components/discovery/MaterialPreviewDialog', () => ({
       </button>
     </div>
   ),
+}));
+
+vi.mock('@/lib/experiences-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/experiences-client')>()),
+  getSubjectExperiencesSummary: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/lib/discovery-client', async (importOriginal) => {
@@ -148,6 +155,16 @@ describe('SubjectHub', () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset();
     vi.mocked(getMaterialDiscovery).mockReset();
+    vi.mocked(getSubjectExperiencesSummary)
+      .mockReset()
+      .mockResolvedValue({
+        ...summaryFixture,
+        subject: {
+          code: 'ED-01',
+          id: 'subject-1',
+          name: 'Estructuras de Datos',
+        },
+      });
     mockHubRequests();
     vi.mocked(getTopMaterials).mockReset().mockResolvedValue(emptyTop);
     vi.mocked(getMaterialDiscovery).mockResolvedValue({
@@ -232,34 +249,40 @@ describe('SubjectHub', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders each source review once and keeps its shareable detail route', async () => {
+  it('shows the shared summary, its view-all link and no legacy experience tabs', async () => {
     const { container } = render(<SubjectHub code="ED-01" />);
 
-    expect(await screen.findByText(/los parciales prácticos ayudaron/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Estructuras de Datos' }),
+    ).toBeInTheDocument();
     // The root layout owns the only <main> landmark.
     expect(container.querySelector('main')).toBeNull();
-    expect(screen.getAllByText(/los parciales prácticos ayudaron/i)).toHaveLength(1);
-    expect(screen.getByLabelText('Recomendación: 4 de 5 estrellas')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Leer más' })).toHaveAttribute(
+
+    expect(await screen.findByText('34')).toBeInTheDocument();
+    expect(screen.getByText('24')).toBeInTheDocument();
+    expect(screen.getByText('3,9/5')).toBeInTheDocument();
+    expect(screen.getByText(/15 de 22/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /ver experiencias/i })).toHaveAttribute(
       'href',
-      '/resenas/review-1',
+      '/experiencias/ED-01',
     );
+    expect(screen.getByRole('link', { name: 'Reseña de cursada' })).toHaveAttribute(
+      'href',
+      '/materias/ED-01/resenar',
+    );
+    expect(screen.getByRole('link', { name: 'Experiencia de final' })).toHaveAttribute(
+      'href',
+      '/materias/ED-01/final',
+    );
+    expect(screen.queryByRole('tab', { name: /reseñas/i })).toBeNull();
+    expect(screen.queryByRole('tab', { name: /finales/i })).toBeNull();
   });
 
-  it('keeps reviews, final experiences, and materials as distinct source-record views', async () => {
-    const user = userEvent.setup();
+  it('keeps the materials view and its source-record links', async () => {
     render(<SubjectHub code="ED-01" />);
 
-    await screen.findByText(/los parciales prácticos ayudaron/i);
-    await user.click(screen.getByRole('tab', { name: 'Finales (1)' }));
-
-    expect(screen.getByText(/tomaron complejidad/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Leer más' })).toHaveAttribute(
-      'href',
-      '/finales/exam-1',
-    );
-
-    await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
+    await screen.findByRole('heading', { name: 'Estructuras de Datos' });
+    await userEvent.setup().click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
 
     expect(screen.getByRole('link', { name: /parcial 1 resuelto/i })).toHaveAttribute(
       'href',
@@ -271,7 +294,31 @@ describe('SubjectHub', () => {
       sort: 'RECENT',
       subjectId: subject.id,
     });
-    expect(api.get).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps materials usable when the summary fails, and retry heals only it', async () => {
+    vi.mocked(getSubjectExperiencesSummary)
+      .mockReset()
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValueOnce({
+        ...summaryFixture,
+        subject: {
+          code: 'ED-01',
+          id: 'subject-1',
+          name: 'Estructuras de Datos',
+        },
+      });
+    const user = userEvent.setup();
+    render(<SubjectHub code="ED-01" />);
+
+    await screen.findByRole('heading', { name: 'Estructuras de Datos' });
+    await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
+    expect(screen.getByRole('link', { name: /parcial 1 resuelto/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(vi.mocked(getSubjectExperiencesSummary)).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('34')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /parcial 1 resuelto/i })).toBeInTheDocument();
   });
 
   it('lists «Más útiles este cuatrimestre» with their count and opens the preview', async () => {
@@ -279,7 +326,7 @@ describe('SubjectHub', () => {
     const user = userEvent.setup();
     render(<SubjectHub code="ED-01" />);
 
-    await screen.findByText(/los parciales prácticos ayudaron/i);
+    await screen.findByRole('heading', { name: 'Estructuras de Datos' });
     await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
 
     const section = screen.getByRole('region', { name: 'Más útiles este cuatrimestre' });
@@ -301,16 +348,25 @@ describe('SubjectHub', () => {
   it('hides «Más útiles» when empty or when it cannot load', async () => {
     const user = userEvent.setup();
     render(<SubjectHub code="ED-01" />);
-    await screen.findByText(/los parciales prácticos ayudaron/i);
+    await screen.findByRole('heading', { name: 'Estructuras de Datos' });
     await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
     expect(screen.queryByRole('region', { name: 'Más útiles este cuatrimestre' })).toBeNull();
     cleanup();
 
     vi.mocked(getTopMaterials).mockRejectedValue(new Error('boom'));
     render(<SubjectHub code="ED-01" />);
-    await screen.findByText(/los parciales prácticos ayudaron/i);
+    await screen.findByRole('heading', { name: 'Estructuras de Datos' });
     await user.click(await screen.findByRole('tab', { name: 'Materiales (1)' }));
     expect(screen.getByRole('link', { name: /parcial 1 resuelto/i })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Más útiles este cuatrimestre' })).toBeNull();
+  });
+
+  it('never calls the legacy subject reviews/exams endpoints', async () => {
+    render(<SubjectHub code="ED-01" />);
+    // Wait for the hub's own ready fetch to land.
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/subjects/ED-01'));
+    const calls = vi.mocked(api.get).mock.calls.map(([path]) => String(path));
+    expect(calls).not.toContain('/subjects/ED-01/reviews');
+    expect(calls).not.toContain('/subjects/ED-01/exams');
   });
 });

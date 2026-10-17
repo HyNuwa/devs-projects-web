@@ -8,6 +8,12 @@ import {
   ExamExperienceDetailRoute,
 } from './CommunityDetailPage';
 import { getCourseReviewDetail, getExamExperienceDetail } from '@/lib/discovery-client';
+import {
+  getCourseReviewRelated,
+  getExamExperienceRelated,
+  getSubjectExperiencesSummary,
+} from '@/lib/experiences-client';
+import { summaryFixture } from '@/test/experiences';
 import { getCommunityManagement } from '@/lib/community-management-client';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -19,6 +25,10 @@ const navigation = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 const navigatorShare = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const ed01Summary = {
+  ...summaryFixture,
+  subject: { code: 'ED-01', id: 'subject-1', name: 'Estructuras de Datos' },
+};
 const reviewComment =
   'La práctica semanal hizo que los parciales fueran previsibles y el equipo docente respondió dudas puntuales.';
 const experienceComment =
@@ -37,6 +47,12 @@ vi.mock('@/lib/discovery-client', () => ({
 vi.mock('@/lib/community-management-client', () => ({
   getCommunityManagement: vi.fn(),
   deleteCommunityEntry: vi.fn(),
+}));
+vi.mock('@/lib/experiences-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/experiences-client')>()),
+  getSubjectExperiencesSummary: vi.fn(),
+  getCourseReviewRelated: vi.fn(),
+  getExamExperienceRelated: vi.fn(),
 }));
 
 const signedInUser: User = {
@@ -116,6 +132,18 @@ describe('CommunityDetailPage', () => {
     vi.mocked(getCommunityManagement).mockRejectedValue({ response: { status: 403 } });
     vi.mocked(getCourseReviewDetail).mockResolvedValue(review());
     vi.mocked(getExamExperienceDetail).mockResolvedValue(experience());
+    vi.mocked(getSubjectExperiencesSummary).mockReset();
+    vi.mocked(getSubjectExperiencesSummary).mockResolvedValue(ed01Summary);
+    vi.mocked(getCourseReviewRelated).mockReset();
+    vi.mocked(getCourseReviewRelated).mockResolvedValue({
+      items: [],
+      sharedContext: { shift: 'TARDE' },
+    });
+    vi.mocked(getExamExperienceRelated).mockReset();
+    vi.mocked(getExamExperienceRelated).mockResolvedValue({
+      items: [],
+      sharedContext: { format: 'ORAL', session: 'JULIO' },
+    });
     useAuthStore.setState({ isLoading: false, user: null });
     navigatorShare.mockClear();
     Object.defineProperty(navigator, 'share', {
@@ -249,5 +277,184 @@ describe('CommunityDetailPage', () => {
       await screen.findByRole('heading', { name: 'Estructuras de Datos' }),
     ).toBeInTheDocument();
     expect(getCourseReviewDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the subject picture and same-context panel for a review', async () => {
+    vi.mocked(getCourseReviewRelated).mockResolvedValue({
+      items: [
+        {
+          academicYear: 2025,
+          attempt: 'PRIMERA_CURSADA',
+          author: { username: 'vale' },
+          condition: 'REGULAR',
+          createdAt: '2026-09-10T12:00:00.000Z',
+          difficulty: 'MEDIA',
+          excerpt: 'Otra con Quiroga',
+          id: 'r2',
+          professor: { id: 'professor-1', name: 'Ing. Laura Quiroga' },
+          professorName: null,
+          recommendation: 5,
+          shift: 'TARDE',
+          subject: {
+            code: 'ED-01',
+            href: '/materias/ED-01',
+            id: 'subject-1',
+            name: 'Estructuras de Datos',
+          },
+          updatedAt: '2026-09-10T12:00:00.000Z',
+        },
+      ],
+      sharedContext: { professor: { name: 'Ing. Laura Quiroga' }, shift: 'TARDE' },
+    });
+    render(<CommunityDetailPage id="review-1" kind="course-review" />);
+
+    expect(await screen.findByText(reviewComment)).toBeInTheDocument();
+    expect(
+      (await screen.findAllByRole('heading', { name: /Estructuras de Datos/i })).length,
+    ).toBeGreaterThan(0);
+    for (const link of await screen.findAllByRole('link', {
+      name: /ver todas las experiencias/i,
+    })) {
+      expect(link).toHaveAttribute('href', '/experiencias/ED-01');
+    }
+    expect(await screen.findByText(/Otra con Quiroga/)).toBeInTheDocument();
+    expect(getSubjectExperiencesSummary).toHaveBeenCalledWith('ED-01');
+    expect(getCourseReviewRelated).toHaveBeenCalledWith('review-1');
+  });
+
+  it('offers the two writing routes from the detail', async () => {
+    const user = userEvent.setup();
+    render(<CommunityDetailPage id="review-1" kind="course-review" />);
+    await screen.findByText(reviewComment);
+
+    await user.click(await screen.findByRole('button', { name: /escribir/i }));
+    expect(await screen.findByRole('menuitem', { name: 'Reseña de cursada' })).toHaveAttribute(
+      'href',
+      '/materias/ED-01/resenar',
+    );
+    expect(screen.getByRole('menuitem', { name: 'Experiencia de final' })).toHaveAttribute(
+      'href',
+      '/materias/ED-01/final',
+    );
+  });
+
+  it('keeps the narrative and retries the summary independently', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getSubjectExperiencesSummary)
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValueOnce(ed01Summary);
+    render(<CommunityDetailPage id="review-1" kind="course-review" />);
+
+    expect(await screen.findByText(reviewComment)).toBeInTheDocument();
+    const relatedCalls = vi.mocked(getCourseReviewRelated).mock.calls.length;
+    const sourceCalls = vi.mocked(getCourseReviewDetail).mock.calls.length;
+    await user.click(await screen.findByRole('button', { name: 'Reintentar resumen' }));
+    expect(
+      await screen.findByRole('heading', { name: 'La materia según 34 reseñas' }),
+    ).toBeInTheDocument();
+    expect(getSubjectExperiencesSummary).toHaveBeenCalledTimes(2);
+    expect(getCourseReviewRelated).toHaveBeenCalledTimes(relatedCalls);
+    expect(getCourseReviewDetail).toHaveBeenCalledTimes(sourceCalls);
+  });
+
+  it('never fires ancillary requests while the source is unavailable', async () => {
+    vi.mocked(getCourseReviewDetail).mockRejectedValue({ response: { status: 404 } });
+    render(<CommunityDetailPage id="review-1" kind="course-review" />);
+
+    await screen.findByRole('heading', { name: 'Esta publicación no está disponible' });
+    expect(getSubjectExperiencesSummary).not.toHaveBeenCalled();
+    expect(getCourseReviewRelated).not.toHaveBeenCalled();
+  });
+
+  it('shows a grade of 0 honestly and omits an absent one', async () => {
+    vi.mocked(getExamExperienceDetail).mockResolvedValue(experience({ grade: 0 }));
+    render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+    expect(await screen.findByText('Nota: 0')).toBeInTheDocument();
+
+    cleanup();
+    vi.mocked(getExamExperienceDetail).mockResolvedValue(experience());
+    render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+    await screen.findByText(experienceComment);
+    expect(screen.queryByText(/^Nota:/)).not.toBeInTheDocument();
+  });
+
+  it('handles a legacy subject without a public code', async () => {
+    vi.mocked(getCourseReviewDetail).mockResolvedValue(
+      review({
+        subject: {
+          code: null,
+          href: '/materias/ED-01',
+          id: 'subject-1',
+          name: 'Estructuras de Datos',
+        },
+      }),
+    );
+    render(<CommunityDetailPage id="review-1" kind="course-review" />);
+
+    expect(await screen.findByText(reviewComment)).toBeInTheDocument();
+    // Related by id still resolves; summary stays unfetched; no /null href.
+    expect(await screen.findByRole('link', { name: 'Escribir experiencia' })).toHaveAttribute(
+      'href',
+      '/experiencias/escribir',
+    );
+    await waitFor(() => expect(getCourseReviewRelated).toHaveBeenCalledWith('review-1'));
+    expect(getSubjectExperiencesSummary).not.toHaveBeenCalled();
+    for (const link of screen.getAllByRole('link')) {
+      expect(link.getAttribute('href')).not.toMatch(/null|undefined/);
+    }
+  });
+
+  it('wires the same panels for a final detail', async () => {
+    vi.mocked(getExamExperienceRelated).mockResolvedValue({
+      items: [
+        {
+          author: { username: 'Anónimo' },
+          createdAt: '2026-09-10T12:00:00.000Z',
+          excerpt: 'Otra mesa de julio',
+          format: 'ORAL',
+          id: 'e2',
+          outcome: 'APROBADO',
+          session: 'JULIO',
+          subject: {
+            code: 'ED-01',
+            href: '/materias/ED-01',
+            id: 'subject-1',
+            name: 'Estructuras de Datos',
+          },
+          updatedAt: '2026-09-10T12:00:00.000Z',
+          year: 2026,
+        },
+      ],
+      sharedContext: { format: 'ORAL', session: 'JULIO' },
+    });
+    render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+
+    expect(await screen.findByText(experienceComment)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'La materia según 24 finales' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Con el mismo contexto' })).toBeInTheDocument();
+    expect(await screen.findByText(/Otra mesa de julio/)).toBeInTheDocument();
+    expect(getExamExperienceRelated).toHaveBeenCalledWith('exam-1');
+  });
+
+  it('retries a failed related read while the summary stays ready', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getCourseReviewRelated)
+      .mockRejectedValueOnce(new Error('down'))
+      .mockResolvedValueOnce({ items: [], sharedContext: { shift: 'TARDE' } });
+    render(<CommunityDetailPage id="review-1" kind="course-review" />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'La materia según 34 reseñas' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/no pudimos cargar/i)).toBeInTheDocument();
+
+    const summaryCalls = vi.mocked(getSubjectExperiencesSummary).mock.calls.length;
+    const sourceCalls = vi.mocked(getCourseReviewDetail).mock.calls.length;
+    await user.click(screen.getByRole('button', { name: 'Reintentar relacionadas' }));
+    await waitFor(() => expect(getCourseReviewRelated).toHaveBeenCalledTimes(2));
+    expect(getSubjectExperiencesSummary).toHaveBeenCalledTimes(summaryCalls);
+    expect(getCourseReviewDetail).toHaveBeenCalledTimes(sourceCalls);
   });
 });

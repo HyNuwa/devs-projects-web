@@ -62,13 +62,17 @@ _Avoid_: Curriculum year, upload year
 The available academic circumstances for a recurso académico or reseña de cursada: materia, ciclo lectivo, professor, franja horaria, and—when applicable—situación de cursada. Some circumstances may be unknown without invalidating the record.
 _Avoid_: Course match, commission
 
+**Experiencia**:
+The umbrella term for a reseña de cursada or an experiencia de final: it names the Experiencias section, its counts («58 experiencias») and the action «Escribir experiencia». Alone it never means a final; that is always «experiencia de final».
+_Avoid_: Experiencia de final (as shorthand), review, post, testimonio
+
 **Reseña de cursada**:
 An authored account of one concrete cursada of a materia. Multiple reviews by the same student remain independent when they describe distinct cursadas, including within the same ciclo lectivo.
 _Avoid_: Experiencia de final, professor review, merged student rating
 
 **Experiencia de final**:
 An authored account of one concrete final-exam attempt for a materia. A student may publish multiple attempts without replacing earlier experiences.
-_Avoid_: Reseña de cursada, final resource, exam rating
+_Avoid_: Reseña de cursada, Experiencia (bare), final resource, exam rating
 
 **Franja horaria**:
 The optional time band in which a cursada or final took place: mañana, tarde, or noche. It does not describe whether the student was recursing the materia.
@@ -90,9 +94,25 @@ _Avoid_: Franja horaria, turno de mañana/tarde/noche
 An optional verbal assessment attached to one cursada or final experience: muy baja, baja, media, alta, or muy alta. It remains separate from course recommendation stars and exam outcome.
 _Avoid_: Star rating, professor score, pass probability
 
+**Mismo contexto**:
+The other experiencias of the same materia that share the context facts an entry declared, in any ciclo lectivo: professor and franja horaria for a reseña de cursada, período de examen and formato for an experiencia de final. An entry that declared none of them has no mismo contexto.
+_Avoid_: Similar reviews, recommendations, related posts
+
+**Materias más comentadas**:
+The up to six materias of a facultad, optionally narrowed to one carrera, one año and one type, with the most experiencias published in the last 120 days, at least three each, ties broken by total count; only when none qualifies does it fall back to all-time totals. It measures recent activity, not quality.
+_Avoid_: Trending, popular, best subjects, ranking de materias
+
+**Mínimo de muestra**:
+The smallest count behind a public summary figure: percentages and the average grade need five answers, most-chosen values and the theory and practice averages need three, and below that the interface shows counts. The recomendación promedio keeps showing from one review, always with its count.
+_Avoid_: Statistical significance, confidence
+
 **Publicación anónima**:
 A per-entry presentation choice that replaces the public author with “Anónimo” while preserving authenticated ownership for the author and authorized moderators. Moderators do not see the author by default: revealing it requires a stated reason and is logged. It is chosen when publishing and cannot be changed by editing, so no later change in points can point at the author. Anonymous entries earn no points or badges.
 _Avoid_: Unowned content, anonymous account, unverifiable record
+
+**Marca de anónimo**:
+The single image shown in place of an avatar on every entry published as Anónimo. It is the same for all anonymous entries and is not one of the user avatars, so it links nothing to anyone.
+_Avoid_: Anonymous avatar, random cat, alias
 
 **Publicación inmediata**:
 The default rule for all contributed content (recursos académicos, reseñas de cursada, experiencias de final, eventos and avisos de Clasificados): it becomes public as soon as it passes automatic checks, and moderation acts afterwards through reportes. It does not assert academic correctness or contextual accuracy. See ADR 0001.

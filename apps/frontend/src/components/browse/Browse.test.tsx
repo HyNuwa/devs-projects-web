@@ -164,6 +164,7 @@ describe('FacultyView', () => {
           slug: 'ii',
           subjectCount: 49,
           materialCount: 120,
+          years: 5,
         },
       ],
     };
