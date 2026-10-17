@@ -7,11 +7,15 @@ Frame every page with the redesigned DevsProject shell: the header and primary m
 ## Requirements
 
 ### Requirement: Primary menu destinations
-The shell SHALL offer exactly the primary destinations that exist in the product, in this order: Inicio (`/`), Materias (`/universidades`) and Experiencias (`/resenas`). Destinations without a working page SHALL NOT appear in the menu.
+The shell SHALL offer exactly the primary destinations that exist in the product, in this order: Inicio (`/`), Materias (`/universidades`) and Experiencias (`/experiencias`). Destinations without a working page SHALL NOT appear in the menu.
 
 #### Scenario: Visitor views the desktop header
 - **WHEN** anyone views a page at the desktop breakpoint or wider
 - **THEN** the header shows the DevsProject logo linking to `/`, the menu Inicio · Materias · Experiencias, a search control, the `Subir material` action and the viewer's ubicación (see academic-structure/browsing) in place of a fixed UNJU/FI mark
+
+#### Scenario: Experiencias leads to the landing
+- **WHEN** anyone activates Experiencias in the header, the bottom bar or the footer
+- **THEN** the browser opens `/experiencias`
 
 #### Scenario: Unbuilt destinations are hidden
 - **WHEN** the header or bottom bar renders
@@ -29,7 +33,7 @@ The shell SHALL mark at most one primary destination as current, using `aria-cur
 - **THEN** Materias is the current destination
 
 #### Scenario: Experiences
-- **WHEN** the route is under `/resenas`, under `/finales`, or is `/materias/<codigo>/resenar` or `/materias/<codigo>/final`
+- **WHEN** the route is `/experiencias`, under `/experiencias/...`, under `/resenas`, under `/finales`, or is `/materias/<codigo>/resenar` or `/materias/<codigo>/final`
 - **THEN** Experiencias is the current destination, not Materias
 
 #### Scenario: Upload
@@ -97,7 +101,7 @@ Below the desktop breakpoint (1024px) the shell SHALL replace the desktop header
 - **THEN** the bottom bar is not rendered visibly and the desktop header is shown
 
 ### Requirement: Shell variants for access and focus screens
-Access routes (`/auth/**`) SHALL use a reduced header with the logo and a single link to the complementary access action (`Crear cuenta` on sign-in screens, `Ingresar` on registration), with no primary menu, bottom bar or footer. Focus screens (`/materiales/nuevo`, `/materias/<codigo>/resenar`, `/materias/<codigo>/final`) SHALL keep the header but SHALL NOT show the bottom bar.
+Access routes (`/auth/**`) SHALL use a reduced header with the logo and a single link to the complementary access action (`Crear cuenta` on sign-in screens, `Ingresar` on registration), with no primary menu, bottom bar or footer. Focus screens (`/materiales/nuevo`, `/materias/<codigo>/resenar`, `/materias/<codigo>/final`, `/experiencias/escribir`) SHALL keep the header but SHALL NOT show the bottom bar.
 
 #### Scenario: Sign-in screen
 - **WHEN** a visitor opens `/auth/login`
@@ -109,6 +113,10 @@ Access routes (`/auth/**`) SHALL use a reduced header with the logo and a single
 
 #### Scenario: Writing a reseña on mobile
 - **WHEN** a user opens `/materias/<codigo>/resenar` at 390px wide
+- **THEN** the compact header is shown and the bottom bar is not
+
+#### Scenario: Choosing what to write on mobile
+- **WHEN** a user opens `/experiencias/escribir` at 390px wide
 - **THEN** the compact header is shown and the bottom bar is not
 
 ### Requirement: Minimal footer
