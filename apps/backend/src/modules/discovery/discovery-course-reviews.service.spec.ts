@@ -98,7 +98,9 @@ describe('DiscoveryService course-review discovery', () => {
     expect(result.data[1]).not.toHaveProperty('userId');
     expect(prisma.courseReview.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { isRemoved: false },
+        where: {
+          OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
+        },
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip: 2,
         take: 2,
@@ -116,7 +118,7 @@ describe('DiscoveryService course-review discovery', () => {
     });
 
     const where = {
-      isRemoved: false,
+      OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
       subjectId: 'subject-1',
       academicYear: 2026,
       professorId: 'professor-1',
@@ -200,7 +202,12 @@ describe('DiscoveryService course-review discovery', () => {
       }),
     );
     expect(prisma.courseReview.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'review-1', isRemoved: false } }),
+      expect.objectContaining({
+        where: {
+          id: 'review-1',
+          OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
+        },
+      }),
     );
     expect(prisma.courseReview.findFirst).toHaveBeenCalledTimes(1);
     prisma.courseReview.findFirst.mockResolvedValue(null);

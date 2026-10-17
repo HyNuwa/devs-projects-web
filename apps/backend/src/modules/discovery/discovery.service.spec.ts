@@ -86,7 +86,7 @@ describe('DiscoveryService', () => {
         where: {
           searchKey: { contains: 'algoritmos' },
           isDeleted: false,
-          moderationStatus: 'APPROVED',
+          OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
         },
         take: 4,
       }),

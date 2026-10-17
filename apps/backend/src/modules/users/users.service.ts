@@ -1,17 +1,37 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { UserResponseDto } from '../auth/dto/auth-response.dto';
-
-function excludePassword(user: Record<string, unknown>): UserResponseDto {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { passwordHash, ...safe } = user;
-  return safe as unknown as UserResponseDto;
-}
+import { excludePassword } from '../auth/exclude-password';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Another account's profile: only what is public. Email, sanción state and
+   * activity timestamps stay with the account and moderation.
+   */
+  async publicProfile(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        points: true,
+        level: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    return user;
+  }
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({

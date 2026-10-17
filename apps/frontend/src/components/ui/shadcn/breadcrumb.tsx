@@ -80,7 +80,7 @@ function BreadcrumbEntry({
         </span>
       ) : (
         <Link
-          className="inline-flex min-h-11 max-w-[12rem] items-center truncate px-1 font-sans text-sm font-bold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="inline-flex min-h-11 max-w-[12rem] items-center truncate px-1 font-sans text-sm font-bold text-link underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           href={item.href ?? '#'}
         >
           {item.label}
@@ -115,7 +115,7 @@ export function Breadcrumb({
     <nav
       aria-describedby={describedBy || undefined}
       aria-label={ariaLabel}
-      className={cn('min-w-0 border-b border-border bg-background', className)}
+      className={cn('min-w-0', className)}
       data-slot="breadcrumb"
       {...props}
     >

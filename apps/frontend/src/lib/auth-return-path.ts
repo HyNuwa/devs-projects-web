@@ -39,3 +39,16 @@ export function loginHrefForCurrentLocation(): string {
 export function redirectToLogin(): void {
   window.location.href = loginHrefForCurrentLocation();
 }
+
+/**
+ * An account suspended while signed in: close the session and send it to sign-in,
+ * where it sees why and can appeal. Uses fetch because the api client imports this
+ * module.
+ */
+export function redirectSuspended() {
+  if (typeof window === 'undefined') return;
+  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+  void fetch(`${base}/auth/logout`, { method: 'POST', credentials: 'include' })
+    .catch(() => undefined)
+    .finally(() => window.location.assign('/auth/login?suspendida=1'));
+}

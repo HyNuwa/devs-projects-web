@@ -30,6 +30,7 @@ import {
   MAX_DISCOVERY_EXAM_EXPERIENCE_EXCERPT_LENGTH,
 } from './dto/discovery-exam-experiences.dto';
 import { toMaterialPreview } from '../materials/material-preview.mapper';
+import { publicVisibility } from '../moderation/visibility';
 
 const subjectSuggestionSelect = {
   id: true,
@@ -52,10 +53,11 @@ const materialSuggestionSelect = {
   },
 } satisfies Prisma.MaterialSelect;
 
-const publicMaterialWhere = {
-  isDeleted: false,
-  moderationStatus: 'APPROVED',
-} satisfies Prisma.MaterialWhereInput;
+const publicMaterialWhere = (now = new Date()) =>
+  ({
+    isDeleted: false,
+    ...publicVisibility(now),
+  }) satisfies Prisma.MaterialWhereInput;
 
 const publicCourseReviewSelect = {
   id: true,
@@ -90,9 +92,8 @@ const publicCourseReviewSelect = {
   },
 } satisfies Prisma.CourseReviewSelect;
 
-const publicCourseReviewWhere = {
-  isRemoved: false,
-} satisfies Prisma.CourseReviewWhereInput;
+const publicCourseReviewWhere = (now = new Date()) =>
+  publicVisibility(now) satisfies Prisma.CourseReviewWhereInput;
 
 const publicExamExperienceSelect = {
   id: true,
@@ -113,19 +114,12 @@ const publicExamExperienceSelect = {
   user: { select: { username: true } },
 } satisfies Prisma.ExamExperienceSelect;
 
-const publicExamExperienceWhere = {
-  isRemoved: false,
-} satisfies Prisma.ExamExperienceWhereInput;
+const publicExamExperienceWhere = (now = new Date()) =>
+  publicVisibility(now) satisfies Prisma.ExamExperienceWhereInput;
 
-const publicCourseReviewDetailSelect = {
-  ...publicCourseReviewSelect,
-  isRemoved: true,
-} satisfies Prisma.CourseReviewSelect;
+const publicCourseReviewDetailSelect = publicCourseReviewSelect;
 
-const publicExamExperienceDetailSelect = {
-  ...publicExamExperienceSelect,
-  isRemoved: true,
-} satisfies Prisma.ExamExperienceSelect;
+const publicExamExperienceDetailSelect = publicExamExperienceSelect;
 
 @Injectable()
 export class DiscoveryService {
@@ -210,8 +204,7 @@ export class DiscoveryService {
       this.prisma.material.findMany({
         where: {
           searchKey: { contains: normalizedQuery },
-          isDeleted: false,
-          moderationStatus: 'APPROVED',
+          ...publicMaterialWhere(),
         },
         orderBy: [{ searchKey: 'asc' }, { id: 'asc' }],
         take: limit,
@@ -241,7 +234,7 @@ export class DiscoveryService {
     const page = query.page ?? 1;
     const limit = query.limit ?? DEFAULT_DISCOVERY_COURSE_REVIEW_LIMIT;
     const where: Prisma.CourseReviewWhereInput = {
-      ...publicCourseReviewWhere,
+      ...publicCourseReviewWhere(),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
       ...(query.academicYear ? { academicYear: query.academicYear } : {}),
       ...(query.professorId ? { professorId: query.professorId } : {}),
@@ -301,7 +294,7 @@ export class DiscoveryService {
 
   async getCourseReviewDetail(id: string) {
     const review = await this.prisma.courseReview.findFirst({
-      where: { id, ...publicCourseReviewWhere },
+      where: { id, ...publicCourseReviewWhere() },
       select: publicCourseReviewDetailSelect,
     });
     if (!review) {
@@ -337,7 +330,7 @@ export class DiscoveryService {
     const page = query.page ?? 1;
     const limit = query.limit ?? DEFAULT_DISCOVERY_EXAM_EXPERIENCE_LIMIT;
     const where: Prisma.ExamExperienceWhereInput = {
-      ...publicExamExperienceWhere,
+      ...publicExamExperienceWhere(),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
       ...(query.year ? { year: query.year } : {}),
       ...(query.session ? { session: query.session } : {}),
@@ -394,7 +387,7 @@ export class DiscoveryService {
 
   async getExamExperienceDetail(id: string) {
     const experience = await this.prisma.examExperience.findFirst({
-      where: { id, ...publicExamExperienceWhere },
+      where: { id, ...publicExamExperienceWhere() },
       select: publicExamExperienceDetailSelect,
     });
     if (!experience) {
@@ -567,7 +560,7 @@ export class DiscoveryService {
             name: true,
             code: true,
             _count: {
-              select: { materials: { where: publicMaterialWhere } },
+              select: { materials: { where: publicMaterialWhere() } },
             },
           },
         },
@@ -611,7 +604,7 @@ export class DiscoveryService {
       }),
       this.prisma.material.groupBy({
         by: ['resourceType'],
-        where: { subjectId, ...publicMaterialWhere },
+        where: { subjectId, ...publicMaterialWhere() },
         _count: { _all: true },
         orderBy: { resourceType: 'asc' },
       }),
@@ -643,7 +636,7 @@ export class DiscoveryService {
         select: { id: true, name: true, code: true },
       }),
       this.prisma.material.findMany({
-        where: { subjectId, resourceType, ...publicMaterialWhere },
+        where: { subjectId, resourceType, ...publicMaterialWhere() },
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         take: limit + 1,
         select: {

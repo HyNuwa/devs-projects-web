@@ -10,6 +10,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { MaterialsController } from './materials.controller';
 import { MaterialsService } from './materials.service';
+import { AccountStatusService } from '../moderation/account-status.service';
+import { ActiveAccountGuard } from '../moderation/active-account.guard';
 
 const MATERIAL_ID = '30000000-0000-4000-8000-000000000001';
 const UNAUTHORIZED_RESPONSE = { message: 'Unauthorized', statusCode: 401 };
@@ -69,6 +71,12 @@ describe('Materials anonymous API contract', () => {
       providers: [
         Reflector,
         RolesGuard,
+        // Every account is active here; restrictions are tested in the moderation e2e.
+        ActiveAccountGuard,
+        {
+          provide: AccountStatusService,
+          useValue: { assertCanContribute: jest.fn() },
+        },
         TestJwtStrategy,
         { provide: MaterialsService, useValue: materialsService },
         { provide: APP_GUARD, useClass: JwtAuthGuard },

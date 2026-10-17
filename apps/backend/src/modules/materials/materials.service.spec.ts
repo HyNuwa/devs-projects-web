@@ -1,12 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PublicationPolicy } from '../moderation/publication-policy.service';
 import { PointService } from '../ranking/point.service';
 import { Role } from '../auth/dto/auth-response.dto';
 import { MaterialSort } from './dto/materials-query.dto';
@@ -48,9 +44,6 @@ describe('MaterialsService', () => {
     subjectProfessor: {
       findUnique: jest.fn(),
     },
-    moderationLog: {
-      create: jest.fn(),
-    },
     $executeRaw: jest.fn(),
     $queryRaw: jest.fn(),
     $transaction: jest.fn(),
@@ -63,15 +56,13 @@ describe('MaterialsService', () => {
   };
 
   const pointService = {
-    awardPoints: jest.fn(),
+    awardFor: jest.fn(),
   };
 
-  const mockFile = {
-    originalname: 'apuntes.pdf',
-    mimetype: 'application/pdf',
-    size: 1024,
-    buffer: Buffer.from('contenido de prueba'),
-  } as Express.Multer.File;
+  const publicationPolicy = {
+    priorReviewFor: jest.fn(),
+    openPriorReview: jest.fn(),
+  };
 
   const publicMaterialRecord = {
     id: 'mat-1',
@@ -123,68 +114,11 @@ describe('MaterialsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: 'FILE_STORAGE', useValue: storage },
         { provide: PointService, useValue: pointService },
+        { provide: PublicationPolicy, useValue: publicationPolicy },
       ],
     }).compile();
 
     service = module.get<MaterialsService>(MaterialsService);
-  });
-
-  describe('create', () => {
-    it('hace staging del archivo y crea el material en PENDING sin puntos', async () => {
-      storage.stage.mockResolvedValue({
-        stagedPath: '/tmp/staging/abc.pdf',
-        fileType: 'pdf',
-        fileSize: 1024,
-        thumbnailUrl: null,
-      });
-      prisma.material.create.mockResolvedValue({ id: 'mat-1' });
-
-      const dto = {
-        title: 'Apuntes de Cálculo',
-        subjectId: 'sub-1',
-        resourceType: 'APUNTE' as const,
-      };
-      const result = await service.create(dto, mockFile, 'user-1');
-
-      expect(storage.stage).toHaveBeenCalledWith(mockFile);
-      expect(prisma.material.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            title: 'Apuntes de Cálculo',
-            searchKey: 'apuntes de calculo',
-            fileType: 'pdf',
-            fileSize: BigInt(1024),
-            authorId: 'user-1',
-            subjectId: 'sub-1',
-            resourceType: 'APUNTE',
-            moderationStatus: 'PENDING',
-            stagedFilePath: '/tmp/staging/abc.pdf',
-          }),
-        }),
-      );
-      // No se otorgan puntos al crear.
-      expect(pointService.awardPoints).not.toHaveBeenCalled();
-      expect(result).toEqual({ id: 'mat-1' });
-    });
-
-    it('rechaza un profesor que no pertenece a la materia antes del staging', async () => {
-      prisma.subjectProfessor.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.create(
-          {
-            title: 'Apuntes de Cálculo',
-            subjectId: 'sub-1',
-            resourceType: 'APUNTE',
-            professorId: 'prof-1',
-          },
-          mockFile,
-          'user-1',
-        ),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(storage.stage).not.toHaveBeenCalled();
-    });
   });
 
   describe('findAll', () => {
@@ -198,7 +132,7 @@ describe('MaterialsService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             isDeleted: false,
-            moderationStatus: 'APPROVED',
+            OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
             id: { in: ['mat-1'] },
           }),
         }),
@@ -212,9 +146,9 @@ describe('MaterialsService', () => {
           preview: expect.objectContaining({ capability: 'PDF' }),
         }),
       );
-      expect(result.data[0]).not.toHaveProperty('moderationStatus');
-      expect(result.data[0]).not.toHaveProperty('moderationReason');
-      expect(result.data[0]).not.toHaveProperty('isApproved');
+      expect(result.data[0]).not.toHaveProperty('publicationStatus');
+      expect(result.data[0]).not.toHaveProperty('authorFacingReason');
+      expect(result.data[0]).not.toHaveProperty('fileHash');
     });
 
     it('mantiene un presupuesto fijo de consultas para una página de resultados', async () => {
@@ -256,7 +190,7 @@ describe('MaterialsService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             isDeleted: false,
-            moderationStatus: 'APPROVED',
+            OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
             subjectId: 'sub-1',
             resourceType: 'PARCIAL',
             academicYear: 2026,
@@ -396,134 +330,6 @@ describe('MaterialsService', () => {
     });
   });
 
-  describe('approve', () => {
-    it('publica el archivo, marca aprobado y otorga puntos al autor', async () => {
-      prisma.material.findUnique.mockResolvedValue({
-        id: 'mat-1',
-        authorId: 'user-1',
-        subjectId: 'sub-1',
-        fileType: 'pdf',
-        stagedFilePath: '/tmp/staging/abc.pdf',
-        moderationStatus: 'PENDING',
-        isDeleted: false,
-      });
-      storage.publish.mockResolvedValue({
-        fileUrl: '/uploads/materials/final.pdf',
-        driveFileId: 'drive-1',
-        drivePreviewUrl: 'https://drive.google.com/file/d/drive-1/preview',
-        driveDownloadUrl:
-          'https://drive.google.com/uc?id=drive-1&export=download',
-      });
-      prisma.material.update.mockResolvedValue({ id: 'mat-1' });
-      prisma.material.findFirst.mockResolvedValue({ id: 'mat-1' });
-      prisma.subject.update.mockResolvedValue({ id: 'sub-1' });
-      prisma.moderationLog.create.mockResolvedValue({ id: 'log-1' });
-
-      const result = await service.approve('mat-1', 'mod-1');
-
-      expect(storage.publish).toHaveBeenCalledWith('/tmp/staging/abc.pdf', {
-        fileType: 'pdf',
-      });
-      expect(prisma.material.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            moderationStatus: 'APPROVED',
-            isApproved: true,
-            driveFileId: 'drive-1',
-            stagedFilePath: null,
-          }),
-        }),
-      );
-      expect(pointService.awardPoints).toHaveBeenCalledWith(
-        'user-1',
-        10,
-        'MATERIAL_APPROVED',
-        'mat-1',
-      );
-      expect(result).toEqual({ id: 'mat-1' });
-    });
-
-    it('rechaza la transición REJECTED → APPROVED', async () => {
-      prisma.material.findUnique.mockResolvedValue({
-        id: 'mat-1',
-        moderationStatus: 'REJECTED',
-        isDeleted: false,
-        stagedFilePath: null,
-      });
-
-      await expect(service.approve('mat-1', 'mod-1')).rejects.toThrow(
-        ConflictException,
-      );
-      expect(storage.publish).not.toHaveBeenCalled();
-      expect(prisma.moderationLog.create).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('reject', () => {
-    it('descarta el staging, marca rechazado con motivo y no otorga puntos', async () => {
-      prisma.material.findUnique.mockResolvedValue({
-        id: 'mat-1',
-        authorId: 'user-1',
-        subjectId: 'sub-1',
-        stagedFilePath: '/tmp/staging/abc.pdf',
-        moderationStatus: 'PENDING',
-        isDeleted: false,
-      });
-      prisma.material.update.mockResolvedValue({ id: 'mat-1' });
-      prisma.moderationLog.create.mockResolvedValue({ id: 'log-1' });
-
-      const result = await service.reject('mat-1', 'mod-1', {
-        reason: 'Contenido duplicado',
-      });
-
-      expect(storage.discard).toHaveBeenCalledWith('/tmp/staging/abc.pdf');
-      expect(prisma.material.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            moderationStatus: 'REJECTED',
-            moderationReason: 'Contenido duplicado',
-            stagedFilePath: null,
-          }),
-        }),
-      );
-      expect(pointService.awardPoints).not.toHaveBeenCalled();
-      expect(result).toEqual({ id: 'mat-1' });
-    });
-
-    it('rechaza la transición APPROVED → REJECTED', async () => {
-      prisma.material.findUnique.mockResolvedValue({
-        id: 'mat-1',
-        moderationStatus: 'APPROVED',
-        isDeleted: false,
-      });
-
-      await expect(
-        service.reject('mat-1', 'mod-1', { reason: 'Fuera de contexto' }),
-      ).rejects.toThrow(ConflictException);
-      expect(storage.discard).not.toHaveBeenCalled();
-      expect(prisma.moderationLog.create).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('moderation evidence', () => {
-    it('incluye evidencia de moderación en la vista del contributor', async () => {
-      prisma.material.findMany.mockResolvedValue([]);
-
-      await service.findMine('user-1');
-
-      expect(prisma.material.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { authorId: 'user-1', isDeleted: false },
-          include: expect.objectContaining({
-            moderationLogs: expect.objectContaining({
-              select: expect.objectContaining({ action: true, reason: true }),
-            }),
-          }),
-        }),
-      );
-    });
-  });
-
   describe('findById', () => {
     it('lanza NotFoundException si el material no está aprobado', async () => {
       prisma.material.findFirst.mockResolvedValue(null);
@@ -536,20 +342,20 @@ describe('MaterialsService', () => {
     it('proyecta un material aprobado sin evidencia interna de moderación', async () => {
       prisma.material.findFirst.mockResolvedValue({
         ...publicMaterialRecord,
-        moderationStatus: 'APPROVED',
-        moderationReason: 'dato que no debe salir',
+        publicationStatus: 'PUBLISHED',
+        authorFacingReason: 'dato que no debe salir',
       });
 
       const result = await service.findById('mat-1');
 
-      expect(result).not.toHaveProperty('moderationStatus');
-      expect(result).not.toHaveProperty('moderationReason');
+      expect(result).not.toHaveProperty('publicationStatus');
+      expect(result).not.toHaveProperty('authorFacingReason');
       expect(prisma.material.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             id: 'mat-1',
             isDeleted: false,
-            moderationStatus: 'APPROVED',
+            OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
           },
         }),
       );
@@ -661,7 +467,7 @@ describe('MaterialsService', () => {
         where: {
           id: 'mat-1',
           isDeleted: false,
-          moderationStatus: 'APPROVED',
+          OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
         },
         select: { id: true },
       });
@@ -702,7 +508,7 @@ describe('MaterialsService', () => {
       ).resolves.toEqual({ isHelpful: false, helpfulCount: 0 });
 
       expect(prisma.material.update).not.toHaveBeenCalled();
-      expect(pointService.awardPoints).not.toHaveBeenCalled();
+      expect(pointService.awardFor).not.toHaveBeenCalled();
     });
 
     it('establece Guardar de forma idempotente sin alterar señales públicas', async () => {

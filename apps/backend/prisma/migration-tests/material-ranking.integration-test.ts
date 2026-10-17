@@ -10,6 +10,7 @@ if (!databaseUrl) {
   );
 }
 
+const now = new Date('2026-09-29T12:00:00.000Z');
 const schemaName = `material_ranking_${Date.now()}_${Math.random()
   .toString(16)
   .slice(2, 10)}`;
@@ -118,7 +119,8 @@ async function main() {
         id UUID PRIMARY KEY,
         search_key VARCHAR(200) NOT NULL,
         is_deleted BOOLEAN NOT NULL DEFAULT false,
-        moderation_status TEXT NOT NULL,
+        publication_status TEXT NOT NULL DEFAULT 'PUBLISHED',
+        hidden_at TIMESTAMP(3),
         subject_id UUID NOT NULL,
         resource_type TEXT NOT NULL,
         academic_year SMALLINT,
@@ -139,10 +141,10 @@ async function main() {
       await client.query(
         `
           INSERT INTO materials (
-            id, search_key, moderation_status, subject_id, resource_type,
+            id, search_key, subject_id, resource_type,
             academic_year, professor_id, shift, created_at, avg_rating, rating_count
           ) VALUES (
-            $1, $2, 'APPROVED', $3, 'PARCIAL', $4, $5, $6, $7, $8, $9
+            $1, $2, $3, 'PARCIAL', $4, $5, $6, $7, $8, $9
           )
         `,
         [
@@ -177,6 +179,7 @@ async function main() {
     ] as const) {
       const query = buildMaterialRankingQuery({
         limit: 2,
+        now,
         offset: (page - 1) * 2,
         searchKey: 'arboles',
       });
@@ -193,7 +196,11 @@ async function main() {
 
     // Section entrances and type-only shortcuts do not send a text query.
     // Exercise the actual SQL: PostgreSQL treats ORDER BY 0 as an invalid ordinal.
-    const unfilteredQuery = buildMaterialRankingQuery({ limit: 10, offset: 0 });
+    const unfilteredQuery = buildMaterialRankingQuery({
+      limit: 10,
+      now,
+      offset: 0,
+    });
     const unfiltered = await client.query<{ id: string }>(
       unfilteredQuery.text,
       unfilteredQuery.values,
@@ -210,8 +217,53 @@ async function main() {
       ],
     );
 
+    // Same visibility as every public read: published, plus hidden content nobody
+    // reviewed within 7 days. Pending, rejected, removed and recently hidden stay out.
+    const visibility = [
+      ['00000000-0000-4000-8000-000000000011', 'PUBLISHED', null],
+      [
+        '00000000-0000-4000-8000-000000000012',
+        'HIDDEN',
+        '2026-09-20T12:00:00.000Z',
+      ],
+      [
+        '00000000-0000-4000-8000-000000000013',
+        'HIDDEN',
+        '2026-09-28T12:00:00.000Z',
+      ],
+      ['00000000-0000-4000-8000-000000000014', 'PENDING_REVIEW', null],
+      ['00000000-0000-4000-8000-000000000015', 'REJECTED', null],
+      ['00000000-0000-4000-8000-000000000016', 'REMOVED', null],
+    ] as const;
+    for (const [id, status, hiddenAt] of visibility) {
+      await client.query(
+        `
+          INSERT INTO materials (
+            id, search_key, publication_status, hidden_at, subject_id, resource_type,
+            created_at, avg_rating, rating_count
+          ) VALUES ($1, 'visibilidad', $2, $3, $4, 'PARCIAL', $5, 0, 0)
+        `,
+        [id, status, hiddenAt, subjectId, '2026-08-01T00:00:00.000Z'],
+      );
+    }
+    const visibilityQuery = buildMaterialRankingQuery({
+      limit: 10,
+      now,
+      offset: 0,
+      searchKey: 'visibilidad',
+    });
+    const visible = await client.query<{ id: string }>(
+      visibilityQuery.text,
+      visibilityQuery.values,
+    );
+    assertIds(
+      visible.rows.map(({ id }) => id),
+      [visibility[0][0], visibility[1][0]],
+    );
+
     console.log(
       JSON.stringify({
+        publicVisibility: 'verified',
         pagesVerified: 3,
         unfilteredDiscovery: 'verified',
         precedence: 'exact,prefix,contains,context,recency,helpfulness,id',

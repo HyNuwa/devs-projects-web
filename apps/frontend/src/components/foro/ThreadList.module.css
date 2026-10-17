@@ -31,7 +31,7 @@
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -57,24 +57,24 @@
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .pageNumber:hover:not(.active) {
   background: rgba(0, 0, 0, 0.04);
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .pageNumber.active {
-  background: var(--color-primary-500);
+  background: var(--primary);
   color: white;
   font-weight: 600;
 }
 
 .ellipsis {
-  color: var(--color-text-tertiary, #9ca3af);
+  color: var(--muted-foreground, #9ca3af);
   padding: 0 0.25rem;
 }
 

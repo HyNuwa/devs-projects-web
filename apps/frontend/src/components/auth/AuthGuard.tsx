@@ -58,7 +58,7 @@ const spinnerStyle: React.CSSProperties = {
   width: 40,
   height: 40,
   border: '4px solid #e0e0e0',
-  borderTopColor: 'var(--color-primary-500, #2196F3)',
+  borderTopColor: 'var(--primary, #2196F3)',
   borderRadius: '50%',
   animation: 'spin 0.8s linear infinite',
 };

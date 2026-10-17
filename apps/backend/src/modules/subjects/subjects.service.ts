@@ -10,6 +10,88 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCourseReviewDto } from './dto/create-course-review.dto';
 import { CreateExamExperienceDto } from './dto/create-exam-experience.dto';
 import { PointService } from '../ranking/point.service';
+import { PublicationPolicy } from '../moderation/publication-policy.service';
+import { publicVisibility } from '../moderation/visibility';
+
+// Current points for a reseña or experiencia; the points change will redefine them.
+const COMMUNITY_ENTRY_POINTS = 5;
+
+const managementInclude = {
+  user: {
+    select: { id: true, username: true, displayName: true, avatarUrl: true },
+  },
+} as const;
+
+type ManagementRecord = Record<string, unknown> & {
+  id: string;
+  userId: string;
+  subjectId: string;
+  isAnonymous: boolean;
+  publicationStatus: string;
+  authorFacingReason: string | null;
+  statusChangedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
+};
+
+// Only the author: moderators see anonymous authors through revelación de autor.
+function toManagementView(
+  type: 'COURSE_REVIEW' | 'EXAM_EXPERIENCE',
+  entry: ManagementRecord,
+  viewerId: string,
+) {
+  if (entry.userId !== viewerId) {
+    throw new ForbiddenException('No tienes permisos para ver esta entrada');
+  }
+  const hasDecision = entry.publicationStatus !== 'PUBLISHED';
+  const {
+    userId: _userId,
+    user: _user,
+    publicationStatus: _status,
+    authorFacingReason: _reason,
+    statusChangedAt: _changedAt,
+    hiddenAt: _hiddenAt,
+    ...editable
+  } = entry;
+  return {
+    type,
+    id: entry.id,
+    subjectId: entry.subjectId,
+    isAnonymous: entry.isAnonymous,
+    author: entry.user,
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
+    entry: editable,
+    moderation: {
+      status: entry.publicationStatus,
+      isRemoved: entry.publicationStatus === 'REMOVED',
+      reason: hasDecision ? entry.authorFacingReason : null,
+      date: hasDecision ? entry.statusChangedAt : null,
+    },
+  };
+}
+
+/**
+ * Retired and hidden content stays: deleting it would erase its caso, so a retiro
+ * would stop counting for the escalera and a hidden entry would escape its review.
+ */
+function assertNotUnderModeration(status: string) {
+  if (status === 'REMOVED' || status === 'HIDDEN') {
+    throw new ConflictException({
+      code: 'MODERATED_CONTENT',
+      message:
+        status === 'REMOVED'
+          ? 'Un aporte retirado no se puede borrar: queda en Mis envíos y lo podés apelar.'
+          : 'No se puede borrar mientras moderación lo revisa.',
+    });
+  }
+}
 
 @Injectable()
 export class SubjectsService {
@@ -17,6 +99,7 @@ export class SubjectsService {
     private prisma: PrismaService,
     private pointService: PointService,
     private configService: ConfigService,
+    private publicationPolicy: PublicationPolicy,
   ) {}
 
   private courseReviewWriteData(dto: CreateCourseReviewDto) {
@@ -63,10 +146,10 @@ export class SubjectsService {
     },
   >(entry: T) {
     const publicEntry: Record<string, unknown> = { ...entry };
-    delete publicEntry.isRemoved;
-    delete publicEntry.removedReason;
-    delete publicEntry.removedAt;
-    delete publicEntry.removedById;
+    delete publicEntry.publicationStatus;
+    delete publicEntry.statusChangedAt;
+    delete publicEntry.hiddenAt;
+    delete publicEntry.authorFacingReason;
     publicEntry.user = entry.isAnonymous ? { username: 'Anónimo' } : entry.user;
 
     return publicEntry;
@@ -155,18 +238,18 @@ export class SubjectsService {
 
     const [reviewStats, examCount, materialCount] = await Promise.all([
       this.prisma.courseReview.aggregate({
-        where: { subjectId: subject.id, isRemoved: false },
+        where: { subjectId: subject.id, ...publicVisibility(new Date()) },
         _avg: { recommendation: true },
         _count: true,
       }),
       this.prisma.examExperience.count({
-        where: { subjectId: subject.id, isRemoved: false },
+        where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       }),
       this.prisma.material.count({
         where: {
           subjectId: subject.id,
-          moderationStatus: 'APPROVED',
           isDeleted: false,
+          ...publicVisibility(new Date()),
         },
       }),
     ]);
@@ -185,7 +268,7 @@ export class SubjectsService {
   async getReviews(code: string) {
     const subject = await this.findByCode(code);
     const reviews = await this.prisma.courseReview.findMany({
-      where: { subjectId: subject.id, isRemoved: false },
+      where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -201,7 +284,7 @@ export class SubjectsService {
 
     const conditionBreakdown = await this.prisma.courseReview.groupBy({
       by: ['condition'],
-      where: { subjectId: subject.id, isRemoved: false },
+      where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       _count: true,
     });
 
@@ -233,22 +316,38 @@ export class SubjectsService {
       });
     }
 
-    const review = await this.prisma.courseReview.create({
-      data: {
-        userId,
-        subjectId: subject.id,
-        ...this.courseReviewWriteData(dto),
-      },
+    const priorReview = await this.publicationPolicy.priorReviewFor(userId);
+    const review = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.courseReview.create({
+        data: {
+          userId,
+          subjectId: subject.id,
+          ...this.courseReviewWriteData(dto),
+          publicationStatus: priorReview ? 'PENDING_REVIEW' : 'PUBLISHED',
+        },
+      });
+      if (priorReview) {
+        await this.publicationPolicy.openPriorReview(
+          tx,
+          { type: 'COURSE_REVIEW', id: created.id },
+          userId,
+          priorReview,
+          'Reseña de cursada',
+        );
+      } else {
+        await this.pointService.awardFor(tx, {
+          userId,
+          amount: COMMUNITY_ENTRY_POINTS,
+          reason: 'COURSE_REVIEWED',
+          referenceId: created.id,
+        });
+      }
+      return created;
     });
 
-    await this.pointService.awardPoints(
-      userId,
-      5,
-      'COURSE_REVIEWED',
-      review.id,
-    );
-
-    return review;
+    return priorReview
+      ? { review, outcome: 'PENDING_REVIEW' as const, reason: priorReview }
+      : { review, outcome: 'PUBLISHED' as const, reason: null };
   }
 
   async updateReview(
@@ -298,14 +397,108 @@ export class SubjectsService {
       );
     }
 
+    assertNotUnderModeration(review.publicationStatus);
     await this.prisma.courseReview.delete({ where: { id: reviewId } });
     return { message: 'Reseña eliminada' };
+  }
+
+  /** Private view of a reseña for its author only (Mis envíos covers every status). */
+  async getReviewManagementView(reviewId: string, viewerId: string) {
+    const review = await this.prisma.courseReview.findUnique({
+      where: { id: reviewId },
+      include: managementInclude,
+    });
+    if (!review) throw new NotFoundException('Reseña no encontrada');
+    return toManagementView('COURSE_REVIEW', review, viewerId);
+  }
+
+  async getExamManagementView(examId: string, viewerId: string) {
+    const exam = await this.prisma.examExperience.findUnique({
+      where: { id: examId },
+      include: managementInclude,
+    });
+    if (!exam)
+      throw new NotFoundException('Experiencia de final no encontrada');
+    return toManagementView('EXAM_EXPERIENCE', exam, viewerId);
+  }
+
+  async resubmitReview(reviewId: string, userId: string) {
+    const review = await this.prisma.courseReview.findUnique({
+      where: { id: reviewId },
+      select: { id: true, userId: true, publicationStatus: true },
+    });
+    this.assertResubmittable(review, userId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.courseReview.update({
+        where: { id: reviewId },
+        data: {
+          publicationStatus: 'PENDING_REVIEW',
+          statusChangedAt: new Date(),
+          authorFacingReason: null,
+        },
+      });
+      await this.publicationPolicy.openPriorReview(
+        tx,
+        { type: 'COURSE_REVIEW', id: reviewId },
+        userId,
+        'RESUBMITTED',
+        'Reseña de cursada',
+        'RESUBMITTED',
+      );
+      return updated;
+    });
+  }
+
+  async resubmitExam(examId: string, userId: string) {
+    const exam = await this.prisma.examExperience.findUnique({
+      where: { id: examId },
+      select: { id: true, userId: true, publicationStatus: true },
+    });
+    this.assertResubmittable(exam, userId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.examExperience.update({
+        where: { id: examId },
+        data: {
+          publicationStatus: 'PENDING_REVIEW',
+          statusChangedAt: new Date(),
+          authorFacingReason: null,
+        },
+      });
+      await this.publicationPolicy.openPriorReview(
+        tx,
+        { type: 'EXAM_EXPERIENCE', id: examId },
+        userId,
+        'RESUBMITTED',
+        'Experiencia de final',
+        'RESUBMITTED',
+      );
+      return updated;
+    });
+  }
+
+  private assertResubmittable(
+    entry: { userId: string; publicationStatus: string } | null,
+    userId: string,
+  ) {
+    if (!entry) throw new NotFoundException('Publicación no encontrada');
+    if (entry.userId !== userId) {
+      throw new ForbiddenException(
+        'Solo el autor puede reenviar esta publicación',
+      );
+    }
+    if (entry.publicationStatus !== 'REJECTED') {
+      throw new ConflictException(
+        'Solo se pueden reenviar publicaciones rechazadas en revisión previa',
+      );
+    }
   }
 
   async getExams(code: string) {
     const subject = await this.findByCode(code);
     const exams = await this.prisma.examExperience.findMany({
-      where: { subjectId: subject.id, isRemoved: false },
+      where: { subjectId: subject.id, ...publicVisibility(new Date()) },
       orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
       include: {
         user: {
@@ -331,22 +524,38 @@ export class SubjectsService {
       dto.examinerName,
     );
 
-    const exam = await this.prisma.examExperience.create({
-      data: {
-        userId,
-        subjectId: subject.id,
-        ...this.examExperienceWriteData(dto),
-      },
+    const priorReview = await this.publicationPolicy.priorReviewFor(userId);
+    const exam = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.examExperience.create({
+        data: {
+          userId,
+          subjectId: subject.id,
+          ...this.examExperienceWriteData(dto),
+          publicationStatus: priorReview ? 'PENDING_REVIEW' : 'PUBLISHED',
+        },
+      });
+      if (priorReview) {
+        await this.publicationPolicy.openPriorReview(
+          tx,
+          { type: 'EXAM_EXPERIENCE', id: created.id },
+          userId,
+          priorReview,
+          'Experiencia de final',
+        );
+      } else {
+        await this.pointService.awardFor(tx, {
+          userId,
+          amount: COMMUNITY_ENTRY_POINTS,
+          reason: 'EXAM_EXPERIENCE_SHARED',
+          referenceId: created.id,
+        });
+      }
+      return created;
     });
 
-    await this.pointService.awardPoints(
-      userId,
-      5,
-      'EXAM_EXPERIENCE_SHARED',
-      exam.id,
-    );
-
-    return exam;
+    return priorReview
+      ? { exam, outcome: 'PENDING_REVIEW' as const, reason: priorReview }
+      : { exam, outcome: 'PUBLISHED' as const, reason: null };
   }
 
   async updateExam(
@@ -396,6 +605,7 @@ export class SubjectsService {
       );
     }
 
+    assertNotUnderModeration(exam.publicationStatus);
     await this.prisma.examExperience.delete({ where: { id: examId } });
     return { message: 'Experiencia de final eliminada' };
   }

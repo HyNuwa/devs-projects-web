@@ -29,7 +29,7 @@ async function expectNoAccessibleViolations(container: Element) {
 
 afterEach(cleanup);
 
-describe('Pixel Notebook shadcn primitives', () => {
+describe('shadcn primitives', () => {
   it('renders the semantic button variants and keeps the default button type safe for forms', async () => {
     const user = userEvent.setup();
 
@@ -45,10 +45,43 @@ describe('Pixel Notebook shadcn primitives', () => {
 
     expect(save).toHaveAttribute('type', 'button');
     expect(save).toHaveClass('bg-primary');
-    expect(cancel).toHaveClass('bg-background');
+    expect(cancel).toHaveClass('bg-card');
 
     await user.tab();
     expect(save).toHaveFocus();
+  });
+
+  it('offers the emphasized pop button with the canvas offset shadow', () => {
+    render(<Button variant="pop">Subir</Button>);
+
+    const upload = screen.getByRole('button', { name: 'Subir' });
+
+    expect(upload).toHaveClass('bg-primary', 'shadow-pop', 'border-foreground');
+  });
+
+  it.each(['sm', 'default', 'lg', 'icon'] as const)(
+    'keeps a 44px minimum touch target for the %s button size',
+    (size) => {
+      render(<Button size={size}>Acción</Button>);
+
+      expect(screen.getByRole('button', { name: 'Acción' })).toHaveClass(/min-h-(11|12)/);
+    },
+  );
+
+  it('shows a focus ring distinct from the resting border on buttons and inputs', () => {
+    render(
+      <>
+        <Button variant="outline">Filtrar</Button>
+        <Input aria-label="Buscar" />
+      </>,
+    );
+
+    for (const control of [
+      screen.getByRole('button', { name: 'Filtrar' }),
+      screen.getByRole('textbox', { name: 'Buscar' }),
+    ]) {
+      expect(control).toHaveClass('focus-visible:ring-[3px]', 'focus-visible:ring-ring');
+    }
   });
 
   it('connects labels, descriptions, and errors to form controls', async () => {

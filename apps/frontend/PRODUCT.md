@@ -18,7 +18,7 @@ Success means a new student understands the product within five seconds and reac
 
 ## Positioning
 
-DevsProject organizes community-contributed resources around FI-UNJU materias and their real cursada context. Mandatory moderation controls publication: pending or rejected uploads stay private, while approved resources enter public discovery without a redundant review badge or a claim of academic correctness.
+DevsProject organizes community-contributed resources around FI-UNJU materias and their real cursada context. Contributions follow publicación inmediata (ADR 0001, `docs/README_MODERACION.md`): they become public as soon as automatic checks pass, and moderation acts afterwards through reportes and casos de moderación. Revisión previa is reserved for risky authors or content. Being public never claims academic correctness. The moderation change moves today's approval queue to this model.
 
 ## Operating Context
 
@@ -26,9 +26,9 @@ Students search by materia or assessment need, inspect subject-first results, na
 
 ## Capabilities and Constraints
 
-- The product already has materia hubs, course reviews, exam experiences, resource upload, publication moderation, and professor information.
-- The visual prototype and Pixel Notebook design system are complete. Production work must now connect that visual authority to the approved homepage, search results, career/year/materia hierarchy, compact resource lists, and context-preserving preview dialog.
-- Prototype data is synthetic and bounded; production work must preserve existing backend capabilities while adding the academic context, approved-only discovery, and usefulness contracts required by the approved experience.
+- The product already has materia hubs, course reviews, exam experiences, resource upload, moderation, and professor information.
+- The redesign in the «DevsProject · Home» canvas (sources in `design/canvas/`) is the visual authority. It is implemented through a sequence of OpenSpec changes, starting with the shared base (`base-visual`: tokens, typography, header, account menu and mobile bottom bar); later changes redesign the pages on top of it.
+- Prototype data is synthetic and bounded; production work must preserve existing backend capabilities while adding the academic context, publicación inmediata with moderación posterior, and usefulness contracts required by the approved experience.
 - Authentication must not block reading, searching, previewing, or downloading. Mutating community actions may require sign-in and must preserve the user's return path.
 - The external Lemmy forum remains separate from the academic-resource experience.
 - The interface is responsive, supports keyboard navigation, and respects reduced-motion preferences.
@@ -38,20 +38,20 @@ Students search by materia or assessment need, inspect subject-first results, na
 - Product name: DevsProject.
 - Voice: friendly Argentine student language such as “buscá,” “subí,” and “aprobá”; capable classmate rather than administrator or game narrator.
 - Academic concepts use real terminology. Fantasy item, loot, rarity, XP, and rank language must not replace it.
-- The completed Pixel Notebook screenshots and Open Design export are the binding visual reference. `CONTEXT.md` and the approved interaction blueprint remain binding for domain language and behavior.
+- The «DevsProject · Home» canvas and `DESIGN.md` are the binding visual reference; the earlier Pixel Notebook system is retired. `CONTEXT.md` and the approved interaction blueprint remain binding for domain language and behavior.
 
 ## Evidence on Hand
 
 - Existing production-oriented frontend and backend implementation in this repository.
 - Historical implementation record at `.omo/plans/reviews-subject-hubs-and-moderation.md`.
 - Approved prototype direction at `../../../ui-style-lab/DESIGN_DIRECTION.md`.
-- Completed Pixel Notebook screenshots and Open Design design-system export, closed on 2026-08-25.
+- Completed Pixel Notebook screenshots and Open Design design-system export, closed on 2026-08-25 and superseded by the redesign canvas on 2026-09-28.
 - The product owner completed the initial walkthrough and recorded `REVISAR` on 2026-08-26. Representative-student testing with 3–5 FI-UNJU students remains explicitly deferred rather than completed or simulated.
 
 ## Product Principles
 
 - Search and resource discovery lead; contribution and community remain secondary.
-- Academic context and honest community evidence outrank aggregate ratings or decorative prominence; publication moderation remains an internal gate, not a public correctness signal.
+- Academic context and honest community evidence outrank aggregate ratings or decorative prominence; moderation decisions (retiro, ocultamiento preventivo) are never presented as a public correctness signal.
 - The shortest useful path should still preserve enough information for a student to judge relevance.
 - Playfulness may create warmth, but must never obscure academic meaning or task completion.
 - Unknown academic metadata is shown honestly rather than inferred.

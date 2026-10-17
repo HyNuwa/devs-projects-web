@@ -140,6 +140,30 @@ describe('MaterialPreviewDialog', () => {
     useAuthStore.setState({ isLoading: false, user: null });
   });
 
+  it('offers visitors a sign-in link to report the material', async () => {
+    render(<DialogFixture />);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' });
+    expect(
+      within(dialog).getByRole('link', { name: 'Iniciá sesión para reportar' }),
+    ).toBeInTheDocument();
+  });
+
+  it('lets signed-in students report the material', async () => {
+    useAuthStore.setState({
+      isLoading: false,
+      user: { id: 'user-1', username: 'lucia', role: 'USER' } as never,
+    });
+    vi.mocked(getMaterialViewerState).mockResolvedValue({
+      isHelpful: false,
+      isSaved: false,
+    } as never);
+    render(<DialogFixture />);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Vista previa: Parcial 1' });
+    expect(within(dialog).getByRole('button', { name: 'Reportar' })).toBeInTheDocument();
+  });
+
   it('keeps the list inert, moves focus into the dialog, and restores it after Escape', async () => {
     const user = userEvent.setup();
     const onRequestClose = vi.fn();

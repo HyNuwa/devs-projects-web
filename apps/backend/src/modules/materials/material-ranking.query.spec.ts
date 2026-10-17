@@ -5,6 +5,7 @@ import { buildMaterialRankingQuery } from './material-ranking.query';
 describe('buildMaterialRankingQuery', () => {
   it('uses parameterized relevance, context, recency, helpfulness, and id ordering', () => {
     const query = buildMaterialRankingQuery({
+      now: new Date('2026-09-29T12:00:00.000Z'),
       academicYear: 2026,
       limit: 10,
       offset: 20,
@@ -40,6 +41,7 @@ describe('buildMaterialRankingQuery', () => {
 
   it('escapes LIKE wildcards in the parameter rather than interpolating input', () => {
     const query = buildMaterialRankingQuery({
+      now: new Date('2026-09-29T12:00:00.000Z'),
       limit: 10,
       offset: 0,
       searchKey: '100%_\\',
@@ -54,6 +56,7 @@ describe('buildMaterialRankingQuery', () => {
 
   it('uses only the explicit recency ordering when the user requests it', () => {
     const query = buildMaterialRankingQuery({
+      now: new Date('2026-09-29T12:00:00.000Z'),
       limit: 5,
       offset: 10,
       searchKey: 'arboles',

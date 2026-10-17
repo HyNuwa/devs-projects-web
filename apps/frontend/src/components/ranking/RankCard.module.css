@@ -7,7 +7,7 @@
   background:
     radial-gradient(circle at 8% 12%, rgba(255, 215, 0, 0.12), transparent 38%),
     radial-gradient(circle at 92% 88%, rgba(33, 150, 243, 0.18), transparent 42%),
-    linear-gradient(135deg, #16222e 0%, var(--color-bg-dark) 55%, #0d1720 100%);
+    linear-gradient(135deg, #16222e 0%, var(--foreground) 55%, #0d1720 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
     0 10px 30px rgba(15, 25, 35, 0.25),
@@ -22,7 +22,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--color-accent-gold), var(--color-primary-500), var(--color-accent-gold));
+  background: linear-gradient(90deg, var(--accent), var(--primary), var(--accent));
 }
 
 .cardHeader {
@@ -42,11 +42,11 @@
 }
 
 .cardIcon {
-  color: var(--color-accent-gold);
+  color: var(--accent);
 }
 
 .cardTitle {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: 1px;
@@ -66,7 +66,7 @@
 
 .rankNumber {
   font-size: 1.05rem;
-  color: var(--color-accent-gold);
+  color: var(--accent);
   text-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
 }
 
@@ -105,10 +105,10 @@
 }
 
 .levelNum {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--color-accent-gold);
+  color: var(--accent);
 }
 
 .pointsBlock {
@@ -118,11 +118,11 @@
 }
 
 .pointsIcon {
-  color: var(--color-accent-gold);
+  color: var(--accent);
 }
 
 .pointsValue {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1.6rem;
   font-weight: 800;
   color: #ffffff;
@@ -154,10 +154,10 @@
 }
 
 .progressPct {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--color-accent-gold);
+  color: var(--accent);
 }
 
 .progressTrack {
@@ -171,7 +171,7 @@
 .progressFill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-primary-500), var(--color-accent-gold));
+  background: linear-gradient(90deg, var(--primary), var(--accent));
   box-shadow: 0 0 12px rgba(255, 215, 0, 0.45);
   transition: width 0.6s ease;
 }
@@ -186,7 +186,7 @@
 
 .nextLevelName {
   font-size: 0.68rem;
-  color: var(--color-accent-gold);
+  color: var(--accent);
 }
 
 /* CTA (no logueado) */
@@ -204,7 +204,7 @@
   border-radius: 16px;
   background: rgba(255, 215, 0, 0.12);
   border: 1px solid rgba(255, 215, 0, 0.35);
-  color: var(--color-accent-gold);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,7 +216,7 @@
 }
 
 .ctaTitle {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1.05rem;
   font-weight: 700;
   color: #ffffff;
@@ -235,9 +235,9 @@
   gap: 0.5rem;
   padding: 0.7rem 1.4rem;
   border-radius: 10px;
-  background: var(--color-accent-gold);
+  background: var(--accent);
   color: #4a3a00;
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
@@ -271,7 +271,7 @@
   width: 34px;
   height: 34px;
   border: 3px solid rgba(255, 255, 255, 0.15);
-  border-top-color: var(--color-accent-gold);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

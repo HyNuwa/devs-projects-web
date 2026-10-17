@@ -9,14 +9,14 @@
 }
 
 .title {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 2rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 1rem;
 }
 
@@ -32,7 +32,7 @@
   align-items: center;
   gap: 1.5rem;
   padding: 1.5rem;
-  background: var(--color-bg-secondary);
+  background: var(--card);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   text-decoration: none;
@@ -85,13 +85,13 @@
 .categoryName {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   margin: 0;
 }
 
 .categoryDesc {
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   margin: 0;
 }
 
@@ -112,12 +112,12 @@
 .statValue {
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .statLabel {
   font-size: 0.75rem;
-  color: var(--color-text-tertiary, #9ca3af);
+  color: var(--muted-foreground, #9ca3af);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -127,12 +127,12 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   min-width: 140px;
 }
 
 .lastPostIcon {
-  color: var(--color-primary-500);
+  color: var(--primary);
 }
 
 @media (max-width: 768px) {

@@ -19,26 +19,26 @@
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  color: var(--color-accent-gold);
+  color: var(--accent);
   margin-bottom: 0.75rem;
 }
 
 .headerLabel {
   font-size: 0.7rem;
   letter-spacing: 2px;
-  color: var(--color-primary-600);
+  color: var(--primary);
 }
 
 .title {
   font-size: 1.15rem;
-  color: var(--color-primary-700);
+  color: var(--primary);
   letter-spacing: 2px;
   margin: 0 0 0.75rem;
   text-shadow: 2px 2px 0 rgba(33, 150, 243, 0.12);
 }
 
 .subtitle {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-size: 0.95rem;
   margin: 0;
 }
@@ -49,7 +49,7 @@
   flex-direction: column;
   gap: 1.5rem;
   padding: 2rem;
-  background: var(--color-bg-secondary);
+  background: var(--card);
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
@@ -62,15 +62,15 @@
 }
 
 .fieldLabel {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .fieldError {
   font-size: 0.8rem;
-  color: var(--color-accent-red);
+  color: var(--destructive);
   margin-top: 0.2rem;
 }
 
@@ -82,33 +82,33 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 2.5rem 1.5rem;
-  border: 2px dashed var(--color-primary-200);
+  border: 2px dashed var(--secondary);
   border-radius: 12px;
-  background: var(--color-primary-50);
+  background: var(--secondary);
   cursor: pointer;
   text-align: center;
   transition: all 0.2s ease;
 }
 
 .dropzone:hover {
-  border-color: var(--color-primary-500);
+  border-color: var(--primary);
   background: #eaf4fd;
 }
 
 .dropzoneIcon {
-  color: var(--color-primary-500);
+  color: var(--primary);
 }
 
 .dropzoneTitle {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
 }
 
 .dropzoneHint {
   font-size: 0.78rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .fileInput {
@@ -121,9 +121,9 @@
   align-items: center;
   gap: 0.9rem;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--color-primary-200);
+  border: 1px solid var(--secondary);
   border-radius: 12px;
-  background: var(--color-primary-50);
+  background: var(--secondary);
 }
 
 .fileSelectedIcon {
@@ -131,8 +131,8 @@
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: var(--color-primary-100);
-  color: var(--color-primary-700);
+  background: var(--secondary);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,23 +147,23 @@
 }
 
 .fileSelectedName {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   word-break: break-all;
 }
 
 .fileSelectedSize {
   font-size: 0.78rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
 }
 
 .fileRemoveBtn {
   flex-shrink: 0;
   background: transparent;
   border: none;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
@@ -175,7 +175,7 @@
 
 .fileRemoveBtn:hover {
   background: rgba(244, 67, 54, 0.1);
-  color: var(--color-accent-red);
+  color: var(--destructive);
 }
 
 /* Textarea */
@@ -185,9 +185,9 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background-color: #f8fafc;
-  font-family: var(--font-body);
+  font-family: var(--ui-font-sans);
   font-size: 0.95rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   transition: all 0.2s ease;
   resize: vertical;
   min-height: 120px;
@@ -195,9 +195,9 @@
 
 .textarea:focus {
   outline: none;
-  border-color: var(--color-primary-500);
+  border-color: var(--primary);
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px var(--color-primary-50);
+  box-shadow: 0 0 0 3px var(--secondary);
 }
 
 /* Select */
@@ -207,18 +207,18 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background-color: #f8fafc;
-  font-family: var(--font-body);
+  font-family: var(--ui-font-sans);
   font-size: 0.95rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .select:focus {
   outline: none;
-  border-color: var(--color-primary-500);
+  border-color: var(--primary);
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px var(--color-primary-50);
+  box-shadow: 0 0 0 3px var(--secondary);
 }
 
 /* Actions */
@@ -250,63 +250,63 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--color-primary-100);
-  color: var(--color-text-secondary);
+  background: var(--secondary);
+  color: var(--muted-foreground);
   font-size: 0.85rem;
   font-weight: 700;
   transition: all 0.2s ease;
 }
 
 .stepActive .stepNum {
-  background: var(--color-primary-500);
+  background: var(--primary);
   color: white;
 }
 
 .stepLabel {
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-weight: 500;
 }
 
 .stepActive .stepLabel {
-  color: var(--color-primary-700);
+  color: var(--primary);
 }
 
 .stepLine {
   width: 40px;
   height: 2px;
-  background: var(--color-primary-100);
+  background: var(--secondary);
   transition: background 0.2s ease;
 }
 
 .stepLineActive {
-  background: var(--color-primary-500);
+  background: var(--primary);
 }
 
 .successCard {
   text-align: center;
   padding: 3rem 1.5rem;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-primary-100);
+  background: var(--card);
+  border: 1px solid var(--secondary);
   border-radius: 16px;
   max-width: 520px;
   margin: 2rem auto;
 }
 
 .successIcon {
-  color: var(--color-accent-green);
+  color: var(--success);
   margin-bottom: 1rem;
 }
 
 .successTitle {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-size: 1.75rem;
-  color: var(--color-primary-700);
+  color: var(--primary);
   margin: 0 0 0.75rem 0;
 }
 
 .successText {
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   margin: 0 0 1.25rem 0;
   line-height: 1.6;
 }
@@ -317,7 +317,7 @@
   gap: 0.4rem;
   padding: 0.4rem 0.9rem;
   background: rgba(255, 152, 0, 0.12);
-  color: var(--color-accent-orange);
+  color: var(--accent);
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -334,7 +334,7 @@
 
 .successBtn {
   padding: 0.6rem 1.4rem;
-  background: var(--color-primary-500);
+  background: var(--primary);
   color: white;
   border-radius: 10px;
   text-decoration: none;
@@ -342,7 +342,7 @@
 }
 
 .successLink {
-  color: var(--color-primary-600);
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
 }

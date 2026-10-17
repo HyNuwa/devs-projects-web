@@ -5,7 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { type SuspensionNotice, suspensionNoticeOf } from '@/lib/account-restriction';
 import { safeReturnPath } from '@/lib/auth-return-path';
+import { SuspendedAccount } from './SuspendedAccount';
 import { useAuthStore } from '@/stores/authStore';
 import styles from './LoginForm.module.css';
 
@@ -21,6 +23,10 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const login = useAuthStore((state) => state.login);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [suspension, setSuspension] = useState<{
+    notice: SuspensionNotice;
+    credentials: { email: string; password: string };
+  } | null>(null);
 
   const {
     register,
@@ -36,6 +42,11 @@ export function LoginForm() {
       await login(data);
       router.push(safeReturnPath(searchParams.get('redirect')));
     } catch (err: unknown) {
+      const notice = suspensionNoticeOf(err);
+      if (notice) {
+        setSuspension({ notice, credentials: data });
+        return;
+      }
       const message =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response: { data?: { message?: string } } }).response?.data?.message
@@ -44,10 +55,24 @@ export function LoginForm() {
     }
   };
 
+  if (suspension) {
+    return (
+      <div className={styles.pageContainer}>
+        <SuspendedAccount credentials={suspension.credentials} notice={suspension.notice} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.pageContainer}>
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
         <h1 className={styles.title}>Iniciar Sesión</h1>
+
+        {searchParams.get('suspendida') === '1' ? (
+          <p className={styles.error} role="status">
+            Tu cuenta fue suspendida. Ingresá para ver el motivo y apelar.
+          </p>
+        ) : null}
 
         {serverError && <div className={styles.error}>{serverError}</div>}
 

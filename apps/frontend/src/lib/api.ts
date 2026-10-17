@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { redirectToLogin } from '@/lib/auth-return-path';
+import { redirectSuspended, redirectToLogin } from '@/lib/auth-return-path';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -33,6 +33,15 @@ api.interceptors.response.use(
       !requestPath.startsWith('/auth/')
     ) {
       redirectToLogin();
+    }
+    // An access token issued before a suspensión still reaches the API, which refuses
+    // every write: close that session.
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.code === 'ACCOUNT_SUSPENDED' &&
+      !requestPath.startsWith('/auth/')
+    ) {
+      redirectSuspended();
     }
     return Promise.reject(error);
   },

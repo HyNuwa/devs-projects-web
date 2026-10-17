@@ -28,6 +28,8 @@ import {
 } from '@/lib/material-viewer-client';
 import { useAuthStore } from '@/stores/authStore';
 import type { Material, MaterialRating, MaterialViewerState, Paginated } from '@/types/material';
+import { ReportDialog } from '@/components/moderation/ReportDialog';
+import { useAccountRestriction } from '@/hooks/useAccountRestriction';
 
 export type MaterialPreviewDialogFile = {
   academicYear: number | null;
@@ -64,6 +66,12 @@ type CommunityState =
 
 const thirdPartyPreviewOrigins = new Set(['https://drive.google.com', 'https://docs.google.com']);
 const communityRatingsLimit = 10;
+
+/** The page the preview is open on, so a visitor returns here after signing in. */
+function currentReturnPath(): string {
+  if (typeof window === 'undefined') return '/';
+  return `${window.location.pathname}${window.location.search}`;
+}
 
 function apiOrigin(): string {
   return new URL(api.defaults.baseURL ?? '/', window.location.origin).origin;
@@ -109,7 +117,7 @@ function PreviewFallback({
       data-slot="material-preview-fallback"
     >
       <TriangleAlert aria-hidden="true" className="size-10 text-primary" strokeWidth={1.6} />
-      <h2 className="mt-4 text-balance font-serif text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+      <h2 className="mt-4 text-balance font-sans text-2xl font-bold leading-tight text-foreground sm:text-3xl">
         {title}
       </h2>
       <p className="mt-3 text-pretty text-sm leading-relaxed text-secondary-foreground">
@@ -145,7 +153,7 @@ function PreviewLoading() {
   return (
     <div aria-live="polite" className="mx-auto max-w-md text-center">
       <FileText aria-hidden="true" className="mx-auto size-10 text-primary" strokeWidth={1.6} />
-      <p className="mt-4 font-serif text-2xl font-bold text-foreground sm:text-3xl">
+      <p className="mt-4 font-sans text-2xl font-bold text-foreground sm:text-3xl">
         Preparando vista previa…
       </p>
     </div>
@@ -397,6 +405,7 @@ export function MaterialPreviewDialog({
   });
   const [failedPreviewId, setFailedPreviewId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [reportFeedback, setReportFeedback] = useState<string | null>(null);
   const [viewerError, setViewerError] = useState<{ materialId: string; message: string } | null>(
     null,
   );
@@ -480,6 +489,7 @@ export function MaterialPreviewDialog({
   const isViewerError = currentViewerState.status === 'error';
   const previewFailed = failedPreviewId === file.id;
   const actionIsPending = pendingAction !== null;
+  const { blocked: restricted } = useAccountRestriction();
   const actionIsDisabled = isAuthLoading || (Boolean(user) && (!viewer || actionIsPending));
   const contextualViewerError = viewerError?.materialId === file.id ? viewerError.message : null;
 
@@ -571,7 +581,7 @@ export function MaterialPreviewDialog({
         />
         <Dialog.Content
           aria-describedby="material-preview-description"
-          className="fixed inset-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)] bg-card sm:grid-rows-[auto_minmax(0,1fr)_auto] text-card-foreground shadow-surface outline-none sm:inset-x-5 sm:inset-y-5 sm:border sm:border-border lg:inset-x-10 lg:inset-y-8"
+          className="fixed inset-0 z-50 grid max-h-dvh grid-rows-[auto_minmax(0,1fr)] bg-card sm:grid-rows-[auto_minmax(0,1fr)_auto] text-card-foreground outline-none sm:inset-x-5 sm:inset-y-5 sm:border sm:border-border lg:inset-x-10 lg:inset-y-8"
           data-slot="material-preview-dialog"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
@@ -589,7 +599,7 @@ export function MaterialPreviewDialog({
               <FileText className="size-5" strokeWidth={1.8} />
             </span>
             <div className="min-w-0 flex-1">
-              <Dialog.Title className="truncate font-serif text-xl font-bold text-foreground sm:text-2xl">
+              <Dialog.Title className="truncate font-sans text-xl font-bold text-foreground sm:text-2xl">
                 Vista previa: {material?.title ?? file.title}
               </Dialog.Title>
               <Dialog.Description
@@ -660,7 +670,7 @@ export function MaterialPreviewDialog({
               <div className="flex items-center gap-2 text-primary">
                 <MessageSquare aria-hidden="true" className="size-5" strokeWidth={1.8} />
                 <h2
-                  className="font-serif text-2xl font-bold text-foreground"
+                  className="font-sans text-2xl font-bold text-foreground"
                   id="material-preview-community"
                 >
                   Comunidad
@@ -696,31 +706,39 @@ export function MaterialPreviewDialog({
                 </Button>
                 <Button
                   aria-pressed={viewer?.isHelpful ?? false}
-                  disabled={actionIsDisabled}
+                  disabled={actionIsDisabled || restricted}
                   onClick={updateHelpfulness}
                   variant={viewer?.isHelpful ? 'secondary' : 'outline'}
                 >
                   <ThumbsUp aria-hidden="true" className="size-4" strokeWidth={1.8} />
                   {pendingAction === 'helpfulness' ? 'Actualizando…' : 'Me sirvió'}
                 </Button>
+                <ReportDialog
+                  onReported={setReportFeedback}
+                  returnPath={currentReturnPath()}
+                  targetId={file.id}
+                  targetType="MATERIAL"
+                />
               </div>
               <p
                 aria-live="polite"
                 className="mt-3 text-xs leading-relaxed text-secondary-foreground"
               >
-                {contextualViewerError
-                  ? contextualViewerError
-                  : isAuthLoading
-                    ? 'Comprobando tu sesión…'
-                    : !user
-                      ? 'Iniciá sesión para guardar este material o indicar que te sirvió.'
-                      : viewerIsLoading
-                        ? 'Cargando tu actividad en este material…'
-                        : isViewerError
-                          ? 'No pudimos cargar tu actividad. Podés volver a abrir esta vista.'
-                          : helpfulCount === 1
-                            ? '1 persona indicó que le sirvió.'
-                            : `${helpfulCount} personas indicaron que les sirvió.`}
+                {reportFeedback
+                  ? reportFeedback
+                  : contextualViewerError
+                    ? contextualViewerError
+                    : isAuthLoading
+                      ? 'Comprobando tu sesión…'
+                      : !user
+                        ? 'Iniciá sesión para guardar este material o indicar que te sirvió.'
+                        : viewerIsLoading
+                          ? 'Cargando tu actividad en este material…'
+                          : isViewerError
+                            ? 'No pudimos cargar tu actividad. Podés volver a abrir esta vista.'
+                            : helpfulCount === 1
+                              ? '1 persona indicó que le sirvió.'
+                              : `${helpfulCount} personas indicaron que les sirvió.`}
               </p>
               <div className="mt-6 border-t border-border pt-4">
                 <h3 className="font-semibold text-foreground">

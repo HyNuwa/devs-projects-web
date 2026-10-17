@@ -9,6 +9,15 @@ export {
 export { Chip, chipVariants, type ChipProps } from './chip';
 export { Disclosure, type DisclosureProps } from './disclosure';
 export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './dropdown-menu';
+export {
   FilterSheet,
   FilterSheetFieldSet,
   type FilterSheetFieldSetProps,

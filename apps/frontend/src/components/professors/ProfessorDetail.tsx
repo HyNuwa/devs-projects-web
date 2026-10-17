@@ -93,10 +93,10 @@ export function ProfessorDetail() {
           <div className={styles.headerInfo}>
             <div className={styles.headerBadge}>
               <Sparkles size={14} />
-              <span className={`${styles.headerLabel} font-pixel`}>PROFESOR</span>
+              <span className={`${styles.headerLabel} font-sans`}>PROFESOR</span>
               <Sparkles size={14} />
             </div>
-            <h1 className={`${styles.title} font-pixel`}>{professor.name}</h1>
+            <h1 className={`${styles.title} font-sans`}>{professor.name}</h1>
 
             {professor.subjects && professor.subjects.length > 0 && (
               <div className={styles.subjects}>

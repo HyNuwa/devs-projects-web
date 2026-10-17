@@ -114,10 +114,10 @@ export function ProfessorList() {
         <header className={styles.header}>
           <div className={styles.headerBadge}>
             <Sparkles size={16} />
-            <span className={`${styles.headerLabel} font-pixel`}>PUNTÚA A TU PROFESOR</span>
+            <span className={`${styles.headerLabel} font-sans`}>PUNTÚA A TU PROFESOR</span>
             <Sparkles size={16} />
           </div>
-          <h1 className={`${styles.title} font-pixel`}>PROFESORES</h1>
+          <h1 className={`${styles.title} font-sans`}>PROFESORES</h1>
           <p className={styles.subtitle}>
             Conocé qué profesores dictan cada materia y compartí tu experiencia en el hub de la
             materia.

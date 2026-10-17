@@ -12,6 +12,7 @@ interface ExceptionResponse {
   message?: string | string[];
   error?: string;
   statusCode?: number;
+  code?: string;
 }
 
 @Catch(HttpException)
@@ -26,6 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse = exception.getResponse();
 
     const errorBody = {
+      ...this.extractCodedDetails(exceptionResponse),
       statusCode: status,
       message: this.extractMessage(status, exceptionResponse),
       error: this.extractError(status, exceptionResponse),
@@ -41,6 +43,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     response.status(status).json(errorBody);
+  }
+
+  /**
+   * Refusals thrown with a machine-readable `code` (e.g. DUPLICATE_MATERIAL)
+   * keep it and their details so the client can react to them.
+   */
+  private extractCodedDetails(
+    exceptionResponse: string | object,
+  ): Record<string, unknown> {
+    if (typeof exceptionResponse !== 'object') return {};
+    const { code, ...details } = exceptionResponse as ExceptionResponse &
+      Record<string, unknown>;
+    if (typeof code !== 'string') return {};
+    return { ...details, code };
   }
 
   private extractMessage(

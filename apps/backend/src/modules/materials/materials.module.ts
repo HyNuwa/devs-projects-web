@@ -4,9 +4,10 @@ import { MaterialsService } from './materials.service';
 import { LocalFileStorageService } from './file-storage.service';
 import { GoogleDriveStorageService } from './google-drive-storage.service';
 import { RankingModule } from '../ranking/ranking.module';
+import { ModerationCoreModule } from '../moderation/moderation-core.module';
 
 @Module({
-  imports: [RankingModule],
+  imports: [RankingModule, ModerationCoreModule],
   controllers: [MaterialsController],
   providers: [
     MaterialsService,

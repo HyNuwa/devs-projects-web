@@ -161,7 +161,9 @@ describe('DiscoveryService hierarchy read model', () => {
                 select: expect.objectContaining({
                   materials: expect.objectContaining({
                     where: expect.objectContaining({
-                      moderationStatus: 'APPROVED',
+                      OR: expect.arrayContaining([
+                        { publicationStatus: 'PUBLISHED' },
+                      ]),
                       isDeleted: false,
                     }),
                   }),
@@ -252,7 +254,7 @@ describe('DiscoveryService hierarchy read model', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           subjectId: 'subject-1',
-          moderationStatus: 'APPROVED',
+          OR: expect.arrayContaining([{ publicationStatus: 'PUBLISHED' }]),
           isDeleted: false,
         }),
       }),

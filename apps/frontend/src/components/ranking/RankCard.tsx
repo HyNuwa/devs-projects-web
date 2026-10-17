@@ -112,7 +112,7 @@ export const RankCard = () => {
           <h2 className={styles.cardTitle}>MI RANK</h2>
         </div>
         <div className={styles.rankBadge}>
-          <span className={`${styles.rankNumber} font-pixel`}>#{me.rank}</span>
+          <span className={`${styles.rankNumber} font-sans`}>#{me.rank}</span>
           <span className={styles.rankTotal}>de {me.totalUsers}</span>
         </div>
       </div>
@@ -120,7 +120,7 @@ export const RankCard = () => {
       <div className={styles.body}>
         <div className={styles.levelBlock}>
           <span className={styles.levelLabel}>NIVEL</span>
-          <span className={`${styles.levelName} font-pixel`}>{me.levelName}</span>
+          <span className={`${styles.levelName} font-sans`}>{me.levelName}</span>
           <span className={styles.levelNum}>LV.{me.level}</span>
         </div>
 
@@ -149,7 +149,7 @@ export const RankCard = () => {
           <div className={styles.nextLevel}>
             <TrendingUp size={14} />
             Siguiente:
-            <span className={`${styles.nextLevelName} font-pixel`}>{me.nextLevelName}</span>
+            <span className={`${styles.nextLevelName} font-sans`}>{me.nextLevelName}</span>
           </div>
         )}
       </div>

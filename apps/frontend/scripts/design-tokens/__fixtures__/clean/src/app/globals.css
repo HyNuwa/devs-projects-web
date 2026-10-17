@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+@import '../styles/tokens.css';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-line: var(--line);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-link: var(--link);
+  --font-sans: var(--ui-font-sans);
+  --font-hand: var(--ui-font-hand);
+  --font-mono: var(--ui-font-mono);
+  --radius-sm: var(--dp-radius-sm);
+  --radius-md: var(--dp-radius-md);
+  --radius-lg: var(--dp-radius-lg);
+  --radius-xl: var(--dp-radius-xl);
+  --shadow-pop: var(--elevation-pop);
+}
+
+:root {
+  color-scheme: light;
+  --background: var(--dp-page);
+  --foreground: var(--dp-ink);
+  --card: var(--dp-surface);
+  --card-foreground: var(--dp-ink);
+  --popover: var(--dp-surface);
+  --popover-foreground: var(--dp-ink);
+  --primary: var(--dp-blue);
+  --primary-foreground: var(--dp-surface);
+  --secondary: var(--dp-blue-tint);
+  --secondary-foreground: var(--dp-ink);
+  --muted: var(--dp-sand);
+  --muted-foreground: var(--dp-muted);
+  --accent: var(--dp-gold);
+  --accent-foreground: var(--dp-ink);
+  --destructive: var(--dp-red);
+  --destructive-foreground: var(--dp-surface);
+  --success: var(--dp-green);
+  --border: var(--dp-ink);
+  --line: var(--dp-line);
+  --input: var(--dp-ink);
+  --ring: var(--dp-blue);
+  --link: var(--dp-link);
+  --radius: var(--dp-radius-md);
+  --ui-font-sans: var(--dp-font-sans);
+  --ui-font-hand: var(--dp-font-hand);
+  --ui-font-mono: var(--dp-font-mono);
+  --elevation-pop: var(--dp-shadow-pop);
+}

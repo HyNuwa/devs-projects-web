@@ -1,0 +1,192 @@
+# moderation/sanctions Specification
+
+## Purpose
+
+Let moderation respond to accounts that repeatedly break the community rules with advertencias, silenciamientos and suspensiones. A person always decides them, guided by a suggested escalera. They are enforced, and the affected account always knows why and until when.
+
+## Requirements
+
+### Requirement: Sanction types
+Moderation SHALL be able to apply three sanciones to an account, each with a written reason of at most 1000 characters:
+- **Advertencia:** a notice with no restriction.
+- **Silenciamiento:** lasts exactly 7 days.
+- **Suspensión:** lasts 7 days, 30 days, or is permanent.
+
+A sanción SHALL stop applying on its own when its end date passes, without any action by moderation. Every sanción SHALL be recorded in the moderation history with who applied it, the account, the type, the reason, the end date and, when it came from a caso, the caso.
+
+#### Scenario: Moderator silences an account
+- **WHEN** a moderator silences an account with a reason
+- **THEN** the account is silenced for 7 days and the history records the sanción with its reason and end date
+
+#### Scenario: Silenciamiento ends
+- **WHEN** 7 days have passed since an account was silenced
+- **THEN** the account can publish and report again without anyone lifting the sanción
+
+#### Scenario: Sanction without a reason
+- **WHEN** a moderator submits any sanción with an empty reason
+- **THEN** the sanción is refused
+
+### Requirement: Suggested escalera
+For every account, the system SHALL compute a paso sugerido, and SHALL NOT apply it on its own:
+- **Advertencia:** for a first retiro por normas in the last 90 days.
+- **Silenciamiento:** for a second retiro por normas within 90 days.
+- **Suspensión:** for a third retiro por normas within 90 days, or for a retiro por normas while the account has a silenciamiento in the last 90 days.
+
+A retiro por normas is a «Retirar» decision on a caso. It SHALL NOT count if the author deleted the content, if it was a rejection in revisión previa, or if the retiro was restored or overturned on appeal. The author SHALL NOT be able to delete content that is `Retirado` or `Oculto mientras se revisa`, so a retiro keeps counting and a hidden entry keeps its caso. Advertencias and silenciamientos SHALL stop raising the step after 90 days. A suspensión SHALL keep counting. Once the paso sugerido, or a harsher sanción, has been applied after the latest retiro por normas, the paso sugerido SHALL be none until the next retiro.
+
+#### Scenario: Second retiro in 90 days
+- **WHEN** an account already has one retiro por normas in the last 90 days and moderation retires another of its contributions
+- **THEN** the paso sugerido for the account is «Silenciar 7 días», and the account is not silenced until a moderator applies it
+
+#### Scenario: Restored retiro does not count
+- **WHEN** a retiro por normas is later restored
+- **THEN** it no longer counts towards the account's paso sugerido
+
+#### Scenario: Step already applied
+- **WHEN** an account with two retiros por normas in 90 days was silenced after the second one
+- **THEN** its paso sugerido is none until it has another retiro
+
+#### Scenario: Author tries to delete a retired reseña
+- **WHEN** the author of a `Retirado` reseña tries to delete it
+- **THEN** the deletion is refused and the retiro keeps counting for the escalera
+
+#### Scenario: Old advertencia
+- **WHEN** an account's only advertencia is older than 90 days and it gets a new retiro
+- **THEN** the paso sugerido is «Advertencia», not «Silenciar»
+
+### Requirement: Advertencia with a retiro
+When a moderator retires content, the «Retirar» action SHALL offer to warn the author in the same step («Advertir también»). For content published under the author's name, the option SHALL be preselected when the paso sugerido is an advertencia, and the moderator SHALL be able to leave it unchecked. For anonymous content, the option SHALL never be preselected, because the preselection would say something about the hidden author's record. The advertencia SHALL go to the author of the caso's content, resolved by the server from the caso. The moderator SHALL NOT choose or see that account, and the answer to the decision SHALL be the same whether an advertencia was recorded or not.
+
+#### Scenario: First retiro of an account
+- **WHEN** a moderator retires the first contribution of an account in 90 days and confirms with «Advertir también» checked
+- **THEN** the content is retired and the account receives an advertencia with the retiro's reason, linked to the caso
+
+#### Scenario: Moderator declines the suggested advertencia
+- **WHEN** the moderator unchecks «Advertir también» before retiring
+- **THEN** the content is retired and no advertencia is recorded
+
+#### Scenario: Anonymous reseña
+- **WHEN** a moderator opens a caso about an anonymous reseña whose author has no retiros
+- **THEN** «Advertir también» is not preselected, and if the moderator checks it and retires, the author's account receives the advertencia without being shown
+
+### Requirement: Who can sanction whom
+Nobody SHALL be able to sanction their own account. The sanctioner's role SHALL determine who they can sanction:
+- A MODERATOR can advertir and silenciar only USER accounts, and can propose a suspensión.
+- An ADMIN can sanction USER and MODERATOR accounts, and can confirm, reject or lift suspensiones.
+- Only a SUPERADMIN can sanction an ADMIN.
+
+A moderator SHALL NOT sanction an account from a caso in which they filed a reporte. Sanctions from the Usuarios tab SHALL NOT name a caso: a request that names one SHALL be refused as invalid, the same way for every account, so its result never depends on who wrote a caso's content. The only sanción tied to a caso is the advertencia given while deciding it («Advertir también»).
+
+From the Usuarios tab, a moderator SHALL NOT advertir, silenciar or propose a suspensión for an account whose content published under its name they reported in the last 90 days. «Advertir también» is exempt, since the caso's own reporter check applies and refusing it for another report could reveal who wrote anonymous content. The refusal SHALL say «Reportaste contenido de esta cuenta: lo resuelve otra persona de moderación». Reportes on anonymous content SHALL NOT cause this refusal, because it would reveal who wrote it.
+
+Any moderator SHALL be able to lift a silenciamiento of an account they could sanction. Only an ADMIN or SUPERADMIN SHALL lift a suspensión before its end date.
+
+#### Scenario: Moderator tries to silence another moderator
+- **WHEN** a MODERATOR tries to silence a MODERATOR account
+- **THEN** the request is refused
+
+#### Scenario: Moderator lifts a silenciamiento
+- **WHEN** a moderator lifts an active silenciamiento with a reason
+- **THEN** the account can publish again immediately and the history records it
+
+#### Scenario: Moderator reported the account's material
+- **WHEN** a moderator who reported a material published under an account's name 10 days ago tries to silence that account from Usuarios
+- **THEN** the request is refused with «Reportaste contenido de esta cuenta: lo resuelve otra persona de moderación»
+
+#### Scenario: Naming another caso
+- **WHEN** a moderator warns, silences or proposes a suspensión for an account from Usuarios and the request names a caso, whether or not the account wrote that caso's content
+- **THEN** the request is refused as invalid with the same answer, and nothing is recorded
+
+#### Scenario: Moderator reported the account's anonymous reseña
+- **WHEN** a moderator who reported an anonymous reseña tries to warn its author's account from Usuarios
+- **THEN** the report does not block the advertencia
+
+### Requirement: Suspension requires an admin
+A MODERATOR SHALL only propose a suspensión, with a reason and a proposed duration. A proposal SHALL NOT restrict the account. An ADMIN or SUPERADMIN SHALL confirm it (and may change the duration) or reject it, in both cases with a reason. An ADMIN or SUPERADMIN SHALL be able to suspend directly, without a proposal, for example for spam or fake accounts. When confirming or applying a suspensión, the admin SHALL be able to retire every published contribution of the account in the same step; those contributions become `Retirado` with the suspensión's reason and their points are reverted. Otherwise the account's published contributions SHALL stay visible.
+
+#### Scenario: Moderator proposes a suspensión
+- **WHEN** a moderator proposes a 30-day suspensión for an account
+- **THEN** the account can still sign in, and admins see the proposal in Usuarios
+
+#### Scenario: Admin suspends a spam account and its content
+- **WHEN** an admin suspends an account permanently and checks «Retirar también sus aportes publicados»
+- **THEN** the account cannot sign in, every published contribution of it is `Retirado` with that reason, and their points are reverted
+
+### Requirement: Suspended accounts cannot use the product
+A suspended account SHALL NOT be able to sign in or renew its session until the suspensión ends. Sign-in SHALL show the reason and the end date (or that it is permanent). Confirming a suspensión SHALL end every open session of the account. While an already issued short-lived access lasts, every action that writes content, reports or «Me sirvió» SHALL still be refused for the suspended account.
+
+#### Scenario: Suspended student signs in
+- **WHEN** a suspended account enters correct credentials
+- **THEN** sign-in is refused with the reason and the date the suspensión ends
+
+#### Scenario: Session open at the moment of suspension
+- **WHEN** an account is suspended while it has an open session and then tries to publish a reseña
+- **THEN** the publication is refused and the session cannot be renewed
+
+### Requirement: Silenced accounts cannot contribute
+While silenced, an account SHALL NOT be able to do any of the following: publish or edit a material, reseña or experiencia; resubmit a rejected contribution; report content; mark «Me sirvió». It SHALL still be able to read, search, download and save. The server SHALL refuse the blocked actions with an explanation that includes the end date. The interface SHALL show them disabled with the same explanation instead of letting the user fill in a form they cannot submit.
+
+#### Scenario: Silenced student opens Subir material
+- **WHEN** a silenced account opens Subir material
+- **THEN** the form is disabled with «Estás silenciado hasta el <fecha>: no podés publicar, reportar ni marcar Me sirvió»
+
+#### Scenario: Silenced account calls the API directly
+- **WHEN** a silenced account submits a report through the API
+- **THEN** the request is refused and no report is recorded
+
+#### Scenario: Silenced account downloads a material
+- **WHEN** a silenced account downloads a published material
+- **THEN** the download works
+
+### Requirement: The account knows its sanction
+While an account has an active sanción, every page SHALL show a notice with the type of sanción, its reason, its end date and a way to appeal it. Advertencias SHALL be shown once and then remain in Mis envíos. Mis envíos SHALL list the account's sanciones with their type, reason, dates and appeal status. The notices SHALL NOT reveal who applied the sanción or who reported.
+
+#### Scenario: Silenced student opens the site
+- **WHEN** a silenced account opens any page
+- **THEN** a notice shows that it is silenced, why, until when, and «Apelar»
+
+#### Scenario: Warned student
+- **WHEN** an account receives an advertencia and signs in
+- **THEN** it sees the advertencia with its reason once, and afterwards finds it in the Sanciones section of Mis envíos
+
+### Requirement: Usuarios tab
+The moderation panel SHALL offer a Usuarios tab. It SHALL list accounts with a paso sugerido, sanctioned accounts and accounts in revisión previa, with a search by username. For ADMIN and SUPERADMIN it SHALL also list pending suspension proposals.
+
+For each account it SHALL show:
+- username, carrera, account age, whether the email is verified, and a masked email address
+- current status
+- published contributions and retiros por normas in the last 90 days
+- the precision of its reportes: confirmed out of confirmed plus dismissed, shown only with at least 5 resolved reportes
+- a timeline of casos, sanciones, dismissed reportes and account creation
+- the paso sugerido with its explanation
+- the actions its viewer is allowed to take
+
+The Usuarios tab SHALL NOT reveal which anonymous entries belong to the account; linking them requires «Ver autor» from a caso.
+
+For a MODERATOR, nothing in the tab SHALL depend on retiros of anonymous content or on sanciones from casos about anonymous content: not the list, its filters, its order, the counts, the status, the paso sugerido nor the timeline. Otherwise deciding an anonymous caso and then looking at the tab would show which account wrote it. The same SHALL hold for the author a MODERATOR sees on a caso about signed content: its retiros in 90 days and the preselection of «Advertir también».
+
+ADMIN and SUPERADMIN SHALL see them. To them, a sanción from a caso about anonymous content SHALL appear as «por un caso sobre una publicación anónima», with its reason and date and without a link to the caso.
+
+#### Scenario: Moderator opens an account with a suggestion
+- **WHEN** a moderator opens an account with two retiros por normas in 90 days
+- **THEN** the file shows «Paso sugerido: silenciar 7 días» with the explanation, and the «Advertir», «Silenciar 7 días» and «Proponer suspensión» actions
+
+#### Scenario: Few resolved reports
+- **WHEN** an account has 3 resolved reportes
+- **THEN** its report precision is not shown
+
+#### Scenario: Account with anonymous reseñas
+- **WHEN** a moderator opens the file of an account that published anonymous reseñas
+- **THEN** none of those reseñas appears in the file or its timeline
+
+#### Scenario: Sanction from an anonymous caso in the file
+- **WHEN** an ADMIN opens the file of an account that was warned from a caso about its anonymous reseña
+- **THEN** the timeline shows the advertencia «por un caso sobre una publicación anónima» with its reason and date, and no link to the caso
+
+#### Scenario: Moderator after retiring an anonymous reseña
+- **WHEN** a moderator retires an anonymous reseña with «Advertir también» and then opens Usuarios
+- **THEN** the author's account shows the same list membership, counts, status, paso sugerido and timeline as before the decision
+
+#### Scenario: Moderator opens a signed caso of the same author
+- **WHEN** a moderator retires an anonymous reseña with «Advertir también» and then opens a caso about a material by the same account
+- **THEN** the author's retiros in 90 days and the preselection of «Advertir también» are the same as before the decision, while an ADMIN sees the retiro

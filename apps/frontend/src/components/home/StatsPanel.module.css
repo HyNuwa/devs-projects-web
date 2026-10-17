@@ -28,14 +28,14 @@
 }
 
 .statsIcon {
-  color: var(--color-primary-600);
+  color: var(--primary);
 }
 
 .statsTitle {
-  font-family: var(--font-heading);
+  font-family: var(--ui-font-sans);
   font-weight: 700;
   font-size: 1rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   margin: 0;
   letter-spacing: 1px;
 }
@@ -60,7 +60,7 @@
   height: 40px;
   border-radius: 10px;
   background-color: rgba(33, 150, 243, 0.1);
-  color: var(--color-primary-600);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,12 +74,12 @@
 .statNumber {
   font-weight: 800;
   font-size: 1.1rem;
-  color: var(--color-text-primary);
+  color: var(--foreground);
   line-height: 1.2;
 }
 
 .statLabel {
   font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  color: var(--muted-foreground);
   font-weight: 500;
 }

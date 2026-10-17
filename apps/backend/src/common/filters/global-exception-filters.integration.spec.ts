@@ -1,4 +1,9 @@
-import { Controller, Get, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Controller,
+  Get,
+  NotFoundException,
+} from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
@@ -12,6 +17,16 @@ class FilterContractController {
   @Get('not-found')
   notFound(): never {
     throw new NotFoundException('Recurso inexistente');
+  }
+
+  @Public()
+  @Get('coded-conflict')
+  codedConflict(): never {
+    throw new ConflictException({
+      code: 'DUPLICATE_MATERIAL',
+      materialId: 'mat-1',
+      message: 'Este archivo ya está publicado en esta materia',
+    });
   }
 
   @Public()
@@ -66,6 +81,21 @@ describe('global exception filter chain', () => {
       path: '/api/v1/filter-contract/not-found',
     });
     expect(response.body).not.toHaveProperty('stack');
+  });
+
+  it('keeps the machine-readable code and its details on coded refusals', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/filter-contract/coded-conflict')
+      .expect(409);
+
+    expect(response.body).toMatchObject({
+      statusCode: 409,
+      code: 'DUPLICATE_MATERIAL',
+      materialId: 'mat-1',
+      message: 'Este archivo ya está publicado en esta materia',
+      error: 'CONFLICT',
+      path: '/api/v1/filter-contract/coded-conflict',
+    });
   });
 
   it('keeps real internal errors opaque', async () => {

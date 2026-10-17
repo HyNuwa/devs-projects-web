@@ -21,11 +21,11 @@ export const HeroBanner = () => {
         <div className={styles.content}>
           <div className={styles.greeting}>
             <span className={styles.sparkle}>✨</span>
-            <h2 className={`${styles.welcomeText} font-pixel`}>BIENVENIDO,</h2>
+            <h2 className={`${styles.welcomeText} font-sans`}>BIENVENIDO,</h2>
             <span className={styles.sparkle}>✨</span>
           </div>
 
-          <h1 className={`${styles.title} font-pixel`}>VIAJERO</h1>
+          <h1 className={`${styles.title} font-sans`}>VIAJERO</h1>
 
           <p className={styles.description}>
             Tu aventura académica comienza aquí. Comparte conocimiento, ayuda a otros y conviértete

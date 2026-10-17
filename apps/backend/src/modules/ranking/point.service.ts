@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { levelForPoints } from './rpg-levels';
 
@@ -48,6 +49,77 @@ export class PointService {
         level: newLevel,
       };
     });
+  }
+
+  /**
+   * Otorga los puntos de un aporte dentro de la transacción de quien llama, una sola
+   * vez por `referenceId`: si el aporte ya tiene puntos vigentes, no hace nada.
+   */
+  async awardFor(
+    tx: Prisma.TransactionClient,
+    award: {
+      userId: string;
+      amount: number;
+      reason: string;
+      referenceId: string;
+    },
+  ) {
+    if ((await this.netFor(tx, award.referenceId)) > 0) return;
+
+    await tx.pointTransaction.create({ data: award });
+    await this.applyDelta(tx, award.userId, award.amount);
+  }
+
+  /**
+   * Revierte los puntos vigentes de un aporte (por ejemplo, al retirarlo). Si no hay
+   * puntos vigentes, no hace nada.
+   */
+  async revertFor(tx: Prisma.TransactionClient, referenceId: string) {
+    const net = await this.netFor(tx, referenceId);
+    if (net <= 0) return;
+
+    const original = await tx.pointTransaction.findFirst({
+      where: { referenceId, amount: { gt: 0 } },
+      select: { userId: true, reason: true },
+    });
+    if (!original) return;
+
+    await tx.pointTransaction.create({
+      data: {
+        userId: original.userId,
+        amount: -net,
+        reason: `${original.reason}_REVERTED`,
+        referenceId,
+      },
+    });
+    await this.applyDelta(tx, original.userId, -net);
+  }
+
+  private async netFor(tx: Prisma.TransactionClient, referenceId: string) {
+    const { _sum } = await tx.pointTransaction.aggregate({
+      where: { referenceId },
+      _sum: { amount: true },
+    });
+    return _sum.amount ?? 0;
+  }
+
+  private async applyDelta(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    amount: number,
+  ) {
+    const updated = await tx.user.update({
+      where: { id: userId },
+      data: { points: { increment: amount } },
+      select: { id: true, points: true, level: true },
+    });
+    const newLevel = levelForPoints(Math.max(updated.points, 0));
+    if (newLevel !== updated.level) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { level: newLevel },
+      });
+    }
   }
 
   /**

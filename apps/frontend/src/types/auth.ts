@@ -1,3 +1,5 @@
+import type { OwnSanction } from '@/lib/account-restriction';
+
 export type Role = 'VISITOR' | 'USER' | 'MODERATOR' | 'ADMIN' | 'SUPERADMIN';
 
 export interface User {
@@ -11,6 +13,10 @@ export interface User {
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Active silenciamiento or suspensión, from GET /auth/me. */
+  restriction?: OwnSanction | null;
+  /** An advertencia not seen yet, from GET /auth/me. */
+  unseenWarning?: OwnSanction | null;
 }
 
 export interface LoginPayload {
