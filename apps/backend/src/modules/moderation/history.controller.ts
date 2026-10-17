@@ -20,9 +20,9 @@ export class HistoryController {
   @Get()
   @ApiOperation({ summary: 'Historial de moderación (solo lectura)' })
   list(
-    @Request() req: { user: { role: PrismaRole } },
+    @Request() req: { user: { id: string; role: PrismaRole } },
     @Query() query: HistoryQueryDto,
   ) {
-    return this.history.list({ role: req.user.role }, query);
+    return this.history.list({ id: req.user.id, role: req.user.role }, query);
   }
 }

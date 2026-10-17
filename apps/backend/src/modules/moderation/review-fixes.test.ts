@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { ReportPoints } from '../ranking/report-points';
 import { DecisionsService } from './decisions.service';
 import { SanctionsService } from './sanctions.service';
 import { SuspensionProposalsService } from './suspension-proposals.service';
@@ -15,9 +16,13 @@ const mod = { id: 'mod-1', role: 'MODERATOR' } as const;
 
 function prismaDouble() {
   const prisma = {
+    moderatorScope: {
+      findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
     $transaction: vi.fn(),
     $queryRaw: vi.fn(),
     user: {
+      count: vi.fn().mockResolvedValue(1),
       findUnique: vi.fn().mockResolvedValue({
         id: 'user-1',
         role: 'USER',
@@ -34,7 +39,12 @@ function prismaDouble() {
     },
     suspensionProposal: { create: vi.fn().mockResolvedValue({ id: 'p-1' }) },
     moderationEvent: { create: vi.fn() },
+    correctionSuggestion: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn(),
+    },
     moderationCase: {
+      findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn().mockResolvedValue({ id: 'case-new' }),
@@ -89,7 +99,15 @@ describe('findings of the code review', () => {
     ]);
     const service = await build(SuspensionProposalsService, [
       { provide: SanctionsService, useValue: sanctions },
-      { provide: PointService, useValue: { revertFor: vi.fn() } },
+      {
+        provide: ReportPoints,
+        useValue: {
+          confirmed: vi.fn(),
+          unconfirmed: vi.fn(),
+          lockParticipants: vi.fn(),
+        },
+      },
+      { provide: ContributionPoints, useValue: { withdrawn: vi.fn() } },
     ]);
 
     await service.suspendDirectly(admin, 'user-1', 'Spam', null, true);
@@ -119,7 +137,15 @@ describe('findings of the code review', () => {
   it('records a proposal from Usuarios without any caso, so it never tests who wrote one', async () => {
     const service = await build(SuspensionProposalsService, [
       { provide: SanctionsService, useValue: {} },
-      { provide: PointService, useValue: {} },
+      {
+        provide: ReportPoints,
+        useValue: {
+          confirmed: vi.fn(),
+          unconfirmed: vi.fn(),
+          lockParticipants: vi.fn(),
+        },
+      },
+      { provide: ContributionPoints, useValue: {} },
     ]);
 
     await service.propose(mod, 'user-1', 'Reincide', 30);
@@ -139,11 +165,19 @@ describe('findings of the code review', () => {
   });
 
   describe('accepting an appeal of a retiro that is no longer in force', () => {
-    const points = { awardFor: vi.fn() };
+    const points = { published: vi.fn() };
 
     async function decisions() {
       return build(DecisionsService, [
-        { provide: PointService, useValue: points },
+        {
+          provide: ReportPoints,
+          useValue: {
+            confirmed: vi.fn(),
+            unconfirmed: vi.fn(),
+            lockParticipants: vi.fn(),
+          },
+        },
+        { provide: ContributionPoints, useValue: points },
         { provide: MaterialsService, useValue: {} },
         { provide: SanctionsService, useValue: {} },
       ]);
@@ -168,7 +202,7 @@ describe('findings of the code review', () => {
         }),
       ).resolves.toBeUndefined();
       expect(prisma.material.updateMany).not.toHaveBeenCalled();
-      expect(points.awardFor).not.toHaveBeenCalled();
+      expect(points.published).not.toHaveBeenCalled();
     });
 
     it('stops the old retiro counting without undoing a newer caso', async () => {
@@ -204,7 +238,7 @@ describe('findings of the code review', () => {
         data: { revertedAt: NOW },
       });
       expect(prisma.material.updateMany).not.toHaveBeenCalled();
-      expect(points.awardFor).not.toHaveBeenCalled();
+      expect(points.published).not.toHaveBeenCalled();
     });
   });
 });

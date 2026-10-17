@@ -6,6 +6,7 @@ const item = (overrides: Partial<QueueItem>): QueueItem => ({
   targetStatus: 'PUBLISHED',
   reportCount: 1,
   highPriority: false,
+  priorityReport: false,
   openedAt: new Date('2026-09-20T00:00:00.000Z'),
   overdueHidden: false,
   ...overrides,
@@ -27,6 +28,20 @@ describe('groupQueue', () => {
     expect(groups.hidden.map((entry) => entry.caseId)).toEqual(['hidden']);
     expect(groups.priorReview.map((entry) => entry.caseId)).toEqual(['prior']);
     expect(groups.reported.map((entry) => entry.caseId)).toEqual(['reported']);
+  });
+
+  it('puts casos with a priority reporte after high-priority ones and before the report count', () => {
+    const groups = groupQueue([
+      item({ caseId: 'many', reportCount: 3 }),
+      item({ caseId: 'priority-report', reportCount: 1, priorityReport: true }),
+      item({ caseId: 'urgent', reportCount: 1, highPriority: true }),
+    ]);
+
+    expect(groups.reported.map((entry) => entry.caseId)).toEqual([
+      'urgent',
+      'priority-report',
+      'many',
+    ]);
   });
 
   it('orders reported casos by priority, then report count, then age', () => {

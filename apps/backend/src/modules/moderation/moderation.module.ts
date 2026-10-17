@@ -4,6 +4,8 @@ import { AuthModule } from '../auth/auth.module';
 import { CasesController } from './cases.controller';
 import { MaterialsModule } from '../materials/materials.module';
 import { RankingModule } from '../ranking/ranking.module';
+import { TrustModule } from '../trust/trust.module';
+import { CorrectionsModule } from '../corrections/corrections.module';
 import { CasesService } from './cases.service';
 import { DecisionsService } from './decisions.service';
 import { HistoryController } from './history.controller';
@@ -25,7 +27,14 @@ import { SuspensionProposalsService } from './suspension-proposals.service';
 
 /** Reportes, casos de moderación, decisions and history (openspec moderation/cases). */
 @Module({
-  imports: [AuthModule, ModerationCoreModule, MaterialsModule, RankingModule],
+  imports: [
+    AuthModule,
+    ModerationCoreModule,
+    MaterialsModule,
+    RankingModule,
+    TrustModule,
+    CorrectionsModule,
+  ],
   controllers: [
     ReportsController,
     CasesController,

@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { assertCaseInScope } from './scope';
 
 import type {
   ModerationDecision,
@@ -14,8 +15,8 @@ import type {
 } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PointService } from '../ranking/point.service';
-import { CONTRIBUTION_POINTS } from './contribution-points';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { ReportPoints } from '../ranking/report-points';
 import type { CaseDecisionDto } from './dto/case-decision.dto';
 import {
   type ModerationTarget,
@@ -25,6 +26,7 @@ import { loadTarget, targetWhere, updateTargetStatusFrom } from './targets';
 import { canSanction } from './sanction-rules';
 import { type Actor, SanctionsService } from './sanctions.service';
 import { nextStatusFor } from './transitions';
+import { closeObsolete } from '../corrections/close-obsolete';
 
 const REASON_REQUIRED: ReadonlySet<ModerationDecision> = new Set([
   'REMOVE',
@@ -45,7 +47,8 @@ const EVENT_FOR: Record<ModerationDecision, ModerationEventAction> = {
 export class DecisionsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly points: PointService,
+    private readonly points: ContributionPoints,
+    private readonly reportPoints: ReportPoints,
     private readonly materials: MaterialsService,
     private readonly sanctions: SanctionsService,
   ) {}
@@ -58,6 +61,7 @@ export class DecisionsService {
       throw new BadRequestException('Escribí la razón de la decisión');
     }
 
+    await assertCaseInScope(this.prisma, moderator, caseId);
     const moderationCase = await this.prisma.moderationCase.findUnique({
       where: { id: caseId },
       select: {
@@ -132,7 +136,6 @@ export class DecisionsService {
 
     const now = new Date();
     const columns = targetColumns(target);
-    const points = CONTRIBUTION_POINTS[target.type];
 
     await this.prisma.$transaction(async (tx) => {
       // Both writes are conditional: a concurrent decision that committed first
@@ -187,6 +190,7 @@ export class DecisionsService {
           where: { id: moderationCase.id },
           data: { revertedAt: now },
         });
+        await this.reportPoints.unconfirmed(tx, moderationCase.id);
       }
       if (decision === 'KEEP_VISIBLE' || decision === 'REMOVE') {
         await tx.report.updateMany({
@@ -197,22 +201,29 @@ export class DecisionsService {
           },
         });
       }
-
-      // Points never move for anonymous content: the author's public points
-      // would change with the decision and name them (README_PUNTOS_E_INSIGNIAS §3.4).
-      if (decision === 'REMOVE' && !snapshot.isAnonymous) {
-        await this.points.revertFor(tx, target.id);
+      if (decision === 'REMOVE') {
+        await this.reportPoints.lockParticipants(
+          tx,
+          moderationCase.id,
+          snapshot.authorId,
+        );
+        await this.reportPoints.confirmed(tx, moderationCase.id);
       }
-      if (
-        (decision === 'RESTORE' || decision === 'APPROVE') &&
-        !snapshot.isAnonymous
-      ) {
-        await this.points.awardFor(tx, {
-          userId: snapshot.authorId,
-          amount: points.amount,
-          reason: points.reason,
-          referenceId: target.id,
-        });
+
+      // Anonymous content never earns or loses points: the author's points would
+      // change with the decision and name them (README_PUNTOS_E_INSIGNIAS §3.4).
+      const contribution = {
+        ...target,
+        authorId: snapshot.authorId,
+        isAnonymous: snapshot.isAnonymous,
+      };
+      if (decision === 'REMOVE') {
+        await this.points.withdrawn(tx, contribution);
+        // Its open correction suggestions no longer apply.
+        if (target.type === 'MATERIAL') await closeObsolete(tx, target.id);
+      }
+      if (decision === 'RESTORE' || decision === 'APPROVE') {
+        await this.points.published(tx, contribution);
       }
 
       const countDelta = materialCountDelta(
@@ -341,17 +352,18 @@ export class DecisionsService {
       where: { id: moderationCase.id },
       data: { revertedAt: now },
     });
+    await this.reportPoints.unconfirmed(tx, moderationCase.id);
     // The retiro was a mistake: points come back even during an active sanción.
-    // Anonymous content kept its points when retired, so nothing comes back.
-    const points = CONTRIBUTION_POINTS[target.type];
-    if (!snapshot.isAnonymous) {
-      await this.points.awardFor(tx, {
-        userId: snapshot.authorId,
-        amount: points.amount,
-        reason: points.reason,
-        referenceId: target.id,
-      });
-    }
+    // Anonymous content never earns points, so nothing comes back.
+    await this.points.published(
+      tx,
+      {
+        ...target,
+        authorId: snapshot.authorId,
+        isAnonymous: snapshot.isAnonymous,
+      },
+      { appeal: true },
+    );
     if (target.type === 'MATERIAL') {
       await tx.subject.update({
         where: { id: snapshot.subjectId },

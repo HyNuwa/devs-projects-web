@@ -3,20 +3,24 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MaterialsService } from './materials.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
-import { Role } from '../auth/dto/auth-response.dto';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { HelpfulPoints } from '../ranking/helpful-points';
+import { PioneerBonus } from '../ranking/pioneer-bonus';
 import { MaterialSort } from './dto/materials-query.dto';
 import { MaterialResourceType } from '../../generated/prisma';
 
 describe('MaterialsService', () => {
   let service: MaterialsService;
 
+  const materialFindUnique = jest.fn();
   const prisma = {
     material: {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
-      findUnique: jest.fn(),
+      findUnique: materialFindUnique,
+      // applyClassification re-reads the locked row; same answer as findUnique.
+      findUniqueOrThrow: jest.fn((args: unknown) => materialFindUnique(args)),
       update: jest.fn(),
       count: jest.fn(),
     },
@@ -41,6 +45,10 @@ describe('MaterialsService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    correctionSuggestion: {
+      findMany: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn(),
+    },
     subjectProfessor: {
       findUnique: jest.fn(),
     },
@@ -56,7 +64,8 @@ describe('MaterialsService', () => {
   };
 
   const pointService = {
-    awardFor: jest.fn(),
+    published: jest.fn(),
+    withdrawn: jest.fn(),
   };
 
   const publicationPolicy = {
@@ -113,7 +122,15 @@ describe('MaterialsService', () => {
         MaterialsService,
         { provide: PrismaService, useValue: prisma },
         { provide: 'FILE_STORAGE', useValue: storage },
-        { provide: PointService, useValue: pointService },
+        { provide: ContributionPoints, useValue: pointService },
+        {
+          provide: HelpfulPoints,
+          useValue: { marked: jest.fn(), unmarked: jest.fn() },
+        },
+        {
+          provide: PioneerBonus,
+          useValue: { evaluate: jest.fn(), revoke: jest.fn() },
+        },
         { provide: PublicationPolicy, useValue: publicationPolicy },
       ],
     }).compile();
@@ -508,7 +525,7 @@ describe('MaterialsService', () => {
       ).resolves.toEqual({ isHelpful: false, helpfulCount: 0 });
 
       expect(prisma.material.update).not.toHaveBeenCalled();
-      expect(pointService.awardFor).not.toHaveBeenCalled();
+      expect(pointService.published).not.toHaveBeenCalled();
     });
 
     it('establece Guardar de forma idempotente sin alterar señales públicas', async () => {
@@ -611,21 +628,17 @@ describe('MaterialsService', () => {
   });
 
   describe('remove', () => {
-    it('permite al moderador eliminar un material ajeno', async () => {
+    it('no permite a un moderador eliminar un material ajeno', async () => {
       prisma.material.findUnique.mockResolvedValue({
         id: 'mat-1',
         authorId: 'user-1',
         isDeleted: false,
       });
-      prisma.material.update.mockResolvedValue({ id: 'mat-1' });
 
-      const result = await service.remove('mat-1', 'mod-1', Role.MODERATOR);
-
-      expect(prisma.material.update).toHaveBeenCalledWith({
-        where: { id: 'mat-1' },
-        data: { isDeleted: true },
-      });
-      expect(result).toEqual({ id: 'mat-1' });
+      await expect(service.remove('mat-1', 'mod-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.material.update).not.toHaveBeenCalled();
     });
   });
 });

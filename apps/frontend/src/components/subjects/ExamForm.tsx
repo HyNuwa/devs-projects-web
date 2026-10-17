@@ -43,6 +43,7 @@ import type { PriorReviewReason, PublicationOutcome } from '@/lib/publication-ou
 import { resubmit } from '@/lib/submissions-client';
 import { useAccountRestriction } from '@/hooks/useAccountRestriction';
 import { RestrictionNotice } from '@/components/moderation/RestrictionNotice';
+import { cn } from '@/components/ui/shadcn/utils';
 
 const MIN_ACADEMIC_YEAR = 1900;
 const MAX_ACADEMIC_YEAR = new Date().getUTCFullYear() + 1;
@@ -234,6 +235,7 @@ export function ExamForm() {
     mode: 'onBlur',
     resolver: zodResolver(examSchema),
   });
+  const isAnonymousChosen = useWatch({ control, name: 'isAnonymous' });
 
   const commentValue = useWatch({ control, name: 'comment' });
   const comment = typeof commentValue === 'string' ? commentValue : '';
@@ -397,6 +399,7 @@ export function ExamForm() {
   }
 
   const isEditing = editState.status === 'ready';
+  const anonymous = isAnonymousChosen;
   const isRejected = isEditing && editState.moderation.status === 'REJECTED';
   const hasLegacyFields = isEditing && examNeedsCompletion(editState.exam);
   const professorModeRegistration = register('professorMode');
@@ -700,9 +703,16 @@ export function ExamForm() {
               </Field>
             </div>
 
-            <label className="flex cursor-pointer items-start gap-3 border border-border bg-secondary p-4 text-sm text-secondary-foreground">
+            <label
+              className={cn(
+                'flex items-start gap-3 border border-border bg-secondary p-4 text-sm text-secondary-foreground',
+                isEditing ? 'cursor-not-allowed' : 'cursor-pointer',
+              )}
+            >
               <input
+                aria-describedby="anonymity-note"
                 className="mt-1 size-4 accent-[var(--primary)]"
+                disabled={isEditing}
                 type="checkbox"
                 {...register('isAnonymous')}
               />
@@ -711,6 +721,18 @@ export function ExamForm() {
                 <span className="mt-1 block leading-relaxed">
                   La experiencia no mostrará tu nombre, avatar ni un alias permanente. La cuenta
                   sigue siendo responsable de la publicación.
+                </span>
+                <span className="mt-1 block font-semibold text-foreground" id="anonymity-note">
+                  {isEditing
+                    ? 'Se elige al publicar y no cambia al editar.'
+                    : anonymous
+                      ? 'Las publicaciones anónimas no suman puntos. '
+                      : null}
+                  {!isEditing && anonymous ? (
+                    <Link className="text-link underline" href="/puntos">
+                      Cómo funcionan los puntos
+                    </Link>
+                  ) : null}
                 </span>
               </span>
             </label>

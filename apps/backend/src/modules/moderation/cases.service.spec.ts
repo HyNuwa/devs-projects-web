@@ -65,7 +65,14 @@ describe('CasesService', () => {
   let service: CasesService;
 
   const prisma = {
-    moderationCase: { findMany: jest.fn(), findUnique: jest.fn() },
+    moderatorScope: {
+      findMany: jest.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
+    moderationCase: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      count: jest.fn().mockResolvedValue(1),
+    },
     sanction: { findMany: jest.fn().mockResolvedValue([]) },
     moderationEvent: {
       findFirst: jest.fn(),
@@ -110,7 +117,7 @@ describe('CasesService', () => {
 
   describe('queue', () => {
     it('groups open casos and never exposes reporter identities', async () => {
-      const queue = await service.queue();
+      const queue = await service.queue({ id: 'admin-1', role: 'ADMIN' });
 
       // Hidden 9 days ago, past its 48 h response time: it moves to Vencidos.
       expect(queue.vencidos.map((entry) => entry.caseId)).toEqual([
@@ -132,7 +139,7 @@ describe('CasesService', () => {
     });
 
     it('flags hidden content left unreviewed for more than 7 days and records it once', async () => {
-      const queue = await service.queue();
+      const queue = await service.queue({ id: 'admin-1', role: 'ADMIN' });
 
       expect(queue.vencidos[0]).toEqual(
         expect.objectContaining({ overdueHidden: true }),
@@ -148,7 +155,7 @@ describe('CasesService', () => {
       });
 
       prisma.moderationEvent.findFirst.mockResolvedValue({ id: 'already' });
-      await service.queue();
+      await service.queue({ id: 'admin-1', role: 'ADMIN' });
       expect(prisma.moderationEvent.create).toHaveBeenCalledTimes(1);
     });
   });

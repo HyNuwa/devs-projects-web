@@ -22,7 +22,7 @@ import type { Paginated } from '@/types/material';
 import type { Professor } from '@/types/professor';
 import type { CommunityDifficulty, CourseAttempt, Subject } from '@/types/subject';
 
-import { CourseReviewSummaryCard } from './CommunitySummaryCards';
+import { ExperienceCard } from '@/components/experiences/ExperienceCard';
 
 const pageSize = 10;
 const difficulties: CommunityDifficulty[] = ['MUY_BAJA', 'BAJA', 'MEDIA', 'ALTA', 'MUY_ALTA'];
@@ -300,6 +300,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
     (professor) => professor.id === state.professorId,
   )?.name;
   const results = requestState.status === 'ready' ? requestState.results : null;
+  const [now] = useState(() => new Date());
 
   return (
     <div className="min-h-[calc(100dvh-4.5rem)] pb-16">
@@ -310,6 +311,13 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
         />
         <div className="relative mx-auto grid max-w-[1180px] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="px-3 py-12 sm:px-6 sm:py-16 lg:py-20">
+            <Link
+              className="inline-flex min-h-11 items-center gap-1.5 font-sans text-sm font-bold text-primary-foreground/85 underline-offset-4 outline-none transition-colors hover:text-primary-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
+              href="/experiencias"
+            >
+              <ArrowLeft aria-hidden="true" className="size-4" />
+              Experiencias
+            </Link>
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-primary-foreground/75">
               Archivo cobalto
             </p>
@@ -532,24 +540,7 @@ function ReviewListContent({ state }: { state: CourseReviewDiscoveryState }) {
           {results?.data.length ? (
             <div className="mt-7 grid gap-5 lg:grid-cols-2">
               {results.data.map((review) => (
-                <CourseReviewSummaryCard
-                  key={review.id}
-                  summary={{
-                    academicYear: review.academicYear,
-                    attempt: review.attempt,
-                    author: { username: review.author.username },
-                    condition: review.condition,
-                    createdAt: review.createdAt,
-                    difficulty: review.difficulty,
-                    excerpt: review.excerpt,
-                    id: review.id,
-                    professorName: review.professor?.name ?? review.professorName,
-                    recommendation: review.recommendation,
-                    shift: review.shift,
-                    subject: review.subject,
-                    updatedAt: review.updatedAt,
-                  }}
-                />
+                <ExperienceCard entry={{ kind: 'review', review }} key={review.id} now={now} />
               ))}
             </div>
           ) : null}

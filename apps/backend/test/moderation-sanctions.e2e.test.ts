@@ -8,6 +8,8 @@ import {
   createE2eApp,
   createUser,
   type E2eUser,
+  createStudent,
+  declareFiCareer,
 } from './support/e2e-app';
 
 describe('sanction endpoints (e2e)', () => {
@@ -33,7 +35,7 @@ describe('sanction endpoints (e2e)', () => {
       .send(body);
 
   it('lets a moderator warn a student', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
 
     await post(`/users/${student.id}/warn`, moderator, {
       reason: 'Insultos en una reseña.',
@@ -47,7 +49,7 @@ describe('sanction endpoints (e2e)', () => {
   });
 
   it('lets a moderator silence a student for 7 days and lift it', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
 
     await post(`/users/${student.id}/mute`, moderator, {
       reason: 'Segundo retiro en 90 días.',
@@ -70,6 +72,8 @@ describe('sanction endpoints (e2e)', () => {
 
   it('refuses a moderator silencing another moderator', async () => {
     const otherModerator = await createUser(prisma, 'MODERATOR');
+    // Visible to the moderator, so the refusal is about the role.
+    await declareFiCareer(prisma, otherModerator.id);
 
     await post(`/users/${otherModerator.id}/mute`, moderator, {
       reason: 'x',
@@ -77,14 +81,14 @@ describe('sanction endpoints (e2e)', () => {
   });
 
   it('refuses students using the sanction endpoints', async () => {
-    const student = await createUser(prisma);
-    const other = await createUser(prisma);
+    const student = await createStudent(prisma);
+    const other = await createStudent(prisma);
 
     await post(`/users/${other.id}/warn`, student, { reason: 'x' }).expect(403);
   });
 
   it('refuses a sanción without a reason', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
 
     await post(`/users/${student.id}/warn`, moderator, { reason: '' }).expect(
       400,
@@ -92,7 +96,7 @@ describe('sanction endpoints (e2e)', () => {
   });
 
   it('keeps suspending for admins: a moderator proposes, only an admin confirms', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
 
     const proposed = await post(
       `/users/${student.id}/suspension-proposals`,
@@ -122,7 +126,7 @@ describe('sanction endpoints (e2e)', () => {
   });
 
   it('lets an admin reject a proposal with a reason', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     const proposed = await post(
       `/users/${student.id}/suspension-proposals`,
       moderator,
@@ -142,7 +146,7 @@ describe('sanction endpoints (e2e)', () => {
   });
 
   it('lets an admin suspend directly, permanently, and lift it', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
 
     await post(`/users/${student.id}/suspend`, admin, {
       reason: 'Cuenta falsa.',
@@ -161,7 +165,7 @@ describe('sanction endpoints (e2e)', () => {
   });
 
   it('refuses an unknown duration', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
 
     await post(`/users/${student.id}/suspension-proposals`, moderator, {
       reason: 'x',

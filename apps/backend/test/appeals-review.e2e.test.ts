@@ -9,6 +9,7 @@ import {
   createSubject,
   createUser,
   type E2eUser,
+  createStudent,
 } from './support/e2e-app';
 
 type AppealItem = {
@@ -101,7 +102,7 @@ describe('reviewing appeals (e2e)', () => {
   }
 
   it('hides anonymous appellants and never lists the viewer’s own decisions', async () => {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const { appeal } = await appealedRetiro(author);
 
     const forReviewer = await as(reviewer)
@@ -121,7 +122,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('shows the appealed decision, the explanation and the content in the detail', async () => {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const { appeal } = await appealedRetiro(author);
 
     const { body } = await as(admin)
@@ -144,7 +145,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('sends every appeal about anonymous content to admins, whoever appeals', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     const staff = await createUser(prisma, 'MODERATOR');
     const fromStudent = (await appealedRetiro(student)).appeal;
     const fromStaff = (await appealedRetiro(staff)).appeal;
@@ -211,7 +212,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('sends the appeal of an advertencia from an anonymous caso to admins, hiding the appellant from moderators', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     const { username } = await prisma.user.findUniqueOrThrow({
       where: { id: student.id },
     });
@@ -324,7 +325,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('marks the appeals a moderator may answer', async () => {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const { appeal } = await appealedRetiro(author, { signed: true });
     const list = await as(reviewer).get('/moderation/appeals').expect(200);
     expect(
@@ -335,7 +336,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('keeps appeals of suspensiones for admins', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     await as(admin)
       .post(`/moderation/users/${student.id}/suspend`, {
         reason: 'Spam.',
@@ -375,7 +376,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('answers an appeal: accepting restores the retired reseña', async () => {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const { review, appeal } = await appealedRetiro(author, { signed: true });
 
     await as(reviewer)
@@ -398,7 +399,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('tells the author the appeal status and answer, never who reviewed it', async () => {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const { review, appeal } = await appealedRetiro(author);
     await as(admin)
       .post(`/moderation/appeals/${appeal.id}/answer`, {
@@ -424,7 +425,7 @@ describe('reviewing appeals (e2e)', () => {
   });
 
   it('lists the account’s own sanciones without who applied them', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     await as(reviewer)
       .post(`/moderation/users/${student.id}/mute`, { reason: 'Spam.' })
       .expect(201);

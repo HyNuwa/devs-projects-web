@@ -4,6 +4,12 @@ import { IsDateString, IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { ModerationEventAction } from '../../../generated/prisma';
 
 export class HistoryQueryDto {
+  /** The admin facultad filter (openspec moderation/scope). */
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  facultyId?: string;
+
   @ApiPropertyOptional({ enum: ModerationEventAction })
   @IsOptional()
   @IsEnum(ModerationEventAction)

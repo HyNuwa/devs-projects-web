@@ -1,22 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+
+import { AuthorLink } from '@/components/public-profile/AuthorLink';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  ArrowLeft,
-  CalendarDays,
-  GraduationCap,
-  LoaderCircle,
-  Share2,
-  UserRound,
-} from 'lucide-react';
+import { ArrowLeft, CalendarDays, GraduationCap, LoaderCircle, Share2 } from 'lucide-react';
 
+import { AnonymousMark } from '@/components/experiences/AnonymousMark';
+import {
+  SameContextSection,
+  SubjectAccordingSection,
+} from '@/components/experiences/DetailExperiencePanels';
+import { WriteExperienceMenu } from '@/components/experiences/WriteExperienceMenu';
 import {
   CommunityFactList,
   formatCommunityDate,
   StarRecommendation,
-} from '@/components/community/CommunitySummaryCards';
+} from '@/components/experiences/facts';
+import { avatarSrc } from '@/components/layout/account';
 import { CommunityEntryManagement } from '@/components/community/CommunityEntryManagement';
 import { ReportDialog } from '@/components/moderation/ReportDialog';
 import { Button, Chip } from '@/components/ui/shadcn';
@@ -94,16 +96,24 @@ function DetailFacts({ detail, kind }: { detail: CommunityDetail; kind: Communit
         ['Profesor o examinador', examiner ? `Tomó: ${examiner}` : null],
         ['Dificultad', experience.difficulty ? difficultyLabel(experience.difficulty) : null],
         ['Resultado', experience.outcome ? examOutcomeLabel(experience.outcome) : null],
+        [
+          'Nota',
+          experience.grade !== null && experience.grade !== undefined
+            ? `Nota: ${experience.grade}`
+            : null,
+        ],
       ]}
     />
   );
 }
 
 function DetailActions({
+  code,
   id,
   kind,
   title,
 }: {
+  code: string | null;
   id: string;
   kind: CommunityDetailKind;
   title: string;
@@ -152,6 +162,13 @@ function DetailActions({
         targetId={id}
         targetType={kind === 'course-review' ? 'COURSE_REVIEW' : 'EXAM_EXPERIENCE'}
       />
+      {code ? (
+        <WriteExperienceMenu code={code} />
+      ) : (
+        <Button asChild variant="outline">
+          <Link href="/experiencias/escribir">Escribir experiencia</Link>
+        </Button>
+      )}
       <p aria-live="polite" className="min-h-5 font-sans text-sm text-muted-foreground">
         {shareFeedback ?? reportFeedback}
       </p>
@@ -194,6 +211,7 @@ function CommunityDetailContent({
   kind: CommunityDetailKind;
 }) {
   const isReview = kind === 'course-review';
+  const sharedKind = isReview ? 'review' : 'exam';
   const review = isReview ? (detail as DiscoveryCourseReviewDetail) : null;
   const listPath = isReview ? '/resenas' : '/finales';
   const sectionLabel = isReview ? 'Reseña de cursada' : 'Experiencia de final';
@@ -242,8 +260,23 @@ function CommunityDetailContent({
 
           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border py-4 font-sans text-sm text-secondary-foreground">
             <span className="inline-flex items-center gap-2">
-              <UserRound aria-hidden="true" className="size-4 text-primary" strokeWidth={1.7} />
-              {detail.author.username || 'Anónimo'}
+              {detail.author.id ? (
+                // eslint-disable-next-line @next/next/no-img-element -- 32px avatar from an arbitrary host or /avatars
+                <img
+                  alt=""
+                  className="size-8 shrink-0 rounded-full border-[1.5px] border-foreground object-cover"
+                  height={32}
+                  src={avatarSrc({
+                    id: detail.author.id,
+                    avatarUrl: detail.author.avatarUrl ?? null,
+                    avatarCat: detail.author.avatarCat,
+                  })}
+                  width={32}
+                />
+              ) : (
+                <AnonymousMark className="size-8 [&_svg]:size-4" />
+              )}
+              <AuthorLink author={detail.author} />
             </span>
             {createdDate ? (
               <span className="inline-flex items-center gap-2">
@@ -279,8 +312,14 @@ function CommunityDetailContent({
           </section>
         </article>
 
-        <DetailActions id={id} kind={kind} title={title} />
+        <div className="grid content-start gap-4">
+          <DetailActions code={detail.subject.code} id={id} kind={kind} title={title} />
+          {detail.subject.code ? (
+            <SubjectAccordingSection code={detail.subject.code} kind={sharedKind} />
+          ) : null}
+        </div>
       </div>
+      <SameContextSection code={detail.subject.code} id={id} kind={sharedKind} />
       <CommunityEntryManagement id={id} kind={kind} subjectHref={detail.subject.href} />
     </section>
   );

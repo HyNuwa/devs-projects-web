@@ -28,7 +28,8 @@
     "test:migration:community-moderation": "tsx prisma/migration-tests/community-moderation.migration-test.ts",
     "test:migration:publication-status": "tsx prisma/migration-tests/publication-status.migration-test.ts",
     "test:migration:moderation-cases": "tsx prisma/migration-tests/moderation-cases.migration-test.ts",
-    "backfill:search-keys": "tsx prisma/backfills/run-search-key-backfill.ts"
+    "backfill:search-keys": "tsx prisma/backfills/run-search-key-backfill.ts",
+    "backfill:rebuild-points": "tsx prisma/backfills/rebuild-points.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

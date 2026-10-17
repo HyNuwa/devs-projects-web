@@ -26,6 +26,7 @@ import {
 import { useAccountRestriction } from '@/hooks/useAccountRestriction';
 import { AppealForm, AppealOutcome } from './AppealForm';
 import { MySanctions } from './MySanctions';
+import { MyCorrectionSuggestions } from '@/components/corrections/MyCorrectionSuggestions';
 
 const STATUS: Record<
   PublicationStatus,
@@ -260,6 +261,8 @@ export function MySubmissions() {
             Lo que compartiste se publica al instante. Acá ves qué pasó con cada aporte.
           </p>
         </div>
+
+        <MyCorrectionSuggestions />
 
         {state.status === 'loading' ? <LoadingState heading="Cargando tus envíos" /> : null}
         {state.status === 'error' ? (

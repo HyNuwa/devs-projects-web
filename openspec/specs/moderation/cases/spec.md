@@ -94,22 +94,22 @@ A moderator SHALL NOT decide a caso about their own content, a caso in which the
 - **THEN** the decision controls are unavailable and a decision request is refused
 
 ### Requirement: Points follow publication
-A contribution's existing points (10 for a material, 5 for a reseña de cursada or an experiencia de final) SHALL be awarded when it becomes `Publicado` (on submission or on approval of a revisión previa), reverted when it becomes `Retirado`, and awarded again when it is restored. Ocultamiento preventivo and revisión previa SHALL NOT award or deduct points. A contribution SHALL never hold more than one active award. Moderation decisions about an anonymous reseña or experiencia (retiro, restoration, approval of a revisión previa, an accepted appeal of its retiro) SHALL NOT award or deduct points: the author's public points would change with the decision and name them. How much each contribution earns, and whether anonymous entries earn points when published, belongs to the points change.
+A contribution's points SHALL be awarded when it becomes `Publicado` (on submission or on approval of a revisión previa), reverted when it becomes `Retirado`, and awarded again when it is restored or its retiro is overturned on appeal. Ocultamiento preventivo and revisión previa SHALL NOT award or deduct points. A contribution SHALL never hold more than one active award. Anonymous reseñas and experiencias earn no points, so moderation decisions about them SHALL NOT award or deduct points to their author. Amounts, caps, the «Me sirvió» and reporte points that follow these states, and the sanction freeze belong to `reputation/points`.
 
 #### Scenario: Material published on upload
 - **WHEN** a material is published immediately
 - **THEN** its author receives 10 points once
 
 #### Scenario: Reseña waiting for revisión previa
-- **WHEN** a reseña enters `En revisión previa`
+- **WHEN** a signed reseña enters `En revisión previa`
 - **THEN** no points are awarded until a moderator approves it, and then 5 points are awarded once
 
 #### Scenario: Retire and restore
 - **WHEN** a published material is retired and later restored
-- **THEN** its author's net points from that material are 10, not 20 and not 0
+- **THEN** its author's net points from publishing it are 10, not 20 and not 0
 
 #### Scenario: Retiro of an anonymous reseña
-- **WHEN** a moderator retires an anonymous reseña that earned 5 points, and later it is restored
+- **WHEN** a moderator retires an anonymous reseña, and later it is restored
 - **THEN** its author's points, level and account row are the same before the retiro, after it and after the restoration
 
 ### Requirement: Revelación de autor
@@ -136,8 +136,9 @@ Every moderation action SHALL be recorded in one append-only history. That inclu
 - sanciones and their lifting
 - suspension proposals and their confirmation or rejection
 - appeals and their answers
+- role changes and changes to a moderator's facultades
 
-Each record SHALL hold who acted (a person or the system), the action, the target, the date and the reason. No user, including SUPERADMIN, SHALL be able to edit or delete a record through the product. Moderators SHALL be able to filter the history by action, actor, content and date. For MODERATOR, events about an account that came from a caso about anonymous content SHALL NOT be listed, with any filter. These are sanción events (advertencia, silenciamiento, suspensión, lifting, suspension proposal and its rejection) and appeals of those sanciones with their answers. Showing them would let a moderator match their reason, text and time with the account, and their mere existence would tell: «Advertir también» skips staff authors silently, so an advertencia row would say the hidden author is not staff. For MODERATOR, appeals of a retiro of anonymous content and their answers SHALL NOT show the reason either, as the read-only appeal does not show what the appellant wrote. ADMIN and SUPERADMIN SHALL see everything.
+Each record SHALL hold who acted (a person or the system), the action, the target, the date and the reason. No user, including SUPERADMIN, SHALL be able to edit or delete a record through the product. Moderators SHALL be able to filter the history by action, actor, content and date. For MODERATOR, events about an account that came from a caso about anonymous content SHALL NOT be listed, with any filter. These are sanción events (advertencia, silenciamiento, suspensión, lifting, suspension proposal and its rejection) and appeals of those sanciones with their answers. Showing them would let a moderator match their reason, text and time with the account, and their mere existence would tell: «Advertir también» skips staff authors silently, so an advertencia row would say the hidden author is not staff. For MODERATOR, appeals of a retiro of anonymous content and their answers SHALL NOT show the reason either, as the read-only appeal does not show what the appellant wrote. For MODERATOR, the history SHALL list only events about content of their facultades and about accounts they can see (see moderation/scope), and SHALL NOT list role changes or changes to anyone's facultades. ADMIN and SUPERADMIN SHALL see everything.
 
 #### Scenario: Automatic hiding appears in history
 - **WHEN** the system hides content after three reportes
@@ -163,20 +164,24 @@ Each record SHALL hold who acted (a person or the system), the action, the targe
 - **WHEN** any client requests to update or delete a history record
 - **THEN** no such operation exists and the record is unchanged
 
-### Requirement: Moderation panel
-The moderation panel SHALL be available only to MODERATOR, ADMIN and SUPERADMIN, and SHALL offer the Casos, Usuarios, Apelaciones and Historial tabs.
+#### Scenario: Event of another facultad
+- **WHEN** a moderator covering FI-UNJU opens the history after a retiro in another facultad
+- **THEN** that retiro is not listed, and an admin sees it
 
-Casos SHALL list open work in these groups, in this order:
+### Requirement: Moderation panel
+The moderation panel SHALL be available only to MODERATOR, ADMIN and SUPERADMIN, and SHALL offer the Casos, Correcciones, Usuarios, Apelaciones and Historial tabs. Correcciones lists the correction suggestions that their authors did not decide within 7 days (see academic-resources/corrections).
+
+Every tab SHALL show only the work and accounts within the viewer's alcance de moderación (see moderation/scope). Casos SHALL list open work in these groups, in this order:
 1. Vencidos: casos past their response time, meaning 48 hours for hidden content and 7 days for everything else, most overdue first.
 2. Ocultos preventivamente.
 3. Revisión previa.
 4. Reportados.
 
-Outside Vencidos, each group SHALL be ordered by urgency: hidden first, then high-priority casos, then by number of reportes, then oldest first.
+Outside Vencidos, each group SHALL be ordered by urgency: hidden first, then high-priority casos, then casos with a priority reporte (see reputation/trust-privileges), then by number of reportes, then oldest first.
 
 For each caso, Casos SHALL show the content preview, its reportes with reasons, the author (or «Autor oculto» with «Ver autor»), previous casos, and the decision controls with the required reason. J and K SHALL move to the next and previous caso. V and R SHALL open the «Mantener visible» and «Retirar» actions with focus on the reason field, and SHALL NOT decide on their own.
 
-ADMIN and SUPERADMIN SHALL see a notice in the panel with the number of overdue casos and a link to them. The panel tabs SHALL show counts of pending casos and appeals.
+ADMIN and SUPERADMIN SHALL see a notice in the panel with the number of overdue casos and a link to them. The panel tabs SHALL show counts of pending casos, corrections and appeals.
 
 #### Scenario: Moderator works the queue with the keyboard
 - **WHEN** a moderator presses J on the Casos list
@@ -188,8 +193,16 @@ ADMIN and SUPERADMIN SHALL see a notice in the panel with the number of overdue 
 
 #### Scenario: Panel tabs
 - **WHEN** a moderator opens the panel
-- **THEN** it shows the Casos, Usuarios, Apelaciones and Historial tabs
+- **THEN** it shows the Casos, Correcciones, Usuarios, Apelaciones and Historial tabs
 
 #### Scenario: Overdue caso
 - **WHEN** a caso of hidden content has been open for more than 48 hours
 - **THEN** it appears in Vencidos at the top of Casos, and admins see the overdue count in the panel
+
+#### Scenario: Priority reporte
+- **WHEN** two reported casos have one reporte each, and one of those reportes is priority
+- **THEN** the caso with the priority reporte comes first in Reportados, after any high-priority caso
+
+#### Scenario: Counts follow the facultades
+- **WHEN** a moderator covering FI-UNJU opens the panel while another facultad has three open casos
+- **THEN** those casos appear neither in Casos nor in the tab counts

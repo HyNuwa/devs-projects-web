@@ -5,6 +5,11 @@ import * as bcrypt from 'bcrypt';
 import { normalizeSearchKey } from '../src/common/search/search-key';
 import { seedModeration } from './seed-moderation';
 import { seedSanctions } from './seed-sanctions';
+import { rebuildPoints } from '../src/modules/ranking/rebuild-points';
+import {
+  FI_UNJU_FACULTY_ID,
+  UNJU_UNIVERSITY_ID,
+} from '../src/modules/institutions/institutions.constants';
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -44,8 +49,8 @@ async function main() {
   await prisma.subject.deleteMany();
   await prisma.professor.deleteMany();
   await prisma.career.deleteMany();
+  // The insignia catalog belongs to the migrations; only holders are reset.
   await prisma.userBadge.deleteMany();
-  await prisma.badge.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.emailVerification.deleteMany();
   await prisma.passwordResetRequest.deleteMany();
@@ -92,33 +97,33 @@ async function main() {
     `Usuarios creados: ${adminUser.username}, ${moderatorUser.username}, ${normalUser.username}`,
   );
 
-  // Puntos y niveles RPG de los usuarios demo
-  const pointSeeds = [
-    { user: adminUser, points: 5000, level: 8 },
-    { user: moderatorUser, points: 1500, level: 6 },
-    { user: normalUser, points: 100, level: 2 },
-  ];
-
-  for (const { user, points, level } of pointSeeds) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { points, level },
-    });
-
-    await prisma.pointTransaction.create({
-      data: {
-        userId: user.id,
-        amount: points,
-        reason: 'SEED',
-      },
-    });
-  }
-
-  console.log('Puntos y niveles de usuarios demo configurados');
+  // Universidad y facultad: la migración `institutions` ya las crea; el upsert
+  // las repone si alguien las borró a mano.
+  await prisma.university.upsert({
+    where: { id: UNJU_UNIVERSITY_ID },
+    update: {},
+    create: {
+      id: UNJU_UNIVERSITY_ID,
+      name: 'Universidad Nacional de Jujuy',
+      shortName: 'UNJU',
+    },
+  });
+  await prisma.faculty.upsert({
+    where: { id: FI_UNJU_FACULTY_ID },
+    update: {},
+    create: {
+      id: FI_UNJU_FACULTY_ID,
+      universityId: UNJU_UNIVERSITY_ID,
+      name: 'Facultad de Ingeniería',
+      shortName: 'FI',
+    },
+  });
 
   // Carrera
   const career = await prisma.career.create({
     data: {
+      status: 'PUBLISHED',
+      facultyId: FI_UNJU_FACULTY_ID,
       name: 'Ingeniería Informática',
       code: 'II',
     },
@@ -461,6 +466,7 @@ async function main() {
   for (const s of subjectsData) {
     const subject = await prisma.subject.create({
       data: {
+        facultyId: FI_UNJU_FACULTY_ID,
         code: s.code,
         name: s.name,
         searchKey: normalizeSearchKey(s.name, s.code),
@@ -524,6 +530,25 @@ async function main() {
     await hash('DemoPass123!'),
   );
   console.log('Creados datos de demo de sanciones y apelaciones');
+
+  // Demo moderators cover FI-UNJU, as the alcance-por-facultad migration did
+  // for the moderators that existed then (openspec moderation/scope).
+  const moderators = await prisma.user.findMany({
+    where: { role: Role.MODERATOR },
+    select: { id: true },
+  });
+  await prisma.moderatorScope.createMany({
+    data: moderators.map((moderator) => ({
+      userId: moderator.id,
+      facultyId: FI_UNJU_FACULTY_ID,
+    })),
+    skipDuplicates: true,
+  });
+
+  // Points come only from the demo content, through the ledger's rules
+  // (openspec reputation/points), so every total equals its movimientos.
+  await rebuildPoints(prisma, { apply: true });
+  console.log('Puntos de las cuentas demo calculados con el libro de puntos');
 }
 
 main()

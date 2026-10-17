@@ -7,8 +7,11 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { PlanReadingModule } from './modules/plan-reading/plan-reading.module';
 import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { GuidesModule } from './modules/guides/guides.module';
+import { InstitutionsModule } from './modules/institutions/institutions.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MaterialsModule } from './modules/materials/materials.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
@@ -17,6 +20,8 @@ import { RateLimitModule } from './modules/rate-limit/rate-limit.module';
 import { RankingModule } from './modules/ranking/ranking.module';
 import { SubjectsModule } from './modules/subjects/subjects.module';
 import { SubmissionsModule } from './modules/submissions/submissions.module';
+import { CorrectionsModule } from './modules/corrections/corrections.module';
+import { TrustModule } from './modules/trust/trust.module';
 import { UsersModule } from './modules/users/users.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
@@ -73,6 +78,9 @@ import { validate } from './config/env.validation';
     AdminModule,
     DiscoveryModule,
     GuidesModule,
+    InstitutionsModule,
+    CatalogModule,
+    PlanReadingModule,
     MailModule,
     MaterialsModule,
     ModerationModule,
@@ -81,6 +89,8 @@ import { validate } from './config/env.validation';
     RankingModule,
     SubjectsModule,
     SubmissionsModule,
+    TrustModule,
+    CorrectionsModule,
     UsersModule,
   ],
   controllers: [AppController],

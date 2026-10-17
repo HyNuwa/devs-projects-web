@@ -2,11 +2,49 @@
 
 DevsProject helps FI-UNJU students discover and judge academic resources in the context of a materia and a specific cursada, and also serve a tool for students to share their knowledge/resources and experiences with each other.
 
+It starts at FI-UNJU with the goal of adding other facultades and universidades (ADR 0002).
+
 ## Language
 
+**Universidad**:
+An institution that groups one or more facultades.
+_Avoid_: Institution (when you mean a facultad), campus
+
+**Facultad**:
+An academic unit of a universidad that offers carreras. Two universidades may each have a facultad with the same name; they are different facultades. A student belongs to a facultad only through their carreras and may belong to more than one.
+_Avoid_: Department, school
+
+**Carrera**:
+A degree program of one facultad, made of materias arranged by año and cuatrimestre, plus its optativas. A student declares the carreras they study or finished; the platform does not track curriculum versions.
+_Avoid_: Plan de estudios, study plan, curriculum
+
+**Catálogo**:
+The universidades, facultades, carreras and materias the platform knows. Only admins change it.
+_Avoid_: Directory, institution list
+
+**Carrera en borrador**:
+A carrera still being loaded into the catálogo. It is not shown in browsing and nobody can declare it until an admin publishes it.
+_Avoid_: Hidden carrera, pending carrera
+
+**Lectura del plan**:
+A proposal of materias for a carrera en borrador that AI builds from the carrera's official plan. An admin reviews it in the carga masiva; it never changes the catálogo by itself.
+_Avoid_: Bot, scraping, automatic import
+
+**Solicitud de carrera**:
+A signed-in student's request to add a carrera to the catálogo, with the link to its official plan. It may name a facultad or universidad the catálogo does not have yet. An admin resolves it.
+_Avoid_: Corrección, suggestion, pedido
+
 **Materia**:
-An academic unit in the FI-UNJU study plan and the primary organizing context for resources, reviews, exam experiences, and professors.
+An academic unit taught in one or more carreras of one facultad, and the primary organizing context for resources, reviews, exam experiences, and professors. A materia with the same name in two facultades is two different materias.
 _Avoid_: Course, subject hub
+
+**Optativa**:
+A materia a carrera lists for students to choose, with no año or cuatrimestre of its own; a student takes it once they pass its correlativas. The same materia can be an optativa in one carrera and have an año in another. A slot in the plan such as «Optativa I» is not a materia.
+_Avoid_: Electiva, elective
+
+**Ubicación**:
+The universidad and facultad a person is browsing from: the facultad of their carrera when signed in, or the one a visitor chose on their device. It sets where search and rankings start, and never hides content.
+_Avoid_: Campus, location filter
 
 **Recurso académico**:
 A student-contributed file intended to support studying or preparing for an assessment in a materia.
@@ -24,13 +62,17 @@ _Avoid_: Curriculum year, upload year
 The available academic circumstances for a recurso académico or reseña de cursada: materia, ciclo lectivo, professor, franja horaria, and—when applicable—situación de cursada. Some circumstances may be unknown without invalidating the record.
 _Avoid_: Course match, commission
 
+**Experiencia**:
+The umbrella term for a reseña de cursada or an experiencia de final: it names the Experiencias section, its counts («58 experiencias») and the action «Escribir experiencia». Alone it never means a final; that is always «experiencia de final».
+_Avoid_: Experiencia de final (as shorthand), review, post, testimonio
+
 **Reseña de cursada**:
 An authored account of one concrete cursada of a materia. Multiple reviews by the same student remain independent when they describe distinct cursadas, including within the same ciclo lectivo.
 _Avoid_: Experiencia de final, professor review, merged student rating
 
 **Experiencia de final**:
 An authored account of one concrete final-exam attempt for a materia. A student may publish multiple attempts without replacing earlier experiences.
-_Avoid_: Reseña de cursada, final resource, exam rating
+_Avoid_: Reseña de cursada, Experiencia (bare), final resource, exam rating
 
 **Franja horaria**:
 The optional time band in which a cursada or final took place: mañana, tarde, or noche. It does not describe whether the student was recursing the materia.
@@ -52,9 +94,25 @@ _Avoid_: Franja horaria, turno de mañana/tarde/noche
 An optional verbal assessment attached to one cursada or final experience: muy baja, baja, media, alta, or muy alta. It remains separate from course recommendation stars and exam outcome.
 _Avoid_: Star rating, professor score, pass probability
 
+**Mismo contexto**:
+The other experiencias of the same materia that share the context facts an entry declared, in any ciclo lectivo: professor and franja horaria for a reseña de cursada, período de examen and formato for an experiencia de final. An entry that declared none of them has no mismo contexto.
+_Avoid_: Similar reviews, recommendations, related posts
+
+**Materias más comentadas**:
+The up to six materias of a facultad, optionally narrowed to one carrera, one año and one type, with the most experiencias published in the last 120 days, at least three each, ties broken by total count; only when none qualifies does it fall back to all-time totals. It measures recent activity, not quality.
+_Avoid_: Trending, popular, best subjects, ranking de materias
+
+**Mínimo de muestra**:
+The smallest count behind a public summary figure: percentages and the average grade need five answers, most-chosen values and the theory and practice averages need three, and below that the interface shows counts. The recomendación promedio keeps showing from one review, always with its count.
+_Avoid_: Statistical significance, confidence
+
 **Publicación anónima**:
-A per-entry presentation choice that replaces the public author with “Anónimo” while preserving authenticated ownership for the author and authorized moderators. Moderators do not see the author by default: revealing it requires a stated reason and is logged. Anonymous entries earn no public points or badges.
+A per-entry presentation choice that replaces the public author with “Anónimo” while preserving authenticated ownership for the author and authorized moderators. Moderators do not see the author by default: revealing it requires a stated reason and is logged. It is chosen when publishing and cannot be changed by editing, so no later change in points can point at the author. Anonymous entries earn no points or badges.
 _Avoid_: Unowned content, anonymous account, unverifiable record
+
+**Marca de anónimo**:
+The single image shown in place of an avatar on every entry published as Anónimo. It is the same for all anonymous entries and is not one of the user avatars, so it links nothing to anyone.
+_Avoid_: Anonymous avatar, random cat, alias
 
 **Publicación inmediata**:
 The default rule for all contributed content (recursos académicos, reseñas de cursada, experiencias de final, eventos and avisos de Clasificados): it becomes public as soon as it passes automatic checks, and moderation acts afterwards through reportes. It does not assert academic correctness or contextual accuracy. See ADR 0001.
@@ -104,6 +162,10 @@ _Avoid_: Automatic sanction, penalty level
 A single request, within 14 days, that a different moderator review a decision. Its answer is final and always has a written reason.
 _Avoid_: Complaint, second report
 
+**Alcance de moderación**:
+The facultades a moderator covers, assigned by an admin. A moderator acts only on casos whose publication belongs to a materia of those facultades; a moderator without facultades sees no casos. Admins cover every facultad, and casos about publications without a facultad go only to admins.
+_Avoid_: Jurisdiction, moderator region
+
 **Organizador verificado**:
 A student group, chair or institutional office whose identity an admin confirmed, so its members can publish eventos in its name with a visible backing label. Other eventos show that the community published them.
 _Avoid_: Official event, approved event
@@ -111,3 +173,68 @@ _Avoid_: Official event, approved event
 **Señal de utilidad**:
 A student's indication that a recurso académico helped them, presented in the interface as “Me sirvió.” It reflects usefulness, not academic correctness.
 _Avoid_: Verification, trust score, star rating
+
+**Puntos**:
+A student's reputation for helping others, earned by contributions that get published and by «Me sirvió» other students give them. Points are never spent and never change how content is shown or ranked. Their total is always the exact sum of the account's movimientos de puntos, even when that sum is negative; it is shown as 0 at least.
+_Avoid_: Currency, credits, karma, score of a contribution
+
+**Movimiento de puntos**:
+One recorded change in an account's points, with a fixed reason (material publicado, «Me sirvió» recibido, reporte confirmado, …), the contribution it refers to, and its amount. A reversal is a new movimiento with the negative amount that points at the one it reverses; movimientos are never edited or deleted.
+_Avoid_: Balance update, point edit
+
+**«Me sirvió» válido**:
+A señal de utilidad that counts for points and badges: given by an account with a verified email and no active sanción, not by the material's author, on a material that is published. Caps limit the points it can award, never whether it counts for badges.
+_Avoid_: Vote, like
+
+**Nivel**:
+A named stage of an account's progress («Primeros pasos» to «Leyenda de la facultad»), computed from its current points. The profile always shows the current nivel.
+_Avoid_: Rank, tier (tiers belong to badges)
+
+**Buena posición**:
+An account with no active sanción and 90 days since its last silenciamiento, suspensión or retiro por normas ended, anonymous content included. Advertencias and anything voided on appeal or restored do not count; a permanent suspensión never clears. Every privilegio de confianza requires it.
+_Avoid_: Clean record, trust score
+
+**Privilegio de confianza**:
+A permission that comes from a student's nivel máximo alcanzado or their record and requires buena posición: suggesting corrections, priority reportes, and being eligible to moderate (seen only by admins).
+_Avoid_: Perk, reward
+
+**Corrección**:
+A proposal to fix one classification field of someone else's material (materia, tipo, ciclo lectivo or profesor), never its title, description or file. The material's author decides first; after 7 days without an answer, moderation does. Its author never sees who suggested it.
+_Avoid_: Edit, suggestion (alone)
+
+**Nivel máximo alcanzado**:
+The highest nivel an account has ever reached. It never goes down, not even when points drop or a sanción applies, and it is what decides which personalization options are unlocked.
+_Avoid_: Current nivel, peak points
+
+
+**Perfil público**:
+The page anyone can open about a student: name, avatar, nivel, insignias, personalización, aportes fijados and their signed contributions. Anonymous entries never appear on it or link to it. A student can hide their nivel and insignias from it, which also keeps them out of every ranking.
+_Avoid_: Account page, Mi perfil (that is where the student edits it)
+
+**Personalización del perfil**:
+The predefined cosmetic choices a student makes for their perfil público (avatar, accent color, background, frame, banner, theme, título), each unlocked by nivel máximo alcanzado or by an insignia. It is never uploaded by the student, never needs moderation, and never shows on contribution cards. A sanción does not hide it, because hiding it would reveal the sanción.
+_Avoid_: Reward, purchase, skin
+
+**Título**:
+An insignia the student picks to show under their name on the perfil público. It disappears on its own if the insignia is lost.
+_Avoid_: Rank, nivel name
+
+**Insignia destacada**:
+One of up to three insignias a student chooses to show first on their perfil público.
+_Avoid_: Pinned badge
+
+**Aporte fijado**:
+One of up to three of the student's own published contributions shown first on their perfil público: a recurso académico, or a reseña de cursada or experiencia de final published with their name. It disappears on its own if the contribution is retired or deleted.
+_Avoid_: Featured content, highlighted post
+
+**Insignia**:
+A recognition of a concrete, verifiable achievement (a material that helped 50 students, reseñas in 5 materias), shown as a gem. Insignias award no points, never count anonymous entries, and are lost or lowered when the contributions behind them are retired or deleted. Some have grados; seasonal ones are earned once per edición.
+_Avoid_: Achievement, trophy, medal
+
+**Grado**:
+The level of an insignia that can grow (bronce, plata, oro). Reaching a higher grado updates the same insignia; it never adds another.
+_Avoid_: Tier when talking to students, nivel (that belongs to points)
+
+**Edición**:
+The dated occurrence of a seasonal insignia, such as «Mesa de diciembre 2026». Each edición is earned on its own.
+_Avoid_: Version, season number

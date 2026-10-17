@@ -7,7 +7,8 @@ import { Test } from '@nestjs/testing';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { ReportPoints } from '../ranking/report-points';
 import { DecisionsService } from './decisions.service';
 import { SanctionsService } from './sanctions.service';
 
@@ -31,7 +32,11 @@ describe('DecisionsService.decide', () => {
   let service: DecisionsService;
 
   const prisma = {
+    moderatorScope: {
+      findMany: jest.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
     moderationCase: {
+      count: jest.fn().mockResolvedValue(1),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       update: jest.fn(),
@@ -39,13 +44,17 @@ describe('DecisionsService.decide', () => {
     },
     report: { updateMany: jest.fn() },
     moderationEvent: { create: jest.fn() },
+    correctionSuggestion: {
+      findMany: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn(),
+    },
     material: { findUnique: jest.fn(), updateMany: jest.fn() },
     courseReview: { findUnique: jest.fn(), updateMany: jest.fn() },
     examExperience: { findUnique: jest.fn(), updateMany: jest.fn() },
     subject: { update: jest.fn() },
     $transaction: jest.fn(),
   };
-  const points = { awardFor: jest.fn(), revertFor: jest.fn() };
+  const points = { published: jest.fn(), withdrawn: jest.fn() };
   const materials = { publishStagedFile: jest.fn() };
 
   const material = (publicationStatus: string) => ({
@@ -110,7 +119,15 @@ describe('DecisionsService.decide', () => {
       providers: [
         DecisionsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: points },
+        {
+          provide: ReportPoints,
+          useValue: {
+            confirmed: jest.fn(),
+            unconfirmed: jest.fn(),
+            lockParticipants: jest.fn(),
+          },
+        },
+        { provide: ContributionPoints, useValue: points },
         { provide: MaterialsService, useValue: materials },
         { provide: SanctionsService, useValue: { warn: jest.fn() } },
       ],
@@ -160,7 +177,7 @@ describe('DecisionsService.decide', () => {
         caseId: 'case-1',
       }),
     });
-    expect(points.revertFor).not.toHaveBeenCalled();
+    expect(points.withdrawn).not.toHaveBeenCalled();
   });
 
   it('retires a reseña with an author-facing reason, confirms reportes and reverts its points', async () => {
@@ -191,7 +208,10 @@ describe('DecisionsService.decide', () => {
       where: { caseId: 'case-2', status: 'OPEN' },
       data: { status: 'CONFIRMED', resolvedAt: NOW },
     });
-    expect(points.revertFor).toHaveBeenCalledWith(prisma, 'rev-1');
+    expect(points.withdrawn).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({ type: 'COURSE_REVIEW', id: 'rev-1' }),
+    );
     expect(prisma.moderationEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: 'REMOVED',
@@ -218,8 +238,12 @@ describe('DecisionsService.decide', () => {
     });
 
     expect(prisma.courseReview.updateMany).toHaveBeenCalled();
-    expect(points.revertFor).not.toHaveBeenCalled();
-    expect(points.awardFor).not.toHaveBeenCalled();
+    // ContributionPoints never moves points for anonymous content.
+    expect(points.withdrawn).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({ id: 'rev-1', isAnonymous: true }),
+    );
+    expect(points.published).not.toHaveBeenCalled();
   });
 
   it('removes a retired material from its materia count', async () => {
@@ -267,11 +291,11 @@ describe('DecisionsService.decide', () => {
     });
 
     expect(result.status).toBe('PUBLISHED');
-    expect(points.awardFor).toHaveBeenCalledWith(prisma, {
-      userId: 'author-1',
-      amount: 10,
-      reason: 'MATERIAL_PUBLISHED',
-      referenceId: 'mat-1',
+    expect(points.published).toHaveBeenCalledWith(prisma, {
+      type: 'MATERIAL',
+      id: 'mat-1',
+      authorId: 'author-1',
+      isAnonymous: false,
     });
     expect(prisma.subject.update).toHaveBeenCalledWith({
       where: { id: 'sub-1' },
@@ -302,12 +326,12 @@ describe('DecisionsService.decide', () => {
         stagedFilePath: null,
       }),
     });
-    expect(points.awardFor).toHaveBeenCalledWith(
+    expect(points.published).toHaveBeenCalledWith(
       prisma,
       expect.objectContaining({
-        userId: 'author-1',
-        amount: 10,
-        referenceId: 'mat-1',
+        type: 'MATERIAL',
+        id: 'mat-1',
+        authorId: 'author-1',
       }),
     );
     expect(prisma.moderationEvent.create).toHaveBeenCalledWith({
@@ -332,7 +356,7 @@ describe('DecisionsService.decide', () => {
       }),
     });
     expect(materials.publishStagedFile).not.toHaveBeenCalled();
-    expect(points.awardFor).not.toHaveBeenCalled();
+    expect(points.published).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -386,7 +410,7 @@ describe('DecisionsService.decide', () => {
           reason: 'Datos personales',
         }),
       ).rejects.toBeInstanceOf(ConflictException);
-      expect(points.revertFor).not.toHaveBeenCalled();
+      expect(points.withdrawn).not.toHaveBeenCalled();
       expect(prisma.moderationEvent.create).not.toHaveBeenCalled();
     });
 
@@ -405,7 +429,7 @@ describe('DecisionsService.decide', () => {
         where: { id: 'mat-1', publicationStatus: 'REMOVED' },
         data: expect.objectContaining({ publicationStatus: 'PUBLISHED' }),
       });
-      expect(points.awardFor).not.toHaveBeenCalled();
+      expect(points.published).not.toHaveBeenCalled();
     });
   });
 
@@ -426,6 +450,6 @@ describe('DecisionsService.decide', () => {
         orderBy: [{ openedAt: 'desc' }, { id: 'desc' }],
       }),
     );
-    expect(points.awardFor).not.toHaveBeenCalled();
+    expect(points.published).not.toHaveBeenCalled();
   });
 });

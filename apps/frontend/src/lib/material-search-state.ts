@@ -9,6 +9,9 @@ const uuidSchema = z.string().uuid();
 
 export type MaterialSearchSort = (typeof materialDiscoverySorts)[number];
 
+/** Searching every facultad, chosen on purpose over the ubicación. */
+export const FACULTAD_TODAS = 'todas';
+
 export interface MaterialSearchState {
   q: string;
   subjectId?: string;
@@ -18,6 +21,8 @@ export interface MaterialSearchState {
   sort: MaterialSearchSort;
   page: number;
   scope?: 'all';
+  /** A facultad id, or «todas» (openspec academic-structure/browsing). */
+  facultad?: string;
 }
 
 function readFirst(source: URLSearchParams, key: string): string | undefined {
@@ -70,6 +75,10 @@ export function parseMaterialSearchState(source: URLSearchParams): MaterialSearc
     sort: parseEnum(readFirst(source, 'sort'), materialDiscoverySorts) ?? 'RELEVANCE',
     page: parseInteger(readFirst(source, 'page'), 1, Number.MAX_SAFE_INTEGER) ?? 1,
     scope: readFirst(source, 'scope') === 'all' ? 'all' : undefined,
+    facultad:
+      readFirst(source, 'facultad') === FACULTAD_TODAS
+        ? FACULTAD_TODAS
+        : parseUuid(readFirst(source, 'facultad')),
   };
 }
 
@@ -84,6 +93,7 @@ export function serializeMaterialSearchState(state: MaterialSearchState): URLSea
   if (state.sort !== 'RELEVANCE') params.set('sort', state.sort);
   if (state.page > 1) params.set('page', String(state.page));
   if (state.scope === 'all') params.set('scope', 'all');
+  if (state.facultad) params.set('facultad', state.facultad);
 
   return params;
 }

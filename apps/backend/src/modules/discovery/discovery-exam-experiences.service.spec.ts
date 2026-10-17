@@ -22,6 +22,7 @@ describe('DiscoveryService exam-experience discovery', () => {
     examinerName: null,
     difficulty: null,
     outcome: null,
+    grade: null,
     comment:
       'El examen tuvo ejercicios similares a los vistos durante la cursada.',
     isAnonymous: false,
@@ -84,7 +85,7 @@ describe('DiscoveryService exam-experience discovery', () => {
     expect(prisma.examExperience.count).toHaveBeenCalledWith({ where });
   });
 
-  it('protege anonimato y omite hechos opcionales desconocidos sin seleccionar la nota', async () => {
+  it('protege anonimato y omite hechos opcionales desconocidos, incluida la nota', async () => {
     prisma.examExperience.findMany.mockResolvedValue([
       { ...experience, isAnonymous: true, user: { username: 'privado' } },
     ]);
@@ -101,7 +102,7 @@ describe('DiscoveryService exam-experience discovery', () => {
     expect(result.data[0]).not.toHaveProperty('outcome');
     expect(
       prisma.examExperience.findMany.mock.calls[0][0].select,
-    ).not.toHaveProperty('grade');
+    ).toHaveProperty('grade', true);
   });
 
   it('mantiene un presupuesto fijo para una página de múltiples finales', async () => {
@@ -120,7 +121,7 @@ describe('DiscoveryService exam-experience discovery', () => {
     expect(prisma.examExperience.findFirst).not.toHaveBeenCalled();
   });
 
-  it('expone el detalle visible sin nota ni identidad privada', async () => {
+  it('expone el detalle visible sin nota no declarada ni identidad privada', async () => {
     prisma.examExperience.findFirst.mockResolvedValue({
       ...experience,
       isAnonymous: true,

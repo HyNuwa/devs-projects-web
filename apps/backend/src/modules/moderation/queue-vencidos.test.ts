@@ -11,6 +11,7 @@ const item = (overrides: Partial<QueueItem>): QueueItem => ({
   targetStatus: 'PUBLISHED',
   reportCount: 1,
   highPriority: false,
+  priorityReport: false,
   openedAt: hoursAgo(1),
   hiddenAt: null,
   overdueHidden: false,

@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { assertAccountInScope } from './scope';
 
 import type {
   ModerationEventAction,
@@ -146,6 +147,9 @@ export class SanctionsService {
 
     const run = async (tx: Tx) => {
       const now = new Date();
+      // «Advertir también» comes from a caso already in scope, and its author
+      // may be anonymous: only Usuarios actions check the account's visibility.
+      if (!options.decidingCase) await assertAccountInScope(tx, actor, userId);
       await lockAccount(tx, userId);
       const target = await this.loadTarget(tx, userId);
       const source = options.caseId
@@ -208,6 +212,7 @@ export class SanctionsService {
     const reason = requireReason(rawReason);
     return this.prisma.$transaction(async (tx) => {
       const now = new Date();
+      await assertAccountInScope(tx, actor, userId);
       await lockAccount(tx, userId);
       const target = await this.loadTarget(tx, userId);
       assertAllowed(

@@ -17,6 +17,16 @@ export function mailError(err: unknown) {
   return { name, code, responseCode };
 }
 
+/** Text written by people (carrera names, reasons) goes into the HTML escaped. */
+export function escapeHtml(text: string) {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -105,6 +115,47 @@ export class MailService {
         <p>Hacé clic en el siguiente enlace para restablecer tu contraseña:</p>
         <p><a href="${link}">${link}</a></p>
         <p>Este enlace expira en 1 hora. Si no solicitaste el cambio, ignorá este mensaje.</p>
+      `,
+    );
+  }
+
+  /** A solicitud de carrera was rejected (openspec academic-structure/career-requests). */
+  async sendCareerRequestRejected(
+    to: string,
+    username: string,
+    careerName: string,
+    reason: string,
+  ) {
+    const link = `${this.frontendUrl}/profile/me#mis-solicitudes`;
+    await this.send(
+      to,
+      'Tu solicitud de carrera - DEVs Project',
+      `
+        <h1>Hola, ${escapeHtml(username)}</h1>
+        <p>No vamos a sumar «${escapeHtml(careerName)}» por ahora. El motivo:</p>
+        <blockquote>${escapeHtml(reason)}</blockquote>
+        <p>Podés ver tus solicitudes en <a href="${link}">Mis solicitudes</a>.</p>
+      `,
+    );
+  }
+
+  /** The carrera of a solicitud is now public; `careerPath` starts with /universidades. */
+  async sendCareerPublished(
+    to: string,
+    username: string,
+    careerName: string,
+    careerPath: string,
+  ) {
+    const career = `${this.frontendUrl}${careerPath}`;
+    const declare = `${this.frontendUrl}/profile/me#mi-carrera`;
+    await this.send(
+      to,
+      `Ya está ${careerName} en DEVs Project`,
+      `
+        <h1>Hola, ${escapeHtml(username)}</h1>
+        <p>Cargamos «${escapeHtml(careerName)}», la carrera que pediste.</p>
+        <p><a href="${career}">Ver la carrera</a></p>
+        <p>Si la cursás, declarala en <a href="${declare}">Mi carrera</a>.</p>
       `,
     );
   }

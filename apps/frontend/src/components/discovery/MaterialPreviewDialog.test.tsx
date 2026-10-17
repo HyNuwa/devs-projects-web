@@ -21,6 +21,11 @@ vi.mock('next/navigation', () => ({
   useRouter: () => navigation,
 }));
 vi.mock('@/lib/discovery-client', () => ({ getPublicMaterial: vi.fn() }));
+vi.mock('@/components/corrections/SuggestCorrectionDialog', () => ({
+  SuggestCorrectionDialog: ({ authorId }: { authorId: string }) => (
+    <span data-testid="suggest-correction" data-author={authorId} />
+  ),
+}));
 vi.mock('@/lib/material-community-client', () => ({ getMaterialRatings: vi.fn() }));
 vi.mock('@/lib/material-viewer-client', () => ({
   getMaterialViewerState: vi.fn(),
@@ -138,6 +143,15 @@ describe('MaterialPreviewDialog', () => {
     vi.mocked(setMaterialSaved).mockReset();
     navigation.push.mockReset();
     useAuthStore.setState({ isLoading: false, user: null });
+  });
+
+  it('offers «Sugerir corrección» with the material author', async () => {
+    render(<DialogFixture />);
+
+    expect(await screen.findByTestId('suggest-correction')).toHaveAttribute(
+      'data-author',
+      'author-1',
+    );
   });
 
   it('offers visitors a sign-in link to report the material', async () => {
@@ -489,13 +503,10 @@ describe('MaterialPreviewDialog', () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    { id: 'author-1', role: 'USER' as const },
-    { id: 'moderator-1', role: 'MODERATOR' as const },
-  ])('keeps management outside student actions for an authorized viewer', async ({ id, role }) => {
+  it('keeps management outside student actions for the author', async () => {
     useAuthStore.setState({
       isLoading: false,
-      user: { ...signedInUser, id, role },
+      user: { ...signedInUser, id: 'author-1', role: 'USER' },
     });
     vi.mocked(getMaterialViewerState).mockResolvedValue({ isHelpful: false, isSaved: false });
     render(<DialogFixture />);
@@ -508,8 +519,11 @@ describe('MaterialPreviewDialog', () => {
     expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
   });
 
-  it('does not expose management controls to another student', async () => {
-    useAuthStore.setState({ isLoading: false, user: signedInUser });
+  it.each([
+    { name: 'another student', role: 'USER' as const },
+    { name: 'a moderator, who retires content from a caso', role: 'MODERATOR' as const },
+  ])('does not expose management controls to $name', async ({ role }) => {
+    useAuthStore.setState({ isLoading: false, user: { ...signedInUser, role } });
     vi.mocked(getMaterialViewerState).mockResolvedValue({ isHelpful: false, isSaved: false });
     render(<DialogFixture />);
 

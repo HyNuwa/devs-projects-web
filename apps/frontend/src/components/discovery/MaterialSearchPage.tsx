@@ -20,11 +20,14 @@ import { getData } from '@/lib/apiHelpers';
 import { getGroupedSuggestions, getMaterialDiscovery } from '@/lib/discovery-client';
 import { resourceTypeLabel, resourceTypeOptions, shiftLabel } from '@/lib/presentation-labels';
 import {
+  FACULTAD_TODAS,
   parseMaterialSearchState,
   serializeMaterialSearchState,
   toMaterialSearchHref,
   type MaterialSearchState,
 } from '@/lib/material-search-state';
+import { getInstitutions } from '@/lib/study-plans-client';
+import { useUbicacionStore } from '@/stores/ubicacionStore';
 import type { DiscoverySubjectSuggestion, GroupedDiscoverySuggestions } from '@/types/discovery';
 import type { Material, MaterialResourceType, Paginated } from '@/types/material';
 import type { Professor } from '@/types/professor';
@@ -196,8 +199,10 @@ function materialQueryFor(
   const subjectId = state.scope === 'all' ? undefined : (strongSubject?.id ?? state.subjectId);
   const search = strongSubject && state.scope !== 'all' ? undefined : state.q || undefined;
 
+  const facultyId = facultyOf(state);
   return {
     ...(subjectId ? { subjectId } : {}),
+    ...(facultyId ? { facultyId } : {}),
     ...(search ? { search } : {}),
     ...(state.resourceType ? { resourceType: state.resourceType } : {}),
     ...(state.academicYear ? { academicYear: state.academicYear } : {}),
@@ -206,6 +211,11 @@ function materialQueryFor(
     page: state.page,
     limit: pageSize,
   };
+}
+
+/** The facultad the search is limited to, if any. */
+function facultyOf(state: MaterialSearchState) {
+  return state.facultad && state.facultad !== FACULTAD_TODAS ? state.facultad : undefined;
 }
 
 function hasActiveFilters(state: MaterialSearchState): boolean {
@@ -306,7 +316,12 @@ function SearchContent({
 
       if (state.q) {
         try {
-          suggestions = await getGroupedSuggestions({ q: state.q, limit: 10 });
+          const facultyId = facultyOf(state);
+          suggestions = await getGroupedSuggestions({
+            q: state.q,
+            limit: 10,
+            ...(facultyId ? { facultyId } : {}),
+          });
         } catch {
           suggestionsStatus = 'error';
         }
@@ -416,6 +431,7 @@ function SearchContent({
                 {strongSubject.name}
               </h1>
               <p className="mt-4 text-base leading-relaxed text-secondary-foreground sm:text-lg">
+                {`${strongSubject.faculty.shortName} (${strongSubject.faculty.university.shortName}) · `}
                 {strongSubject.code ? `Código ${strongSubject.code} · ` : ''}
                 Recursos publicados para esta materia.
               </p>
@@ -800,8 +816,67 @@ function SearchContent({
   );
 }
 
+/** «en FI · UNJU» or «en todas las facultades», with the switch to the other. */
+function FacultyScope({ state }: { state: MaterialSearchState }) {
+  const router = useRouter();
+  const ubicacion = useUbicacionStore((store) => store.ubicacion);
+  const facultyId = facultyOf(state);
+  const isUbicacion = Boolean(facultyId) && facultyId === ubicacion?.facultyId;
+  // Another facultad (a shared link) needs its name from the catalog.
+  const [fetched, setFetched] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (!facultyId || isUbicacion) return;
+    let active = true;
+    getInstitutions()
+      .then((tree) => {
+        for (const university of tree) {
+          const faculty = university.faculties.find((entry) => entry.id === facultyId);
+          if (faculty && active) {
+            setFetched({ id: facultyId, name: `${faculty.shortName} · ${university.shortName}` });
+          }
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [facultyId, isUbicacion]);
+
+  const name = isUbicacion
+    ? `${ubicacion!.facultyShortName} · ${ubicacion!.universityShortName}`
+    : fetched && fetched.id === facultyId
+      ? fetched.name
+      : null;
+
+  if (!facultyId && state.facultad !== FACULTAD_TODAS) return null;
+  const go = (facultad: string) =>
+    router.push(toMaterialSearchHref({ ...state, facultad, page: 1 }));
+
+  return (
+    <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-muted-foreground">
+      <span>Buscando</span>
+      <strong className="text-foreground">
+        {facultyId ? `en ${name ?? 'una facultad'}` : 'en todas las facultades'}
+      </strong>
+      {facultyId ? (
+        <Button onClick={() => go(FACULTAD_TODAS)} size="sm" variant="outline">
+          Buscar en todas
+        </Button>
+      ) : ubicacion ? (
+        <Button onClick={() => go(ubicacion.facultyId)} size="sm" variant="outline">
+          Solo en {ubicacion.facultyShortName} · {ubicacion.universityShortName}
+        </Button>
+      ) : null}
+    </p>
+  );
+}
+
 export function MaterialSearchPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const ubicacion = useUbicacionStore((store) => store.ubicacion);
+  const ubicacionReady = useUbicacionStore((store) => store.ready);
   const selectedFileId = searchParams.get('archivo') || undefined;
   const resultParams = new URLSearchParams(searchParams.toString());
   resultParams.delete('archivo');
@@ -810,6 +885,23 @@ export function MaterialSearchPage() {
     () => parseMaterialSearchState(new URLSearchParams(rawSearch)),
     [rawSearch],
   );
+  const needsFaculty = ubicacionReady && Boolean(ubicacion) && !state.facultad;
 
-  return <SearchContent key={rawSearch} state={state} selectedFileId={selectedFileId} />;
+  // Search starts at the ubicación, written into the URL so a shared link keeps it.
+  useEffect(() => {
+    if (!needsFaculty || !ubicacion) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('facultad', ubicacion.facultyId);
+    router.replace(`/buscar?${params.toString()}`, { scroll: false });
+  }, [needsFaculty, router, searchParams, ubicacion]);
+
+  if (needsFaculty) return null;
+  return (
+    <>
+      <div className="mx-auto w-full max-w-[1180px] px-3 pt-5 sm:px-6">
+        <FacultyScope state={state} />
+      </div>
+      <SearchContent key={rawSearch} state={state} selectedFileId={selectedFileId} />
+    </>
+  );
 }

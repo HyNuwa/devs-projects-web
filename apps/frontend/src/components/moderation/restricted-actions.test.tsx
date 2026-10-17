@@ -6,6 +6,9 @@ import { useAuthStore } from '@/stores/authStore';
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 
+vi.mock('@/components/corrections/MyCorrectionSuggestions', () => ({
+  MyCorrectionSuggestions: () => null,
+}));
 vi.mock('@/lib/api', () => ({ api: { get: mocks.get, post: mocks.post } }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),

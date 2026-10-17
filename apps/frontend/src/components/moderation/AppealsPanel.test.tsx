@@ -11,6 +11,11 @@ const mocks = vi.hoisted(() => ({
   user: { id: 'admin-1', role: 'ADMIN' } as { id: string; role: string } | null,
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/lib/appeals-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/appeals-client')>()),
   getAppeals: mocks.list,

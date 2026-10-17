@@ -14,6 +14,7 @@ import {
 } from '@/lib/appeals-client';
 import { getApiError } from '@/lib/apiHelpers';
 import { useAuthStore } from '@/stores/authStore';
+import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
 
@@ -57,11 +58,12 @@ export function AppealsPanel() {
   const [detail, setDetail] = useState<AppealDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const facultyId = useModerationFaculty();
 
   useEffect(() => {
     if (!isModerator) return;
     let active = true;
-    getAppeals()
+    getAppeals(facultyId)
       .then((appeals) => {
         if (!active) return;
         setList({ status: 'ready', appeals });
@@ -77,7 +79,7 @@ export function AppealsPanel() {
     return () => {
       active = false;
     };
-  }, [isModerator, reloadKey]);
+  }, [isModerator, reloadKey, facultyId]);
 
   useEffect(() => {
     if (!selectedId) return;

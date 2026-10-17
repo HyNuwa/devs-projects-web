@@ -36,8 +36,13 @@ describe('AppealsService.answer', () => {
   const decisions = { restoreFromAppeal: vi.fn() };
   const sanctions = { voidByAppeal: vi.fn() };
   const prisma = {
+    moderatorScope: {
+      findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
+    moderationCase: { findMany: vi.fn().mockResolvedValue([]) },
     $transaction: vi.fn(),
     appeal: {
+      count: vi.fn().mockResolvedValue(1),
       findUnique: vi.fn(),
       updateMany: vi.fn(),
     },

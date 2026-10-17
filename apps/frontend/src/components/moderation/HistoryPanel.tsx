@@ -8,6 +8,7 @@ import { cn } from '@/components/ui/shadcn/utils';
 import { getApiError } from '@/lib/apiHelpers';
 import { getModerationHistory, type HistoryItem } from '@/lib/moderation-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
 
@@ -26,7 +27,68 @@ const ACTION_LABEL: Record<string, string> = {
   RESTORED: 'Restauración',
   AUTHOR_REVEALED: 'Ver autor',
   LEGACY_ACTION: 'Acción anterior',
+  ROLE_CHANGED: 'Cambio de rol',
+  CATALOG_CREATED: 'Catálogo: alta',
+  CATALOG_UPDATED: 'Catálogo: edición',
+  CATALOG_DELETED: 'Catálogo: baja',
+  CAREER_PUBLISHED: 'Carrera publicada',
+  CAREER_UNPUBLISHED: 'Carrera a borrador',
+  CATALOG_PLACEMENT_CHANGED: 'Materias de una carrera',
+  CATALOG_BULK_APPLIED: 'Carga masiva',
+  CAREER_REQUEST_RESOLVED: 'Solicitud de carrera',
+  CATALOG_PLAN_READ: 'Lectura del plan',
 };
+
+const CATALOG_KIND: Record<string, string> = {
+  UNIVERSITY: 'Universidad',
+  FACULTY: 'Facultad',
+  CAREER: 'Carrera',
+  SUBJECT: 'Materia',
+};
+
+const PLAN_READ_ERROR: Record<string, string> = {
+  PLAN_URL_FORBIDDEN: 'Link no permitido',
+  PLAN_UNREACHABLE: 'No se pudo abrir el link',
+  PLAN_TOO_LARGE: 'Archivo demasiado grande',
+  PLAN_UNSUPPORTED_TYPE: 'No es página ni PDF',
+  PLAN_NOT_FOUND: 'No encontró el plan',
+  AI_NOT_CONFIGURED: 'IA sin configurar',
+  AI_QUOTA: 'Cuota de IA agotada',
+  AI_FAILED: 'La IA falló',
+  UNEXPECTED: 'Error inesperado',
+};
+
+/** «Carrera LF · link → PDF · 42 materias, 2 avisos», or the error, for a lectura del plan. */
+function planReadLabel(name: string, after: Record<string, unknown>) {
+  const source = [after.url, after.linked].filter(Boolean).map(String).join(' → ');
+  const result = after.error
+    ? (PLAN_READ_ERROR[String(after.error)] ?? String(after.error))
+    : `${Number(after.lines ?? 0)} materias, ${Number(after.notices ?? 0)} avisos`;
+  return [name, source, result].filter(Boolean).join(' · ');
+}
+
+/** «Facultad Exactas · shortName: FCEx → FCE» for a catálogo event. */
+function catalogLabel(catalog: NonNullable<HistoryItem['catalog']>, action: string) {
+  const name = [catalog.kind ? CATALOG_KIND[catalog.kind] : null, catalog.label]
+    .filter(Boolean)
+    .join(' ');
+  if (action === 'CATALOG_PLAN_READ') return planReadLabel(name, catalog.after ?? {});
+  const before = catalog.before ?? {};
+  const after = catalog.after ?? {};
+  const changes = Object.keys(after)
+    .filter((key) => key in before)
+    .map((key) => `${key}: ${String(before[key] ?? '—')} → ${String(after[key] ?? '—')}`);
+  return [name, ...changes].join(' · ');
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  USER: 'Estudiante',
+  MODERATOR: 'Moderación',
+  ADMIN: 'Admin',
+  SUPERADMIN: 'Superadmin',
+};
+
+const roleName = (role: string) => ROLE_LABEL[role] ?? role;
 
 const dateFormat = new Intl.DateTimeFormat('es-AR', {
   day: 'numeric',
@@ -53,11 +115,15 @@ export function HistoryPanel() {
   const [action, setAction] = useState('');
   const [state, setState] = useState<HistoryState>({ status: 'loading' });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const facultyId = useModerationFaculty();
 
   useEffect(() => {
     if (!isModerator) return;
     let active = true;
-    getModerationHistory(action ? { action } : {})
+    getModerationHistory({
+      ...(action ? { action } : {}),
+      ...(facultyId ? { facultyId } : {}),
+    })
       .then((page) => {
         if (active) setState({ status: 'ready', ...page });
       })
@@ -67,7 +133,7 @@ export function HistoryPanel() {
     return () => {
       active = false;
     };
-  }, [action, isModerator]);
+  }, [action, facultyId, isModerator]);
 
   if (!isModerator) {
     return (
@@ -84,6 +150,7 @@ export function HistoryPanel() {
     try {
       const page = await getModerationHistory({
         ...(action ? { action } : {}),
+        ...(facultyId ? { facultyId } : {}),
         cursor: state.nextCursor,
       });
       setState({
@@ -179,7 +246,8 @@ export function HistoryPanel() {
                         {item.target.label}
                       </Link>
                     ) : (
-                      (item.target?.label ?? '—')
+                      (item.target?.label ??
+                      (item.catalog ? catalogLabel(item.catalog, item.action) : '—'))
                     )}
                     {item.targetUser?.username ? (
                       <span className="block text-xs text-muted-foreground">
@@ -187,7 +255,11 @@ export function HistoryPanel() {
                       </span>
                     ) : null}
                   </td>
-                  <td className="p-3 text-muted-foreground">{item.reason ?? '—'}</td>
+                  <td className="p-3 text-muted-foreground">
+                    {item.roleChange
+                      ? `De ${roleName(item.roleChange.from)} a ${roleName(item.roleChange.to)}`
+                      : (item.reason ?? '—')}
+                  </td>
                 </tr>
               ))}
             </tbody>

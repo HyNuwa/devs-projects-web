@@ -4,11 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { assertCaseInScope, eventScopeSql, narrow, scopeOf } from './scope';
+import type { Actor } from './sanctions.service';
 
-import type {
-  ModerationEventAction,
+import {
   Prisma,
-  Role,
+  type ModerationEvent,
+  type ModerationEventAction,
+  type Role,
 } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CasesService } from './cases.service';
@@ -21,6 +24,31 @@ import { loadTarget } from './targets';
 const PAGE_SIZE = 50;
 const REVEAL_REASON_MAX = 300;
 const ADMIN_ROLES: ReadonlySet<Role> = new Set(['ADMIN', 'SUPERADMIN']);
+
+/**
+ * Events only admins see: «Ver autor», and role changes (who was made a
+ * moderator follows from eligibility, which counts anonymous retiros).
+ */
+const ADMIN_ONLY_ACTIONS: ModerationEventAction[] = [
+  'AUTHOR_REVEALED',
+  'ROLE_CHANGED',
+  'MODERATOR_SCOPE_CHANGED',
+  // The catálogo belongs to no facultad's moderation (catalog-editing).
+  'CATALOG_CREATED',
+  'CATALOG_UPDATED',
+  'CATALOG_DELETED',
+  'CAREER_PUBLISHED',
+  'CAREER_UNPUBLISHED',
+  'CATALOG_PLACEMENT_CHANGED',
+  'CATALOG_BULK_APPLIED',
+  'CAREER_REQUEST_RESOLVED',
+  'CATALOG_PLAN_READ',
+];
+const CATALOG_ACTIONS: ReadonlySet<ModerationEventAction> = new Set(
+  ADMIN_ONLY_ACTIONS.filter(
+    (action) => action.startsWith('CATALOG_') || action.startsWith('CAREER_'),
+  ),
+);
 // Events about the account. Its file and the Apelaciones tab show the account
 // with the same reason, text and time, so for a moderator an event from an
 // anonymous caso keeps no reason, caso or content (README_MODERACION §9).
@@ -45,6 +73,7 @@ export type HistoryFilters = {
   from?: string;
   to?: string;
   cursor?: string;
+  facultyId?: string;
 };
 
 /** The append-only moderation history and revelación de autor. */
@@ -55,14 +84,14 @@ export class HistoryService {
     private readonly cases: CasesService,
   ) {}
 
-  async list(viewer: { role: Role }, filters: HistoryFilters) {
+  async list(viewer: Actor, filters: HistoryFilters) {
     const isAdmin = ADMIN_ROLES.has(viewer.role);
-    const where: Prisma.ModerationEventWhereInput = {
+    const filtered: Prisma.ModerationEventWhereInput = {
       ...(filters.action
         ? { action: filters.action }
         : isAdmin
           ? {}
-          : { action: { not: 'AUTHOR_REVEALED' } }),
+          : { action: { notIn: ADMIN_ONLY_ACTIONS } }),
       ...(filters.actorId ? { actorId: filters.actorId } : {}),
       ...(filters.contentId
         ? {
@@ -82,16 +111,25 @@ export class HistoryService {
           }
         : {}),
     };
-    if (!isAdmin && filters.action === 'AUTHOR_REVEALED') {
+    if (
+      !isAdmin &&
+      filters.action &&
+      ADMIN_ONLY_ACTIONS.includes(filters.action)
+    ) {
       return { items: [], nextCursor: null };
     }
-
-    const events = await this.prisma.moderationEvent.findMany({
-      where,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: PAGE_SIZE,
-      ...(filters.cursor ? { cursor: { id: filters.cursor }, skip: 1 } : {}),
-    });
+    const scope = narrow(await scopeOf(this.prisma, viewer), filters.facultyId);
+    const events =
+      scope === 'ALL'
+        ? await this.prisma.moderationEvent.findMany({
+            where: filtered,
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+            take: PAGE_SIZE,
+            ...(filters.cursor
+              ? { cursor: { id: filters.cursor }, skip: 1 }
+              : {}),
+          })
+        : await this.scopedPage(scope, filters, isAdmin);
 
     const anonymous = await this.anonymousTargets(events);
     const userIds = [
@@ -128,6 +166,11 @@ export class HistoryService {
       const metadata = event.metadata as {
         label?: string;
         kind?: string;
+        from?: string;
+        to?: string;
+        id?: string;
+        before?: unknown;
+        after?: unknown;
       } | null;
       const label = metadata?.label ?? null;
       // A sanción, or an appeal of one, is about the account: unlinked from the
@@ -160,6 +203,20 @@ export class HistoryService {
             : null,
         caseId: aboutAccount ? null : event.caseId,
         reason: hideReason ? null : event.reason,
+        roleChange:
+          event.action === 'ROLE_CHANGED' && metadata?.from && metadata.to
+            ? { from: metadata.from, to: metadata.to }
+            : null,
+        catalog:
+          CATALOG_ACTIONS.has(event.action) && metadata
+            ? {
+                kind: metadata.kind ?? null,
+                id: metadata.id ?? null,
+                label,
+                before: metadata.before ?? null,
+                after: metadata.after ?? null,
+              }
+            : null,
       };
     });
     // Filtering by that actor would link them to the entry just the same. An
@@ -180,7 +237,65 @@ export class HistoryService {
     };
   }
 
-  async revealAuthor(caseId: string, moderatorId: string, reason: string) {
+  /**
+   * One page of the history within the facultades (openspec moderation/scope),
+   * in SQL so the scope stays a subquery however large the facultad. The
+   * filters mirror `filtered` in `list`, and the cursor its keyset order.
+   */
+  private async scopedPage(
+    faculties: string[],
+    filters: HistoryFilters,
+    isAdmin: boolean,
+  ): Promise<ModerationEvent[]> {
+    if (faculties.length === 0) return [];
+    const conditions = [eventScopeSql(faculties)];
+    if (filters.action) {
+      conditions.push(
+        Prisma.sql`e."action" = ${filters.action}::"ModerationEventAction"`,
+      );
+    } else if (!isAdmin) {
+      conditions.push(
+        Prisma.sql`e."action" <> ALL(${ADMIN_ONLY_ACTIONS}::"ModerationEventAction"[])`,
+      );
+    }
+    if (filters.actorId) {
+      conditions.push(Prisma.sql`e."actor_id" = ${filters.actorId}::uuid`);
+    }
+    if (filters.contentId) {
+      const id = Prisma.sql`${filters.contentId}::uuid`;
+      conditions.push(
+        Prisma.sql`(e."material_id" = ${id} OR e."course_review_id" = ${id} OR e."exam_experience_id" = ${id})`,
+      );
+    }
+    if (filters.from) {
+      conditions.push(
+        Prisma.sql`e."created_at" >= (${new Date(filters.from).toISOString()}::timestamptz AT TIME ZONE 'UTC')`,
+      );
+    }
+    if (filters.to) {
+      conditions.push(
+        Prisma.sql`e."created_at" <= (${new Date(filters.to).toISOString()}::timestamptz AT TIME ZONE 'UTC')`,
+      );
+    }
+    if (filters.cursor) {
+      conditions.push(
+        Prisma.sql`(e."created_at", e."id") < (SELECT c."created_at", c."id" FROM "moderation_events" c WHERE c."id" = ${filters.cursor}::uuid)`,
+      );
+    }
+    const page = await this.prisma.$queryRaw<{ id: string }[]>`
+      SELECT e."id" FROM "moderation_events" e
+      WHERE ${Prisma.join(conditions, ' AND ')}
+      ORDER BY e."created_at" DESC, e."id" DESC
+      LIMIT ${PAGE_SIZE}`;
+    if (page.length === 0) return [];
+    return this.prisma.moderationEvent.findMany({
+      where: { id: { in: page.map((row) => row.id) } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
+  async revealAuthor(caseId: string, moderator: Actor, reason: string) {
+    const moderatorId = moderator.id;
     const trimmed = reason?.trim();
     if (!trimmed || trimmed.length > REVEAL_REASON_MAX) {
       throw new BadRequestException(
@@ -188,6 +303,7 @@ export class HistoryService {
       );
     }
 
+    await assertCaseInScope(this.prisma, moderator, caseId);
     const moderationCase = await this.prisma.moderationCase.findUnique({
       where: { id: caseId },
       select: {

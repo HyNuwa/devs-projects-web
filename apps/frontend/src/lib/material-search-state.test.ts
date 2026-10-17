@@ -58,3 +58,21 @@ describe('material search URL state', () => {
     );
   });
 });
+
+describe('material search facultad', () => {
+  const facultyId = '00000000-0000-4000-8000-00000000f001';
+
+  it('keeps a facultad id or «todas» in the URL and drops anything else', () => {
+    expect(parseMaterialSearchState(new URLSearchParams(`facultad=${facultyId}`)).facultad).toBe(
+      facultyId,
+    );
+    expect(parseMaterialSearchState(new URLSearchParams('facultad=todas')).facultad).toBe('todas');
+    expect(parseMaterialSearchState(new URLSearchParams('facultad=fi')).facultad).toBeUndefined();
+    expect(
+      toMaterialSearchHref({
+        ...parseMaterialSearchState(new URLSearchParams('q=x')),
+        facultad: 'todas',
+      }),
+    ).toBe('/buscar?q=x&facultad=todas');
+  });
+});

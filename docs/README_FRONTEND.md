@@ -25,7 +25,10 @@ Aplicación web de DevsProject en `apps/frontend`. Consume la API descrita en [`
 | `/auth/login`, `register`, `verify-email`, `forgot-password`, `reset-password` | Cuenta |
 | `/materias`, `/materias/[codigo]` | Listado de materias y página de materia |
 | `/materias/[codigo]/resenar`, `/materias/[codigo]/final` | Escribir reseña de cursada y experiencia de final |
-| `/resenas`, `/resenas/[id]`, `/finales`, `/finales/[id]` | Reseñas y experiencias de final |
+| `/experiencias` | Portada de Experiencias: buscador de materias, contexto de Ubicación con chips de carrera, año y tipo (en la URL como `carrera`, `anio`, `tipo`), «Materias más comentadas» y «Recién publicadas» |
+| `/experiencias/[codigo]` | Experiencias de una materia: resumen «Cómo les fue» y pestañas Reseñas / Finales con filtros en la URL |
+| `/experiencias/escribir` | Elegir materia y tipo antes de ir al formulario (grupo `(focus)`, sin barra inferior) |
+| `/resenas`, `/resenas/[id]`, `/finales`, `/finales/[id]` | Listados y detalle de reseñas y finales; el detalle suma «La materia según…» y «Con el mismo contexto» |
 | `/materiales`, `/materiales/[...segments]`, `/materiales/[id]`, `/materiales/nuevo` | Navegación jerárquica de recursos, detalle y subida |
 | `/buscar` | Resultados de búsqueda |
 | `/profile/me` | Perfil propio |
@@ -86,6 +89,7 @@ apps/frontend/src/
 - Tests junto al componente (`LoginForm.test.tsx`).
 - Textos de interfaz en español rioplatense (voseo), con el vocabulario de [`CONTEXT.md`](../CONTEXT.md).
 - Las lecturas en segundo plano de páginas públicas usan `skipAuthRedirect` para no mandar al login a un visitante.
+- Toda reseña o final se muestra con `ExperienceCard` (`components/experiences`): listados, portada, materia y relacionadas usan la misma tarjeta. Un autor anónimo se muestra como «Anónimo» con `AnonymousMark` en el lugar del avatar, nunca con su perfil.
 
 ## Scripts
 

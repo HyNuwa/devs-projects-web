@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { GuidesService } from './guides.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { Role } from '../auth/dto/auth-response.dto';
 
 describe('GuidesService', () => {
@@ -61,7 +61,7 @@ describe('GuidesService', () => {
       providers: [
         GuidesService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: pointService },
+        { provide: ContributionPoints, useValue: pointService },
       ],
     }).compile();
 
@@ -90,12 +90,6 @@ describe('GuidesService', () => {
           content: 'Contenido',
         }),
       });
-      expect(pointService.awardPoints).toHaveBeenCalledWith(
-        'user-1',
-        15,
-        'GUIDE_CREATED',
-        'guide-1',
-      );
       expect(result).toEqual(mockGuide);
     });
 

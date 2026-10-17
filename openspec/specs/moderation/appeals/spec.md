@@ -44,7 +44,7 @@ An appeal SHALL be reviewed by someone other than the one who made the appealed 
 
 Appeals about anonymous content SHALL be reviewed by an ADMIN or SUPERADMIN, whatever the appellant's role. These are appeals of a retiro of anonymous content, and appeals of a sanción that came from a caso about anonymous content. If moderators answered them, which ones they could answer, or the appellant shown next to the decision, would reveal who wrote the content.
 
-When no moderator other than the decider is eligible, the appeal SHALL wait for an ADMIN. The reviewer of an appeal of a retiro of anonymous content SHALL see «Autor oculto» and SHALL need «Ver autor», with a recorded reason, to see who it is.
+A MODERATOR SHALL be eligible to review an appeal only if they cover its facultad: the facultad of the caso's content, or, for a sanción applied from Usuarios, any facultad through which they can see the account (see moderation/scope). When no moderator other than the decider is eligible, the appeal SHALL wait for an ADMIN. The reviewer of an appeal of a retiro of anonymous content SHALL see «Autor oculto» and SHALL need «Ver autor», with a recorded reason, to see who it is.
 
 #### Scenario: Moderator opens an appeal of their own retiro
 - **WHEN** the moderator who retired a material opens the appeal against that retiro
@@ -61,6 +61,14 @@ When no moderator other than the decider is eligible, the appeal SHALL wait for 
 #### Scenario: Appeal of an advertencia from an anonymous caso
 - **WHEN** a student appeals the advertencia they received together with the retiro of their anonymous reseña
 - **THEN** only an ADMIN or SUPERADMIN can answer it
+
+#### Scenario: Only one moderator covers the facultad
+- **WHEN** the single moderator covering a facultad retired a material and its author appeals
+- **THEN** no moderator can answer it and it waits for an ADMIN
+
+#### Scenario: Moderator of another facultad
+- **WHEN** a moderator covering only another facultad looks for that appeal
+- **THEN** it is not listed for them
 
 ### Requirement: The answer is final and undoes accepted decisions
 The reviewer SHALL accept or reject an appeal with a written reason of at most 1000 characters, and the answer SHALL be final. The effects of accepting SHALL depend on what was appealed:

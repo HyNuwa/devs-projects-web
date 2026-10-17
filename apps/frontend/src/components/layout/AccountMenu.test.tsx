@@ -36,6 +36,19 @@ beforeEach(() => {
 
 const pill = () => screen.getByRole('button', { name: 'Max, abrir menú de cuenta' });
 
+describe('AccountMenu avatar', () => {
+  it('shows the chosen cat', () => {
+    const { container } = render(
+      <AccountMenu
+        user={{ ...userWith('USER', '/foto.webp'), avatarCat: 'gato-mate' }}
+        variant="desktop"
+      />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/gato-mate.webp');
+  });
+});
+
 describe('AccountMenu on desktop', () => {
   it('opens from the keyboard with a student’s entries and returns focus on Escape', async () => {
     const user = userEvent.setup();
@@ -48,12 +61,14 @@ describe('AccountMenu on desktop', () => {
     const items = await screen.findAllByRole('menuitem');
     expect(items.map((item) => item.textContent)).toEqual([
       'Mi perfil',
+      'Tu progreso',
       'Mis envíos',
       'Cerrar sesión',
     ]);
     expect(items[0]).toHaveFocus();
     expect(items[0]).toHaveAttribute('href', '/profile/me');
-    expect(items[1]).toHaveAttribute('href', '/profile/me#mis-envios');
+    expect(items[1]).toHaveAttribute('href', '/mi-espacio/progreso');
+    expect(items[2]).toHaveAttribute('href', '/profile/me#mis-envios');
 
     await user.keyboard('{ArrowDown}');
     expect(items[1]).toHaveFocus();
@@ -110,7 +125,7 @@ describe('AccountMenu on mobile', () => {
       within(sheet)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Mi perfil', 'Mis envíos', 'Moderación']);
+    ).toEqual(['Mi perfil', 'Tu progreso', 'Mis envíos', 'Moderación']);
     expect(within(sheet).getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
 
     await user.click(within(sheet).getByRole('button', { name: 'Cerrar' }));

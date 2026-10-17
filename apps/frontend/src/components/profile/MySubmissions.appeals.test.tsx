@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 
 vi.mock('@/lib/api', () => ({ api: { get: mocks.get, post: mocks.post } }));
+vi.mock('@/components/corrections/MyCorrectionSuggestions', () => ({
+  MyCorrectionSuggestions: () => null,
+}));
 
 import { MySubmissions } from './MySubmissions';
 

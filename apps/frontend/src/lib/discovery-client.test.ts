@@ -67,13 +67,15 @@ describe('discovery client', () => {
       professorId,
       difficulty: 'ALTA',
       attempt: 'PRIMERA_RECURSADA',
+      condition: 'REGULAR',
+      shift: 'TARDE',
       sort: 'STARS_DESC',
       page: 3,
       limit: 12,
     });
 
     expect(params.toString()).toBe(
-      `subjectId=${subjectId}&academicYear=2026&professorId=${professorId}&difficulty=ALTA&attempt=PRIMERA_RECURSADA&sort=STARS_DESC&page=3&limit=12`,
+      `subjectId=${subjectId}&academicYear=2026&professorId=${professorId}&difficulty=ALTA&attempt=PRIMERA_RECURSADA&condition=REGULAR&shift=TARDE&sort=STARS_DESC&page=3&limit=12`,
     );
   });
 

@@ -1,17 +1,15 @@
-import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import { MaterialHierarchyPage } from '@/components/discovery/MaterialHierarchyPage';
-
-export const metadata: Metadata = {
-  title: 'Materiales - DevsProject',
-  description: 'Explorá recursos por carrera, año, materia y tipo de archivo.',
-};
-
+/**
+ * The old materials browser became the browsing steps (openspec
+ * academic-structure/browsing). A shared preview link keeps opening its material.
+ */
 export default async function MaterialesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ archivo?: string }>;
+  searchParams: Promise<{ archivo?: string | string[] }>;
 }) {
   const { archivo } = await searchParams;
-  return <MaterialHierarchyPage query="" segments={[]} selectedFileId={archivo} />;
+  const id = Array.isArray(archivo) ? archivo[0] : archivo;
+  redirect(id ? `/materiales/${encodeURIComponent(id)}` : '/universidades');
 }

@@ -1,40 +1,33 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  BookOpen,
-  FileText,
-  GraduationCap,
-  MessageSquare,
-  Sparkles,
-  Star,
-  Users,
-} from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { BookOpen, FileText, Sparkles, Users } from 'lucide-react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 
+import { SubjectExperiencesSummaryCard } from '@/components/experiences/SubjectExperiencesSummaryCard';
+import { MaterialPreviewDialog } from '@/components/discovery/MaterialPreviewDialog';
 import {
-  CourseReviewSummaryCard,
-  FinalExperienceSummaryCard,
-} from '@/components/community/CommunitySummaryCards';
-import { Button, Chip, EmptyState, ErrorState, LoadingState } from '@/components/ui/shadcn';
+  Breadcrumb,
+  Button,
+  Chip,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from '@/components/ui/shadcn';
 import { api } from '@/lib/api';
 import { getApiError, getData } from '@/lib/apiHelpers';
+import { browsePath } from '@/lib/catalog-client';
 import { getMaterialDiscovery } from '@/lib/discovery-client';
-import { courseConditionLabel, resourceTypeLabel } from '@/lib/presentation-labels';
+import { resourceTypeLabel } from '@/lib/presentation-labels';
+import { getTopMaterials, type TopMaterial } from '@/lib/ranking-client';
+import { byCareerName, trailPlacement } from '@/lib/subject-context';
+import { useUbicacionStore } from '@/stores/ubicacionStore';
 import type { Material } from '@/types/material';
-import type {
-  CourseReviewResponse,
-  ExamExperience,
-  SubjectHub as SubjectHubType,
-} from '@/types/subject';
-
-type SubjectHubTab = 'reviews' | 'exams' | 'materials';
+import type { SubjectHub as SubjectHubType } from '@/types/subject';
 
 type SubjectHubData = {
-  exams: ExamExperience[];
-  materials: Material[];
-  reviews: CourseReviewResponse;
+  top: TopMaterial[];
   subject: SubjectHubType;
 };
 
@@ -42,28 +35,6 @@ type SubjectHubState =
   | { status: 'loading' }
   | { data: SubjectHubData; status: 'ready' }
   | { error: string; status: 'error' };
-
-function SubjectStat({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="grid content-start gap-2 border border-border bg-card p-4">
-      <span aria-hidden="true" className="text-primary">
-        {icon}
-      </span>
-      <strong className="font-sans text-3xl leading-none text-card-foreground">{value}</strong>
-      <span className="font-mono text-[0.65rem] font-bold uppercase tracking-[0.06em] text-muted-foreground">
-        {label}
-      </span>
-    </div>
-  );
-}
 
 function HubTab({
   active,
@@ -73,8 +44,8 @@ function HubTab({
 }: {
   active: boolean;
   children: ReactNode;
-  id: SubjectHubTab;
-  onSelect: (tab: SubjectHubTab) => void;
+  id: 'materials';
+  onSelect: (tab: 'materials') => void;
 }) {
   return (
     <button
@@ -95,13 +66,76 @@ function HubTab({
   );
 }
 
-function MaterialList({ materials }: { materials: Material[] }) {
+const topButtonId = (id: string) => `subject-top-${id}`;
+
+/**
+ * «Más útiles este cuatrimestre» (openspec reputation/rankings): the materials
+ * with the most valid «Me sirvió» this cuatrimestre. Hidden when empty.
+ */
+function TopMaterials({ entries, subjectName }: { entries: TopMaterial[]; subjectName: string }) {
+  const [open, setOpen] = useState<TopMaterial['material'] | null>(null);
+  if (entries.length === 0) return null;
+
+  return (
+    <section
+      aria-labelledby="subject-top-materials"
+      className="rounded-2xl border-[1.5px] border-foreground bg-secondary p-4 sm:p-5"
+    >
+      <h3
+        className="flex items-center gap-2 font-sans text-lg font-extrabold text-foreground"
+        id="subject-top-materials"
+      >
+        <Sparkles aria-hidden="true" className="size-5 text-primary" strokeWidth={1.7} />
+        Más útiles este cuatrimestre
+      </h3>
+      <ol className="mt-3 grid gap-2">
+        {entries.map(({ rank, material, helpful }) => (
+          <li className="flex items-center gap-3" key={material.id}>
+            <span className="w-9 shrink-0 font-sans text-sm font-extrabold tabular-nums">
+              {rank}.º
+            </span>
+            <button
+              className="min-w-0 flex-1 truncate text-left font-sans text-base font-bold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              id={topButtonId(material.id)}
+              onClick={() => setOpen(material)}
+              type="button"
+            >
+              {material.title}
+              <span className="ml-2 font-sans text-sm font-semibold text-muted-foreground">
+                {resourceTypeLabel(material.resourceType)}
+              </span>
+            </button>
+            <span className="shrink-0 font-sans text-sm font-extrabold tabular-nums text-primary">
+              {helpful} «Me sirvió»
+            </span>
+          </li>
+        ))}
+      </ol>
+      {open ? (
+        <MaterialPreviewDialog
+          file={open}
+          focusTargetId={topButtonId(open.id)}
+          onRequestClose={() => setOpen(null)}
+          open
+          subjectName={subjectName}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function MaterialList({ materials, query }: { materials: Material[]; query: string }) {
   if (materials.length === 0) {
-    return (
+    return query ? (
+      <EmptyState
+        description="Probá con otras palabras o borrá la búsqueda para ver todos."
+        heading={`No encontramos materiales para «${query}»`}
+      />
+    ) : (
       <EmptyState
         action={
           <Button asChild variant="outline">
-            <Link href="/materiales">Explorar materiales</Link>
+            <Link href="/materiales/nuevo">Subir material</Link>
           </Button>
         }
         description="Cuando haya recursos aprobados para esta materia, aparecerán en este archivo."
@@ -136,36 +170,76 @@ function MaterialList({ materials }: { materials: Material[] }) {
   );
 }
 
+/** «FI (UNJU) · Ingeniería Informática · Año 2 · Cuatrimestre 1 · 6 créditos» */
+function placementLabel(plan: SubjectHubType['studyPlans'][number]): string {
+  const { career } = plan.studyPlan;
+  return [
+    `${career.faculty.shortName} (${career.faculty.university.shortName})`,
+    career.name,
+    ...(plan.year === null
+      ? ['Optativa']
+      : [`Año ${plan.year}`, plan.semester === 0 ? 'Anual' : `Cuatrimestre ${plan.semester}`]),
+    ...(plan.credits ? [`${plan.credits} créditos`] : []),
+  ].join(' · ');
+}
+
 export function SubjectHub({ code }: { code: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q')?.trim() ?? '';
+  const myCareers = useUbicacionStore((store) => store.myCareers);
   const [attempt, setAttempt] = useState(0);
-  const [activeTab, setActiveTab] = useState<SubjectHubTab>('reviews');
+  const [activeTab, setActiveTab] = useState<'materials'>('materials');
   const [state, setState] = useState<SubjectHubState>({ status: 'loading' });
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const subjectId = state.status === 'ready' ? state.data.subject.id : null;
+
+  // Materials follow the materia search in the URL (openspec academic-resources/discovery).
+  useEffect(() => {
+    if (!subjectId) return;
+    let isCurrent = true;
+    getMaterialDiscovery({
+      limit: 20,
+      page: 1,
+      sort: query ? 'RELEVANCE' : 'RECENT',
+      subjectId,
+      ...(query ? { search: query } : {}),
+    })
+      .then((result) => {
+        if (isCurrent) setMaterials(result.data);
+      })
+      .catch(() => {
+        if (isCurrent) setMaterials([]);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [subjectId, query]);
+
+  const search = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const next = String(new FormData(event.currentTarget).get('q') ?? '').trim();
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set('q', next);
+    else params.delete('q');
+    const suffix = params.toString();
+    router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
+  };
 
   useEffect(() => {
     let isCurrent = true;
 
     void Promise.all([
       api.get<SubjectHubType>(`/subjects/${encodeURIComponent(code)}`),
-      api.get<CourseReviewResponse>(`/subjects/${encodeURIComponent(code)}/reviews`),
-      api.get<ExamExperience[]>(`/subjects/${encodeURIComponent(code)}/exams`),
+      // The ranking is a bonus: the materia page loads without it.
+      getTopMaterials(code).catch(() => null),
     ])
-      .then(async ([subjectResponse, reviewsResponse, examsResponse]) => {
+      .then(([subjectResponse, topMaterials]) => {
         const subject = getData(subjectResponse);
-        const materialResult = await getMaterialDiscovery({
-          limit: 20,
-          page: 1,
-          sort: 'RECENT',
-          subjectId: subject.id,
-        });
-
         if (isCurrent) {
           setState({
-            data: {
-              exams: getData(examsResponse),
-              materials: materialResult.data,
-              reviews: getData(reviewsResponse),
-              subject,
-            },
+            data: { subject, top: topMaterials?.entries ?? [] },
             status: 'ready',
           });
         }
@@ -198,7 +272,7 @@ export function SubjectHub({ code }: { code: string }) {
             <div className="flex flex-wrap justify-center gap-3">
               <Button onClick={() => setAttempt((value) => value + 1)}>Reintentar</Button>
               <Button asChild variant="outline">
-                <Link href="/materias">Volver a materias</Link>
+                <Link href="/universidades">Volver a materias</Link>
               </Button>
             </div>
           }
@@ -209,21 +283,39 @@ export function SubjectHub({ code }: { code: string }) {
     );
   }
 
-  const { exams, materials, reviews, subject } = state.data;
-  const plan = subject.studyPlans[0];
-  const averageRecommendation = subject.stats.avgRecommendation?.toFixed(1) ?? '—';
+  const { subject, top } = state.data;
+  const placements = [...subject.studyPlans].sort(byCareerName);
+  const here = trailPlacement(placements, searchParams.get('carrera'), myCareers);
+  const career = here?.studyPlan.career ?? null;
+  const careerHref = career
+    ? browsePath.career(career.faculty.university.shortName, career.faculty.shortName, career.code)
+    : browsePath.universities();
 
   return (
     <div className="mx-auto grid w-full max-w-[1180px] gap-8 px-3 py-7 sm:px-6 sm:py-10">
-      <nav aria-label="Ruta de materia">
-        <Link
-          className="inline-flex min-h-11 items-center gap-2 font-sans text-sm font-bold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          href="/materias"
-        >
-          <ArrowLeft aria-hidden="true" className="size-4" />
-          Materias
-        </Link>
-      </nav>
+      <Breadcrumb
+        aria-label="Ruta"
+        items={[
+          { href: browsePath.universities(), label: 'Universidades' },
+          ...(career
+            ? [
+                {
+                  href: browsePath.university(career.faculty.university.shortName),
+                  label: career.faculty.university.shortName,
+                },
+                {
+                  href: browsePath.faculty(
+                    career.faculty.university.shortName,
+                    career.faculty.shortName,
+                  ),
+                  label: career.faculty.shortName,
+                },
+                { href: careerHref, label: career.name },
+              ]
+            : []),
+          { label: subject.name },
+        ]}
+      />
 
       <header className="grid gap-6 border-b border-line pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
@@ -241,47 +333,22 @@ export function SubjectHub({ code }: { code: string }) {
           ) : null}
           <div className="mt-5 flex flex-wrap gap-2">
             {subject.code ? <Chip tone="neutral">Código {subject.code}</Chip> : null}
-            {plan ? (
-              <Chip tone="neutral">
-                {plan.studyPlan.career.name} · Año {plan.year} · Cuatrimestre {plan.semester}
-                {plan.credits ? ` · ${plan.credits} créditos` : ''}
+            {placements.map((placement) => (
+              <Chip key={placementLabel(placement)} tone="neutral">
+                {placementLabel(placement)}
               </Chip>
-            ) : null}
+            ))}
           </div>
         </div>
         <Button asChild className="lg:justify-self-end" variant="outline">
-          <Link href="/materiales">
+          <Link href={careerHref}>
             <BookOpen aria-hidden="true" className="size-4" />
-            Explorar materiales
+            {career ? 'Ver la carrera' : 'Explorar materias'}
           </Link>
         </Button>
       </header>
 
-      <section
-        aria-label="Resumen de la materia"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <SubjectStat
-          icon={<Star className="size-5" strokeWidth={1.7} />}
-          label="recomendación"
-          value={averageRecommendation}
-        />
-        <SubjectStat
-          icon={<MessageSquare className="size-5" strokeWidth={1.7} />}
-          label="reseñas"
-          value={subject.stats.reviewCount}
-        />
-        <SubjectStat
-          icon={<GraduationCap className="size-5" strokeWidth={1.7} />}
-          label="finales"
-          value={subject.stats.examCount}
-        />
-        <SubjectStat
-          icon={<FileText className="size-5" strokeWidth={1.7} />}
-          label="materiales"
-          value={subject.stats.materialCount}
-        />
-      </section>
+      <SubjectExperiencesSummaryCard careerId={career?.id} code={code} />
 
       {subject.professors.length > 0 ? (
         <section aria-labelledby="subject-professors" className="border border-border bg-card p-5">
@@ -306,134 +373,10 @@ export function SubjectHub({ code }: { code: string }) {
 
       <section aria-label="Contenido de la materia" className="grid gap-6">
         <div aria-label="Secciones de la materia" className="border-b border-line" role="tablist">
-          <HubTab active={activeTab === 'reviews'} id="reviews" onSelect={setActiveTab}>
-            Reseñas ({reviews.reviews.length})
-          </HubTab>
-          <HubTab active={activeTab === 'exams'} id="exams" onSelect={setActiveTab}>
-            Finales ({exams.length})
-          </HubTab>
           <HubTab active={activeTab === 'materials'} id="materials" onSelect={setActiveTab}>
             Materiales ({materials.length})
           </HubTab>
         </div>
-
-        {activeTab === 'reviews' ? (
-          <section
-            aria-labelledby="subject-hub-tab-reviews"
-            id="subject-hub-panel-reviews"
-            role="tabpanel"
-          >
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="font-sans text-3xl font-bold text-foreground">Reseñas de cursada</h2>
-                <p className="mt-2 font-sans text-muted-foreground">
-                  Experiencias independientes de cursada para esta materia.
-                </p>
-              </div>
-              <Button asChild>
-                <Link href={`/materias/${encodeURIComponent(code)}/resenar`}>
-                  Reseñar mi cursada
-                </Link>
-              </Button>
-            </div>
-
-            {reviews.conditionBreakdown.length > 0 ? (
-              <div className="mt-5 flex flex-wrap gap-2" aria-label="Resultados de cursada">
-                {reviews.conditionBreakdown.map(({ _count, condition }) => (
-                  <Chip key={condition} tone="neutral">
-                    {courseConditionLabel(condition)}: {_count}
-                  </Chip>
-                ))}
-              </div>
-            ) : null}
-
-            {reviews.reviews.length === 0 ? (
-              <EmptyState
-                className="mt-6"
-                description="Cuando alguien comparta una cursada, aparecerá acá sin mezclarse con experiencias de final."
-                heading="Todavía no hay reseñas"
-              />
-            ) : (
-              <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                {reviews.reviews.map((review) => (
-                  <CourseReviewSummaryCard
-                    key={review.id}
-                    summary={{
-                      academicYear: review.academicYear,
-                      attempt: review.attempt,
-                      author: review.user,
-                      condition: review.condition,
-                      createdAt: review.createdAt,
-                      difficulty: review.difficulty,
-                      excerpt: review.comment,
-                      id: review.id,
-                      professorName: review.professorName,
-                      recommendation: review.recommendation,
-                      shift: review.shift,
-                      updatedAt: review.updatedAt,
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        ) : null}
-
-        {activeTab === 'exams' ? (
-          <section
-            aria-labelledby="subject-hub-tab-exams"
-            id="subject-hub-panel-exams"
-            role="tabpanel"
-          >
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="font-sans text-3xl font-bold text-foreground">
-                  Experiencias de final
-                </h2>
-                <p className="mt-2 font-sans text-muted-foreground">
-                  Mesas y finales compartidos como intentos independientes.
-                </p>
-              </div>
-              <Button asChild>
-                <Link href={`/materias/${encodeURIComponent(code)}/final`}>Contar mi final</Link>
-              </Button>
-            </div>
-
-            {exams.length === 0 ? (
-              <EmptyState
-                className="mt-6"
-                description="Las experiencias de final aparecerán acá y se mantendrán separadas de las reseñas de cursada."
-                heading="Todavía no hay experiencias de final"
-              />
-            ) : (
-              <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                {exams.map((exam) => (
-                  <FinalExperienceSummaryCard
-                    key={exam.id}
-                    summary={{
-                      author: exam.user,
-                      createdAt: exam.createdAt,
-                      difficulty: exam.difficulty,
-                      difficultyPractice: exam.difficultyPractice,
-                      difficultyTheory: exam.difficultyTheory,
-                      examDate: exam.examDate,
-                      examinerName: exam.examinerName,
-                      excerpt: exam.comment,
-                      format: exam.format,
-                      id: exam.id,
-                      outcome: exam.outcome,
-                      professorName: exam.professor?.name,
-                      session: exam.session,
-                      shift: exam.shift,
-                      updatedAt: exam.updatedAt,
-                      year: exam.year,
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        ) : null}
 
         {activeTab === 'materials' ? (
           <section
@@ -452,8 +395,26 @@ export function SubjectHub({ code }: { code: string }) {
                 <Link href="/materiales/nuevo">Subir material</Link>
               </Button>
             </div>
-            <div className="mt-6">
-              <MaterialList materials={materials} />
+            <form className="mt-6 flex flex-wrap gap-2" onSubmit={search} role="search">
+              <label className="sr-only" htmlFor="subject-material-search">
+                Buscar en {subject.name}
+              </label>
+              <input
+                className="min-h-11 min-w-0 flex-1 rounded-xl border-[1.5px] border-foreground bg-background px-3 font-sans text-sm font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                defaultValue={query}
+                id="subject-material-search"
+                key={query}
+                name="q"
+                placeholder="Parcial 1, resumen, final…"
+                type="search"
+              />
+              <Button type="submit" variant="outline">
+                Buscar
+              </Button>
+            </form>
+            <div className="mt-6 grid gap-6">
+              {query ? null : <TopMaterials entries={top} subjectName={subject.name} />}
+              <MaterialList materials={materials} query={query} />
             </div>
           </section>
         ) : null}

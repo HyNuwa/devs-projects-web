@@ -1,23 +1,6 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseEnumPipe,
-  ParseIntPipe,
-  ParseUUIDPipe,
-  Query,
-} from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { MaterialResourceType } from '../../generated/prisma';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
-import {
-  DiscoveryCareerListDto,
-  DiscoveryCurriculumYearListDto,
-  DiscoveryHierarchyQueryDto,
-  DiscoveryMaterialFileListDto,
-  DiscoveryResourceCategoryListDto,
-  DiscoverySubjectListDto,
-} from './dto/discovery-hierarchy.dto';
 import { DiscoverySuggestionsQueryDto } from './dto/discovery-suggestions-query.dto';
 import { DiscoverySuggestionsResponseDto } from './dto/discovery-suggestions-response.dto';
 import {
@@ -28,12 +11,43 @@ import {
   DiscoveryExamExperienceListDto,
   DiscoveryExamExperiencesQueryDto,
 } from './dto/discovery-exam-experiences.dto';
+import { SubjectExperiencesSummaryDto } from './dto/discovery-experiences-summary.dto';
+import {
+  DiscoveryExperiencesOverviewQueryDto,
+  ExperiencesOverviewDto,
+} from './dto/discovery-experiences-overview.dto';
+import {
+  CourseReviewRelatedDto,
+  ExamExperienceRelatedDto,
+} from './dto/discovery-experiences-related.dto';
 import { DiscoveryService } from './discovery.service';
 
 @ApiTags('Discovery')
 @Controller('discovery')
 export class DiscoveryController {
   constructor(private readonly discoveryService: DiscoveryService) {}
+
+  @Get('experiences/overview')
+  @Public()
+  @ApiOperation({
+    summary: 'Materias más comentadas y experiencias recién publicadas',
+  })
+  @ApiResponse({ status: 200, type: ExperiencesOverviewDto })
+  @ApiResponse({ status: 400, description: 'Consulta de overview inválida' })
+  getExperiencesOverview(@Query() query: DiscoveryExperiencesOverviewQueryDto) {
+    return this.discoveryService.getExperiencesOverview(query);
+  }
+
+  @Get('subjects/:code/experiences-summary')
+  @Public()
+  @ApiOperation({
+    summary: 'Resumen de experiencias públicas de una materia por código',
+  })
+  @ApiResponse({ status: 200, type: SubjectExperiencesSummaryDto })
+  @ApiResponse({ status: 404, description: 'Materia no encontrada' })
+  getSubjectExperiencesSummary(@Param('code') code: string) {
+    return this.discoveryService.getSubjectExperiencesSummary(code);
+  }
 
   @Get('suggestions')
   @Public()
@@ -57,6 +71,17 @@ export class DiscoveryController {
     return this.discoveryService.getCourseReviews(query);
   }
 
+  @Get('course-reviews/:id/related')
+  @Public()
+  @ApiOperation({
+    summary: 'Reseñas públicas de la materia que comparten el mismo contexto',
+  })
+  @ApiResponse({ status: 200, type: CourseReviewRelatedDto })
+  @ApiResponse({ status: 404, description: 'Reseña no encontrada' })
+  getCourseReviewRelated(@Param('id', ParseUUIDPipe) id: string) {
+    return this.discoveryService.getCourseReviewRelated(id);
+  }
+
   @Get('course-reviews/:id')
   @Public()
   getCourseReviewDetail(@Param('id', ParseUUIDPipe) id: string) {
@@ -72,82 +97,23 @@ export class DiscoveryController {
     return this.discoveryService.getExamExperiences(query);
   }
 
+  @Get('exam-experiences/:id/related')
+  @Public()
+  @ApiOperation({
+    summary: 'Finales públicos de la materia que comparten el mismo contexto',
+  })
+  @ApiResponse({ status: 200, type: ExamExperienceRelatedDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Experiencia de final no encontrada',
+  })
+  getExamExperienceRelated(@Param('id', ParseUUIDPipe) id: string) {
+    return this.discoveryService.getExamExperienceRelated(id);
+  }
+
   @Get('exam-experiences/:id')
   @Public()
   getExamExperienceDetail(@Param('id', ParseUUIDPipe) id: string) {
     return this.discoveryService.getExamExperienceDetail(id);
-  }
-
-  @Get('hierarchy/careers')
-  @Public()
-  @ApiOperation({ summary: 'Listar carreras disponibles para materiales' })
-  @ApiResponse({ status: 200, type: DiscoveryCareerListDto })
-  getCareers(@Query() query: DiscoveryHierarchyQueryDto) {
-    return this.discoveryService.getCareers(query);
-  }
-
-  @Get('hierarchy/careers/:careerId/years')
-  @Public()
-  @ApiOperation({ summary: 'Listar años curriculares de una carrera' })
-  @ApiParam({ name: 'careerId', format: 'uuid' })
-  @ApiResponse({ status: 200, type: DiscoveryCurriculumYearListDto })
-  getCurriculumYears(
-    @Param('careerId', ParseUUIDPipe) careerId: string,
-    @Query() query: DiscoveryHierarchyQueryDto,
-  ) {
-    return this.discoveryService.getCurriculumYears(careerId, query);
-  }
-
-  @Get(
-    'hierarchy/careers/:careerId/study-plans/:studyPlanId/years/:year/subjects',
-  )
-  @Public()
-  @ApiOperation({ summary: 'Listar materias de un año curricular' })
-  @ApiParam({ name: 'careerId', format: 'uuid' })
-  @ApiParam({ name: 'studyPlanId', format: 'uuid' })
-  @ApiParam({ name: 'year', type: Number })
-  @ApiResponse({ status: 200, type: DiscoverySubjectListDto })
-  getSubjects(
-    @Param('careerId', ParseUUIDPipe) careerId: string,
-    @Param('studyPlanId', ParseUUIDPipe) studyPlanId: string,
-    @Param('year', ParseIntPipe) year: number,
-    @Query() query: DiscoveryHierarchyQueryDto,
-  ) {
-    return this.discoveryService.getSubjects(
-      careerId,
-      studyPlanId,
-      year,
-      query,
-    );
-  }
-
-  @Get('hierarchy/subjects/:subjectId/resource-categories')
-  @Public()
-  @ApiOperation({ summary: 'Listar categorías con recursos aprobados' })
-  @ApiParam({ name: 'subjectId', format: 'uuid' })
-  @ApiResponse({ status: 200, type: DiscoveryResourceCategoryListDto })
-  getResourceCategories(@Param('subjectId', ParseUUIDPipe) subjectId: string) {
-    return this.discoveryService.getResourceCategories(subjectId);
-  }
-
-  @Get(
-    'hierarchy/subjects/:subjectId/resource-categories/:resourceType/materials',
-  )
-  @Public()
-  @ApiOperation({ summary: 'Listar archivos aprobados de una categoría' })
-  @ApiParam({ name: 'subjectId', format: 'uuid' })
-  @ApiParam({ name: 'resourceType', enum: MaterialResourceType })
-  @ApiResponse({ status: 200, type: DiscoveryMaterialFileListDto })
-  getMaterialFiles(
-    @Param('subjectId', ParseUUIDPipe) subjectId: string,
-    @Param('resourceType', new ParseEnumPipe(MaterialResourceType))
-    resourceType: MaterialResourceType,
-    @Query() query: DiscoveryHierarchyQueryDto,
-  ) {
-    return this.discoveryService.getMaterialFiles(
-      subjectId,
-      resourceType,
-      query,
-    );
   }
 }

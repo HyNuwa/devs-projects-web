@@ -10,7 +10,7 @@ const modules = [
     description:
       'Explorá el plan de estudio, reseñas de cursada y experiencias de final por materia.',
     icon: '/assets/cards/plan_estudio.png',
-    href: '/materias',
+    href: '/universidades',
   },
   {
     id: 'apuntes',

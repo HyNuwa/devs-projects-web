@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { ScopeFaculty } from '@/lib/moderation-client';
 
 export type SuggestedStep = 'NONE' | 'WARNING' | 'MUTE' | 'PROPOSE_SUSPENSION';
 export type SanctionType = 'WARNING' | 'MUTE' | 'SUSPENSION';
@@ -11,7 +12,7 @@ export type SanctionAction =
   | 'DECIDE_PROPOSAL'
   | 'LIFT_SUSPENSION';
 export type SuspensionDuration = '7_DAYS' | '30_DAYS' | 'PERMANENT';
-export type UsersFilter = 'suggested' | 'sanctioned' | 'prior-review';
+export type UsersFilter = 'suggested' | 'sanctioned' | 'prior-review' | 'eligible';
 
 export type AccountStatus = {
   kind: 'ACTIVE' | 'WARNED' | 'MUTED' | 'SUSPENDED';
@@ -27,6 +28,8 @@ export type UserListItem = {
   emailVerified: boolean;
   status: AccountStatus;
   suggestedStep: SuggestedStep;
+  /** Eligible to moderate: present only for ADMIN and SUPERADMIN viewers. */
+  eligible?: boolean;
 };
 
 export type SuspensionProposal = {
@@ -83,6 +86,13 @@ export type UserFile = UserListItem & {
   } | null;
   timeline: TimelineEntry[];
   actions: SanctionAction[];
+  /** Only for ADMIN and SUPERADMIN viewers. */
+  eligible?: boolean;
+  canPromote?: boolean;
+  /** Admins only: the facultades of the account's carreras, to preselect a promotion. */
+  careerFacultyIds?: string[];
+  /** Admins only: the facultades a MODERATOR covers; null for other roles. */
+  moderatorFaculties?: ScopeFaculty[] | null;
 };
 
 export async function getModerationUsers(params: { filter?: UsersFilter; q?: string }) {

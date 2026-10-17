@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { accountWhere, appealWhere, narrow, scopeOf } from './scope';
 
 import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -72,9 +73,9 @@ const TARGET_LABEL = {
 export class AppealsQueryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(viewer: Actor) {
+  async list(viewer: Actor, facultyId?: string) {
     const rows = await this.prisma.appeal.findMany({
-      where: { status: 'PENDING' },
+      where: { status: 'PENDING', ...(await this.inScope(viewer, facultyId)) },
       orderBy: { createdAt: 'asc' },
       take: 200,
       select: appealSelect,
@@ -92,8 +93,9 @@ export class AppealsQueryService {
   }
 
   async detail(viewer: Actor, appealId: string) {
-    const row = await this.prisma.appeal.findUnique({
-      where: { id: appealId },
+    // An appeal outside the viewer's facultades answers like a missing one.
+    const row = await this.prisma.appeal.findFirst({
+      where: { id: appealId, ...(await this.inScope(viewer)) },
       select: appealSelect,
     });
     if (!row) throw new NotFoundException('Apelación no encontrada');
@@ -132,6 +134,12 @@ export class AppealsQueryService {
             }
           : null,
     };
+  }
+
+  /** Appeals within the viewer's alcance de moderación (openspec moderation/scope). */
+  async inScope(viewer: Actor, facultyId?: string) {
+    const scope = narrow(await scopeOf(this.prisma, viewer), facultyId);
+    return appealWhere(scope, await accountWhere(this.prisma, scope));
   }
 
   private async usernames(ids: string[]) {

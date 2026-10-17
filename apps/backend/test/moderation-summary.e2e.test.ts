@@ -9,6 +9,7 @@ import {
   createSubject,
   createUser,
   type E2eUser,
+  createStudent,
 } from './support/e2e-app';
 
 type Summary = {
@@ -47,7 +48,7 @@ describe('moderation queue deadlines and panel summary (e2e)', () => {
 
   /** A material hidden `hoursAgo` with its open caso. */
   async function hiddenCaso(hoursAgo: number) {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const hiddenAt = new Date(Date.now() - hoursAgo * 3_600_000);
     const material = await prisma.material.create({
       data: {
@@ -91,7 +92,7 @@ describe('moderation queue deadlines and panel summary (e2e)', () => {
 
   it('counts the appeals each viewer may answer', async () => {
     const decider = await createUser(prisma, 'MODERATOR');
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     const before = await summary(moderator);
     const sanction = await prisma.sanction.create({
       data: {
@@ -118,7 +119,7 @@ describe('moderation queue deadlines and panel summary (e2e)', () => {
   });
 
   it('counts pending suspension proposals only for admins', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     const before = await summary(admin);
     await request(app.getHttpServer())
       .post(`/api/v1/moderation/users/${student.id}/suspension-proposals`)

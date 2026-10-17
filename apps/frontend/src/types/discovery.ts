@@ -1,3 +1,4 @@
+import type { FacultyRef as DiscoveryHierarchyFaculty } from './institution';
 import type { MaterialResourceType } from './material';
 
 export interface DiscoverySubjectSuggestion {
@@ -5,6 +6,7 @@ export interface DiscoverySubjectSuggestion {
   id: string;
   name: string;
   code: string | null;
+  faculty: DiscoveryHierarchyFaculty;
 }
 
 export interface DiscoveryMaterialSuggestion {
@@ -34,6 +36,10 @@ export interface DiscoverySubjectLink {
 
 export interface DiscoveryPublicAuthor {
   username: string;
+  /** Present only for named authors; anonymous entries carry just `username`. */
+  id?: string;
+  avatarUrl?: string | null;
+  avatarCat?: string | null;
 }
 
 export interface DiscoveryCourseReview {
@@ -90,6 +96,8 @@ export interface DiscoveryExamExperience {
   examinerName?: string;
   difficulty?: 'MUY_BAJA' | 'BAJA' | 'MEDIA' | 'ALTA' | 'MUY_ALTA';
   outcome?: 'APROBADO' | 'DESAPROBADO' | 'PREFIERO_NO_DECIR';
+  /** Nota declared by the author; absent when none was shared. */
+  grade?: number;
   excerpt?: string;
   createdAt: string;
   updatedAt: string;

@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { AccountMenu } from './AccountMenu';
 import { BrandMark } from './BrandMark';
 import { currentDestination, primaryDestinations } from './navigation';
+import { UbicacionChip } from './UbicacionChip';
 
 /**
  * Site header from the canvas. Desktop (lg and up) and compact layouts are both
@@ -60,6 +61,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2 lg:gap-3">
+          <UbicacionChip />
           <Link
             aria-label="Buscar"
             className="inline-grid size-11 place-items-center rounded-xl border-[1.5px] border-foreground bg-card text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:border-transparent lg:bg-transparent lg:hover:bg-card"
@@ -96,16 +98,6 @@ export function SiteHeader() {
               </div>
             </>
           ) : null}
-
-          <div
-            aria-hidden="true"
-            className="ml-2.5 hidden text-right text-[0.656rem] font-bold leading-[1.35] tracking-[0.15em] text-foreground xl:block"
-          >
-            UNJU
-            <br />
-            FI
-            <div className="mt-[3px] h-0.5 bg-foreground" />
-          </div>
         </div>
       </div>
     </header>

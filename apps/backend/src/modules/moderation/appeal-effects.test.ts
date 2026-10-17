@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { ReportPoints } from '../ranking/report-points';
 import { DecisionsService } from './decisions.service';
 import { SanctionsService } from './sanctions.service';
 
@@ -54,7 +55,7 @@ function prismaDouble() {
 describe('an accepted appeal of a retiro', () => {
   let prisma: ReturnType<typeof prismaDouble>;
   let decisions: DecisionsService;
-  const points = { awardFor: vi.fn(), revertFor: vi.fn() };
+  const points = { published: vi.fn(), withdrawn: vi.fn() };
 
   beforeEach(async () => {
     vi.useFakeTimers().setSystemTime(NOW);
@@ -64,7 +65,15 @@ describe('an accepted appeal of a retiro', () => {
       providers: [
         DecisionsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: points },
+        {
+          provide: ReportPoints,
+          useValue: {
+            confirmed: vi.fn(),
+            unconfirmed: vi.fn(),
+            lockParticipants: vi.fn(),
+          },
+        },
+        { provide: ContributionPoints, useValue: points },
         { provide: MaterialsService, useValue: {} },
         { provide: SanctionsService, useValue: {} },
       ],
@@ -97,12 +106,15 @@ describe('an accepted appeal of a retiro', () => {
   it('re-awards its points, even if the author has an active sanción', async () => {
     await restore();
 
-    expect(points.awardFor).toHaveBeenCalledWith(prisma, {
-      userId: 'author-1',
-      amount: 10,
-      reason: 'MATERIAL_PUBLISHED',
-      referenceId: 'mat-1',
-    });
+    expect(points.published).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({
+        type: 'MATERIAL',
+        id: 'mat-1',
+        authorId: 'author-1',
+      }),
+      { appeal: true },
+    );
     expect(prisma.subject.update).toHaveBeenCalledWith({
       where: { id: 'sub-1' },
       data: { materialCount: { increment: 1 } },
@@ -133,7 +145,7 @@ describe('an accepted appeal of a retiro', () => {
     prisma.material.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(restore()).rejects.toBeInstanceOf(ConflictException);
-    expect(points.awardFor).not.toHaveBeenCalled();
+    expect(points.published).not.toHaveBeenCalled();
   });
 });
 

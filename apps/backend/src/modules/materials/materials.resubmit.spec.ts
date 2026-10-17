@@ -7,7 +7,9 @@ import { Test } from '@nestjs/testing';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { HelpfulPoints } from '../ranking/helpful-points';
+import { PioneerBonus } from '../ranking/pioneer-bonus';
 import { MaterialsService } from './materials.service';
 
 describe('MaterialsService.resubmit (corregir y reenviar)', () => {
@@ -64,7 +66,15 @@ describe('MaterialsService.resubmit (corregir y reenviar)', () => {
         MaterialsService,
         { provide: PrismaService, useValue: prisma },
         { provide: 'FILE_STORAGE', useValue: storage },
-        { provide: PointService, useValue: { awardFor: jest.fn() } },
+        { provide: ContributionPoints, useValue: { published: jest.fn() } },
+        {
+          provide: HelpfulPoints,
+          useValue: { marked: jest.fn(), unmarked: jest.fn() },
+        },
+        {
+          provide: PioneerBonus,
+          useValue: { evaluate: jest.fn(), revoke: jest.fn() },
+        },
         { provide: PublicationPolicy, useValue: policy },
       ],
     }).compile();

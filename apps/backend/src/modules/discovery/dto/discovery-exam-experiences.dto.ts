@@ -132,6 +132,9 @@ export class DiscoveryExamExperienceDto {
   @ApiPropertyOptional({ enum: ExamOutcome, nullable: true })
   outcome?: ExamOutcome;
 
+  @ApiPropertyOptional({ minimum: 0, maximum: 10 })
+  grade?: number;
+
   @ApiPropertyOptional({
     nullable: true,
     maxLength: MAX_DISCOVERY_EXAM_EXPERIENCE_EXCERPT_LENGTH + 1,

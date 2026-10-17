@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { ReportPoints } from '../ranking/report-points';
 import { DecisionsService } from './decisions.service';
 import { SanctionsService } from './sanctions.service';
 
@@ -17,7 +18,11 @@ describe('«Retirar» with «Advertir también»', () => {
   function prismaDouble() {
     const double = {
       $transaction: vi.fn(),
+      moderatorScope: {
+        findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+      },
       moderationCase: {
+        count: vi.fn().mockResolvedValue(1),
         findUnique: vi.fn().mockResolvedValue({
           id: 'case-1',
           kind: 'REPORTS',
@@ -60,8 +65,16 @@ describe('«Retirar» with «Advertir también»', () => {
         DecisionsService,
         { provide: PrismaService, useValue: prisma },
         {
-          provide: PointService,
-          useValue: { awardFor: vi.fn(), revertFor: vi.fn() },
+          provide: ReportPoints,
+          useValue: {
+            confirmed: vi.fn(),
+            unconfirmed: vi.fn(),
+            lockParticipants: vi.fn(),
+          },
+        },
+        {
+          provide: ContributionPoints,
+          useValue: { published: vi.fn(), withdrawn: vi.fn() },
         },
         { provide: MaterialsService, useValue: {} },
         { provide: SanctionsService, useValue: sanctions },
