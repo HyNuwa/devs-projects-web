@@ -12,9 +12,16 @@ import { UserResponseDto } from './dto/auth-response.dto';
 const SALT_ROUNDS = 12;
 
 function excludePassword(user: Record<string, unknown>): UserResponseDto {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { passwordHash, ...safe } = user;
-  return safe as unknown as UserResponseDto;
+  const { id, username, email, role, name, createdAt, updatedAt } = user;
+  return {
+    id,
+    username,
+    email,
+    role,
+    name,
+    createdAt,
+    updatedAt,
+  } as UserResponseDto;
 }
 
 @Injectable()
@@ -68,6 +75,9 @@ export class AuthService {
     if (!user) {
       return null;
     }
+
+    if (user.isBanned && (!user.bannedUntil || user.bannedUntil > new Date()))
+      return null;
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 

@@ -348,3 +348,7 @@ curl -X PATCH http://localhost:3001/api/v1/admin/users/1/role \
 | F-020 | Contexto de autenticación (Zustand store) | ✅ |
 | F-018 | LoginForm + RegisterForm | ✅ |
 | F-019 | AuthGuard para rutas protegidas | ✅ |
+
+## Autorización educativa en develop
+
+Ver [roles, permisos y bootstrap](README_COURSES.md#roles-y-permisos). El rol se relee desde la base; el cambio de rol ahora exige motivo y deja auditoría.

@@ -1,53 +1,20 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { configureApp } from './config/configure-app';
 import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
-import helmet from 'helmet';
-import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   });
   const configService = app.get(ConfigService);
 
   app.useLogger(app.get(Logger));
 
-  const apiPrefix = configService.get<string>('app.apiPrefix', 'api/v1');
-  app.setGlobalPrefix(apiPrefix);
-
-  app.useGlobalFilters(
-    new HttpExceptionFilter(),
-    new AllExceptionsFilter(configService),
-  );
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  app.use(helmet());
-  app.use(cookieParser());
-
-  const corsOrigin = configService.get<string>(
-    'app.corsOrigin',
-    'http://localhost:3000',
-  );
-  app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true,
-  });
+  configureApp(app);
 
   const nodeEnv = configService.get<string>('app.nodeEnv', 'development');
   if (nodeEnv !== 'production') {

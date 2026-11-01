@@ -128,6 +128,113 @@ exports.Prisma.UserScalarFieldEnum = {
   role: 'role',
   name: 'name',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  isBanned: 'isBanned',
+  bannedUntil: 'bannedUntil',
+  mutedUntil: 'mutedUntil'
+};
+
+exports.Prisma.RoleChangeAuditScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  targetId: 'targetId',
+  oldRole: 'oldRole',
+  newRole: 'newRole',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CareerScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.StudyPlanScalarFieldEnum = {
+  id: 'id',
+  careerId: 'careerId',
+  name: 'name',
+  code: 'code',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SubjectScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  searchKey: 'searchKey',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.StudyPlanSubjectScalarFieldEnum = {
+  id: 'id',
+  studyPlanId: 'studyPlanId',
+  subjectId: 'subjectId',
+  year: 'year',
+  semester: 'semester',
+  credits: 'credits'
+};
+
+exports.Prisma.CourseScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  status: 'status',
+  creatorId: 'creatorId',
+  subjectId: 'subjectId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CourseSectionScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  title: 'title',
+  position: 'position',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CourseLessonScalarFieldEnum = {
+  id: 'id',
+  sectionId: 'sectionId',
+  title: 'title',
+  body: 'body',
+  position: 'position',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CourseEnrollmentScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  userId: 'userId',
+  active: 'active',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CourseFileScalarFieldEnum = {
+  id: 'id',
+  lessonId: 'lessonId',
+  uploaderId: 'uploaderId',
+  driveFileId: 'driveFileId',
+  operationId: 'operationId',
+  originalName: 'originalName',
+  mimeType: 'mimeType',
+  size: 'size',
+  allowDownload: 'allowDownload',
+  state: 'state',
+  origin: 'origin',
+  lastErrorCode: 'lastErrorCode',
+  attempts: 'attempts',
+  retryAt: 'retryAt',
+  createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
@@ -153,8 +260,36 @@ exports.Role = exports.$Enums.Role = {
   SUPERADMIN: 'SUPERADMIN'
 };
 
+exports.CourseStatus = exports.$Enums.CourseStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED'
+};
+
+exports.CourseFileState = exports.$Enums.CourseFileState = {
+  PENDING: 'PENDING',
+  READY: 'READY',
+  FAILED: 'FAILED',
+  DETACHING: 'DETACHING'
+};
+
+exports.CourseFileOrigin = exports.$Enums.CourseFileOrigin = {
+  UPLOAD: 'UPLOAD',
+  IMPORT: 'IMPORT'
+};
+
 exports.Prisma.ModelName = {
-  User: 'User'
+  User: 'User',
+  RoleChangeAudit: 'RoleChangeAudit',
+  Career: 'Career',
+  StudyPlan: 'StudyPlan',
+  Subject: 'Subject',
+  StudyPlanSubject: 'StudyPlanSubject',
+  Course: 'Course',
+  CourseSection: 'CourseSection',
+  CourseLesson: 'CourseLesson',
+  CourseEnrollment: 'CourseEnrollment',
+  CourseFile: 'CourseFile'
 };
 
 /**

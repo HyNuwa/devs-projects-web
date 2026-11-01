@@ -11,6 +11,9 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
 import { validate } from './config/env.validation';
+import { AuthorizationModule } from './modules/authorization/authorization.module';
+import { SubjectsModule } from './modules/subjects/subjects.module';
+import { CoursesModule } from './modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -57,6 +60,9 @@ import { validate } from './config/env.validation';
       },
     }),
     PrismaModule,
+    AuthorizationModule,
+    SubjectsModule,
+    CoursesModule,
     AuthModule,
     AdminModule,
   ],

@@ -6,6 +6,8 @@ import {
   ParseIntPipe,
   UseGuards,
   Body,
+  Request,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +19,12 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role, UserResponseDto } from '../auth/dto/auth-response.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  AssignRoleDto,
+  RoleManagementService,
+} from '../authorization/role-management.service';
+import { roleCatalog } from '../authorization/permissions';
+import { Permissions } from '../authorization/permissions.guard';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -24,7 +32,18 @@ import { PrismaService } from '../../prisma/prisma.service';
 @UseGuards(RolesGuard)
 @Roles(Role.ADMIN, Role.SUPERADMIN)
 export class AdminController {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly roleManagement: RoleManagementService,
+  ) {}
+
+  @Get('roles')
+  @Permissions('roles:read')
+  @ApiOperation({ summary: 'Consultar catálogo de roles y permisos' })
+  @ApiResponse({ status: 200, description: 'Catálogo de roles' })
+  getRoles() {
+    return roleCatalog();
+  }
 
   @Get('users')
   @ApiOperation({ summary: 'Listar todos los usuarios' })
@@ -64,34 +83,22 @@ export class AdminController {
     });
 
     if (!user) {
-      throw new Error('Usuario no encontrado');
+      throw new NotFoundException('Usuario no encontrado');
     }
 
     return user;
   }
 
   @Patch('users/:id/role')
+  @Permissions('roles:assign')
   @ApiOperation({ summary: 'Cambiar rol de un usuario' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   async updateUserRole(
     @Param('id', ParseIntPipe) id: number,
-    @Body('role') role: Role,
+    @Body() dto: AssignRoleDto,
+    @Request() req: { user: { id: number } },
   ) {
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: { role },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        name: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    return user;
+    return this.roleManagement.assign(req.user.id, id, dto);
   }
 
   @Get('stats')

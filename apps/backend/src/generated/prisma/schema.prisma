@@ -19,12 +19,198 @@ enum Role {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  email        String   @unique
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  email        String    @unique
   passwordHash String
-  role         Role     @default(USER)
+  role         Role      @default(USER)
   name         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  isBanned     Boolean   @default(false)
+  bannedUntil  DateTime?
+  mutedUntil   DateTime?
+
+  courses             Course[]
+  enrollments         CourseEnrollment[]
+  courseFiles         CourseFile[]
+  roleChangesMade     RoleChangeAudit[]  @relation("RoleActor")
+  roleChangesReceived RoleChangeAudit[]  @relation("RoleTarget")
+}
+
+model RoleChangeAudit {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   Int      @map("actor_id")
+  targetId  Int      @map("target_id")
+  oldRole   Role     @map("old_role")
+  newRole   Role     @map("new_role")
+  reason    String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+  actor     User     @relation("RoleActor", fields: [actorId], references: [id], onDelete: Restrict)
+  target    User     @relation("RoleTarget", fields: [targetId], references: [id], onDelete: Restrict)
+
+  @@index([targetId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("role_change_audits")
+}
+
+model Career {
+  id         String      @id @default(uuid()) @db.Uuid
+  name       String      @db.VarChar(150)
+  code       String      @unique @db.VarChar(30)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  studyPlans StudyPlan[]
+
+  @@map("careers")
+}
+
+model StudyPlan {
+  id        String             @id @default(uuid()) @db.Uuid
+  careerId  String             @map("career_id") @db.Uuid
+  name      String             @db.VarChar(150)
+  code      String             @db.VarChar(30)
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  career    Career             @relation(fields: [careerId], references: [id], onDelete: Restrict)
+  subjects  StudyPlanSubject[]
+
+  @@unique([careerId, code])
+  @@map("study_plans")
+}
+
+model Subject {
+  id          String             @id @default(uuid()) @db.Uuid
+  name        String             @db.VarChar(150)
+  code        String?            @db.VarChar(20)
+  description String?            @db.VarChar(5000)
+  searchKey   String             @map("search_key") @db.VarChar(200)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  studyPlans  StudyPlanSubject[]
+  courses     Course[]
+
+  @@index([searchKey])
+  @@map("subjects")
+}
+
+model StudyPlanSubject {
+  id          String    @id @default(uuid()) @db.Uuid
+  studyPlanId String    @map("study_plan_id") @db.Uuid
+  subjectId   String    @map("subject_id") @db.Uuid
+  year        Int       @db.SmallInt
+  semester    Int       @db.SmallInt
+  credits     Int?      @db.SmallInt
+  studyPlan   StudyPlan @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studyPlanId, subjectId])
+  @@index([subjectId])
+  @@map("study_plan_subjects")
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CourseFileState {
+  PENDING
+  READY
+  FAILED
+  DETACHING
+}
+
+enum CourseFileOrigin {
+  UPLOAD
+  IMPORT
+}
+
+model Course {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String             @db.VarChar(200)
+  description String             @db.VarChar(5000)
+  status      CourseStatus       @default(DRAFT)
+  creatorId   Int                @map("creator_id")
+  subjectId   String?            @map("subject_id") @db.Uuid
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  creator     User               @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  subject     Subject?           @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  sections    CourseSection[]
+  enrollments CourseEnrollment[]
+
+  @@index([status, createdAt])
+  @@index([subjectId])
+  @@map("courses")
+}
+
+model CourseSection {
+  id        String         @id @default(uuid()) @db.Uuid
+  courseId  String         @map("course_id") @db.Uuid
+  title     String         @db.VarChar(200)
+  position  Int
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   CourseLesson[]
+
+  @@unique([courseId, position])
+  @@map("course_sections")
+}
+
+model CourseLesson {
+  id        String        @id @default(uuid()) @db.Uuid
+  sectionId String        @map("section_id") @db.Uuid
+  title     String        @db.VarChar(200)
+  body      String?       @db.Text
+  position  Int
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  section   CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  files     CourseFile[]
+
+  @@unique([sectionId, position])
+  @@map("course_lessons")
+}
+
+model CourseEnrollment {
+  id        String   @id @default(uuid()) @db.Uuid
+  courseId  String   @map("course_id") @db.Uuid
+  userId    Int      @map("user_id")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@index([userId, active])
+  @@map("course_enrollments")
+}
+
+model CourseFile {
+  id            String           @id @default(uuid()) @db.Uuid
+  lessonId      String           @map("lesson_id") @db.Uuid
+  uploaderId    Int              @map("uploader_id")
+  driveFileId   String?          @unique @map("drive_file_id") @db.VarChar(200)
+  operationId   String           @unique @default(uuid()) @map("operation_id") @db.Uuid
+  originalName  String           @map("original_name") @db.VarChar(255)
+  mimeType      String           @map("mime_type") @db.VarChar(100)
+  size          BigInt
+  allowDownload Boolean          @default(true) @map("allow_download")
+  state         CourseFileState  @default(PENDING)
+  origin        CourseFileOrigin
+  lastErrorCode String?          @map("last_error_code") @db.VarChar(50)
+  attempts      Int              @default(0)
+  retryAt       DateTime         @default(now()) @map("retry_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  lesson        CourseLesson     @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+  uploader      User             @relation(fields: [uploaderId], references: [id], onDelete: Restrict)
+
+  @@index([lessonId, state])
+  @@index([state, retryAt])
+  @@map("course_files")
 }

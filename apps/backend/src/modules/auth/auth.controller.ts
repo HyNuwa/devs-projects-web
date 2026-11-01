@@ -20,11 +20,23 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserResponseDto } from './dto/auth-response.dto';
 import { Public } from '../../common/decorators/public.decorator';
+import {
+  permissionsFor,
+  AuthenticatedUser,
+} from '../authorization/permissions';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Get('permissions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Consultar mi rol y permisos vigentes' })
+  @ApiResponse({ status: 200, description: 'Rol y permisos efectivos' })
+  getPermissions(@Request() req: { user: AuthenticatedUser }) {
+    return { role: req.user.role, permissions: permissionsFor(req.user.role) };
+  }
 
   @Public()
   @Post('register')

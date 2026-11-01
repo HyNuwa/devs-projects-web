@@ -287,3 +287,7 @@ NestJS usa **Passport.js** integrado con Guards:
 
 ---
 *📅 Última actualización: Julio 2026*
+
+## Cursos y materias en develop
+
+Los módulos authorization, subjects, courses y drive implementan la plataforma educativa. Contratos y alcance: [README_COURSES.md](README_COURSES.md).

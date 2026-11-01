@@ -176,3 +176,7 @@ main          ── producción estable
 
 ---
 *📅 Última actualización: Julio 2026*
+
+## Drive para cursos
+
+Configurar una cuenta de servicio y una carpeta privada en una unidad compartida; staging requiere volumen persistente privado. Variables, despliegue y recuperación: [README_COURSES.md](README_COURSES.md#google-drive).

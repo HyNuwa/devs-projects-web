@@ -215,3 +215,7 @@ CREATE INDEX idx_notifications_user ON notifications(user_id, read, created_at D
 
 ---
 *📅 Última actualización: Julio 2026*
+
+## Extensión educativa
+
+La migración 20261031000000_learning_platform conserva User.id entero y agrega entidades educativas UUID, FKs e índices. Relaciones y puesta en marcha: [README_COURSES.md](README_COURSES.md).
