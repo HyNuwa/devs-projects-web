@@ -127,7 +127,7 @@
   - unavailable storage loses only the draft.
 
   Implement it in the forms and `WriteExperienceChooser`. Verify the tests pass.
-- [ ] 4.6 Check both forms at 390px and on desktop in the running app:
+- [x] 4.6 Check both forms at 390px and on desktop in the running app:
   - one column with every field;
   - no preview on a phone;
   - a sticky publish button that never covers the last field;
@@ -135,6 +135,11 @@
   - no horizontal overflow.
 
   Record the check in this task.
+
+  **Check (2026-11-17, `/materias/14/final` and `/materias/14/resenar`, Chrome DevTools, seed user):**
+  - 390×844 mobile: one column (form 366px wide), the final shows 7 sections and the reseña 5, no «Así se va a ver» preview, and no horizontal overflow on the forms, `/`, `/experiencias`, `/experiencias/escribir` or `/universidades`.
+  - The publish bar did not stick at first. The global `html, body { overflow-x: hidden }` in `app/globals.css` made `body` a scroll container, so `position: sticky` never engaged. Changing it to `overflow-x: clip` fixed it. The bar now stays at the viewport bottom while scrolling (bottom 832 of 844) and rests below the last field (the anonymity switch) at the end of the page, so it never covers it.
+  - 1440×900 desktop: the form (704px) and the preview (400px) sit side by side, the publish bar is static, and there is no horizontal overflow.
 
 ## 5. Docs and checks
 
