@@ -6,7 +6,7 @@
 
 - Report only the command, exit status, duration, suite summary, warnings, and relevant failure excerpt.
 
-- Run test suites through a subagent on the Haiku model (`model: "haiku"`, Haiku 5.5): give it the exact commands, the log paths and the environment to load, and have it return only the summary above. Read the failing log yourself when a fix depends on it.
+- Run test suites through a Devin CLI worker, as the `devin-orchestration` skill describes: give it the exact commands, the log paths and the environment to load, and have it return only the summary above. Read the failing log yourself when a fix depends on it.
 
 - On failure, inspect the smallest useful log section first and expand only when needed.
 
