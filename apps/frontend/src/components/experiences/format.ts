@@ -14,15 +14,41 @@ const known = (value: Maybe): value is number => value !== null && value !== und
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
+/** The form's lead-time units, stored as days: semanas ×7, meses ×30. */
+export const LEAD_TIME_UNITS = {
+  dias: { days: 1, label: 'días' },
+  semanas: { days: 7, label: 'semanas' },
+  meses: { days: 30, label: 'meses' },
+} as const;
+export type LeadTimeUnit = keyof typeof LEAD_TIME_UNITS;
+
+/** Stored days in the largest whole unit, as the form shows them back. */
+export function splitLeadTime(days: number): { amount: number; unit: LeadTimeUnit } {
+  if (days % 30 === 0) return { amount: days / 30, unit: 'meses' };
+  if (days % 7 === 0) return { amount: days / 7, unit: 'semanas' };
+  return { amount: days, unit: 'dias' };
+}
+
+/** The days a form amount and unit store. */
+export function leadTimeDays(amount: number, unit: LeadTimeUnit): number {
+  return amount * LEAD_TIME_UNITS[unit].days;
+}
+
+/** Stored exam minutes as the form's hours and minutes. */
+export function splitDuration(minutes: number): { hours: number; minutes: number } {
+  return { hours: Math.floor(minutes / 60), minutes: minutes % 60 };
+}
+
 /** Days in the largest whole unit: «2 meses», «3 semanas», «5 días» (meses = 30, semanas = 7). */
 export function formatLeadTime(days: number): string {
-  if (days % 30 === 0) return plural(days / 30, 'mes', 'meses');
-  if (days % 7 === 0) return plural(days / 7, 'semana', 'semanas');
-  return plural(days, 'día', 'días');
+  const { amount, unit } = splitLeadTime(days);
+  if (unit === 'meses') return plural(amount, 'mes', 'meses');
+  if (unit === 'semanas') return plural(amount, 'semana', 'semanas');
+  return plural(amount, 'día', 'días');
 }
 
 /** «1 h 30 min», «2 h», «45 min». */
-function formatCompactMinutes(minutes: number): string {
+export function formatCompactMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   if (hours === 0) return `${rest} min`;

@@ -138,7 +138,8 @@ export function courseReviewFacts(review: CourseReviewFactValues): FactEntries {
         : null,
     ],
     ['Situación de cursada', review.attempt ? courseAttemptLabel(review.attempt) : null],
-    ['Franja horaria', review.shift ? shiftLabel(review.shift) : null],
+    // A stored reseña without franja reads «No informado»; a form not yet answered shows nothing.
+    ['Franja horaria', review.shift === undefined ? null : shiftLabel(review.shift)],
     ['Dificultad', known(review.difficulty) ? difficultyLabel(review.difficulty) : null],
     ['Profesor', review.professorName ? `Profesor: ${review.professorName}` : null],
   ];

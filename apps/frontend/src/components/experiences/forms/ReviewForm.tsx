@@ -14,6 +14,12 @@ import { ChosenTypeAndSubject } from '@/components/experiences/forms/ChosenTypeA
 import { ExperiencePreview } from '@/components/experiences/forms/ExperiencePreview';
 import { FormField, FormSection } from '@/components/experiences/forms/FormSection';
 import { NumberStepper } from '@/components/experiences/forms/NumberStepper';
+import {
+  clearExperienceDraft,
+  draftValuesFor,
+  readExperienceDraft,
+  saveExperienceDraft,
+} from '@/components/experiences/forms/experience-draft';
 import { PublicationSection } from '@/components/experiences/forms/PublicationSection';
 import { avatarSrc } from '@/components/layout/account';
 import { PriorReviewNotice } from '@/components/moderation/PriorReviewNotice';
@@ -261,6 +267,7 @@ export function ReviewForm() {
   const code = params.codigo;
   const rawSearch = searchParams.toString();
   const editId = searchParams.get('editar');
+  const fromChooser = searchParams.get('desde') === 'formulario';
   const user = useAuthStore((state) => state.user);
   const isAuthLoading = useAuthStore((state) => state.isLoading);
   const [loadedEditState, setLoadedEditState] = useState<LoadedEditState | null>(null);
@@ -275,6 +282,7 @@ export function ReviewForm() {
   const {
     control,
     formState: { errors, isSubmitting },
+    getValues,
     handleSubmit,
     register,
     reset,
@@ -296,6 +304,38 @@ export function ReviewForm() {
     : loadedEditState?.id === editId
       ? loadedEditState
       : { status: 'loading' };
+
+  // Back from «Cambiar»: continue what was typed, keeping the fields this type has.
+  useEffect(() => {
+    if (editId || !fromChooser) return;
+    const draft = readExperienceDraft();
+    if (!draft) return;
+    reset({
+      ...EMPTY_REVIEW_VALUES,
+      ...draftValuesFor(draft, {
+        empty: EMPTY_REVIEW_VALUES,
+        subjectBound: ['professorChoice', 'professorName'],
+        subjectCode: code,
+        type: 'resenar',
+      }),
+    });
+  }, [code, editId, fromChooser, reset]);
+
+  // A professor restored before the catalog loaded needs its option to show.
+  useEffect(() => {
+    const chosen = getValues('professorChoice');
+    if (chosen && professors.some((professor) => professor.id === chosen)) {
+      setValue('professorChoice', chosen);
+    }
+  }, [getValues, professors, setValue]);
+
+  const saveDraft = () =>
+    saveExperienceDraft({
+      subjectCode: code,
+      subjectName: subject?.name ?? null,
+      type: 'resenar',
+      values: getValues(),
+    });
 
   useEffect(() => {
     let isCurrentRequest = true;
@@ -373,6 +413,7 @@ export function ReviewForm() {
       const created = getData<Partial<PublicationOutcome> & { review?: { id?: string } }>(
         await api.post(`/subjects/${code}/reviews`, payload),
       );
+      clearExperienceDraft();
       if (created.outcome === 'PENDING_REVIEW' && created.reason) {
         setPendingReview(created.reason);
         return;
@@ -529,6 +570,7 @@ export function ReviewForm() {
               <ChosenTypeAndSubject
                 canChange={!isEditing}
                 kind="review"
+                onBeforeChange={saveDraft}
                 subjectCode={code}
                 subjectName={subject?.name ?? null}
               />
@@ -839,6 +881,7 @@ export function ReviewForm() {
             <PublicationSection
               anonymousField={register('isAnonymous')}
               cancelHref={`/materias/${code}`}
+              onCancel={clearExperienceDraft}
               isEditing={isEditing}
               isSubmitting={isSubmitting}
               number={5}
@@ -871,7 +914,7 @@ export function ReviewForm() {
             professorName: previewProfessor || null,
             promotionGrade: watched.promotionGrade,
             recommendation: recommendation >= 1 ? recommendation : null,
-            shift: watched.shift || null,
+            shift: watched.shift || undefined,
           }}
         />
       </div>

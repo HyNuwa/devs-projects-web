@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ExamForm } from '@/components/subjects/ExamForm';
+import { ExamForm } from '@/components/experiences/forms/ExamForm';
 
 export const metadata: Metadata = {
   title: 'Experiencia de final - DevsProject',

@@ -109,7 +109,7 @@
   - edit mode with «Guardar cambios» and legacy completion.
 
   Implement it in `components/experiences/forms/` and delete the old component. Verify the tests pass.
-- [ ] 4.4 Rewrite the `ExamForm` tests on the new layout:
+- [x] 4.4 Rewrite the `ExamForm` tests on the new layout:
   - the seven sections;
   - the outcome is required, the grade is required unless «Prefiero no decir», with the exact helper copy;
   - teoría and práctica independent;
@@ -120,7 +120,7 @@
   - editing a legacy final without an outcome asks for it.
 
   Implement it and delete the old component. Verify the tests pass.
-- [ ] 4.5 Write tests for the draft across «Cambiar»:
+- [x] 4.5 Write tests for the draft across «Cambiar»:
   - the form saves the draft and opens `/experiencias/escribir` with type and materia preselected;
   - continuing restores the shared and same-type fields;
   - publish and «Cancelar» clear it;

@@ -15,6 +15,9 @@ import {
   formatTheoryPracticeAverages,
   formatTopSessionSentence,
   formatTypicalPreparation,
+  leadTimeDays,
+  splitDuration,
+  splitLeadTime,
 } from './format';
 
 describe('experience display formatting', () => {
@@ -151,5 +154,22 @@ describe('«Solo finales» card averages', () => {
     ).toBe('Teoría 4,0');
     expect(formatTheoryPracticeAverages(undefined, { average: 3, count: 3 })).toBe('Práctica 3,0');
     expect(formatTheoryPracticeAverages({ average: null, count: 1 }, undefined)).toBeNull();
+  });
+});
+
+describe('form units', () => {
+  it('splits a stored lead time into its largest whole unit for the form', () => {
+    expect(splitLeadTime(21)).toEqual({ amount: 3, unit: 'semanas' });
+    expect(splitLeadTime(60)).toEqual({ amount: 2, unit: 'meses' });
+    expect(splitLeadTime(5)).toEqual({ amount: 5, unit: 'dias' });
+    expect(leadTimeDays(3, 'semanas')).toBe(21);
+    expect(leadTimeDays(2, 'meses')).toBe(60);
+    expect(leadTimeDays(5, 'dias')).toBe(5);
+  });
+
+  it('splits a stored exam time into hours and minutes for the form', () => {
+    expect(splitDuration(180)).toEqual({ hours: 3, minutes: 0 });
+    expect(splitDuration(90)).toEqual({ hours: 1, minutes: 30 });
+    expect(splitDuration(45)).toEqual({ hours: 0, minutes: 45 });
   });
 });

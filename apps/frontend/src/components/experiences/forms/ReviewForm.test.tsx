@@ -475,3 +475,170 @@ describe('ReviewForm', () => {
     expect(form()).toBeInTheDocument();
   });
 });
+
+describe('ReviewForm draft across «Cambiar»', () => {
+  const DRAFT_KEY = 'experience-draft';
+  const storedDraft = () => JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? 'null');
+  const keepOnPage = (link: HTMLElement) =>
+    link.addEventListener('click', (event) => event.preventDefault());
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    navigation.push.mockReset();
+    navigation.searchParams = new URLSearchParams();
+    vi.mocked(api.get).mockImplementation((path) => {
+      if (path === '/subjects/ED-01') return Promise.resolve({ data: subject });
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
+    vi.mocked(api.post).mockReset();
+    useAuthStore.setState({ isLoading: false, user: currentUser });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    sessionStorage.clear();
+    useAuthStore.setState({ isLoading: true, user: null });
+  });
+
+  it('saves the typed values before «Cambiar» opens the chooser with type and materia', async () => {
+    const user = userEvent.setup();
+    render(<ReviewForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Estructuras de Datos',
+    );
+    await user.type(screen.getByLabelText('Ciclo lectivo'), '2025');
+    await user.click(screen.getByLabelText('Promoción'));
+    await user.type(screen.getByLabelText('Contá tu experiencia'), 'Medio relato');
+    const change = screen.getByRole('link', { name: 'Cambiar' });
+    keepOnPage(change);
+    await user.click(change);
+
+    expect(storedDraft()).toMatchObject({
+      subjectCode: 'ED-01',
+      subjectName: 'Estructuras de Datos',
+      type: 'resenar',
+      values: { academicYear: '2025', comment: 'Medio relato', condition: 'PROMO' },
+    });
+    expect(change).toHaveAttribute(
+      'href',
+      '/experiencias/escribir?tipo=resenar&materia=ED-01&desde=formulario',
+    );
+  });
+
+  it('restores the draft when it continues from the chooser', async () => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        subjectCode: 'ED-01',
+        subjectName: 'Estructuras de Datos',
+        type: 'resenar',
+        values: {
+          academicYear: '2025',
+          comment: 'Medio relato',
+          condition: 'PROMO',
+          professorChoice: 'professor-1',
+          promotionGrade: 8,
+        },
+      }),
+    );
+    navigation.searchParams = new URLSearchParams('desde=formulario');
+    render(<ReviewForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(screen.getByLabelText('Ciclo lectivo')).toHaveValue(2025);
+    expect(screen.getByLabelText('Promoción')).toBeChecked();
+    expect(screen.getByLabelText('¿Con qué nota promocionaste?')).toHaveValue(8);
+    await waitFor(() => expect(screen.getByLabelText('Profesor/a')).toHaveValue('professor-1'));
+  });
+
+  it('keeps the typed values for another materia but not its professor', async () => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        subjectCode: 'OTRA',
+        subjectName: 'Otra materia',
+        type: 'resenar',
+        values: { comment: 'Medio relato', professorChoice: 'professor-9' },
+      }),
+    );
+    navigation.searchParams = new URLSearchParams('desde=formulario');
+    render(<ReviewForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(screen.getByLabelText('Profesor/a')).toHaveValue('');
+  });
+
+  it('does not restore a draft on a form opened directly', () => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        subjectCode: 'ED-01',
+        subjectName: null,
+        type: 'resenar',
+        values: { comment: 'Medio relato' },
+      }),
+    );
+    render(<ReviewForm />);
+
+    expect(screen.getByLabelText('Contá tu experiencia')).toHaveValue('');
+  });
+
+  it('clears the draft on a successful publish', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ subjectCode: 'ED-01', subjectName: null, type: 'resenar', values: {} }),
+    );
+    vi.mocked(api.post).mockResolvedValue(published('review-new'));
+    render(<ReviewForm />);
+
+    await completeRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: 'Publicar reseña' }));
+
+    await waitFor(() => expect(navigation.push).toHaveBeenCalled());
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('clears the draft on «Cancelar»', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ subjectCode: 'ED-01', subjectName: null, type: 'resenar', values: {} }),
+    );
+    render(<ReviewForm />);
+
+    const cancel = screen.getByRole('link', { name: 'Cancelar' });
+    keepOnPage(cancel);
+    await user.click(cancel);
+
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('only loses the draft when storage is unavailable', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    navigation.searchParams = new URLSearchParams('desde=formulario');
+    vi.mocked(api.post).mockResolvedValue(published('review-new'));
+    render(<ReviewForm />);
+
+    const change = screen.getByRole('link', { name: 'Cambiar' });
+    keepOnPage(change);
+    await user.click(change);
+    await completeRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: 'Publicar reseña' }));
+
+    await waitFor(() =>
+      expect(navigation.push).toHaveBeenCalledWith('/resenas/review-new?publicada=1'),
+    );
+  });
+});

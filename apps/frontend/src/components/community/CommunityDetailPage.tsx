@@ -15,31 +15,17 @@ import {
 import { WriteExperienceMenu } from '@/components/experiences/WriteExperienceMenu';
 import {
   CommunityFactList,
+  courseReviewFacts,
+  examExperienceFacts,
+  ExamTopicChips,
   formatCommunityDate,
   StarRecommendation,
 } from '@/components/experiences/facts';
-import {
-  estimateStudyHours,
-  formatMesa,
-  formatPreparation,
-  formatResultWithGrade,
-  formatStudyEstimate,
-  formatTheoryPractice,
-} from '@/components/experiences/format';
 import { avatarSrc } from '@/components/layout/account';
 import { CommunityEntryManagement } from '@/components/community/CommunityEntryManagement';
 import { ReportDialog } from '@/components/moderation/ReportDialog';
 import { Button, Chip } from '@/components/ui/shadcn';
 import { getCourseReviewDetail, getExamExperienceDetail } from '@/lib/discovery-client';
-import {
-  courseAttemptLabel,
-  courseConditionLabel,
-  difficultyLabel,
-  examFormatLabel,
-  examOutcomeLabel,
-  examPeriodLabel,
-  shiftLabel,
-} from '@/lib/presentation-labels';
 import type { DiscoveryCourseReviewDetail, DiscoveryExamExperienceDetail } from '@/types/discovery';
 
 type CommunityDetailKind = 'course-review' | 'exam-experience';
@@ -68,81 +54,26 @@ function editedDate(createdAt: string, updatedAt: string) {
 function DetailFacts({ detail, kind }: { detail: CommunityDetail; kind: CommunityDetailKind }) {
   if (kind === 'course-review') {
     const review = detail as DiscoveryCourseReviewDetail;
-    const professor = review.professor?.name ?? review.professorName;
-
     return (
       <CommunityFactList
-        facts={[
-          ['Año de cursada', review.academicYear ? `Cursada ${review.academicYear}` : null],
-          [
-            'Resultado de cursada',
-            formatResultWithGrade(
-              courseConditionLabel(review.condition),
-              review.condition === 'PROMO' ? review.promotionGrade : null,
-            ),
-          ],
-          ['Situación de cursada', review.attempt ? courseAttemptLabel(review.attempt) : null],
-          ['Franja horaria', shiftLabel(review.shift)],
-          [
-            'Dificultad',
-            review.difficulty === null || review.difficulty === undefined
-              ? null
-              : difficultyLabel(review.difficulty),
-          ],
-          ['Profesor', professor ? `Profesor: ${professor}` : null],
-        ]}
+        facts={courseReviewFacts({
+          ...review,
+          professorName: review.professor?.name ?? review.professorName,
+        })}
       />
     );
   }
 
   const experience = detail as DiscoveryExamExperienceDetail;
-  const examiner = experience.professor?.name ?? experience.examinerName;
-  const examDate = experience.examDate ? formatCommunityDate(experience.examDate) : null;
-  const studyHours =
-    experience.estimatedStudyHours ??
-    estimateStudyHours(experience.prepLeadDays, experience.prepDailyMinutes);
-
   return (
     <>
       <CommunityFactList
-        facts={[
-          ['Año de final', `Final ${experience.year}`],
-          ['Período', examPeriodLabel(experience.session)],
-          ['Formato', examFormatLabel(experience.format)],
-          ['Fecha exacta', examDate ? `Fecha: ${examDate}` : null],
-          ['Franja horaria', experience.shift ? shiftLabel(experience.shift) : null],
-          ['Profesor o examinador', examiner ? `Tomó: ${examiner}` : null],
-          [
-            'Dificultad de teoría y de práctica',
-            formatTheoryPractice(experience.difficultyTheory, experience.difficultyPractice),
-          ],
-          ['Dificultad', experience.difficulty ? difficultyLabel(experience.difficulty) : null],
-          ['Resultado', experience.outcome ? examOutcomeLabel(experience.outcome) : null],
-          [
-            'Nota',
-            experience.grade !== null && experience.grade !== undefined
-              ? `Nota: ${experience.grade}`
-              : null,
-          ],
-          ['La mesa', formatMesa(experience.boardSize, experience.durationMinutes)],
-          ['Preparación', formatPreparation(experience.prepLeadDays, experience.prepDailyMinutes)],
-          ['Estudio estimado', studyHours !== null ? formatStudyEstimate(studyHours) : null],
-        ]}
+        facts={examExperienceFacts({
+          ...experience,
+          examinerName: experience.professor?.name ?? experience.examinerName,
+        })}
       />
-      {experience.topics.length > 0 ? (
-        <section aria-labelledby="exam-topics" className="mt-6">
-          <h2 className="font-sans text-lg font-bold text-card-foreground" id="exam-topics">
-            Temas que tomaron
-          </h2>
-          <ul aria-labelledby="exam-topics" className="mt-3 flex flex-wrap gap-2">
-            {experience.topics.map((topic) => (
-              <li key={topic}>
-                <Chip tone="neutral">{topic}</Chip>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ExamTopicChips id="exam-topics" topics={experience.topics} />
     </>
   );
 }
