@@ -2,7 +2,6 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  CommunityDifficulty,
   CourseAttempt,
   CourseCondition,
   ExamFormat,
@@ -256,14 +255,15 @@ describe('SubjectsService community writes', () => {
     });
   });
 
-  it('crea finales con dificultad general y sin escribir dificultad legacy', async () => {
+  it('crea finales con teoría y práctica sin escribir fecha, franja ni dificultad general', async () => {
     prisma.examExperience.create.mockResolvedValue({ id: 'exam-1' });
 
     await service.createExam('ED-01', 'user-1', {
       year: 2026,
       session: ExamSession.JULIO,
       format: ExamFormat.ORAL,
-      difficulty: CommunityDifficulty.ALTA,
+      difficultyTheory: 4,
+      difficultyPractice: 3,
       outcome: ExamOutcome.APROBADO,
       grade: 8,
       isAnonymous: true,
@@ -271,21 +271,18 @@ describe('SubjectsService community writes', () => {
         'La mesa evaluó conceptos centrales y permitió justificar cada decisión.',
     });
 
-    expect(prisma.examExperience.create).toHaveBeenCalledWith({
-      data: expect.not.objectContaining({
-        difficultyTheory: expect.anything(),
-        difficultyPractice: expect.anything(),
-      }),
+    const { data } = prisma.examExperience.create.mock.calls[0][0];
+    expect(data).toMatchObject({
+      subjectId: 'sub-1',
+      difficultyTheory: 4,
+      difficultyPractice: 3,
+      outcome: ExamOutcome.APROBADO,
+      grade: 8,
+      isAnonymous: true,
     });
-    expect(prisma.examExperience.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        subjectId: 'sub-1',
-        difficulty: CommunityDifficulty.ALTA,
-        outcome: ExamOutcome.APROBADO,
-        grade: 8,
-        isAnonymous: true,
-      }),
-    });
+    for (const legacy of ['examDate', 'shift', 'difficulty']) {
+      expect(data).not.toHaveProperty(legacy);
+    }
   });
 
   it('crea intentos de final independientes sin deduplicarlos', async () => {
@@ -296,6 +293,7 @@ describe('SubjectsService community writes', () => {
       year: 2026,
       session: ExamSession.JULIO,
       format: ExamFormat.ESCRITO,
+      outcome: ExamOutcome.PREFIERO_NO_DECIR,
       comment:
         'La mesa tomó los mismos temas, pero este fue un intento independiente.',
     };
@@ -330,9 +328,9 @@ describe('SubjectsService community writes', () => {
       year: 2026,
       session: ExamSession.DICIEMBRE,
       format: ExamFormat.ORAL,
-      difficulty: CommunityDifficulty.MEDIA,
       outcome: ExamOutcome.DESAPROBADO,
       grade: 4,
+      boardSize: 3,
       comment:
         'Actualicé la experiencia con el resultado y el contexto completo.',
       isAnonymous: true,
@@ -343,20 +341,16 @@ describe('SubjectsService community writes', () => {
       where: { id: 'exam-1' },
       data: expect.objectContaining({
         session: ExamSession.DICIEMBRE,
-        difficulty: CommunityDifficulty.MEDIA,
         outcome: ExamOutcome.DESAPROBADO,
         grade: 4,
+        boardSize: 3,
       }),
     });
-    expect(
-      prisma.examExperience.update.mock.calls[0][0].data,
-    ).not.toHaveProperty('isAnonymous');
-    expect(
-      prisma.examExperience.update.mock.calls[0][0].data,
-    ).not.toHaveProperty('difficultyTheory');
-    expect(
-      prisma.examExperience.update.mock.calls[0][0].data,
-    ).not.toHaveProperty('difficultyPractice');
+    for (const kept of ['isAnonymous', 'examDate', 'shift', 'difficulty']) {
+      expect(
+        prisma.examExperience.update.mock.calls[0][0].data,
+      ).not.toHaveProperty(kept);
+    }
     expect(pointService.published).not.toHaveBeenCalled();
   });
 
@@ -370,6 +364,7 @@ describe('SubjectsService community writes', () => {
       year: 2026,
       session: ExamSession.JULIO,
       format: ExamFormat.ORAL,
+      outcome: ExamOutcome.PREFIERO_NO_DECIR,
       comment:
         'La mesa evaluó conceptos centrales y permitió justificar cada decisión.',
     };

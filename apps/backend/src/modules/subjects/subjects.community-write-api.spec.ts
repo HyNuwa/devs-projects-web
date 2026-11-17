@@ -34,7 +34,7 @@ const validExam = {
   year: 2026,
   session: 'JULIO',
   format: 'ORAL',
-  difficulty: 'MEDIA',
+  difficultyTheory: 4,
   outcome: 'APROBADO',
   grade: 8,
   comment:
@@ -147,7 +147,7 @@ describe('Subjects community write API rate limit', () => {
       .expect(400);
     await request(app.getHttpServer())
       .post('/subjects/ED-01/exams')
-      .send({ ...validExam, difficultyTheory: 4 })
+      .send({ ...validExam, difficulty: 'MEDIA' })
       .expect(400);
     await request(app.getHttpServer())
       .post('/subjects/ED-01/exams')
@@ -163,7 +163,7 @@ describe('Subjects community write API rate limit', () => {
       'ED-01',
       '10000000-0000-4000-8000-000000000001',
       expect.objectContaining({
-        difficulty: 'MEDIA',
+        difficultyTheory: 4,
         outcome: 'APROBADO',
         grade: 8,
         isAnonymous: true,

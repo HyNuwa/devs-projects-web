@@ -490,6 +490,7 @@ model CourseReview {
   professorId        String?              @map("professor_id") @db.Uuid
   professorName      String?              @map("professor_name") @db.VarChar(150)
   difficulty         CommunityDifficulty?
+  promotionGrade     Int?                 @map("promotion_grade") @db.SmallInt
   recommendation     Int                  @db.SmallInt
   comment            String?              @db.Text
   isAnonymous        Boolean              @default(false) @map("is_anonymous")
@@ -531,6 +532,11 @@ model ExamExperience {
   difficultyPractice Int?                 @map("difficulty_practice") @db.SmallInt
   outcome            ExamOutcome?
   grade              Int?                 @db.SmallInt
+  boardSize          Int?                 @map("board_size") @db.SmallInt
+  durationMinutes    Int?                 @map("duration_minutes") @db.SmallInt
+  prepLeadDays       Int?                 @map("prep_lead_days") @db.SmallInt
+  prepDailyMinutes   Int?                 @map("prep_daily_minutes") @db.SmallInt
+  topics             String[]             @default([])
   comment            String?              @db.Text
   isAnonymous        Boolean              @default(false) @map("is_anonymous")
   publicationStatus  PublicationStatus    @default(PUBLISHED) @map("publication_status")

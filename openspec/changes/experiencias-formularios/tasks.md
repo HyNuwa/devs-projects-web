@@ -1,12 +1,12 @@
 ## 1. Data and write contract
 
-- [ ] 1.1 Write a Vitest migration test for `experiencias_formularios`:
+- [x] 1.1 Write a Vitest migration test for `experiencias_formularios`:
   - the new nullable columns exist with their types;
   - `topics` defaults to an empty array;
   - existing reseñas and finales keep every value.
 
   Add the Prisma fields and the migration. Verify the test passes.
-- [ ] 1.2 Write e2e tests for the final write API (`POST /subjects/:code/exams`, `PUT /subjects/exams/:id`):
+- [x] 1.2 Write e2e tests for the final write API (`POST /subjects/:code/exams`, `PUT /subjects/exams/:id`):
   - a missing outcome gives 400;
   - Aprobado or Desaprobado without a grade gives 400;
   - a grade with Prefiero no decir gives 400;
@@ -16,7 +16,7 @@
   - an update of a legacy final with date, franja and verbal difficulty keeps them.
 
   Implement the DTO, the validators and the service mapping. Verify the tests pass.
-- [ ] 1.3 Write e2e tests for the reseña write API:
+- [x] 1.3 Write e2e tests for the reseña write API:
   - `promotionGrade` 1–10 is stored with PROMO;
   - it gives 400 with REGULAR or LIBRE, or outside 1–10;
   - an update can clear it.
