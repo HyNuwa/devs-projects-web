@@ -83,21 +83,21 @@
 
 ## 4. Frontend forms
 
-- [ ] 4.1 Write tests for `FormSection`, `PublicationSection` and `ExperiencePreview`:
+- [x] 4.1 Write tests for `FormSection`, `PublicationSection` and `ExperiencePreview`:
   - numbered headings with «Obligatorio» / «Opcional»;
   - the anonymity toggle off by default with the exact copy, and disabled in edit;
   - the publication rule text;
   - the preview rendering the same facts as the detail.
 
   Implement them. Verify the tests pass.
-- [ ] 4.2 Write tests for `TopicsInput`:
+- [x] 4.2 Write tests for `TopicsInput`:
   - Enter adds a chip and duplicates are ignored;
   - removing a chip;
   - the eleventh topic is refused with a message;
   - suggestions come from the topics endpoint, leave out added topics and add on click.
 
   Implement it. Verify the tests pass.
-- [ ] 4.3 Rewrite the `ReviewForm` tests on the new layout:
+- [x] 4.3 Rewrite the `ReviewForm` tests on the new layout:
   - the five sections;
   - required fields;
   - «¿Con qué nota promocionaste?» appears only with Promoción and clears on change;
