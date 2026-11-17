@@ -30,6 +30,7 @@ function review(overrides: Partial<SnapshotReview> = {}): SnapshotReview {
     hasProfessor: true,
     shift: 'TARDE',
     condition: 'REGULAR',
+    attempt: 'PRIMERA_CURSADA',
     difficulty: 'MEDIA',
     ...overrides,
   };
@@ -272,11 +273,44 @@ describe('insignia catalog', () => {
       { academicYear: null },
       { hasProfessor: false },
       { shift: 'NO_INDICO' as const },
-      { condition: 'PREFIERO_NO_RESPONDER' as const },
+      { attempt: 'PREFIERO_NO_RESPONDER' as const },
+      { attempt: null },
       { difficulty: null },
     ]) {
       expect(holds('contexto-completo', reviews(10, missing))).toBe(false);
     }
+  });
+
+  it('Contexto completo counts a real situación de cursada, not the resultado', () => {
+    const reviews = (extra: Partial<SnapshotReview>) =>
+      snapshot({ reviews: Array.from({ length: 10 }, () => review(extra)) });
+    for (const attempt of [
+      'PRIMERA_CURSADA',
+      'PRIMERA_RECURSADA',
+      'SEGUNDA_O_MAS_RECURSADAS',
+    ] as const) {
+      expect(holds('contexto-completo', reviews({ attempt }))).toBe(true);
+    }
+    // A reseña that kept its resultado to itself still has the full context.
+    expect(
+      holds(
+        'contexto-completo',
+        reviews({ condition: 'PREFIERO_NO_RESPONDER' }),
+      ),
+    ).toBe(true);
+    expect(
+      stateOf(
+        'contexto-completo',
+        snapshot({
+          reviews: [
+            ...Array.from({ length: 6 }, () => review()),
+            ...Array.from({ length: 4 }, () =>
+              review({ attempt: 'PREFIERO_NO_RESPONDER' }),
+            ),
+          ],
+        }),
+      ).progress,
+    ).toEqual(expect.objectContaining({ current: 6, target: 10 }));
   });
 
   it('Cronista de mesas needs December, July and February/March (or March)', () => {

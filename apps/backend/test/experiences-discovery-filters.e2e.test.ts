@@ -28,6 +28,11 @@ describe('Discovery: filtros de reseñas y autor público (e2e)', () => {
   let matchingReviewId: string;
   let namedExamId: string;
   let anonymousExamId: string;
+  let factsSubjectId: string;
+  let promotedReviewId: string;
+  let regularReviewId: string;
+  let fullExamId: string;
+  let legacyExamId: string;
   const reviewIds: string[] = [];
   const examIds: string[] = [];
 
@@ -113,6 +118,59 @@ describe('Discovery: filtros de reseñas y autor público (e2e)', () => {
       select: { id: true },
     });
     examIds.push(gradeless.id);
+
+    // The facts of experiencias-formularios, in a materia of their own.
+    ({ id: factsSubjectId } = await prisma.subject.create({
+      data: { facultyId: FI_UNJU_FACULTY_ID, name: `Materia hechos ${tag}` },
+      select: { id: true },
+    }));
+    promotedReviewId = await review({
+      subjectId: factsSubjectId,
+      condition: 'PROMO',
+      promotionGrade: 9,
+    });
+    regularReviewId = await review({
+      subjectId: factsSubjectId,
+      condition: 'REGULAR',
+    });
+    const full = await prisma.examExperience.create({
+      data: {
+        userId: named.id,
+        subjectId: factsSubjectId,
+        year: 2025,
+        session: 'DICIEMBRE',
+        format: 'ESCRITO',
+        outcome: 'APROBADO',
+        grade: 8,
+        difficultyTheory: 4,
+        difficultyPractice: 3,
+        boardSize: 3,
+        durationMinutes: 180,
+        prepLeadDays: 21,
+        prepDailyMinutes: 60,
+        topics: ['Integrales dobles', 'Teorema de Green', 'Series de Fourier'],
+        createdAt: new Date(Date.now() - 10 * 60_000),
+      },
+      select: { id: true },
+    });
+    fullExamId = full.id;
+    examIds.push(full.id);
+    const legacy = await prisma.examExperience.create({
+      data: {
+        userId: named.id,
+        subjectId: factsSubjectId,
+        year: 2023,
+        session: 'JULIO',
+        format: 'ORAL',
+        examDate: new Date('2023-07-14T00:00:00.000Z'),
+        shift: 'TARDE',
+        difficulty: 'ALTA',
+        createdAt: new Date(Date.now() - 20 * 60_000),
+      },
+      select: { id: true },
+    });
+    legacyExamId = legacy.id;
+    examIds.push(legacy.id);
   });
 
   afterAll(async () => {
@@ -120,7 +178,9 @@ describe('Discovery: filtros de reseñas y autor público (e2e)', () => {
     await prisma.examExperience.deleteMany({
       where: { id: { in: examIds } },
     });
-    await prisma.subject.delete({ where: { id: subjectId } });
+    await prisma.subject.deleteMany({
+      where: { id: { in: [subjectId, factsSubjectId] } },
+    });
     await prisma.profileCustomization.deleteMany({
       where: { userId: named.id },
     });
@@ -268,5 +328,99 @@ describe('Discovery: filtros de reseñas y autor público (e2e)', () => {
         .expect(200)
     ).body as { grade?: number };
     expect(detail.grade).toBe(7);
+  });
+
+  it('carries the nota de promoción on reseña items and details', async () => {
+    const items = (await list(`?subjectId=${factsSubjectId}`)).body.data as {
+      id: string;
+      promotionGrade: number | null;
+    }[];
+    const byId = new Map(items.map((item) => [item.id, item]));
+    expect(byId.get(promotedReviewId)?.promotionGrade).toBe(9);
+    expect(byId.get(regularReviewId)?.promotionGrade).toBeNull();
+
+    const detail = (
+      await http()
+        .get(`/api/v1/discovery/course-reviews/${promotedReviewId}`)
+        .expect(200)
+    ).body as { promotionGrade: number | null };
+    expect(detail.promotionGrade).toBe(9);
+  });
+
+  it('carries teoría, práctica, mesa and tiempo on final items, without preparación or temas', async () => {
+    const items = (
+      await http()
+        .get(`/api/v1/discovery/exam-experiences?subjectId=${factsSubjectId}`)
+        .expect(200)
+    ).body.data as Record<string, unknown>[];
+    const full = items.find((item) => item.id === fullExamId);
+    expect(full).toMatchObject({
+      difficultyTheory: 4,
+      difficultyPractice: 3,
+      boardSize: 3,
+      durationMinutes: 180,
+    });
+    for (const detailOnly of [
+      'topics',
+      'prepLeadDays',
+      'prepDailyMinutes',
+      'estimatedStudyHours',
+    ]) {
+      expect(full).not.toHaveProperty(detailOnly);
+    }
+  });
+
+  it('carries every declared fact on the final detail', async () => {
+    const detail = (
+      await http()
+        .get(`/api/v1/discovery/exam-experiences/${fullExamId}`)
+        .expect(200)
+    ).body as Record<string, unknown>;
+    expect(detail).toMatchObject({
+      outcome: 'APROBADO',
+      grade: 8,
+      difficultyTheory: 4,
+      difficultyPractice: 3,
+      boardSize: 3,
+      durationMinutes: 180,
+      prepLeadDays: 21,
+      prepDailyMinutes: 60,
+      estimatedStudyHours: 21,
+      topics: ['Integrales dobles', 'Teorema de Green', 'Series de Fourier'],
+    });
+  });
+
+  it('still returns the legacy date, franja and verbal dificultad, and omits undeclared new facts', async () => {
+    const items = (
+      await http()
+        .get(`/api/v1/discovery/exam-experiences?subjectId=${factsSubjectId}`)
+        .expect(200)
+    ).body.data as Record<string, unknown>[];
+    const legacyItem = items.find((item) => item.id === legacyExamId);
+    const legacyDetail = (
+      await http()
+        .get(`/api/v1/discovery/exam-experiences/${legacyExamId}`)
+        .expect(200)
+    ).body as Record<string, unknown>;
+
+    for (const legacy of [legacyItem, legacyDetail]) {
+      expect(legacy).toMatchObject({
+        examDate: '2023-07-14T00:00:00.000Z',
+        shift: 'TARDE',
+        difficulty: 'ALTA',
+      });
+      for (const undeclared of [
+        'difficultyTheory',
+        'difficultyPractice',
+        'boardSize',
+        'durationMinutes',
+        'prepLeadDays',
+        'prepDailyMinutes',
+        'estimatedStudyHours',
+      ]) {
+        expect(legacy).not.toHaveProperty(undeclared);
+      }
+    }
+    expect(legacyDetail.topics).toEqual([]);
   });
 });

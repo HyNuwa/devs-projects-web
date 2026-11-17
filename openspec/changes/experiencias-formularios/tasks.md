@@ -25,14 +25,14 @@
 
 ## 2. Reading contract
 
-- [ ] 2.1 Write Vitest unit tests for the new pure functions in `experiences-summary.ts`:
+- [x] 2.1 Write Vitest unit tests for the new pure functions in `experiences-summary.ts`:
   - the median of a value→count distribution, taking the lower middle for an even count;
   - the medians and the promotion average with their thresholds (3 and 5);
   - the mesa sentence parts dropped below 3;
   - the estimated total hours.
 
   Implement them. Verify the tests pass.
-- [ ] 2.2 Extend the summary e2e tests (`experiences-summary.e2e.test.ts`):
+- [x] 2.2 Extend the summary e2e tests (`experiences-summary.e2e.test.ts`):
   - «Nota de promoción» answered and average (Y = reseñas with PROMO);
   - preparation medians;
   - professors and duration medians limited to the mesa más comentada;
@@ -40,21 +40,21 @@
   - every figure matching the mínimo de muestra.
 
   Implement the queries. Verify the tests pass.
-- [ ] 2.3 Write e2e tests for `GET /discovery/subjects/:code/exam-topics`:
+- [x] 2.3 Write e2e tests for `GET /discovery/subjects/:code/exam-topics`:
   - topics in at least two public finales, by count then name, at most 20;
   - a topic in one final is absent;
   - an unknown code gives 404.
 
   Implement the route. Verify the tests pass.
-- [ ] 2.4 Extend the overview e2e tests: with `kind=exams` the cards carry `theory` and `practice` averages (null below 3) and no verbal dificultad; other kinds are unchanged. Implement it. Verify the tests pass.
-- [ ] 2.5 Extend the discovery list and detail e2e tests:
+- [x] 2.4 Extend the overview e2e tests: with `kind=exams` the cards carry `theory` and `practice` averages (null below 3) and no verbal dificultad; other kinds are unchanged. Implement it. Verify the tests pass.
+- [x] 2.5 Extend the discovery list and detail e2e tests:
   - reseñas carry `promotionGrade`;
   - final items carry theory, practice, board size and duration;
   - final details also carry the preparation and topics;
   - legacy date, franja and verbal difficulty are still returned.
 
   Implement the selects, DTOs and mappers. Verify the tests pass.
-- [ ] 2.6 Update the «Contexto completo» badge tests to count reseñas by a real situación de cursada instead of the resultado. Implement the change in `badge-catalog.ts`. Verify the tests pass.
+- [x] 2.6 Update the «Contexto completo» badge tests to count reseñas by a real situación de cursada instead of the resultado. Implement the change in `badge-catalog.ts`. Verify the tests pass.
 
 ## 3. Frontend reading
 

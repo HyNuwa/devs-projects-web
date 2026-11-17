@@ -6,9 +6,11 @@ import {
 } from './dto/discovery-course-reviews.dto';
 import {
   MAX_DISCOVERY_EXAM_EXPERIENCE_EXCERPT_LENGTH,
+  type DiscoveryExamExperienceDetailDto,
   type DiscoveryExamExperienceDto,
 } from './dto/discovery-exam-experiences.dto';
 import type { DiscoveryPublicAuthorDto } from './dto/discovery-public.dto';
+import { estimatedStudyHours } from './experiences-summary';
 
 const authorSelect = {
   id: true,
@@ -25,6 +27,7 @@ export const publicCourseReviewSelect = {
   condition: true,
   attempt: true,
   difficulty: true,
+  promotionGrade: true,
   recommendation: true,
   professorName: true,
   comment: true,
@@ -56,8 +59,15 @@ export const publicExamExperienceSelect = {
   shift: true,
   examinerName: true,
   difficulty: true,
+  difficultyTheory: true,
+  difficultyPractice: true,
   outcome: true,
   grade: true,
+  boardSize: true,
+  durationMinutes: true,
+  prepLeadDays: true,
+  prepDailyMinutes: true,
+  topics: true,
   comment: true,
   isAnonymous: true,
   createdAt: true,
@@ -141,6 +151,7 @@ const courseReviewBase = (review: PublicCourseReviewRow) => ({
   condition: review.condition,
   attempt: review.attempt,
   difficulty: review.difficulty,
+  promotionGrade: review.promotionGrade ?? null,
   recommendation: review.recommendation,
   professor: review.professor,
   professorName: review.professorName,
@@ -176,11 +187,25 @@ const examExperienceBase = (experience: PublicExamExperienceRow) => ({
   ...(experience.professor ? { professor: experience.professor } : {}),
   ...(experience.examinerName ? { examinerName: experience.examinerName } : {}),
   ...(experience.difficulty ? { difficulty: experience.difficulty } : {}),
+  ...declared('difficultyTheory', experience.difficultyTheory),
+  ...declared('difficultyPractice', experience.difficultyPractice),
   ...(experience.outcome ? { outcome: experience.outcome } : {}),
   ...(experience.grade !== null ? { grade: experience.grade } : {}),
+  ...declared('boardSize', experience.boardSize),
+  ...declared('durationMinutes', experience.durationMinutes),
   createdAt: experience.createdAt,
   updatedAt: experience.updatedAt,
 });
+
+/** `{ [key]: value }` for a declared numeric fact, `{}` when it is unknown. */
+function declared<K extends string>(
+  key: K,
+  value: number | null | undefined,
+): Partial<Record<K, number>> {
+  return value === null || value === undefined
+    ? {}
+    : ({ [key]: value } as Record<K, number>);
+}
 
 export function toDiscoveryExamExperienceListItem(
   experience: PublicExamExperienceRow,
@@ -192,11 +217,21 @@ export function toDiscoveryExamExperienceListItem(
   };
 }
 
+/** The detail adds the preparación and the temas, which cards never show. */
 export function toDiscoveryExamExperienceDetail(
   experience: PublicExamExperienceRow,
-) {
+): DiscoveryExamExperienceDetailDto {
+  const leadDays = experience.prepLeadDays ?? null;
+  const dailyMinutes = experience.prepDailyMinutes ?? null;
   return {
     ...examExperienceBase(experience),
+    ...declared('prepLeadDays', leadDays),
+    ...declared('prepDailyMinutes', dailyMinutes),
+    ...declared(
+      'estimatedStudyHours',
+      estimatedStudyHours(leadDays, dailyMinutes),
+    ),
+    topics: experience.topics ?? [],
     comment: experience.comment,
   };
 }

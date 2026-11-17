@@ -20,7 +20,10 @@ import {
 } from './dto/discovery-exam-experiences.dto';
 import { publicVisibility } from '../moderation/visibility';
 import { facultySelect } from '../institutions/faculty-select';
-import { SubjectExperiencesSummaryDto } from './dto/discovery-experiences-summary.dto';
+import {
+  SubjectExamTopicsDto,
+  SubjectExperiencesSummaryDto,
+} from './dto/discovery-experiences-summary.dto';
 import {
   DiscoveryExperiencesOverviewQueryDto,
   ExperiencesOverviewDto,
@@ -29,14 +32,23 @@ import {
 } from './dto/discovery-experiences-overview.dto';
 import {
   approvalSummary,
+  difficultyAverage,
   type GroupCount,
   MIN_MOST_COMMENTED,
   mostCommentedSince,
   promotionSummary,
+  SUMMARY_TOPICS_LIMIT,
   summarizeExams,
   summarizeReviews,
   topDifficulty,
+  topSessionOf,
 } from './experiences-summary';
+import {
+  buildExamTopicsQuery,
+  EXAM_TOPICS_LIMIT,
+  type ExamTopicRow,
+  toTopicCounts,
+} from './exam-topics.query';
 import {
   publicCourseReviewSelect,
   publicExamExperienceSelect,
@@ -293,7 +305,8 @@ export class DiscoveryService {
       throw new NotFoundException('Materia no encontrada');
     }
 
-    const visibility = publicVisibility(new Date());
+    const now = new Date();
+    const visibility = publicVisibility(now);
     const reviewWhere: Prisma.CourseReviewWhereInput = {
       subjectId: subject.id,
       ...visibility,
@@ -308,12 +321,16 @@ export class DiscoveryService {
       recommendation,
       conditionGroups,
       difficultyGroups,
+      promotionGradeGroups,
       examCount,
       outcomeGroups,
       formatGroups,
       sessionGroups,
       examAverages,
       gradeAggregate,
+      leadDayGroups,
+      dailyMinuteGroups,
+      topics,
     ] = await Promise.all([
       this.prisma.courseReview.count({ where: reviewWhere }),
       this.prisma.courseReview.aggregate({
@@ -329,6 +346,12 @@ export class DiscoveryService {
       this.prisma.courseReview.groupBy({
         by: ['difficulty'],
         where: reviewWhere,
+        _count: { _all: true },
+      }),
+      // «la informaron X de Y»: Y is the reseñas with resultado Promoción.
+      this.prisma.courseReview.groupBy({
+        by: ['promotionGrade'],
+        where: { ...reviewWhere, condition: 'PROMO' },
         _count: { _all: true },
       }),
       this.prisma.examExperience.count({ where: examWhere }),
@@ -361,7 +384,47 @@ export class DiscoveryService {
         _avg: { grade: true },
         _count: { grade: true },
       }),
+      this.prisma.examExperience.groupBy({
+        by: ['prepLeadDays'],
+        where: examWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.examExperience.groupBy({
+        by: ['prepDailyMinutes'],
+        where: examWhere,
+        _count: { _all: true },
+      }),
+      this.prisma
+        .$queryRaw<ExamTopicRow[]>(
+          buildExamTopicsQuery({
+            subjectId: subject.id,
+            limit: SUMMARY_TOPICS_LIMIT,
+            now,
+          }),
+        )
+        .then(toTopicCounts),
     ]);
+
+    const sessions = sessionGroups.map((row) => ({
+      value: row.session,
+      count: row._count._all,
+    }));
+    // The mesa sentence's medians only count the mesa más comentada.
+    const topSession = topSessionOf(sessions);
+    const [boardSizeGroups, durationGroups] = topSession
+      ? await Promise.all([
+          this.prisma.examExperience.groupBy({
+            by: ['boardSize'],
+            where: { ...examWhere, session: topSession.session },
+            _count: { _all: true },
+          }),
+          this.prisma.examExperience.groupBy({
+            by: ['durationMinutes'],
+            where: { ...examWhere, session: topSession.session },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], []];
 
     return {
       subject,
@@ -377,6 +440,10 @@ export class DiscoveryService {
           value: row.difficulty,
           count: row._count._all,
         })),
+        promotionGrades: promotionGradeGroups.map((row) => ({
+          value: row.promotionGrade,
+          count: row._count._all,
+        })),
       }),
       exams: summarizeExams({
         total: examCount,
@@ -388,10 +455,7 @@ export class DiscoveryService {
           value: row.format,
           count: row._count._all,
         })),
-        sessions: sessionGroups.map((row) => ({
-          value: row.session,
-          count: row._count._all,
-        })),
+        sessions,
         theory: {
           average: examAverages._avg.difficultyTheory,
           count: examAverages._count.difficultyTheory,
@@ -404,8 +468,44 @@ export class DiscoveryService {
           average: gradeAggregate._avg.grade,
           count: gradeAggregate._count.grade,
         },
+        boardSizes: boardSizeGroups.map((row) => ({
+          value: row.boardSize,
+          count: row._count._all,
+        })),
+        durations: durationGroups.map((row) => ({
+          value: row.durationMinutes,
+          count: row._count._all,
+        })),
+        leadDays: leadDayGroups.map((row) => ({
+          value: row.prepLeadDays,
+          count: row._count._all,
+        })),
+        dailyMinutes: dailyMinuteGroups.map((row) => ({
+          value: row.prepDailyMinutes,
+          count: row._count._all,
+        })),
+        topics,
       }),
     };
+  }
+
+  async getSubjectExamTopics(code: string): Promise<SubjectExamTopicsDto> {
+    const subject = await this.prisma.subject.findFirst({
+      where: { code },
+      select: { id: true },
+    });
+    if (!subject) {
+      throw new NotFoundException('Materia no encontrada');
+    }
+
+    const rows = await this.prisma.$queryRaw<ExamTopicRow[]>(
+      buildExamTopicsQuery({
+        subjectId: subject.id,
+        limit: EXAM_TOPICS_LIMIT,
+        now: new Date(),
+      }),
+    );
+    return { topics: toTopicCounts(rows) };
   }
 
   async getExperiencesOverview(
@@ -569,11 +669,12 @@ export class DiscoveryService {
     const subjectsById = new Map(subjects.map((s) => [s.id, s]));
 
     const perSubjectWhere = { subjectId: { in: topIds }, ...visibility };
+    const examsOnly = query.kind === 'exams';
     const [
       conditionGroups,
       reviewDifficultyGroups,
       outcomeGroups,
-      examDifficultyGroups,
+      examDifficultyAverages,
       reviewLatest,
       examLatest,
       recentReviews,
@@ -600,11 +701,13 @@ export class DiscoveryService {
             _count: { _all: true },
           })
         : null,
-      includeExams
+      // «Solo finales» shows teoría and práctica, never the verbal dificultad.
+      examsOnly
         ? this.prisma.examExperience.groupBy({
-            by: ['subjectId', 'difficulty'],
+            by: ['subjectId'],
             where: perSubjectWhere,
-            _count: { _all: true },
+            _avg: { difficultyTheory: true, difficultyPractice: true },
+            _count: { difficultyTheory: true, difficultyPractice: true },
           })
         : null,
       includeReviews
@@ -663,9 +766,32 @@ export class DiscoveryService {
     );
     const outcomesBySubject = perSubject<ExamOutcome>(outcomeGroups, 'outcome');
     const difficultiesBySubject = perSubject<CommunityDifficulty>(
-      query.kind === 'exams' ? examDifficultyGroups : reviewDifficultyGroups,
+      reviewDifficultyGroups,
       'difficulty',
     );
+    const examDifficultiesBySubject = new Map(
+      (examDifficultyAverages ?? []).map((row) => [row.subjectId, row]),
+    );
+    const cardDifficulty = (subjectId: string) => {
+      if (!examsOnly) {
+        return {
+          topDifficulty: topDifficulty(
+            difficultiesBySubject.get(subjectId) ?? [],
+          ),
+        };
+      }
+      const row = examDifficultiesBySubject.get(subjectId);
+      return {
+        theory: difficultyAverage({
+          average: row?._avg.difficultyTheory ?? null,
+          count: row?._count.difficultyTheory ?? 0,
+        }),
+        practice: difficultyAverage({
+          average: row?._avg.difficultyPractice ?? null,
+          count: row?._count.difficultyPractice ?? 0,
+        }),
+      };
+    };
 
     const latestBySubject = new Map<string, Date>();
     for (const row of [...(reviewLatest ?? []), ...(examLatest ?? [])]) {
@@ -744,9 +870,7 @@ export class DiscoveryService {
               conditionsBySubject.get(entry.id) ?? [],
             ),
             approval: approvalSummary(outcomesBySubject.get(entry.id) ?? []),
-            topDifficulty: topDifficulty(
-              difficultiesBySubject.get(entry.id) ?? [],
-            ),
+            ...cardDifficulty(entry.id),
           };
         }),
       },

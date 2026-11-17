@@ -15,8 +15,12 @@ describe('Experiencias: materia summary (e2e)', () => {
   const tag = randomUUID().slice(0, 6).toUpperCase();
   const code = `EXP-${tag}`;
   const otherCode = `EXP-O${tag}`;
+  const richCode = `EXP-R${tag}`;
+  const sparseCode = `EXP-S${tag}`;
   let subjectId: string;
   let otherSubjectId: string;
+  let richSubjectId: string;
+  let sparseSubjectId: string;
   const reviewIds: string[] = [];
   const examIds: string[] = [];
 
@@ -159,13 +163,127 @@ describe('Experiencias: materia summary (e2e)', () => {
       hiddenAt: new Date(Date.now() - 86_400_000),
     });
     await exam(otherSubjectId, { publicationStatus: 'REMOVED' });
+
+    ({ id: richSubjectId } = await prisma.subject.create({
+      data: {
+        facultyId: '00000000-0000-4000-8000-00000000f001',
+        code: richCode,
+        name: `Materia hechos nuevos ${tag}`,
+      },
+      select: { id: true },
+    }));
+    ({ id: sparseSubjectId } = await prisma.subject.create({
+      data: {
+        facultyId: '00000000-0000-4000-8000-00000000f001',
+        code: sparseCode,
+        name: `Materia pocos hechos ${tag}`,
+      },
+      select: { id: true },
+    }));
+
+    // Rich materia: 7 reseñas with Promoción, 6 of them with a nota (7, 8, 8,
+    // 9, 9, 10 → 8.5). A Regular one carrying a nota and a retired Promoción
+    // one never count.
+    for (const promotionGrade of [7, 8, 8, 9, 9, 10, null]) {
+      await review(richSubjectId, { condition: 'PROMO', promotionGrade });
+    }
+    await review(richSubjectId, { condition: 'REGULAR', promotionGrade: 2 });
+    await review(richSubjectId, {
+      condition: 'PROMO',
+      promotionGrade: 1,
+      publicationStatus: 'REMOVED',
+    });
+
+    // Rich finales: diciembre (4 public) is the mesa más comentada; julio's
+    // professors and times would move both medians if they were counted.
+    await exam(richSubjectId, {
+      session: 'DICIEMBRE',
+      boardSize: 3,
+      durationMinutes: 180,
+      prepLeadDays: 7,
+      prepDailyMinutes: 60,
+      topics: ['Integrales dobles', 'Derivadas', 'Limites'],
+    });
+    await exam(richSubjectId, {
+      session: 'DICIEMBRE',
+      boardSize: 3,
+      durationMinutes: 120,
+      prepLeadDays: 14,
+      prepDailyMinutes: 60,
+      topics: ['integrales dobles', 'Derivadas', 'Matrices'],
+    });
+    await exam(richSubjectId, {
+      session: 'DICIEMBRE',
+      boardSize: 2,
+      durationMinutes: 180,
+      prepLeadDays: 21,
+      prepDailyMinutes: 90,
+      topics: ['INTEGRALES DOBLES', 'Limites', 'Matrices', 'Series de Fourier'],
+      isAnonymous: true,
+    });
+    await exam(richSubjectId, {
+      session: 'DICIEMBRE',
+      prepLeadDays: 21,
+      topics: ['Series de Fourier', 'Teorema de Green', 'Truco del profe'],
+    });
+    await exam(richSubjectId, {
+      session: 'JULIO',
+      boardSize: 1,
+      durationMinutes: 30,
+      prepLeadDays: 60,
+      topics: ['Teorema de Green', 'Vectores', 'Retirado'],
+    });
+    await exam(richSubjectId, {
+      session: 'JULIO',
+      boardSize: 1,
+      durationMinutes: 30,
+      topics: ['Vectores', 'Oculto'],
+    });
+    await exam(richSubjectId, {
+      session: 'DICIEMBRE',
+      boardSize: 9,
+      durationMinutes: 400,
+      prepLeadDays: 300,
+      prepDailyMinutes: 900,
+      topics: ['Retirado', 'Truco del profe'],
+      publicationStatus: 'REMOVED',
+    });
+    await exam(richSubjectId, {
+      session: 'DICIEMBRE',
+      boardSize: 9,
+      topics: ['Oculto'],
+      publicationStatus: 'HIDDEN',
+      hiddenAt: new Date(),
+    });
+
+    // Sparse materia: every new fact stays under its minimum except the mesa's
+    // professors (3 answers).
+    for (const promotionGrade of [8, 8, 9, 9, null, null]) {
+      await review(sparseSubjectId, { condition: 'PROMO', promotionGrade });
+    }
+    await exam(sparseSubjectId, {
+      session: 'DICIEMBRE',
+      boardSize: 3,
+      durationMinutes: 180,
+      prepLeadDays: 21,
+      topics: ['Series de Fourier'],
+    });
+    await exam(sparseSubjectId, {
+      session: 'DICIEMBRE',
+      boardSize: 3,
+      durationMinutes: 180,
+      prepLeadDays: 21,
+    });
+    await exam(sparseSubjectId, { session: 'DICIEMBRE', boardSize: 4 });
   });
 
   afterAll(async () => {
     await prisma.courseReview.deleteMany({ where: { id: { in: reviewIds } } });
     await prisma.examExperience.deleteMany({ where: { id: { in: examIds } } });
     await prisma.subject.deleteMany({
-      where: { id: { in: [subjectId, otherSubjectId] } },
+      where: {
+        id: { in: [subjectId, otherSubjectId, richSubjectId, sparseSubjectId] },
+      },
     });
     await prisma.user.delete({ where: { id: author.id } });
     await app.close();
@@ -195,6 +313,8 @@ describe('Experiencias: materia summary (e2e)', () => {
           counts: { MUY_BAJA: 0, BAJA: 0, MEDIA: 2, ALTA: 3, MUY_ALTA: 0 },
           top: 'ALTA',
         },
+        // Facts not yet collected: «la informaron 0 de 3».
+        promotionGrade: { average: null, informed: 0, promoted: 3 },
       },
       exams: {
         count: 7,
@@ -211,10 +331,113 @@ describe('Experiencias: materia summary (e2e)', () => {
         },
         theory: { average: 4, count: 3 },
         practice: { average: 4, count: 3 },
-        topSession: { session: 'DICIEMBRE', count: 3 },
+        topSession: {
+          session: 'DICIEMBRE',
+          count: 3,
+          boardSize: { median: null, count: 0 },
+          duration: { median: null, count: 0 },
+        },
         grade: { average: 5.4, count: 5 },
+        preparation: {
+          leadDays: { median: null, count: 0 },
+          dailyMinutes: { median: null, count: 0 },
+        },
+        topics: [],
       },
     });
+  });
+
+  it('reports the nota de promoción over the reseñas with Promoción, averaging from five', async () => {
+    const rich = await http()
+      .get(`/api/v1/discovery/subjects/${richCode}/experiences-summary`)
+      .expect(200);
+    expect(rich.body.reviews.results).toMatchObject({ promo: 7, regular: 1 });
+    expect(rich.body.reviews.promotionGrade).toEqual({
+      average: 8.5,
+      informed: 6,
+      promoted: 7,
+    });
+
+    const sparse = await http()
+      .get(`/api/v1/discovery/subjects/${sparseCode}/experiences-summary`)
+      .expect(200);
+    // «la informaron 4 de 6» with no average.
+    expect(sparse.body.reviews.promotionGrade).toEqual({
+      average: null,
+      informed: 4,
+      promoted: 6,
+    });
+  });
+
+  it('limits the professors and duration medians to the mesa más comentada', async () => {
+    const rich = await http()
+      .get(`/api/v1/discovery/subjects/${richCode}/experiences-summary`)
+      .expect(200);
+    expect(rich.body.exams.topSession).toEqual({
+      session: 'DICIEMBRE',
+      count: 4,
+      boardSize: { median: 3, count: 3 },
+      duration: { median: 180, count: 3 },
+    });
+
+    const sparse = await http()
+      .get(`/api/v1/discovery/subjects/${sparseCode}/experiences-summary`)
+      .expect(200);
+    // Two durations: the sentence keeps the professors and drops the hours.
+    expect(sparse.body.exams.topSession).toEqual({
+      session: 'DICIEMBRE',
+      count: 3,
+      boardSize: { median: 3, count: 3 },
+      duration: { median: null, count: 2 },
+    });
+  });
+
+  it('summarizes the preparación típica as medians from three answers each', async () => {
+    const rich = await http()
+      .get(`/api/v1/discovery/subjects/${richCode}/experiences-summary`)
+      .expect(200);
+    // 7, 14, 21, 21, 60 days → 21; 60, 60, 90 minutes → 60.
+    expect(rich.body.exams.preparation).toEqual({
+      leadDays: { median: 21, count: 5 },
+      dailyMinutes: { median: 60, count: 3 },
+    });
+
+    const sparse = await http()
+      .get(`/api/v1/discovery/subjects/${sparseCode}/experiences-summary`)
+      .expect(200);
+    expect(sparse.body.exams.preparation).toEqual({
+      leadDays: { median: null, count: 2 },
+      dailyMinutes: { median: null, count: 0 },
+    });
+  });
+
+  it('lists up to five temas found in two public finales, ignoring case', async () => {
+    const rich = await http()
+      .get(`/api/v1/discovery/subjects/${richCode}/experiences-summary`)
+      .expect(200);
+    const topics = rich.body.exams.topics as {
+      topic: string;
+      count: number;
+    }[];
+    expect(
+      topics.map(({ topic, count }) => [topic.toLowerCase(), count]),
+    ).toEqual([
+      ['integrales dobles', 3],
+      ['derivadas', 2],
+      ['limites', 2],
+      ['matrices', 2],
+      ['series de fourier', 2],
+    ]);
+    // One-off, retired and recently hidden mentions never reach two finales.
+    const names = topics.map((t) => t.topic.toLowerCase());
+    for (const absent of ['truco del profe', 'retirado', 'oculto']) {
+      expect(names).not.toContain(absent);
+    }
+
+    const sparse = await http()
+      .get(`/api/v1/discovery/subjects/${sparseCode}/experiences-summary`)
+      .expect(200);
+    expect(sparse.body.exams.topics).toEqual([]);
   });
 
   it('does not count pending, hidden-in-window or removed entries', async () => {

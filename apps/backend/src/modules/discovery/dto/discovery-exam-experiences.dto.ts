@@ -126,14 +126,38 @@ export class DiscoveryExamExperienceDto {
   })
   examinerName?: string;
 
-  @ApiPropertyOptional({ enum: CommunityDifficulty, nullable: true })
+  @ApiPropertyOptional({
+    enum: CommunityDifficulty,
+    nullable: true,
+    description: 'Dificultad verbal de finales anteriores a teoría y práctica.',
+  })
   difficulty?: CommunityDifficulty;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 5 })
+  difficultyTheory?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 5 })
+  difficultyPractice?: number;
 
   @ApiPropertyOptional({ enum: ExamOutcome, nullable: true })
   outcome?: ExamOutcome;
 
   @ApiPropertyOptional({ minimum: 0, maximum: 10 })
   grade?: number;
+
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 10,
+    description: 'Profesores en la mesa.',
+  })
+  boardSize?: number;
+
+  @ApiPropertyOptional({
+    minimum: 10,
+    maximum: 480,
+    description: 'Tiempo del examen, en minutos.',
+  })
+  durationMinutes?: number;
 
   @ApiPropertyOptional({
     nullable: true,
@@ -146,6 +170,35 @@ export class DiscoveryExamExperienceDto {
 
   @ApiProperty()
   updatedAt: Date;
+}
+
+/** `GET /discovery/exam-experiences/:id`: the item plus the detail-only facts. */
+export class DiscoveryExamExperienceDetailDto extends DiscoveryExamExperienceDto {
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 365,
+    description: 'Cuántos días antes empezó a estudiar.',
+  })
+  prepLeadDays?: number;
+
+  @ApiPropertyOptional({
+    minimum: 30,
+    maximum: 960,
+    description: 'Tiempo de estudio por día, en minutos.',
+  })
+  prepDailyMinutes?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Estimación «unas N horas»: round(prepLeadDays × prepDailyMinutes / 60); solo con ambos datos.',
+  })
+  estimatedStudyHours?: number;
+
+  @ApiProperty({ type: [String], description: 'Temas que tomaron (hasta 10).' })
+  topics: string[];
+
+  @ApiPropertyOptional({ nullable: true })
+  comment: string | null;
 }
 
 export class DiscoveryExamExperienceListDto {

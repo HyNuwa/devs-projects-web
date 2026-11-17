@@ -131,6 +131,14 @@ export class DiscoveryCourseReviewDto {
   @ApiPropertyOptional({ enum: CommunityDifficulty, nullable: true })
   difficulty: CommunityDifficulty | null;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    minimum: 1,
+    maximum: 10,
+    description: 'Nota de promoción; solo con resultado PROMO.',
+  })
+  promotionGrade: number | null;
+
   @ApiProperty({ minimum: 1, maximum: 5 })
   recommendation: number;
 
