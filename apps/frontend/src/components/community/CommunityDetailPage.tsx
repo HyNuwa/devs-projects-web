@@ -3,9 +3,9 @@
 import Link from 'next/link';
 
 import { AuthorLink } from '@/components/public-profile/AuthorLink';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { ArrowLeft, CalendarDays, GraduationCap, LoaderCircle, Share2 } from 'lucide-react';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, GraduationCap, LoaderCircle, Share2 } from 'lucide-react';
 
 import { AnonymousMark } from '@/components/experiences/AnonymousMark';
 import {
@@ -18,6 +18,14 @@ import {
   formatCommunityDate,
   StarRecommendation,
 } from '@/components/experiences/facts';
+import {
+  estimateStudyHours,
+  formatMesa,
+  formatPreparation,
+  formatResultWithGrade,
+  formatStudyEstimate,
+  formatTheoryPractice,
+} from '@/components/experiences/format';
 import { avatarSrc } from '@/components/layout/account';
 import { CommunityEntryManagement } from '@/components/community/CommunityEntryManagement';
 import { ReportDialog } from '@/components/moderation/ReportDialog';
@@ -66,7 +74,13 @@ function DetailFacts({ detail, kind }: { detail: CommunityDetail; kind: Communit
       <CommunityFactList
         facts={[
           ['Año de cursada', review.academicYear ? `Cursada ${review.academicYear}` : null],
-          ['Resultado de cursada', courseConditionLabel(review.condition)],
+          [
+            'Resultado de cursada',
+            formatResultWithGrade(
+              courseConditionLabel(review.condition),
+              review.condition === 'PROMO' ? review.promotionGrade : null,
+            ),
+          ],
           ['Situación de cursada', review.attempt ? courseAttemptLabel(review.attempt) : null],
           ['Franja horaria', shiftLabel(review.shift)],
           [
@@ -84,27 +98,76 @@ function DetailFacts({ detail, kind }: { detail: CommunityDetail; kind: Communit
   const experience = detail as DiscoveryExamExperienceDetail;
   const examiner = experience.professor?.name ?? experience.examinerName;
   const examDate = experience.examDate ? formatCommunityDate(experience.examDate) : null;
+  const studyHours =
+    experience.estimatedStudyHours ??
+    estimateStudyHours(experience.prepLeadDays, experience.prepDailyMinutes);
 
   return (
-    <CommunityFactList
-      facts={[
-        ['Año de final', `Final ${experience.year}`],
-        ['Período', examPeriodLabel(experience.session)],
-        ['Formato', examFormatLabel(experience.format)],
-        ['Fecha exacta', examDate ? `Fecha: ${examDate}` : null],
-        ['Franja horaria', experience.shift ? shiftLabel(experience.shift) : null],
-        ['Profesor o examinador', examiner ? `Tomó: ${examiner}` : null],
-        ['Dificultad', experience.difficulty ? difficultyLabel(experience.difficulty) : null],
-        ['Resultado', experience.outcome ? examOutcomeLabel(experience.outcome) : null],
-        [
-          'Nota',
-          experience.grade !== null && experience.grade !== undefined
-            ? `Nota: ${experience.grade}`
-            : null,
-        ],
-      ]}
-    />
+    <>
+      <CommunityFactList
+        facts={[
+          ['Año de final', `Final ${experience.year}`],
+          ['Período', examPeriodLabel(experience.session)],
+          ['Formato', examFormatLabel(experience.format)],
+          ['Fecha exacta', examDate ? `Fecha: ${examDate}` : null],
+          ['Franja horaria', experience.shift ? shiftLabel(experience.shift) : null],
+          ['Profesor o examinador', examiner ? `Tomó: ${examiner}` : null],
+          [
+            'Dificultad de teoría y de práctica',
+            formatTheoryPractice(experience.difficultyTheory, experience.difficultyPractice),
+          ],
+          ['Dificultad', experience.difficulty ? difficultyLabel(experience.difficulty) : null],
+          ['Resultado', experience.outcome ? examOutcomeLabel(experience.outcome) : null],
+          [
+            'Nota',
+            experience.grade !== null && experience.grade !== undefined
+              ? `Nota: ${experience.grade}`
+              : null,
+          ],
+          ['La mesa', formatMesa(experience.boardSize, experience.durationMinutes)],
+          ['Preparación', formatPreparation(experience.prepLeadDays, experience.prepDailyMinutes)],
+          ['Estudio estimado', studyHours !== null ? formatStudyEstimate(studyHours) : null],
+        ]}
+      />
+      {experience.topics.length > 0 ? (
+        <section aria-labelledby="exam-topics" className="mt-6">
+          <h2 className="font-sans text-lg font-bold text-card-foreground" id="exam-topics">
+            Temas que tomaron
+          </h2>
+          <ul aria-labelledby="exam-topics" className="mt-3 flex flex-wrap gap-2">
+            {experience.topics.map((topic) => (
+              <li key={topic}>
+                <Chip tone="neutral">{topic}</Chip>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </>
   );
+}
+
+/**
+ * «Publicada» after a form publishes (`?publicada=1`): read once on mount,
+ * then the param leaves the URL so a reload or a shared link never repeats it.
+ */
+function usePublishedNotice() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [published] = useState(() => searchParams.get('publicada') === '1');
+  const stripped = useRef(false);
+
+  useEffect(() => {
+    if (stripped.current || searchParams.get('publicada') !== '1') return;
+    stripped.current = true;
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete('publicada');
+    const query = rest.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  return published;
 }
 
 function DetailActions({
@@ -205,10 +268,12 @@ function CommunityDetailContent({
   detail,
   id,
   kind,
+  published,
 }: {
   detail: CommunityDetail;
   id: string;
   kind: CommunityDetailKind;
+  published: boolean;
 }) {
   const isReview = kind === 'course-review';
   const sharedKind = isReview ? 'review' : 'exam';
@@ -239,6 +304,16 @@ function CommunityDetailContent({
 
       <div className="grid gap-6 min-[820px]:grid-cols-[minmax(0,1fr)_16rem] min-[820px]:items-start">
         <article className="min-w-0 border border-border bg-card p-5 sm:p-8">
+          {published ? (
+            <div
+              aria-label="Publicada"
+              className="mb-5 inline-flex items-center gap-2 rounded-md border-[1.5px] border-foreground bg-secondary px-3 py-1.5 font-sans text-sm font-bold text-secondary-foreground"
+              role="status"
+            >
+              <Check aria-hidden="true" className="size-4 text-primary" strokeWidth={2.4} />
+              Publicada
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="min-w-0">
               <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
@@ -336,6 +411,7 @@ export function CommunityDetailPage({
   const [state, setState] = useState<DetailState>(() =>
     id ? { status: 'loading' } : { status: 'unavailable' },
   );
+  const published = usePublishedNotice();
 
   useEffect(() => {
     if (!id) return;
@@ -398,7 +474,14 @@ export function CommunityDetailPage({
     );
   }
 
-  return <CommunityDetailContent detail={state.detail} id={id ?? state.detail.id} kind={kind} />;
+  return (
+    <CommunityDetailContent
+      detail={state.detail}
+      id={id ?? state.detail.id}
+      kind={kind}
+      published={published}
+    />
+  );
 }
 
 export function CourseReviewDetailRoute() {

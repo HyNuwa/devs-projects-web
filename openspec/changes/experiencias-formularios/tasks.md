@@ -58,28 +58,28 @@
 
 ## 3. Frontend reading
 
-- [ ] 3.1 Update the `experiences-client` and discovery Zod schemas and their fixture tests for the new fields, the topics endpoint and the overview's theory and practice. Verify the tests pass.
-- [ ] 3.2 Update the `ExperienceCard` tests:
+- [x] 3.1 Update the `experiences-client` and discovery Zod schemas and their fixture tests for the new fields, the topics endpoint and the overview's theory and practice. Verify the tests pass.
+- [x] 3.2 Update the `ExperienceCard` tests:
   - «Promoción · 9»;
   - a final shows «Teoría 4/5 · Práctica 3/5», or an older final's verbal dificultad when it has none;
   - a «Prefiero no decir» final shows no grade;
   - no mesa, tiempo, preparación or temas on the card.
 
   Implement it. Verify the tests pass.
-- [ ] 3.3 Update the `CommunityDetailPage` tests:
+- [x] 3.3 Update the `CommunityDetailPage` tests:
   - a final detail shows «Mesa de 3 profesores · 3 horas», «Preparación: 3 semanas, 1 h por día» with «Unas 21 horas de estudio en total», and the temas as chips;
   - an older final still shows its date, franja and verbal dificultad;
   - `?publicada=1` shows «Publicada» once and is removed from the URL.
 
   Implement it. Verify the tests pass.
-- [ ] 3.4 Update the `SubjectSummary` and `SubjectAccordingPanel` tests:
+- [x] 3.4 Update the `SubjectSummary` and `SubjectAccordingPanel` tests:
   - «Nota de promoción · 8,2 / 10 promedio · la informaron 9 de 11» and its below-minimum wording;
   - «Preparación típica»;
   - the mesa sentence with and without its parts;
   - «Temas que más toman».
 
   Implement them. Verify the tests pass.
-- [ ] 3.5 Update the landing tests: with «Solo finales», the cards show «Teoría X · Práctica Y» averages and omit the one below its minimum. Implement it in `MostCommentedSubjects`. Verify the tests pass.
+- [x] 3.5 Update the landing tests: with «Solo finales», the cards show «Teoría X · Práctica Y» averages and omit the one below its minimum. Implement it in `MostCommentedSubjects`. Verify the tests pass.
 
 ## 4. Frontend forms
 

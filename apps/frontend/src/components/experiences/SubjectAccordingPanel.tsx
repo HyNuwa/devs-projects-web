@@ -1,6 +1,13 @@
 import Link from 'next/link';
 
-import { CourseResultsBreakdown, SummaryMetric } from '@/components/experiences/SubjectSummary';
+import {
+  CourseResultsBreakdown,
+  PromotionGradeLine,
+  SummaryMetric,
+  TopExamTopics,
+  TopSessionLine,
+  TypicalPreparation,
+} from '@/components/experiences/SubjectSummary';
 import type { ExperienceRecentEntry, SubjectExperiencesSummary } from '@/lib/experiences-client';
 import { difficultyLabel, examFormatLabel } from '@/lib/presentation-labels';
 
@@ -60,6 +67,7 @@ export function SubjectAccordingPanel({
             />
           ) : null}
           <CourseResultsBreakdown results={reviews.results} />
+          <PromotionGradeLine grade={reviews.promotionGrade} />
         </div>
       ) : (
         <div className="mt-3 grid gap-3">
@@ -95,6 +103,9 @@ export function SubjectAccordingPanel({
               )}`}
             />
           ) : null}
+          <TypicalPreparation preparation={exams.preparation} />
+          <TopSessionLine topSession={exams.topSession} />
+          <TopExamTopics topics={exams.topics} />
         </div>
       )}
 

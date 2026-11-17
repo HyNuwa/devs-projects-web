@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SubjectAccordingPanel } from '@/components/experiences/SubjectAccordingPanel';
@@ -59,6 +59,75 @@ describe('SubjectAccordingPanel', () => {
 
     render(<SubjectAccordingPanel kind="exam" summary={sparse} />);
     expect(screen.queryByText(/Formato más común/)).not.toBeInTheDocument();
+  });
+
+  it('adds the nota de promoción to a review detail', () => {
+    render(<SubjectAccordingPanel kind="review" summary={fixture} />);
+
+    expect(
+      screen.getByText('Nota de promoción · 8,2 / 10 promedio · la informaron 9 de 11'),
+    ).toBeInTheDocument();
+
+    cleanup();
+    render(
+      <SubjectAccordingPanel
+        kind="review"
+        summary={{
+          ...fixture,
+          reviews: {
+            ...fixture.reviews,
+            promotionGrade: { average: null, informed: 4, promoted: 6 },
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText('Nota de promoción · la informaron 4 de 6')).toBeInTheDocument();
+  });
+
+  it('adds the mesa sentence, the preparación típica and the temas to an exam detail', () => {
+    render(<SubjectAccordingPanel kind="exam" summary={fixture} />);
+
+    expect(
+      screen.getByText(
+        'La mesa más comentada es diciembre (9): suele haber 3 profesores y 3 horas',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Preparación típica')).toBeInTheDocument();
+    expect(screen.getByText('3 semanas antes, 1 h por día')).toBeInTheDocument();
+    const topics = screen.getByRole('list', { name: 'Temas que más toman' });
+    expect(within(topics).getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.queryByText(/Nota de promoción/)).not.toBeInTheDocument();
+  });
+
+  it('drops the parts of the final picture nobody declared enough of', () => {
+    render(
+      <SubjectAccordingPanel
+        kind="exam"
+        summary={{
+          ...fixture,
+          exams: {
+            ...fixture.exams,
+            preparation: {
+              dailyMinutes: { median: null, count: 1 },
+              leadDays: { median: null, count: 2 },
+            },
+            topSession: {
+              boardSize: { median: null, count: 2 },
+              count: 9,
+              duration: { median: 90, count: 3 },
+              session: 'DICIEMBRE',
+            },
+            topics: [],
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText('La mesa más comentada es diciembre (9): suele durar 1 h 30 min'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Preparación típica')).not.toBeInTheDocument();
+    expect(screen.queryByText('Temas que más toman')).not.toBeInTheDocument();
   });
 
   it('links to every experience of the subject and owns no writing action', async () => {

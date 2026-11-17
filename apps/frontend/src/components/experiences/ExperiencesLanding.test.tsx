@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactElement } from 'react';
@@ -564,6 +564,59 @@ describe('ExperiencesLanding', () => {
 
     expect(await screen.findByText('aprobaron 8 de 10')).toBeInTheDocument();
     expect(screen.queryByText('80%')).not.toBeInTheDocument();
+  });
+
+  it('shows teoría and práctica averages instead of a verbal dificultad for Solo finales', async () => {
+    navigation.searchParams = new URLSearchParams('tipo=finales');
+    const data = overview();
+    // «Solo finales» cards carry no verbal dificultad.
+    const item = { ...data.mostCommented.items[0], topDifficulty: undefined };
+    vi.mocked(getExperiencesOverview).mockResolvedValue({
+      ...data,
+      mostCommented: {
+        ...data.mostCommented,
+        items: [
+          {
+            ...item,
+            practice: { average: 2.8, count: 3 },
+            theory: { average: 3.4, count: 4 },
+          },
+        ],
+      },
+      scope: { careerId: null, facultyId, kind: 'exams', year: null },
+    });
+    render(<ExperiencesLanding />);
+
+    expect(await screen.findByText('Teoría 3,4 · Práctica 2,8')).toBeInTheDocument();
+    const mostCommented = screen.getByRole('region', { name: 'Materias más comentadas' });
+    expect(within(mostCommented).queryByText(/^Dificultad /)).not.toBeInTheDocument();
+  });
+
+  it('omits the average below its minimum for Solo finales', async () => {
+    navigation.searchParams = new URLSearchParams('tipo=finales');
+    const data = overview();
+    // «Solo finales» cards carry no verbal dificultad.
+    const item = { ...data.mostCommented.items[0], topDifficulty: undefined };
+    vi.mocked(getExperiencesOverview).mockResolvedValue({
+      ...data,
+      mostCommented: {
+        ...data.mostCommented,
+        items: [
+          {
+            ...item,
+            practice: { average: null, count: 2 },
+            theory: { average: 3.4, count: 4 },
+          },
+        ],
+      },
+      scope: { careerId: null, facultyId, kind: 'exams', year: null },
+    });
+    render(<ExperiencesLanding />);
+
+    expect(await screen.findByText('Teoría 3,4')).toBeInTheDocument();
+    const mostCommented = screen.getByRole('region', { name: 'Materias más comentadas' });
+    expect(within(mostCommented).queryByText(/Práctica/)).not.toBeInTheDocument();
+    expect(within(mostCommented).queryByText(/^Dificultad /)).not.toBeInTheDocument();
   });
 
   it('points «Ver todas las materias» at the carrera page when a chip is active', async () => {

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,7 +22,9 @@ import type { DiscoveryCourseReviewDetail, DiscoveryExamExperienceDetail } from 
 
 const navigation = vi.hoisted(() => ({
   params: { id: 'review-1' },
+  pathname: '/resenas/review-1',
   replace: vi.fn(),
+  searchParams: new URLSearchParams(),
 }));
 const navigatorShare = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const ed01Summary = {
@@ -36,7 +38,9 @@ const experienceComment =
 
 vi.mock('next/navigation', () => ({
   useParams: () => navigation.params,
+  usePathname: () => navigation.pathname,
   useRouter: () => ({ replace: navigation.replace }),
+  useSearchParams: () => navigation.searchParams,
 }));
 
 vi.mock('@/lib/api', () => ({ api: { post: vi.fn() } }));
@@ -115,15 +119,37 @@ function experience(
       id: 'subject-1',
       name: 'Estructuras de Datos',
     },
+    topics: [],
     updatedAt: '2026-08-31T12:00:00.000Z',
     year: 2026,
     ...overrides,
   };
 }
 
+/** A final written with the new form: no date, franja or verbal dificultad. */
+function newFinal(overrides: Partial<DiscoveryExamExperienceDetail> = {}) {
+  return experience({
+    boardSize: 3,
+    difficulty: undefined,
+    difficultyPractice: 3,
+    difficultyTheory: 4,
+    durationMinutes: 180,
+    estimatedStudyHours: 21,
+    examDate: undefined,
+    grade: 8,
+    prepDailyMinutes: 60,
+    prepLeadDays: 21,
+    shift: undefined,
+    topics: ['Integrales dobles', 'Teorema de Green', 'Series de Fourier'],
+    ...overrides,
+  });
+}
+
 describe('CommunityDetailPage', () => {
   beforeEach(() => {
     navigation.params = { id: 'review-1' };
+    navigation.pathname = '/resenas/review-1';
+    navigation.searchParams = new URLSearchParams();
     navigation.replace.mockReset();
     vi.mocked(api.post).mockReset();
     vi.mocked(getCourseReviewDetail).mockReset();
@@ -376,6 +402,93 @@ describe('CommunityDetailPage', () => {
     render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
     await screen.findByText(experienceComment);
     expect(screen.queryByText(/^Nota:/)).not.toBeInTheDocument();
+  });
+
+  it('presents every declared fact of a final, with the temas as chips', async () => {
+    vi.mocked(getExamExperienceDetail).mockResolvedValue(newFinal());
+    render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+
+    expect(await screen.findByText('Mesa de 3 profesores · 3 horas')).toBeInTheDocument();
+    expect(screen.getByText('Teoría 4/5 · Práctica 3/5')).toBeInTheDocument();
+    expect(screen.getByText('Preparación: 3 semanas, 1 h por día')).toBeInTheDocument();
+    expect(screen.getByText('Unas 21 horas de estudio en total')).toBeInTheDocument();
+    expect(screen.getByText('Aprobado')).toBeInTheDocument();
+    expect(screen.getByText('Nota: 8')).toBeInTheDocument();
+
+    const topics = screen.getByRole('list', { name: 'Temas que tomaron' });
+    expect(
+      within(topics)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Integrales dobles', 'Teorema de Green', 'Series de Fourier']);
+    // A new final asks no date, franja or verbal dificultad: nothing is shown for them.
+    expect(screen.queryByText(/^Fecha:/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Tarde')).not.toBeInTheDocument();
+    expect(screen.queryByText('Alta')).not.toBeInTheDocument();
+  });
+
+  it('presents a lone preparation fact without an estimated total', async () => {
+    vi.mocked(getExamExperienceDetail).mockResolvedValue(
+      newFinal({
+        boardSize: undefined,
+        estimatedStudyHours: undefined,
+        prepDailyMinutes: undefined,
+        topics: [],
+      }),
+    );
+    render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+
+    expect(await screen.findByText('Preparación: 3 semanas')).toBeInTheDocument();
+    expect(screen.getByText('Tiempo del examen: 3 horas')).toBeInTheDocument();
+    expect(screen.queryByText(/de estudio en total/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Temas que tomaron' })).not.toBeInTheDocument();
+  });
+
+  it('still presents an older final’s date, franja and verbal dificultad', async () => {
+    vi.mocked(getExamExperienceDetail).mockResolvedValue(experience());
+    render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+
+    expect(await screen.findByText(/^Fecha: /)).toBeInTheDocument();
+    expect(screen.getByText('Tarde')).toBeInTheDocument();
+    expect(screen.getByText('Alta')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('article')).queryByText(/Teoría|Práctica|Mesa de|Preparación/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('presents a promoted reseña with its nota', async () => {
+    vi.mocked(getCourseReviewDetail).mockResolvedValue(
+      review({ condition: 'PROMO', promotionGrade: 8 }),
+    );
+    render(<CommunityDetailPage id="review-1" kind="course-review" />);
+
+    expect(await screen.findByText('Promoción · 8')).toBeInTheDocument();
+  });
+
+  it('shows «Publicada» once after publishing and removes the param from the URL', async () => {
+    navigation.pathname = '/finales/exam-1';
+    navigation.searchParams = new URLSearchParams('publicada=1');
+    vi.mocked(getExamExperienceDetail).mockResolvedValue(newFinal());
+    const { rerender } = render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+
+    expect(await screen.findByRole('status', { name: 'Publicada' })).toHaveTextContent('Publicada');
+    expect(navigation.replace).toHaveBeenCalledTimes(1);
+    expect(navigation.replace).toHaveBeenCalledWith('/finales/exam-1', { scroll: false });
+
+    // The router strips the param; the page never asks to replace it again.
+    navigation.searchParams = new URLSearchParams();
+    rerender(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+    expect(screen.getAllByRole('status', { name: 'Publicada' })).toHaveLength(1);
+    expect(navigation.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no «Publicada» notice and keeps the URL on an ordinary visit', async () => {
+    navigation.pathname = '/finales/exam-1';
+    render(<CommunityDetailPage id="exam-1" kind="exam-experience" />);
+
+    await screen.findByText(experienceComment);
+    expect(screen.queryByRole('status', { name: 'Publicada' })).not.toBeInTheDocument();
+    expect(navigation.replace).not.toHaveBeenCalled();
   });
 
   it('handles a legacy subject without a public code', async () => {

@@ -3,8 +3,13 @@ import {
   communityDifficultyLabels,
   difficultyLabel,
   examFormatLabel,
-  examPeriodLabel,
 } from '@/lib/presentation-labels';
+import {
+  formatPromotionGradeSummary,
+  formatTopSessionSentence,
+  formatTypicalPreparation,
+} from '@/components/experiences/format';
+import { Chip } from '@/components/ui/shadcn';
 import { cn } from '@/components/ui/shadcn/utils';
 
 const numberFormatter = new Intl.NumberFormat('es-AR', {
@@ -20,6 +25,7 @@ const difficultyOrder = ['MUY_BAJA', 'BAJA', 'MEDIA', 'ALTA', 'MUY_ALTA'] as con
 const formatOrder = ['ESCRITO', 'ORAL', 'MIXTO'] as const;
 
 type SummaryResults = SubjectExperiencesSummary['reviews']['results'];
+type SummaryExams = SubjectExperiencesSummary['exams'];
 const answersLabel = (count: number) =>
   `${numberFormatter.format(count)} ${count === 1 ? 'respuesta' : 'respuestas'}`;
 
@@ -146,7 +152,10 @@ export function SubjectSummary({ summary }: { summary: SubjectExperiencesSummary
       </header>
 
       <div className="grid gap-6 px-5 py-5 sm:px-6 lg:grid-cols-3">
-        <CourseResultsBreakdown results={reviews.results} />
+        <div>
+          <CourseResultsBreakdown results={reviews.results} />
+          <PromotionGradeLine grade={reviews.promotionGrade} />
+        </div>
 
         <section aria-label="Dificultad de la cursada">
           <h3 className="font-sans text-sm font-extrabold text-card-foreground">
@@ -218,14 +227,9 @@ export function SubjectSummary({ summary }: { summary: SubjectExperiencesSummary
                   : `${answersLabel(exams.practice.count)}`
               }
             />
-            <SummaryMetric
-              label="Mesa más comentada"
-              value={
-                exams.topSession
-                  ? `${examPeriodLabel(exams.topSession.session)} · ${numberFormatter.format(exams.topSession.count)}`
-                  : 'sin suficientes respuestas'
-              }
-            />
+            {exams.topSession ? null : (
+              <SummaryMetric label="Mesa más comentada" value="sin suficientes respuestas" />
+            )}
             <SummaryMetric
               label="Nota promedio"
               value={
@@ -234,10 +238,57 @@ export function SubjectSummary({ summary }: { summary: SubjectExperiencesSummary
                   : `${numberFormatter.format(exams.grade.count)} notas`
               }
             />
+            <TypicalPreparation preparation={exams.preparation} />
           </dl>
+          <TopSessionLine topSession={exams.topSession} />
+          <TopExamTopics topics={exams.topics} />
         </section>
       </div>
     </section>
+  );
+}
+
+/** «Nota de promoción · …», shared by the summary and the reseña panel. */
+export function PromotionGradeLine({
+  grade,
+}: {
+  grade: SubjectExperiencesSummary['reviews']['promotionGrade'];
+}) {
+  const text = formatPromotionGradeSummary(grade);
+  return text ? (
+    <p className="mt-3 font-sans text-sm font-extrabold text-card-foreground">{text}</p>
+  ) : null;
+}
+
+/** The mesa más comentada sentence, with the medians that cleared their minimum. */
+export function TopSessionLine({ topSession }: { topSession: SummaryExams['topSession'] }) {
+  return topSession ? (
+    <p className="mt-3 font-sans text-sm font-semibold text-card-foreground">
+      {formatTopSessionSentence(topSession)}
+    </p>
+  ) : null;
+}
+
+/** «Preparación típica» as a metric row; nothing when neither median exists. */
+export function TypicalPreparation({ preparation }: { preparation: SummaryExams['preparation'] }) {
+  const text = formatTypicalPreparation(preparation);
+  return text ? <SummaryMetric label="Preparación típica" value={text} /> : null;
+}
+
+/** «Temas que más toman»: up to five, most mentioned first, as the API orders them. */
+export function TopExamTopics({ topics }: { topics: SummaryExams['topics'] }) {
+  if (topics.length === 0) return null;
+  return (
+    <div className="mt-4">
+      <h4 className="font-sans text-sm font-extrabold text-card-foreground">Temas que más toman</h4>
+      <ul aria-label="Temas que más toman" className="mt-2 flex flex-wrap gap-1.5" role="list">
+        {topics.map(({ topic }) => (
+          <li key={topic}>
+            <Chip tone="neutral">{topic}</Chip>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
