@@ -71,7 +71,6 @@ type StoredExam = ExamExperience & {
 function exam(overrides: Partial<StoredExam> = {}): StoredExam {
   return {
     id: 'exam-1',
-    userId: currentUser.id,
     subjectId: subject.id,
     shift: null,
     year: 2024,
