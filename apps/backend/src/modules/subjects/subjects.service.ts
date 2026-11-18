@@ -175,6 +175,7 @@ export class SubjectsService {
     },
   >(entry: T) {
     const publicEntry: Record<string, unknown> = { ...entry };
+    delete publicEntry.userId;
     delete publicEntry.publicationStatus;
     delete publicEntry.statusChangedAt;
     delete publicEntry.hiddenAt;

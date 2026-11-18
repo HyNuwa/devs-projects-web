@@ -450,6 +450,7 @@ describe('SubjectsService community writes', () => {
       {
         id: 'review-1',
         subjectId: 'sub-1',
+        userId: 'user-1',
         isAnonymous: true,
         publicationStatus: 'PUBLISHED',
         statusChangedAt: new Date('2026-09-01T00:00:00.000Z'),
@@ -486,6 +487,7 @@ describe('SubjectsService community writes', () => {
         user: { username: 'Anónimo' },
       }),
     );
+    expect(result.reviews[0]).not.toHaveProperty('userId');
     expect(result.reviews[0]).not.toHaveProperty('authorFacingReason');
     expect(result.reviews[0]).not.toHaveProperty('hiddenAt');
     expect(result.reviews[0]).not.toHaveProperty('statusChangedAt');
@@ -497,6 +499,7 @@ describe('SubjectsService community writes', () => {
       {
         id: 'exam-1',
         subjectId: 'sub-1',
+        userId: 'user-1',
         isAnonymous: true,
         publicationStatus: 'PUBLISHED',
         statusChangedAt: new Date('2026-09-01T00:00:00.000Z'),
@@ -526,6 +529,7 @@ describe('SubjectsService community writes', () => {
         user: { username: 'Anónimo' },
       }),
     );
+    expect(result[0]).not.toHaveProperty('userId');
     expect(result[0]).not.toHaveProperty('authorFacingReason');
     expect(result[0]).not.toHaveProperty('hiddenAt');
     expect(result[0]).not.toHaveProperty('statusChangedAt');
