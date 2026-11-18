@@ -70,6 +70,26 @@ export function readExperienceDraft(): ExperienceDraft | null {
   }
 }
 
+/**
+ * The draft a new form of `type` for `subjectCode` continues on mount: any
+ * draft the chooser hands over (`desde=formulario`), or else only one of the
+ * same type and materia, as when the author comes back from «Cambiar» with the
+ * browser's Back.
+ */
+export function draftToContinue({
+  fromChooser,
+  subjectCode,
+  type,
+}: {
+  fromChooser: boolean;
+  subjectCode: string;
+  type: ExperienceDraftType;
+}): ExperienceDraft | null {
+  const draft = readExperienceDraft();
+  if (!draft) return null;
+  return fromChooser || (draft.type === type && draft.subjectCode === subjectCode) ? draft : null;
+}
+
 /** Whether a stored value fits the field whose empty value is `empty`. */
 function fits(value: unknown, empty: unknown): boolean {
   if (Array.isArray(empty)) {

@@ -570,18 +570,41 @@ describe('ReviewForm draft across «Cambiar»', () => {
     expect(screen.getByLabelText('Profesor/a')).toHaveValue('');
   });
 
-  it('does not restore a draft on a form opened directly', () => {
+  it('restores the typed values on browser Back from «Cambiar»', async () => {
+    const user = userEvent.setup();
+    render(<ReviewForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Estructuras de Datos',
+    );
+    await user.type(screen.getByLabelText('Ciclo lectivo'), '2025');
+    await user.click(screen.getByLabelText('Promoción'));
+    await user.type(screen.getByLabelText('Contá tu experiencia'), 'Medio relato');
+    const change = screen.getByRole('link', { name: 'Cambiar' });
+    keepOnPage(change);
+    await user.click(change);
+    cleanup();
+
+    render(<ReviewForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(screen.getByLabelText('Ciclo lectivo')).toHaveValue(2025);
+    expect(screen.getByLabelText('Promoción')).toBeChecked();
+  });
+
+  it.each([
+    ['another materia', { subjectCode: 'OTRA', type: 'resenar' }],
+    ['another type', { subjectCode: 'ED-01', type: 'final' }],
+  ])('does not restore a draft of %s on a form opened without the chooser', async (_case, slot) => {
     sessionStorage.setItem(
       DRAFT_KEY,
-      JSON.stringify({
-        subjectCode: 'ED-01',
-        subjectName: null,
-        type: 'resenar',
-        values: { comment: 'Medio relato' },
-      }),
+      JSON.stringify({ ...slot, subjectName: null, values: { comment: 'Medio relato' } }),
     );
     render(<ReviewForm />);
 
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Estructuras de Datos',
+    );
     expect(screen.getByLabelText('Contá tu experiencia')).toHaveValue('');
   });
 

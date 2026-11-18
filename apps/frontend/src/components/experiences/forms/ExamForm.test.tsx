@@ -304,6 +304,22 @@ describe('ExamForm', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['0', 'dias'],
+    ['13', 'meses'],
+  ])('refuses a lead time of %s %s, outside 1 day to 12 months', async (amount, unit) => {
+    const user = userEvent.setup();
+    render(<ExamForm />);
+
+    await completeRequiredFields(user);
+    await user.type(screen.getByLabelText('¿Con cuánto tiempo empezaste a estudiar?'), amount);
+    await user.selectOptions(screen.getByLabelText('Unidad de tiempo'), unit);
+    await user.click(screen.getByRole('button', { name: 'Publicar experiencia' }));
+
+    expect(await screen.findByText('Indicá entre 1 día y 12 meses antes.')).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
   it('adds the temas with Enter and sends them', async () => {
     const user = userEvent.setup();
     vi.mocked(api.post).mockResolvedValue(published('exam-new'));
@@ -579,5 +595,79 @@ describe('ExamForm draft across «Cambiar»', () => {
     expect(screen.getByLabelText('Profesores en la mesa')).toHaveValue(3);
     expect(screen.getByLabelText('Unidad de tiempo')).toHaveValue('semanas');
     expect(screen.getByRole('button', { name: 'Quitar Series' })).toBeInTheDocument();
+  });
+
+  it('restores the typed values on browser Back from «Cambiar»', async () => {
+    const user = userEvent.setup();
+    render(<ExamForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Análisis Matemático II',
+    );
+    await user.selectOptions(screen.getByLabelText('Período'), 'JULIO');
+    await user.type(screen.getByLabelText('Contá tu experiencia'), 'Medio relato');
+    await user.type(screen.getByRole('textbox', { name: 'Agregar un tema' }), 'Series{Enter}');
+    const change = screen.getByRole('link', { name: 'Cambiar' });
+    change.addEventListener('click', (event) => event.preventDefault());
+    await user.click(change);
+    cleanup();
+
+    render(<ExamForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(screen.getByLabelText('Período')).toHaveValue('JULIO');
+    expect(screen.getByRole('button', { name: 'Quitar Series' })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['another materia', { subjectCode: 'OTRA', type: 'final' }],
+    ['another type', { subjectCode: 'AM2', type: 'resenar' }],
+  ])('does not restore a draft of %s on a form opened without the chooser', async (_case, slot) => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        ...slot,
+        subjectName: null,
+        values: { comment: 'Medio relato', session: 'JULIO' },
+      }),
+    );
+    render(<ExamForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Análisis Matemático II',
+    );
+    expect(screen.getByLabelText('Contá tu experiencia')).toHaveValue('');
+    expect(screen.getByLabelText('Período')).toHaveValue('');
+  });
+
+  it('clears the draft on a successful publish', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ subjectCode: 'AM2', subjectName: null, type: 'final', values: {} }),
+    );
+    vi.mocked(api.post).mockResolvedValue(published('exam-new'));
+    render(<ExamForm />);
+
+    await completeRequiredFields(user);
+    await user.click(screen.getByRole('button', { name: 'Publicar experiencia' }));
+
+    await waitFor(() => expect(navigation.push).toHaveBeenCalled());
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('clears the draft on «Cancelar»', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ subjectCode: 'AM2', subjectName: null, type: 'final', values: {} }),
+    );
+    render(<ExamForm />);
+
+    const cancel = screen.getByRole('link', { name: 'Cancelar' });
+    cancel.addEventListener('click', (event) => event.preventDefault());
+    await user.click(cancel);
+
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 });

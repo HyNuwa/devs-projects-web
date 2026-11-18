@@ -36,6 +36,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
+import { TopicsLine } from './TopicsLine';
 
 const MODERATOR_ROLES = new Set(['MODERATOR', 'ADMIN', 'SUPERADMIN']);
 const HIDDEN_TARGET_HOURS = 48;
@@ -302,9 +303,12 @@ function TargetPreview({ detail }: { detail: CaseDetail }) {
     );
   }
   return (
-    <blockquote className="rounded-xl border-[1.5px] border-line bg-card p-4 text-sm leading-relaxed">
-      {detail.target.comment ?? 'Sin comentario escrito.'}
-    </blockquote>
+    <div className="grid gap-2">
+      <blockquote className="rounded-xl border-[1.5px] border-line bg-card p-4 text-sm leading-relaxed">
+        {detail.target.comment ?? 'Sin comentario escrito.'}
+      </blockquote>
+      <TopicsLine topics={detail.target.topics} />
+    </div>
   );
 }
 

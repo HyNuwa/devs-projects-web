@@ -15,8 +15,8 @@ import { FormField, FormSection } from '@/components/experiences/forms/FormSecti
 import { NumberStepper } from '@/components/experiences/forms/NumberStepper';
 import {
   clearExperienceDraft,
+  draftToContinue,
   draftValuesFor,
-  readExperienceDraft,
   saveExperienceDraft,
 } from '@/components/experiences/forms/experience-draft';
 import { PublicationSection } from '@/components/experiences/forms/PublicationSection';
@@ -397,8 +397,8 @@ export function ExamForm() {
 
   // Back from «Cambiar»: continue what was typed, keeping the fields this type has.
   useEffect(() => {
-    if (editId || !fromChooser) return;
-    const draft = readExperienceDraft();
+    if (editId) return;
+    const draft = draftToContinue({ fromChooser, subjectCode: code, type: 'final' });
     if (!draft) return;
     reset({
       ...EMPTY_EXAM_VALUES,

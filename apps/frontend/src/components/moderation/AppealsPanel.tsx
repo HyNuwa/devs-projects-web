@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
+import { TopicsLine } from './TopicsLine';
 
 const MODERATOR_ROLES = new Set(['MODERATOR', 'ADMIN', 'SUPERADMIN']);
 const ANSWER_MAX = 1000;
@@ -276,6 +277,7 @@ function AppealView({ appeal, onAnswered }: { appeal: AppealDetail; onAnswered: 
               {appeal.content.comment}
             </blockquote>
           ) : null}
+          <TopicsLine topics={appeal.content.topics} />
           <Link
             className="font-bold text-link underline underline-offset-4"
             href={`/admin?caso=${encodeURIComponent(appeal.content.caseId)}`}

@@ -36,7 +36,9 @@ const appealSelect = {
       examExperienceId: true,
       material: { select: { title: true } },
       courseReview: { select: { isAnonymous: true, comment: true } },
-      examExperience: { select: { isAnonymous: true, comment: true } },
+      examExperience: {
+        select: { isAnonymous: true, comment: true, topics: true },
+      },
     },
   },
   sanction: {
@@ -130,6 +132,7 @@ export class AppealsQueryService {
                 row.case.courseReview?.comment ??
                 row.case.examExperience?.comment ??
                 null,
+              topics: row.case.examExperience?.topics ?? [],
               anonymous,
             }
           : null,
