@@ -154,3 +154,18 @@
   - Frontend eslint: 5 old warnings, none from this change.
   - The migration suite has 2 failures, in `institutions.migration.test.ts` and `moderator-scopes.migration.test.ts`: Postgres returns 23001 (restrict violation) where the tests expect 23503. Both are older migrations this change does not touch; its own migration test passes. They are left as a follow-up.
 - [x] 5.3 Run `graphify update .` and verify it completes.
+
+## 6. Code review
+
+- [x] 6.1 Review the change with a fresh read-only reviewer (Devin on Fable 5.2, `git diff d822738...HEAD`), triage, fix the confirmed findings and re-review the fixes.
+
+  **Record (2026-11-18, reviews in `.audit-logs/5b-review.md` and the scoped re-review):**
+  - Fixed:
+    - 1, anonymity: the public `GET /subjects/:code/reviews` and `/exams` lists returned the author's `userId` of anonymous entries. Removed in `137d8eb`, with an e2e test.
+    - 2, draft: browser Back from «Cambiar» lost what was typed. Fixed in `9e168ba`. The re-review found the fix restored a same-type, same-materia draft on any later fresh open and kept it after logout. Fixed in `23a5ae3`: a draft restored without the chooser is read once and cleared, and logout clears it.
+    - 3, moderation: casos and apelaciones did not show a final's temas. Fixed in `9e168ba`.
+    - 6, tests: ExamForm lacked the draft-clearing and lead-time tests. Added in `9e168ba`.
+  - Dropped:
+    - 4: `IsDivisibleBy(30)` on the duration follows the design (30-minute steps).
+    - 5: topic grouping collation. The dev database's `lower()` folds accented capitals correctly.
+  - Out of scope, follow-up: `types/subject.ts` still declares `userId` on CourseReview and ExamExperience; nothing reads it.
