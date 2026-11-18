@@ -143,6 +143,14 @@
 
 ## 5. Docs and checks
 
-- [ ] 5.1 Update README_BACKEND (the exam and review write contract, the topics route, the summary fields) and README_FRONTEND (the forms and the draft). Verify they match the specs.
-- [ ] 5.2 Run backend and frontend lint, typecheck, build and test suites through a Haiku subagent, with logs in `.audit-logs/`, running the backend e2e suite in two batches. Verify everything is green except the pre-existing failures already noted in change 5.
-- [ ] 5.3 Run `graphify update .` and verify it completes.
+- [x] 5.1 Update README_BACKEND (the exam and review write contract, the topics route, the summary fields) and README_FRONTEND (the forms and the draft). Verify they match the specs.
+- [x] 5.2 Run backend and frontend lint, typecheck, build and test suites through a Haiku subagent, with logs in `.audit-logs/`, running the backend e2e suite in two batches. Verify everything is green except the pre-existing failures already noted in change 5.
+
+  **Result (2026-11-18, Devin worker, report in `.audit-logs/5b-g5-report.md`):**
+  - Green:
+    - backend: eslint, `nest build`, Jest (334), Vitest (394), e2e batch 1 (269) and batch 2 (230), Jest e2e;
+    - frontend: tsc, Vitest (738), `next build`.
+  - Backend tsc: only the 2 known errors.
+  - Frontend eslint: 5 old warnings, none from this change.
+  - The migration suite has 2 failures, in `institutions.migration.test.ts` and `moderator-scopes.migration.test.ts`: Postgres returns 23001 (restrict violation) where the tests expect 23503. Both are older migrations this change does not touch; its own migration test passes. They are left as a follow-up.
+- [x] 5.3 Run `graphify update .` and verify it completes.
