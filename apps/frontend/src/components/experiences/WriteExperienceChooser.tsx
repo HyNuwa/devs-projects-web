@@ -55,7 +55,8 @@ export function WriteExperienceChooser() {
     subject?.name ?? (subject?.code === preselectedCode ? draftSubjectName : null);
 
   const encoded = subject?.code ? encodeURIComponent(subject.code) : null;
-  // The form continued to reads the draft only when it comes from this round trip.
+  // From this round trip the form continues any draft; opened any other way, it
+  // restores only a draft of its own type and materia, once.
   const href =
     kind && encoded ? `/materias/${encoded}/${kind}${fromForm ? '?desde=formulario' : ''}` : null;
 

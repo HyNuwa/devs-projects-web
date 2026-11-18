@@ -74,7 +74,8 @@ export function readExperienceDraft(): ExperienceDraft | null {
  * The draft a new form of `type` for `subjectCode` continues on mount: any
  * draft the chooser hands over (`desde=formulario`), or else only one of the
  * same type and materia, as when the author comes back from «Cambiar» with the
- * browser's Back.
+ * browser's Back. That one is read once: the slot is cleared, so a later fresh
+ * open of the form starts empty until «Cambiar» saves the draft again.
  */
 export function draftToContinue({
   fromChooser,
@@ -86,8 +87,10 @@ export function draftToContinue({
   type: ExperienceDraftType;
 }): ExperienceDraft | null {
   const draft = readExperienceDraft();
-  if (!draft) return null;
-  return fromChooser || (draft.type === type && draft.subjectCode === subjectCode) ? draft : null;
+  if (!draft || fromChooser) return draft;
+  if (draft.type !== type || draft.subjectCode !== subjectCode) return null;
+  clearExperienceDraft();
+  return draft;
 }
 
 /** Whether a stored value fits the field whose empty value is `empty`. */

@@ -592,6 +592,69 @@ describe('ReviewForm draft across «Cambiar»', () => {
     expect(screen.getByLabelText('Promoción')).toBeChecked();
   });
 
+  it('reads a draft only once on a form opened without the chooser', async () => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        subjectCode: 'ED-01',
+        subjectName: null,
+        type: 'resenar',
+        values: { comment: 'Medio relato', condition: 'PROMO' },
+      }),
+    );
+    render(<ReviewForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
+    cleanup();
+
+    render(<ReviewForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Estructuras de Datos',
+    );
+    expect(screen.getByLabelText('Contá tu experiencia')).toHaveValue('');
+    expect(screen.getByLabelText('Promoción')).not.toBeChecked();
+  });
+
+  it('keeps the draft through «Cambiar», the chooser and «Continuar»', async () => {
+    const user = userEvent.setup();
+    render(<ReviewForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Estructuras de Datos',
+    );
+    await user.type(screen.getByLabelText('Contá tu experiencia'), 'Medio relato');
+    const change = screen.getByRole('link', { name: 'Cambiar' });
+    keepOnPage(change);
+    await user.click(change);
+    cleanup();
+
+    navigation.searchParams = new URLSearchParams('desde=formulario');
+    render(<ReviewForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(storedDraft()).toMatchObject({ type: 'resenar', values: { comment: 'Medio relato' } });
+  });
+
+  it('neither restores nor clears a draft while editing a reseña', async () => {
+    const stored = JSON.stringify({
+      subjectCode: 'ED-01',
+      subjectName: null,
+      type: 'resenar',
+      values: { comment: 'Otro relato a medio escribir', condition: 'PROMO' },
+    });
+    sessionStorage.setItem(DRAFT_KEY, stored);
+    editing(review());
+    render(<ReviewForm />);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Contá tu experiencia')).toHaveValue(NARRATIVE),
+    );
+    expect(screen.getByLabelText('Regular')).toBeChecked();
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBe(stored);
+  });
+
   it.each([
     ['another materia', { subjectCode: 'OTRA', type: 'resenar' }],
     ['another type', { subjectCode: 'ED-01', type: 'final' }],

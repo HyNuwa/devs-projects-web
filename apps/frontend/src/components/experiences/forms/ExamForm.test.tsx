@@ -619,6 +619,72 @@ describe('ExamForm draft across «Cambiar»', () => {
     expect(screen.getByRole('button', { name: 'Quitar Series' })).toBeInTheDocument();
   });
 
+  it('reads a draft only once on a form opened without the chooser', async () => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        subjectCode: 'AM2',
+        subjectName: null,
+        type: 'final',
+        values: { comment: 'Medio relato', session: 'JULIO' },
+      }),
+    );
+    render(<ExamForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBeNull();
+    cleanup();
+
+    render(<ExamForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Análisis Matemático II',
+    );
+    expect(screen.getByLabelText('Contá tu experiencia')).toHaveValue('');
+    expect(screen.getByLabelText('Período')).toHaveValue('');
+  });
+
+  it('keeps the draft through «Cambiar», the chooser and «Continuar»', async () => {
+    const user = userEvent.setup();
+    render(<ExamForm />);
+
+    await within(screen.getByRole('region', { name: '¿Qué querés contar?' })).findByText(
+      'Análisis Matemático II',
+    );
+    await user.type(screen.getByLabelText('Contá tu experiencia'), 'Medio relato');
+    const change = screen.getByRole('link', { name: 'Cambiar' });
+    change.addEventListener('click', (event) => event.preventDefault());
+    await user.click(change);
+    cleanup();
+
+    navigation.searchParams = new URLSearchParams('desde=formulario');
+    render(<ExamForm />);
+
+    expect(await screen.findByLabelText('Contá tu experiencia')).toHaveValue('Medio relato');
+    expect(JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? 'null')).toMatchObject({
+      type: 'final',
+      values: { comment: 'Medio relato' },
+    });
+  });
+
+  it('neither restores nor clears a draft while editing a final', async () => {
+    const stored = JSON.stringify({
+      subjectCode: 'AM2',
+      subjectName: null,
+      type: 'final',
+      values: { comment: 'Otro relato a medio escribir', session: 'JULIO' },
+    });
+    sessionStorage.setItem(DRAFT_KEY, stored);
+    editing(exam());
+    render(<ExamForm />);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Contá tu experiencia')).toHaveValue(NARRATIVE),
+    );
+    expect(screen.getByLabelText('Período')).toHaveValue('DICIEMBRE');
+    expect(sessionStorage.getItem(DRAFT_KEY)).toBe(stored);
+  });
+
   it.each([
     ['another materia', { subjectCode: 'OTRA', type: 'final' }],
     ['another type', { subjectCode: 'AM2', type: 'resenar' }],
