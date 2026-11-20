@@ -1,4 +1,9 @@
-import { createServer, request, type Server } from 'node:http';
+import {
+  createServer,
+  request,
+  type ClientRequest,
+  type Server,
+} from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -15,11 +20,17 @@ describe('safeFetch', () => {
   let server: Server;
   let base: string;
   const pdf = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(100, 1)]);
+  let redirectClosed!: Promise<void>;
 
   beforeAll(async () => {
     server = createServer((req, res) => {
       const path = req.url ?? '/';
-      if (path === '/plan.html') {
+      if (path === '/endless-redirect') {
+        // A body that never ends: only closing the socket stops it.
+        redirectClosed = new Promise((resolve) => res.on('close', resolve));
+        res.writeHead(302, { location: '/plan.pdf' });
+        res.write(Buffer.alloc(100, 1));
+      } else if (path === '/plan.html') {
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
         res.end('<h1>Plan</h1>');
       } else if (path === '/plan.pdf') {
@@ -104,6 +115,21 @@ describe('safeFetch', () => {
     expect(await code(safeFetch(`${base}/hop/3`, options))).toBe(
       'PLAN_UNREACHABLE',
     );
+  });
+
+  it('closes a redirect instead of reading its body', async () => {
+    const requests: ClientRequest[] = [];
+    const file = await safeFetch(`${base}/endless-redirect`, {
+      ...options,
+      transport: (requestOptions, callback) => {
+        const req = request(requestOptions, callback);
+        requests.push(req);
+        return req;
+      },
+    });
+    expect(file.url).toBe(`${base}/plan.pdf`);
+    expect(requests[0].destroyed).toBe(true);
+    await redirectClosed;
   });
 
   it('refuses http, private addresses and redirects to them', async () => {

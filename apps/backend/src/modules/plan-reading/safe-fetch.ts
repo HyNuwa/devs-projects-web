@@ -159,7 +159,8 @@ function get(
       (response) => {
         const status = response.statusCode ?? 0;
         if (status >= 300 && status < 400 && response.headers.location) {
-          response.resume();
+          response.destroy();
+          req.destroy();
           return finish(null, { location: response.headers.location });
         }
         if (status < 200 || status >= 300) {
