@@ -139,3 +139,21 @@
 - [x] 5.2 Through a Haiku subagent, run the backend and frontend suites, lint and typecheck, with logs in an ignored local artifact. Verify it reports every suite passing.
 - [x] 5.3 In the running app, as an admin: rename a facultad and open its old URL; create a carrera, load it with carga masiva including an anual, and publish it; as a student, ask for a carrera, join it from another account, accept it, publish it, and check «Mis solicitudes» and the email in the dev mail log. Verify each step behaves as the specs say.
 - [x] 5.4 Run `graphify update .` and `openspec validate catalogo-editable --strict`. Verify both succeed.
+
+## 6. Code review (after archive)
+
+- [x] 6.1 Review the change with a fresh read-only reviewer (Devin on Fable 5.2, the code at `fix/seguimientos-5b` HEAD against these specs), triage, fix the confirmed findings and re-review the fixes.
+
+  **Record (2026-11-19):**
+  - The first review found 3 medium and 9 low findings.
+  - Fixed test-first on `fix/seguimientos-5b`, and the scoped re-review confirms every fix:
+    - 1, the panel can rename, recode and delete a materia;
+    - 2, an empty facultad with solicitudes can be deleted. The user chose to copy the facultad and universidad names into the solicitudes' text fields, with no migration;
+    - 3, carga masiva history keeps the values before and after;
+    - 6, deleting a materia refreshes the carreras' duration and records the lost placements;
+    - 9, a unique violation returns 409;
+    - 12, tautological tests replaced and the withdrawal-after-resolution cases added.
+  - UI tests: `tests/catalog-panel.e2e.ts` with `e2e`, against `devs_project_e2e`.
+  - Follow-up:
+    - findings 4, 5, 7, 8, 10 and 11;
+    - a plausible deadlock between deleting a facultad and accepting one of its solicitudes at the same moment. One admin gets a 500, no data is lost, and a retry works.
