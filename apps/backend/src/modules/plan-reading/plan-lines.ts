@@ -6,8 +6,17 @@ import type { ModelMateria } from './plan-model';
 export const NOTICES_MAX = 20;
 export const NOTICE_LENGTH_MAX = 300;
 
+/** Controls other than whitespace, plus format characters: bidi and zero-width. */
+// eslint-disable-next-line no-control-regex -- matching control characters is the point: they are stripped from model output.
+const INVISIBLE = /[\u0000-\u0008\u000E-\u001F\u007F-\u009F\p{Cf}]/gu;
+
 const label = (name: string) =>
   name ? (name.length > 40 ? `${name.slice(0, 40)}…` : name) : '(sin nombre)';
+
+const cap = (notice: string) =>
+  notice.length > NOTICE_LENGTH_MAX
+    ? `${notice.slice(0, NOTICE_LENGTH_MAX - 1)}…`
+    : notice;
 
 /**
  * Turns the model's materias into carga masiva text (openspec
@@ -20,18 +29,13 @@ export function buildLines(
   materias: ModelMateria[],
   modelNotices: string[],
 ): { text: string; lines: number; notices: string[] } {
-  const notices = modelNotices
-    .map((notice) => notice.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .slice(0, NOTICES_MAX)
-    .map((notice) => notice.slice(0, NOTICE_LENGTH_MAX));
-
   const lines: string[] = [];
   const invalid: string[] = [];
   const repeated: string[] = [];
   const seen = new Set<string>();
   for (const materia of materias) {
     const name = materia.nombre
+      .replace(INVISIBLE, '')
       .replace(/[;\r\n]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -68,21 +72,29 @@ export function buildLines(
     lines.push(`${place};${name}${credits}`);
   }
 
+  const own: string[] = [];
   if (invalid.length > 0) {
-    notices.push(
+    own.push(
       `Descarté ${invalid.length} ${invalid.length === 1 ? 'fila' : 'filas'} que no entendí: ${invalid.join(', ')}.`,
     );
   }
   if (repeated.length > 0) {
-    notices.push(
+    own.push(
       `Quité ${repeated.length} ${repeated.length === 1 ? 'materia repetida' : 'materias repetidas'}: ${repeated.join(', ')}.`,
     );
   }
   if (lines.length > BULK_MAX_ROWS) {
-    notices.push(
+    own.push(
       `El plan tiene ${lines.length} materias; la carga masiva toma ${BULK_MAX_ROWS} por vez. Cargá el resto en otra tanda.`,
     );
   }
+  const notices = [
+    ...modelNotices
+      .map((notice) => notice.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(0, NOTICES_MAX - own.length),
+    ...own,
+  ].map(cap);
   const kept = lines.slice(0, BULK_MAX_ROWS);
   return { text: kept.join('\n'), lines: kept.length, notices };
 }

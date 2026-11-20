@@ -152,7 +152,12 @@ describe.skipIf(!databaseUrl)(`migration ${migration}`, () => {
       await sqlErrorCode(client, `DELETE FROM "faculties" WHERE "id" = $1`, [
         faculty,
       ]),
-    ).toBe('23503');
+    ).toBe('23001');
+    const { rows: faculties } = await client.query(
+      `SELECT 1 FROM "faculties" WHERE "id" = $1`,
+      [faculty],
+    );
+    expect(faculties).toHaveLength(1);
     expect(
       await sqlErrorCode(
         client,

@@ -118,3 +118,21 @@
 - [x] 6.2 Run backend and frontend lint, typecheck and test suites through a Haiku subagent, with logs in `.audit-logs/`. Verify everything is green, except the two pre-existing tsc errors noted in 4b.
 - [x] 6.3 Manual check with the real key: run the lectura on 3 real plans, one HTML page linking a PDF, one PDF with text and one scanned PDF, against a local carrera en borrador. Record the results, notices and duration in this change's `design.md` under Risks. Verify each produced a usable proposal or a clear error.
 - [x] 6.4 Run `graphify update .` and verify it completes.
+
+## 7. Code review (after archive)
+
+- [x] 7.1 Review the change with a fresh read-only reviewer (Devin on Fable 5.2, `git diff 7750ae4 6fb2293`, with findings checked at HEAD), triage, fix the confirmed findings and re-review the fixes.
+
+  **Record (2026-11-19):**
+  - The first review found 2 medium and 9 low findings.
+  - Fixed test-first on `fix/seguimientos-5b`, and the scoped re-review confirms every fix:
+    - 1, a redirect destroys the request instead of draining an unbounded body;
+    - 2, a lectura whose rows are all discarded ends as `PLAN_NOT_FOUND`;
+    - 5, names drop control, bidi and zero-width characters, and server notices count toward the 20 × 300 caps;
+    - 8, the box is read-only while a lectura runs;
+    - 10, the tautological error test rewritten.
+  - Follow-up:
+    - finding 3;
+    - finding 4, prompt injection from the page. The carrera still stays en borrador;
+    - findings 6, 7, 9 and 11;
+    - the untested scenarios «Instructions hidden in the page», «Optativas and slots» and «Optativa in one carrera, placed in another».

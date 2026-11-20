@@ -66,7 +66,6 @@ type StoredReview = CourseReview & { promotionGrade?: number | null };
 function review(overrides: Partial<StoredReview> = {}): StoredReview {
   return {
     id: 'review-1',
-    userId: currentUser.id,
     subjectId: subject.id,
     academicYear: 2026,
     shift: 'TARDE',

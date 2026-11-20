@@ -122,6 +122,7 @@ export class CatalogBulkService {
         let added = 0;
         let updated = 0;
         const applied: Record<string, unknown>[] = [];
+        const previous: Record<string, unknown>[] = [];
         for (const row of rows) {
           let subjectId = row.subjectId!;
           if (row.action === 'new') {
@@ -146,8 +147,16 @@ export class CatalogBulkService {
             created += 1;
           }
           const value = placementValue(row);
-          if (placements.has(subjectId)) updated += 1;
-          else added += 1;
+          const current = placements.get(subjectId);
+          const before = current && {
+            year: current.year,
+            semester: current.semester,
+            credits: current.credits,
+          };
+          if (before) {
+            updated += 1;
+            previous.push({ subjectId, ...before });
+          } else added += 1;
           await tx.studyPlanSubject.upsert({
             where: {
               studyPlanId_subjectId: { studyPlanId: planId, subjectId },
@@ -155,14 +164,20 @@ export class CatalogBulkService {
             create: { studyPlanId: planId, subjectId, ...value },
             update: value,
           });
-          applied.push({ subjectId, action: row.action, ...value });
+          applied.push({
+            subjectId,
+            action: row.action,
+            ...(row.action === 'new' ? { name: row.name, code: row.code } : {}),
+            before: before ?? null,
+            after: value,
+          });
         }
         await this.catalog.refreshDuration(tx, planId);
         await this.catalog.record(tx, actorId, 'CATALOG_BULK_APPLIED', {
           kind: 'CAREER',
           id: careerId,
           label: name,
-          before: null,
+          before: { placements: previous },
           after: { created, added, updated },
           rows: applied,
         });

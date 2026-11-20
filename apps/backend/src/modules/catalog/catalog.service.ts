@@ -42,15 +42,91 @@ export const byPlacement = (a: Placed, b: Placed) =>
   (a.semester ?? 0) - (b.semester ?? 0) ||
   byName(a, b);
 
-const duplicate = (field: string, message: string) =>
-  new ConflictException({ code: 'CATALOG_DUPLICATE', field, message });
+type UniqueField = 'name' | 'shortName' | 'code';
+const DUPLICATE_MESSAGES: Record<
+  CatalogKind,
+  Partial<Record<UniqueField, string>>
+> = {
+  UNIVERSITY: {
+    shortName: 'Ya hay una universidad con ese nombre corto.',
+    name: 'Ya hay una universidad con ese nombre.',
+  },
+  FACULTY: {
+    shortName: 'Ya hay una facultad con ese nombre corto en la universidad.',
+    name: 'Ya hay una facultad con ese nombre en la universidad.',
+  },
+  CAREER: { code: 'Ya hay una carrera con ese código en la facultad.' },
+  SUBJECT: { code: 'Ya hay una materia con ese código.' },
+};
+
+const duplicate = (kind: CatalogKind, field: UniqueField) =>
+  new ConflictException({
+    code: 'CATALOG_DUPLICATE',
+    field,
+    message: DUPLICATE_MESSAGES[kind][field],
+  });
+
+/**
+ * The columns or index a unique violation (P2002, 23505) names. Through the
+ * pg adapter an expression index only shows up by name in the database's
+ * (localized) message, quoted with "…" or «…».
+ */
+function uniqueTarget(error: Prisma.PrismaClientKnownRequestError) {
+  const meta = error.meta as
+    | {
+        target?: unknown;
+        driverAdapterError?: {
+          cause?: {
+            constraint?: { fields?: unknown; index?: unknown };
+            originalMessage?: string;
+          };
+        };
+      }
+    | undefined;
+  const cause = meta?.driverAdapterError?.cause;
+  const quoted = /["«]([A-Za-z0-9_]+)["»]/.exec(cause?.originalMessage ?? '');
+  return JSON.stringify([
+    meta?.target,
+    cause?.constraint?.fields,
+    cause?.constraint?.index,
+    quoted?.[1],
+  ]).toLowerCase();
+}
+
+/**
+ * Turns the unique violation of a write that lost a race against the
+ * read-then-write checks into the same 409 those checks give (design.md,
+ * «Catálogo API»).
+ */
+async function mapDuplicate<T>(kind: CatalogKind, write: Promise<T>) {
+  try {
+    return await write;
+  } catch (error) {
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== 'P2002'
+    ) {
+      throw error;
+    }
+    const target = uniqueTarget(error);
+    // `short_name` contains `name`, so it is checked first.
+    const field: UniqueField | null = target.includes('short')
+      ? 'shortName'
+      : target.includes('code')
+        ? 'code'
+        : target.includes('name')
+          ? 'name'
+          : null;
+    if (!field || !DUPLICATE_MESSAGES[kind][field]) throw error;
+    throw duplicate(kind, field);
+  }
+}
 
 const BLOCKER_LABELS: Record<string, string> = {
   faculties: 'facultades',
   careers: 'carreras',
   subjects: 'materias',
   moderators: 'moderadores asignados',
-  requests: 'solicitudes de carrera',
   declarations: 'estudiantes que la declararon',
   materials: 'materiales',
   reviews: 'reseñas',
@@ -209,7 +285,7 @@ export class CatalogService {
 
   /** `outer` joins a caller's transaction (accepting a solicitud). */
   createUniversity(actorId: string, dto: CreateUniversityDto, outer?: Tx) {
-    return this.run(outer, async (tx) => {
+    const write = this.run(outer, async (tx) => {
       await this.assertUniversityFree(tx, dto);
       const university = await tx.university.create({
         data: { name: dto.name, shortName: dto.shortName },
@@ -232,10 +308,11 @@ export class CatalogService {
       });
       return university;
     });
+    return mapDuplicate('UNIVERSITY', write);
   }
 
   updateUniversity(actorId: string, id: string, dto: UpdateUniversityDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const write = this.prisma.$transaction(async (tx) => {
       const current = await tx.university.findUnique({
         where: { id },
         select: { name: true, shortName: true },
@@ -267,11 +344,12 @@ export class CatalogService {
       );
       return university;
     });
+    return mapDuplicate('UNIVERSITY', write);
   }
 
   /** `outer` joins a caller's transaction (accepting a solicitud). */
   createFaculty(actorId: string, dto: CreateFacultyDto, outer?: Tx) {
-    return this.run(outer, async (tx) => {
+    const write = this.run(outer, async (tx) => {
       await this.mustExist('UNIVERSITY', dto.universityId, tx);
       await this.assertFacultyFree(tx, dto.universityId, dto);
       const faculty = await tx.faculty.create({
@@ -303,10 +381,11 @@ export class CatalogService {
       });
       return faculty;
     });
+    return mapDuplicate('FACULTY', write);
   }
 
   updateFaculty(actorId: string, id: string, dto: UpdateFacultyDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const write = this.prisma.$transaction(async (tx) => {
       const current = await tx.faculty.findUnique({
         where: { id },
         select: { universityId: true, name: true, shortName: true },
@@ -339,13 +418,14 @@ export class CatalogService {
       );
       return faculty;
     });
+    return mapDuplicate('FACULTY', write);
   }
 
   // ── Carreras ──────────────────────────────────────────────────────────────
 
   /** `outer` joins a caller's transaction (accepting a solicitud). */
   createCareer(actorId: string, dto: CreateCareerDto, outer?: Tx) {
-    return this.run(outer, async (tx) => {
+    const write = this.run(outer, async (tx) => {
       await this.mustExist('FACULTY', dto.facultyId, tx);
       await this.assertCareerCodeFree(tx, dto.facultyId, dto.code);
       const career = await tx.career.create({
@@ -391,10 +471,11 @@ export class CatalogService {
       });
       return career;
     });
+    return mapDuplicate('CAREER', write);
   }
 
   updateCareer(actorId: string, id: string, dto: UpdateCareerDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const write = this.prisma.$transaction(async (tx) => {
       const current = await tx.career.findUnique({
         where: { id },
         select: { facultyId: true, name: true, code: true, planUrl: true },
@@ -436,6 +517,7 @@ export class CatalogService {
       );
       return career;
     });
+    return mapDuplicate('CAREER', write);
   }
 
   publish(actorId: string, id: string) {
@@ -551,7 +633,7 @@ export class CatalogService {
   }
 
   createSubject(actorId: string, dto: CreateSubjectDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const write = this.prisma.$transaction(async (tx) => {
       const code =
         dto.code ?? (await this.proposeCode(dto.facultyId, dto.name, tx));
       if (dto.code) {
@@ -577,10 +659,11 @@ export class CatalogService {
       });
       return subject;
     });
+    return mapDuplicate('SUBJECT', write);
   }
 
   updateSubject(actorId: string, id: string, dto: UpdateSubjectDto) {
-    return this.prisma.$transaction(async (tx) => {
+    const write = this.prisma.$transaction(async (tx) => {
       const current = await tx.subject.findUnique({
         where: { id },
         select: { name: true, code: true },
@@ -619,6 +702,7 @@ export class CatalogService {
       );
       return subject;
     });
+    return mapDuplicate('SUBJECT', write);
   }
 
   setPlacement(
@@ -705,38 +789,48 @@ export class CatalogService {
     });
   }
 
+  /** Deletes an empty facultad; its solicitudes keep its name as text. */
   deleteFaculty(actorId: string, id: string) {
     return this.prisma.$transaction(async (tx) => {
+      // Holds off new solicitudes pointing at it until the delete commits.
+      await tx.$queryRaw`
+        SELECT 1 FROM "faculties" WHERE "id" = ${id}::uuid FOR UPDATE`;
       const faculty = await tx.faculty.findUnique({
         where: { id },
         select: {
           universityId: true,
           name: true,
           shortName: true,
+          university: { select: { name: true } },
           _count: {
-            select: {
-              careers: true,
-              subjects: true,
-              moderators: true,
-              careerRequests: true,
-            },
+            select: { careers: true, subjects: true, moderators: true },
           },
         },
       });
       if (!faculty) throw new NotFoundException('Facultad no encontrada');
-      const {
-        careers,
-        subjects,
-        moderators,
-        careerRequests: requests,
-      } = faculty._count;
-      blockIfAny({ careers, subjects, moderators, requests });
+      blockIfAny(faculty._count);
+      const requests = await tx.careerRequest.findMany({
+        where: { facultyId: id },
+        select: {
+          id: true,
+          facultyId: true,
+          facultyText: true,
+          universityText: true,
+        },
+      });
+      // Raw so `updated_at` stays as it was; the FK's SET NULL clears faculty_id.
+      await tx.$executeRaw`
+        UPDATE "career_requests"
+        SET "faculty_text" = ${faculty.name},
+            "university_text" = COALESCE(NULLIF("university_text", ''), ${faculty.university.name})
+        WHERE "faculty_id" = ${id}::uuid`;
       await tx.faculty.delete({ where: { id } });
       await tx.catalogSlugAlias.deleteMany({ where: { parentId: id } });
       await this.deleted(tx, actorId, 'FACULTY', id, faculty.name, {
         universityId: faculty.universityId,
         name: faculty.name,
         shortName: faculty.shortName,
+        requests,
       });
     });
   }
@@ -796,11 +890,36 @@ export class CatalogService {
         examExperiences: experiences,
       } = subject._count;
       blockIfAny({ materials, reviews, experiences });
+      const placements = await tx.studyPlanSubject.findMany({
+        where: { subjectId: id },
+        select: {
+          studyPlanId: true,
+          year: true,
+          semester: true,
+          credits: true,
+          studyPlan: {
+            select: { career: { select: { id: true, name: true } } },
+          },
+        },
+      });
       await tx.subject.delete({ where: { id } });
+      // The cascade took its placements, so each carrera's años may shrink.
+      for (const { studyPlanId } of placements) {
+        await this.refreshDuration(tx, studyPlanId);
+      }
       await this.deleted(tx, actorId, 'SUBJECT', id, subject.name, {
         facultyId: subject.facultyId,
         name: subject.name,
         code: subject.code,
+        placements: placements.map(
+          ({ studyPlan, year, semester, credits }) => ({
+            careerId: studyPlan.career.id,
+            career: studyPlan.career.name,
+            year,
+            semester,
+            credits,
+          }),
+        ),
       });
     });
   }
@@ -944,10 +1063,7 @@ export class CatalogService {
         },
       }))
     ) {
-      throw duplicate(
-        'shortName',
-        'Ya hay una universidad con ese nombre corto.',
-      );
+      throw duplicate('UNIVERSITY', 'shortName');
     }
     if (
       name &&
@@ -955,7 +1071,7 @@ export class CatalogService {
         where: { name: { equals: name, mode: 'insensitive' }, ...not },
       }))
     ) {
-      throw duplicate('name', 'Ya hay una universidad con ese nombre.');
+      throw duplicate('UNIVERSITY', 'name');
     }
   }
 
@@ -976,10 +1092,7 @@ export class CatalogService {
         },
       }))
     ) {
-      throw duplicate(
-        'shortName',
-        'Ya hay una facultad con ese nombre corto en la universidad.',
-      );
+      throw duplicate('FACULTY', 'shortName');
     }
     if (
       name &&
@@ -991,10 +1104,7 @@ export class CatalogService {
         },
       }))
     ) {
-      throw duplicate(
-        'name',
-        'Ya hay una facultad con ese nombre en la universidad.',
-      );
+      throw duplicate('FACULTY', 'name');
     }
   }
 
@@ -1014,10 +1124,7 @@ export class CatalogService {
         },
       })
     ) {
-      throw duplicate(
-        'code',
-        'Ya hay una carrera con ese código en la facultad.',
-      );
+      throw duplicate('CAREER', 'code');
     }
   }
 
@@ -1028,7 +1135,7 @@ export class CatalogService {
         where: { code: { equals: code, mode: 'insensitive' }, ...not },
       })
     ) {
-      throw duplicate('code', 'Ya hay una materia con ese código.');
+      throw duplicate('SUBJECT', 'code');
     }
   }
 

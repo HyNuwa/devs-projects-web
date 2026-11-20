@@ -47,7 +47,6 @@ export interface SubjectHub extends Subject {
 
 export interface CourseReview {
   id: string;
-  userId: string;
   subjectId: string;
   academicYear?: number | null;
   shift: Shift;
@@ -71,7 +70,6 @@ export interface CourseReviewResponse {
 
 export interface ExamExperience {
   id: string;
-  userId: string;
   subjectId: string;
   shift: Shift | null;
   year: number;

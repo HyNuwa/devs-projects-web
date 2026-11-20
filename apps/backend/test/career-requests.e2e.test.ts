@@ -419,6 +419,77 @@ describe('Solicitudes de carrera (e2e)', () => {
       );
     });
 
+    describe('nothing can be withdrawn after it is resolved', () => {
+      const resolved = async (
+        resolve: (id: string) => Promise<unknown>,
+        name: string,
+      ) => {
+        const author = await createUser(prisma, 'USER');
+        const supporter = await createUser(prisma, 'USER');
+        const { id } = (
+          await ask(author, { careerName: `${name} ${tag}` }).expect(201)
+        ).body;
+        await support(supporter, id).expect(204);
+        await resolve(id);
+        return { author, supporter, id };
+      };
+      const accept = (code: string) => (id: string) =>
+        http()
+          .post(`/api/v1/admin/catalog/requests/${id}/accept`)
+          .set(as(admin))
+          .send({ career: { name: `Aceptada ${code}`, code } })
+          .expect(200);
+      const reject = (id: string) =>
+        http()
+          .post(`/api/v1/admin/catalog/requests/${id}/reject`)
+          .set(as(admin))
+          .send({ reason: 'No es una carrera de grado' })
+          .expect(204);
+
+      for (const [label, resolve, status] of [
+        ['accept', accept(`WA${tag}`), 'ACCEPTED'],
+        ['reject', reject, 'REJECTED'],
+      ] as const) {
+        it(`refuses the author after ${label}`, async () => {
+          const { author, supporter, id } = await resolved(
+            resolve,
+            `Autor ${label}`,
+          );
+          const response = await http()
+            .delete(`/api/v1/career-requests/${id}`)
+            .set(as(author))
+            .expect(409);
+          expect(response.body.code).toBe('REQUEST_NOT_PENDING');
+          const row = await prisma.careerRequest.findUniqueOrThrow({
+            where: { id },
+            include: { supporters: true },
+          });
+          expect(row).toMatchObject({ status, authorId: author.id });
+          expect(row.supporters.map((s) => s.userId)).toEqual([supporter.id]);
+        });
+      }
+
+      for (const [label, resolve, status] of [
+        ['accept', accept(`WS${tag}`), 'ACCEPTED'],
+        ['reject', reject, 'REJECTED'],
+      ] as const) {
+        it(`refuses a supporter after ${label}`, async () => {
+          const { supporter, id } = await resolved(resolve, `Apoyo ${label}`);
+          const response = await http()
+            .delete(`/api/v1/career-requests/${id}/support`)
+            .set(as(supporter))
+            .expect(409);
+          expect(response.body.code).toBe('REQUEST_NOT_PENDING');
+          const row = await prisma.careerRequest.findUniqueOrThrow({
+            where: { id },
+            include: { supporters: true },
+          });
+          expect(row.status).toBe(status);
+          expect(row.supporters.map((s) => s.userId)).toEqual([supporter.id]);
+        });
+      }
+    });
+
     it('is for admins only', async () => {
       const moderator = await createUser(prisma, 'MODERATOR');
       await http()

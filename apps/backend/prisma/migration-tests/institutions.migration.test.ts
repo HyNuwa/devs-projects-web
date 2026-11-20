@@ -296,6 +296,11 @@ describe.skipIf(!databaseUrl)(`migration ${migration}`, () => {
       await sqlErrorCode(client, `DELETE FROM "faculties" WHERE "id" = $1`, [
         FI,
       ]),
-    ).toBe('23503');
+    ).toBe('23001');
+    const { rows } = await client.query(
+      `SELECT 1 FROM "faculties" WHERE "id" = $1`,
+      [FI],
+    );
+    expect(rows).toHaveLength(1);
   });
 });

@@ -270,6 +270,26 @@ describe('CareerEditor', () => {
       );
     });
 
+    it('locks the box while reading, so nothing typed then is overwritten', async () => {
+      const user = userEvent.setup();
+      catalog.career.mockResolvedValue(withPlan);
+      let finish: (value: unknown) => void = () => {};
+      catalog.readPlan.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+      render(<CareerEditor careerId="c-lf" />);
+      await openBulk(user);
+      await user.click(screen.getByRole('button', { name: 'Leer plan con IA' }));
+
+      const box = screen.getByLabelText(/Una materia por línea/);
+      await user.type(box, '2;1;Mía');
+      await user.paste('3;1;Pegada');
+      expect(box).toHaveValue('');
+      finish({ text: '1;1;Nueva', notices: [], sources: [] });
+
+      await waitFor(() => expect(box).toHaveValue('1;1;Nueva'));
+      await user.type(box, 'x');
+      expect(box).toHaveValue('1;1;Nuevax');
+    });
+
     it('shows the error and keeps the text', async () => {
       const user = userEvent.setup();
       catalog.career.mockResolvedValue(withPlan);
@@ -278,9 +298,12 @@ describe('CareerEditor', () => {
       });
       render(<CareerEditor careerId="c-lf" />);
       await openBulk(user);
+      await user.type(screen.getByLabelText(/Una materia por línea/), '2;1;Mía');
       await user.click(screen.getByRole('button', { name: 'Leer plan con IA' }));
+      await user.click(screen.getByRole('button', { name: 'Leer y reemplazar' }));
       expect(await screen.findByText('Se agotó la cuota de la IA por ahora.')).toBeInTheDocument();
-      expect(screen.getByLabelText(/Una materia por línea/)).toHaveValue('');
+      expect(catalog.readPlan).toHaveBeenCalledWith('c-lf');
+      expect(screen.getByLabelText(/Una materia por línea/)).toHaveValue('2;1;Mía');
     });
   });
 

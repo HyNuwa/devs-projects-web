@@ -50,3 +50,7 @@ Use the default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-
 ### Domain docs
 
 This is a single-context repository with root-level domain documentation. See `docs/agents/domain.md`.
+
+### End-to-end tests
+
+UI tests use `e2e` in `tests/*.e2e.ts` against `devs_project_e2e`; backend tests stay on Vitest. Read `docs/agents/e2e.md` before writing or running them.

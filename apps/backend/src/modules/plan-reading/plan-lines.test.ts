@@ -46,6 +46,19 @@ describe('buildLines', () => {
     expect(text).toBe('1;1;Física General');
   });
 
+  it('drops control, bidi and zero-width characters from names', () => {
+    const { text } = buildLines(
+      [
+        m({
+          nombre:
+            '\u202EFí\u0000si\u200Bca\uFEFF\u0007 Ge\u2066ne\u200Dral\u2069\u0085',
+        }),
+      ],
+      [],
+    );
+    expect(text).toBe('1;1;Física General');
+  });
+
   it('turns invalid rows into one notice instead of lines', () => {
     const result = buildLines(
       [
@@ -93,5 +106,27 @@ describe('buildLines', () => {
     const result = buildLines([], notices);
     expect(result.notices).toHaveLength(20);
     expect(result.notices.every((n) => n.length <= 300)).toBe(true);
+  });
+
+  it('caps the notices that list the model names', () => {
+    const name = (i: number) => `Materia con un nombre bastante largo ${i}`;
+    const result = buildLines(
+      [
+        ...Array.from({ length: 60 }, (_, i) =>
+          m({ nombre: name(i), year: null }),
+        ),
+        m({ nombre: 'Química' }),
+        ...Array.from({ length: 60 }, () => m({ nombre: 'QUIMICA' })),
+      ],
+      Array.from({ length: 30 }, (_, i) => `Aviso ${i}`),
+    );
+    expect(result.notices).toHaveLength(20);
+    expect(result.notices.every((n) => n.length <= 300)).toBe(true);
+    expect(result.notices).toContainEqual(
+      expect.stringMatching(/^Descarté 60 filas que no entendí: /),
+    );
+    expect(result.notices).toContainEqual(
+      expect.stringMatching(/^Quité 60 materias repetidas: /),
+    );
   });
 });

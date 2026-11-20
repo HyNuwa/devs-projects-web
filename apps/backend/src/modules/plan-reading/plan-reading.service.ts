@@ -91,6 +91,7 @@ export class PlanReadingService {
         output.materias,
         output.notices,
       );
+      if (lines === 0) throw new PlanReadingError('PLAN_NOT_FOUND');
       if (trace.linked) {
         notices.unshift(
           `Leí el plan desde el enlace de la página: ${trace.linked}`,
