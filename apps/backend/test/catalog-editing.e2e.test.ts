@@ -1,8 +1,18 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
+import { CatalogService } from '../src/modules/catalog/catalog.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
@@ -304,5 +314,96 @@ describe('Catálogo: create and edit (e2e)', () => {
       codes.push(created.body.code);
     }
     expect(new Set(codes).size).toBe(3);
+  });
+
+  describe('when a concurrent write wins the unique index', () => {
+    // Skipping the read-then-write checks reproduces the request that loses a
+    // race (a double click): only the unique index stops it.
+    const skipChecks = () => {
+      const proto = CatalogService.prototype as unknown as Record<
+        string,
+        () => Promise<void>
+      >;
+      return [
+        'assertUniversityFree',
+        'assertFacultyFree',
+        'assertCareerCodeFree',
+        'assertSubjectCodeFree',
+      ].map((name) => vi.spyOn(proto, name).mockResolvedValue(undefined));
+    };
+    let spies: ReturnType<typeof skipChecks> = [];
+    beforeEach(() => {
+      spies = skipChecks();
+    });
+    afterEach(() => {
+      for (const spy of spies) spy.mockRestore();
+    });
+
+    const send = (
+      method: 'post' | 'patch',
+      path: string,
+      body: Record<string, unknown>,
+    ) =>
+      http()
+        [method](`/api/v1/admin/catalog/${path}`)
+        .set('Authorization', bearer(app, admin))
+        .send(body);
+
+    it('creating answers 409 naming the field', async () => {
+      const cases = [
+        [
+          'universities',
+          { name: `Otra ${tag}`, shortName: `ue${tag}` },
+          'shortName',
+        ],
+        [
+          'universities',
+          { name: `Universidad Editable ${tag}`, shortName: `UX${tag}` },
+          'name',
+        ],
+        [
+          'faculties',
+          { universityId, name: 'Facultad Repetida', shortName: 'fi' },
+          'shortName',
+        ],
+        ['careers', { facultyId, name: 'Otra Física', code: 'lf' }, 'code'],
+        [
+          'subjects',
+          {
+            facultyId,
+            name: 'Repetida',
+            code: `ue${tag.toLowerCase()}-fce-fisica-general`,
+          },
+          'code',
+        ],
+      ] as const;
+      for (const [path, body, field] of cases) {
+        const response = await send('post', path, body);
+        expect({ path, status: response.status }).toEqual({
+          path,
+          status: 409,
+        });
+        expect(response.body).toMatchObject({
+          code: 'CATALOG_DUPLICATE',
+          field,
+        });
+        expect(response.body.message).toMatch(/^Ya hay/);
+      }
+    });
+
+    it('renaming answers 409 naming the field', async () => {
+      const response = await send('patch', `faculties/${otherFacultyId}`, {
+        shortName: 'fce',
+      });
+      expect(response.status).toBe(409);
+      expect(response.body).toMatchObject({
+        code: 'CATALOG_DUPLICATE',
+        field: 'shortName',
+      });
+      const faculty = await prisma.faculty.findUniqueOrThrow({
+        where: { id: otherFacultyId },
+      });
+      expect(faculty.shortName).toBe('FI');
+    });
   });
 });

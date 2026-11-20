@@ -226,6 +226,39 @@ describe('Catálogo: carga masiva (e2e)', () => {
       .expect(400);
   });
 
+  it('records the previous placements and the new materias', async () => {
+    const rows = await preview('3;1;Química General;6\n4;2;Relatividad');
+    await apply(rows).expect(200);
+    const event = await prisma.moderationEvent.findFirstOrThrow({
+      where: {
+        action: 'CATALOG_BULK_APPLIED',
+        metadata: { path: ['id'], equals: careerId },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(event.metadata).toMatchObject({
+      before: {
+        placements: [{ subjectId: kept, year: 1, semester: 2, credits: null }],
+      },
+      after: { created: 1, added: 1, updated: 1 },
+      rows: [
+        {
+          subjectId: kept,
+          action: 'reuse',
+          before: { year: 1, semester: 2, credits: null },
+          after: { year: 3, semester: 1, credits: 6 },
+        },
+        {
+          action: 'new',
+          name: 'Relatividad',
+          code: `um${tag}-fce-relatividad`,
+          before: null,
+          after: { year: 4, semester: 2, credits: null },
+        },
+      ],
+    });
+  });
+
   it('refuses more than 200 lines', async () => {
     const text = Array.from({ length: 201 }, (_, i) => `1;1;Materia ${i}`).join(
       '\n',
