@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
     subjects: vi.fn(),
     requestCount: vi.fn(),
     updateFaculty: vi.fn(),
+    updateSubject: vi.fn(),
     slugCheck: vi.fn(),
     remove: vi.fn(),
     publish: vi.fn(),
@@ -203,6 +204,50 @@ describe('CatalogPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(mocks.catalog.updateFaculty).toHaveBeenCalledTimes(2));
     expect(mocks.catalog.slugCheck).not.toHaveBeenCalled();
+  });
+
+  describe('the materias of a facultad', () => {
+    const algebra = { id: 's-alg', name: 'Álgebra', code: 'unsa-fce-algebra', materialCount: 0 };
+    const openSubject = async () => {
+      mocks.catalog.subjects.mockResolvedValue([algebra]);
+      mocks.catalog.updateSubject.mockResolvedValue({});
+      mocks.catalog.remove.mockResolvedValue(undefined);
+      const user = await openFaculty();
+      await user.click(screen.getByRole('button', { name: 'Editar FCEx' }));
+      const region = await screen.findByRole('region', { name: 'Materias de la facultad' });
+      await user.click(await within(region).findByRole('button', { name: 'Editar Álgebra' }));
+      return { user, region };
+    };
+
+    it('renames a materia and changes its code', async () => {
+      const { user, region } = await openSubject();
+      const name = within(region).getByLabelText('Nombre');
+      await user.clear(name);
+      await user.type(name, 'Álgebra Lineal');
+      const code = within(region).getByLabelText('Código');
+      await user.clear(code);
+      await user.type(code, 'unsa-fce-algebra-lineal');
+      await user.click(within(region).getByRole('button', { name: 'Guardar' }));
+
+      expect(mocks.catalog.slugCheck).toHaveBeenCalledWith(
+        'SUBJECT',
+        null,
+        'unsa-fce-algebra-lineal',
+      );
+      await waitFor(() =>
+        expect(mocks.catalog.updateSubject).toHaveBeenCalledWith('s-alg', {
+          name: 'Álgebra Lineal',
+          code: 'unsa-fce-algebra-lineal',
+        }),
+      );
+    });
+
+    it('deletes a materia after confirming', async () => {
+      const { user, region } = await openSubject();
+      await user.click(within(region).getByRole('button', { name: 'Borrar' }));
+      await user.click(within(region).getByRole('button', { name: 'Sí, borrar' }));
+      await waitFor(() => expect(mocks.catalog.remove).toHaveBeenCalledWith('SUBJECT', 's-alg'));
+    });
   });
 
   it('says so when the alias check fails', async () => {

@@ -34,6 +34,8 @@ export type AppealDetail = AppealSummary & {
     type: string;
     label: string | null;
     comment: string | null;
+    /** The temas que tomaron when the content is an experiencia de final. */
+    topics?: string[];
     anonymous: boolean;
   } | null;
 };

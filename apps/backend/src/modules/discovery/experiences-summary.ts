@@ -9,13 +9,20 @@ import {
 /**
  * Mínimo de muestra (openspec academic-community/experiences): below these
  * counts a figure is omitted (null) and the interface falls back to counts.
- * Percentages and the grade average need 5; most-chosen values and the
- * theory/practice averages need 3; the recomendación average shows from 1.
+ * Percentages and the grade averages (nota promedio, nota de promoción) need
+ * 5; most-chosen values, the theory/practice averages and the medians of
+ * preparación, profesores en la mesa and tiempo need 3; a tema needs 2
+ * finales; the recomendación average shows from 1.
  */
 export const MIN_FOR_PERCENT = 5;
 export const MIN_FOR_TOP = 3;
 export const MIN_FOR_AVERAGE = 3;
 export const MIN_FOR_GRADE = 5;
+export const MIN_FOR_MEDIAN = 3;
+export const MIN_TOPIC_FINALES = 2;
+
+/** «Temas que más toman» in the materia summary. */
+export const SUMMARY_TOPICS_LIMIT = 5;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -34,6 +41,70 @@ export type GroupCount<T extends string> = {
   value: T | null;
   count: number;
 };
+
+/** One groupBy bucket of a numeric fact; `value: null` is undeclared. */
+export type NumberCount = { value: number | null; count: number };
+
+/** A tema mentioned by `count` different public finales. */
+export type TopicCount = { topic: string; count: number };
+
+export type MedianFigure = { median: number | null; count: number };
+
+function declared(distribution: readonly NumberCount[]) {
+  return distribution.filter(
+    (bucket): bucket is { value: number; count: number } =>
+      bucket.value !== null && bucket.count > 0,
+  );
+}
+
+/**
+ * The median of a value→count distribution. For an even count it takes the
+ * lower middle value, so the median is always a value someone declared.
+ */
+export function medianOf(distribution: readonly NumberCount[]): number | null {
+  const buckets = declared(distribution).sort((a, b) => a.value - b.value);
+  const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
+  if (total === 0) return null;
+  let position = Math.floor((total - 1) / 2);
+  for (const bucket of buckets) {
+    if (position < bucket.count) return bucket.value;
+    position -= bucket.count;
+  }
+  return null;
+}
+
+export function gatedMedian(
+  distribution: readonly NumberCount[],
+  minimum = MIN_FOR_MEDIAN,
+): MedianFigure {
+  const count = declared(distribution).reduce((sum, b) => sum + b.count, 0);
+  return {
+    median: count >= minimum ? medianOf(distribution) : null,
+    count,
+  };
+}
+
+function averageOf(distribution: readonly NumberCount[]): {
+  average: number | null;
+  count: number;
+} {
+  const buckets = declared(distribution);
+  const count = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
+  const total = buckets.reduce((sum, b) => sum + b.value * b.count, 0);
+  return { average: count === 0 ? null : total / count, count };
+}
+
+/**
+ * «Unas N horas de estudio en total»: an estimate from the two preparation
+ * facts of one final, never stored; null unless both were declared.
+ */
+export function estimatedStudyHours(
+  leadDays: number | null,
+  dailyMinutes: number | null,
+): number | null {
+  if (leadDays === null || dailyMinutes === null) return null;
+  return Math.round((leadDays * dailyMinutes) / 60);
+}
 
 const DIFFICULTY_ORDER = [
   CommunityDifficulty.MUY_BAJA,
@@ -146,6 +217,12 @@ export interface ReviewsSummary {
     counts: Record<CommunityDifficulty, number>;
     top: CommunityDifficulty | null;
   };
+  /** «la informaron `informed` de `promoted`», with the average from 5. */
+  promotionGrade: {
+    average: number | null;
+    informed: number;
+    promoted: number;
+  };
 }
 
 export function summarizeReviews(input: {
@@ -154,6 +231,8 @@ export function summarizeReviews(input: {
   recommendationCount: number;
   conditions: readonly GroupCount<CourseCondition>[];
   difficulties: readonly GroupCount<CommunityDifficulty>[];
+  /** Notas de promoción of the reseñas with resultado Promoción. */
+  promotionGrades: readonly NumberCount[];
 }): ReviewsSummary {
   const conditionCounts = countsBy(input.conditions);
   const promo = conditionCounts[CourseCondition.PROMO] ?? 0;
@@ -163,6 +242,10 @@ export function summarizeReviews(input: {
 
   const difficultyCounts = countsBy(input.difficulties);
   const difficultyAnswered = sumOf(DIFFICULTY_ORDER, difficultyCounts);
+  const promotionGrade = gatedAverage(
+    averageOf(input.promotionGrades),
+    MIN_FOR_GRADE,
+  );
 
   return {
     count: input.total,
@@ -195,7 +278,20 @@ export function summarizeReviews(input: {
       counts: zeroFilled(DIFFICULTY_ORDER, difficultyCounts),
       top: topChoice(DIFFICULTY_ORDER, difficultyCounts)?.value ?? null,
     },
+    promotionGrade: {
+      average: promotionGrade.average,
+      informed: promotionGrade.count,
+      promoted: promo,
+    },
   };
+}
+
+/** The mesa más comentada among remembered períodos, or null under 3. */
+export function topSessionOf(
+  sessions: readonly GroupCount<ExamSession>[],
+): { session: ExamSession; count: number } | null {
+  const top = topChoice(REMEMBERED_SESSION_ORDER, countsBy(sessions));
+  return top ? { session: top.value, count: top.count } : null;
 }
 
 export interface ExamsSummary {
@@ -213,8 +309,18 @@ export interface ExamsSummary {
   };
   theory: { average: number | null; count: number };
   practice: { average: number | null; count: number };
-  topSession: { session: ExamSession; count: number } | null;
+  /** The mesa más comentada with its profesores and tiempo medians. */
+  topSession: {
+    session: ExamSession;
+    count: number;
+    boardSize: MedianFigure;
+    duration: MedianFigure;
+  } | null;
   grade: { average: number | null; count: number };
+  /** «Preparación típica»: lead time in days and time per day in minutes. */
+  preparation: { leadDays: MedianFigure; dailyMinutes: MedianFigure };
+  /** «Temas que más toman», most mentioned first. */
+  topics: TopicCount[];
 }
 
 export function summarizeExams(input: {
@@ -225,6 +331,14 @@ export function summarizeExams(input: {
   theory: { average: number | null; count: number };
   practice: { average: number | null; count: number };
   grade: { average: number | null; count: number };
+  /** Profesores en la mesa of the finales of the mesa más comentada. */
+  boardSizes: readonly NumberCount[];
+  /** Tiempo del examen of the finales of the mesa más comentada. */
+  durations: readonly NumberCount[];
+  leadDays: readonly NumberCount[];
+  dailyMinutes: readonly NumberCount[];
+  /** Temas already found in at least MIN_TOPIC_FINALES public finales. */
+  topics: readonly TopicCount[];
 }): ExamsSummary {
   const outcomeCounts = countsBy(input.outcomes);
   const aprobado = outcomeCounts[ExamOutcome.APROBADO] ?? 0;
@@ -232,8 +346,7 @@ export function summarizeExams(input: {
   const outcomesAnswered = aprobado + desaprobado;
 
   const formatCounts = countsBy(input.formats);
-  const sessionCounts = countsBy(input.sessions);
-  const sessionTop = topChoice(REMEMBERED_SESSION_ORDER, sessionCounts);
+  const sessionTop = topSessionOf(input.sessions);
 
   return {
     count: input.total,
@@ -254,9 +367,20 @@ export function summarizeExams(input: {
     theory: gatedAverage(input.theory, MIN_FOR_AVERAGE),
     practice: gatedAverage(input.practice, MIN_FOR_AVERAGE),
     topSession: sessionTop
-      ? { session: sessionTop.value, count: sessionTop.count }
+      ? {
+          ...sessionTop,
+          boardSize: gatedMedian(input.boardSizes),
+          duration: gatedMedian(input.durations),
+        }
       : null,
     grade: gatedAverage(input.grade, MIN_FOR_GRADE),
+    preparation: {
+      leadDays: gatedMedian(input.leadDays),
+      dailyMinutes: gatedMedian(input.dailyMinutes),
+    },
+    topics: input.topics
+      .filter((topic) => topic.count >= MIN_TOPIC_FINALES)
+      .slice(0, SUMMARY_TOPICS_LIMIT),
   };
 }
 
@@ -291,6 +415,14 @@ export function approvalSummary(outcomes: readonly GroupCount<ExamOutcome>[]): {
     approved,
     answered,
   };
+}
+
+/** A teoría or práctica average for a most-commented card, null under 3. */
+export function difficultyAverage(aggregate: {
+  average: number | null;
+  count: number;
+}): { average: number | null; count: number } {
+  return gatedAverage(aggregate, MIN_FOR_AVERAGE);
 }
 
 /** The most-chosen dificultad across the entries in scope, or null under the minimum. */

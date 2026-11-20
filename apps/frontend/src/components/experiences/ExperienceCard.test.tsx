@@ -148,6 +148,99 @@ describe('ExperienceCard', () => {
     );
   });
 
+  it('shows a promoted reseña with its nota as «Promoción · 9»', () => {
+    render(
+      <ExperienceCard
+        entry={{ kind: 'review', review: review({ condition: 'PROMO', promotionGrade: 9 }) }}
+        now={now}
+      />,
+    );
+
+    expect(screen.getByText('Promoción · 9')).toBeInTheDocument();
+  });
+
+  it('shows a promoted reseña without a nota as plain «Promoción»', () => {
+    render(
+      <ExperienceCard
+        entry={{ kind: 'review', review: review({ condition: 'PROMO', promotionGrade: null }) }}
+        now={now}
+      />,
+    );
+
+    expect(screen.getByText('Promoción')).toBeInTheDocument();
+    expect(screen.queryByText(/Promoción ·/)).not.toBeInTheDocument();
+  });
+
+  it('shows a final’s teoría and práctica instead of a verbal dificultad', () => {
+    render(
+      <ExperienceCard
+        entry={{
+          kind: 'exam',
+          exam: exam({
+            difficulty: 'ALTA',
+            difficultyPractice: 3,
+            difficultyTheory: 4,
+            grade: 7,
+            outcome: 'APROBADO',
+          }),
+        }}
+        now={now}
+      />,
+    );
+
+    expect(screen.getByText('Teoría 4/5 · Práctica 3/5')).toBeInTheDocument();
+    expect(screen.queryByText(/Dificultad alta/)).not.toBeInTheDocument();
+  });
+
+  it('falls back to an older final’s verbal dificultad when it has no teoría or práctica', () => {
+    render(
+      <ExperienceCard entry={{ kind: 'exam', exam: exam({ difficulty: 'ALTA' }) }} now={now} />,
+    );
+
+    expect(screen.getByText('Dificultad alta')).toBeInTheDocument();
+    expect(screen.queryByText(/Teoría|Práctica/)).not.toBeInTheDocument();
+  });
+
+  it('shows no grade for a «Prefiero no decir» final', () => {
+    render(
+      <ExperienceCard
+        entry={{ kind: 'exam', exam: exam({ outcome: 'PREFIERO_NO_DECIR' }) }}
+        now={now}
+      />,
+    );
+
+    expect(screen.getByText('Mesa de diciembre 2024')).toBeInTheDocument();
+    expect(screen.getByText('Escrito')).toBeInTheDocument();
+    expect(screen.queryByText(/·\s*\d/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nota/i)).not.toBeInTheDocument();
+  });
+
+  it('leaves the mesa, tiempo, preparación and temas to the detail', () => {
+    render(
+      <ExperienceCard
+        entry={{
+          kind: 'exam',
+          exam: {
+            ...exam({ boardSize: 3, durationMinutes: 180, outcome: 'APROBADO', grade: 8 }),
+            // Detail-only facts never belong on the card, even if a payload carried them.
+            ...({
+              prepDailyMinutes: 60,
+              prepLeadDays: 21,
+              topics: ['Integrales dobles'],
+            } as object),
+          },
+        }}
+        now={now}
+      />,
+    );
+
+    expect(screen.getByText('Aprobado · 8')).toBeInTheDocument();
+    expect(screen.queryByText(/profesor/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/hora|min\b/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Preparación|semanas|por día/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Integrales dobles')).not.toBeInTheDocument();
+  });
+
   it('reads a NO_RECUERDO mesa as «Final <año>»', () => {
     render(
       <ExperienceCard entry={{ kind: 'exam', exam: exam({ session: 'NO_RECUERDO' }) }} now={now} />,

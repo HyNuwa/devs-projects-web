@@ -62,6 +62,7 @@ const caseInclude = {
       userId: true,
       isAnonymous: true,
       comment: true,
+      topics: true,
       year: true,
       ...entryStatus,
     },

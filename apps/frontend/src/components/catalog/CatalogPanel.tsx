@@ -26,6 +26,7 @@ import {
   validate,
   type FieldSpec,
 } from './CatalogForms';
+import { SubjectList } from './SubjectList';
 
 const ADMIN_ROLES = new Set(['ADMIN', 'SUPERADMIN']);
 
@@ -531,6 +532,7 @@ function EntityEditor({
           }}
         />
       ) : null}
+      {kind === 'FACULTY' ? <SubjectList facultyId={entity.id} onChanged={onChanged} /> : null}
       {kind === 'CAREER' ? <CareerEditor careerId={entity.id} /> : null}
     </>
   );

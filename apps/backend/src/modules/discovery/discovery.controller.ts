@@ -11,7 +11,10 @@ import {
   DiscoveryExamExperienceListDto,
   DiscoveryExamExperiencesQueryDto,
 } from './dto/discovery-exam-experiences.dto';
-import { SubjectExperiencesSummaryDto } from './dto/discovery-experiences-summary.dto';
+import {
+  SubjectExamTopicsDto,
+  SubjectExperiencesSummaryDto,
+} from './dto/discovery-experiences-summary.dto';
 import {
   DiscoveryExperiencesOverviewQueryDto,
   ExperiencesOverviewDto,
@@ -47,6 +50,18 @@ export class DiscoveryController {
   @ApiResponse({ status: 404, description: 'Materia no encontrada' })
   getSubjectExperiencesSummary(@Param('code') code: string) {
     return this.discoveryService.getSubjectExperiencesSummary(code);
+  }
+
+  @Get('subjects/:code/exam-topics')
+  @Public()
+  @ApiOperation({
+    summary:
+      'Temas que tomaron en al menos dos finales públicos de una materia, por código',
+  })
+  @ApiResponse({ status: 200, type: SubjectExamTopicsDto })
+  @ApiResponse({ status: 404, description: 'Materia no encontrada' })
+  getSubjectExamTopics(@Param('code') code: string) {
+    return this.discoveryService.getSubjectExamTopics(code);
   }
 
   @Get('suggestions')

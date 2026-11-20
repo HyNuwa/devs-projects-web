@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react';
 
 import { AnonymousMark } from '@/components/experiences/AnonymousMark';
 import { StarRecommendation } from '@/components/experiences/facts';
+import { formatResultWithGrade, formatTheoryPractice } from '@/components/experiences/format';
 import { AuthorLink } from '@/components/public-profile/AuthorLink';
 import { ReportDialog } from '@/components/moderation/ReportDialog';
 import { avatarSrc } from '@/components/layout/account';
@@ -75,7 +76,10 @@ function resultChips(entry: ExperienceCardEntry) {
       review.condition !== 'PREFIERO_NO_RESPONDER'
         ? {
             dot: conditionDot[review.condition],
-            label: courseConditionLabel(review.condition),
+            label: formatResultWithGrade(
+              courseConditionLabel(review.condition),
+              review.condition === 'PROMO' ? review.promotionGrade : null,
+            ),
           }
         : null;
     const difficulty = review.difficulty
@@ -87,13 +91,10 @@ function resultChips(entry: ExperienceCardEntry) {
   const exam = entry.exam;
   const condition =
     exam.outcome && exam.outcome !== 'PREFIERO_NO_DECIR'
-      ? {
-          dot: null,
-          label: `${examOutcomeLabel(exam.outcome)}${
-            exam.grade !== undefined ? ` · ${exam.grade}` : ''
-          }`,
-        }
+      ? { dot: null, label: formatResultWithGrade(examOutcomeLabel(exam.outcome), exam.grade) }
       : null;
+  const theoryPractice = formatTheoryPractice(exam.difficultyTheory, exam.difficultyPractice);
+  if (theoryPractice) return { condition, difficulty: theoryPractice, tone: null };
   const difficulty = exam.difficulty
     ? `Dificultad ${difficultyLabel(exam.difficulty).toLowerCase()}`
     : null;
@@ -103,8 +104,10 @@ function resultChips(entry: ExperienceCardEntry) {
 /**
  * The one experiencia card (openspec academic-community/experiences): author
  * or marca de anónimo, type and relative time, known context as chips,
- * resultado and dificultad, a bounded excerpt, «Leer completa» and «Reportar».
- * It never fabricates missing facts nor shows «Me sirvió».
+ * resultado (with its nota) and dificultad (teoría and práctica for a final),
+ * a bounded excerpt, «Leer completa» and «Reportar». It never fabricates
+ * missing facts nor shows «Me sirvió», and leaves the mesa, tiempo,
+ * preparación and temas to the detail.
  */
 export function ExperienceCard({
   className,

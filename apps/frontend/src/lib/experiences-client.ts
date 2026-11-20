@@ -50,6 +50,8 @@ export const discoveryCourseReviewSchema = z.object({
     ])
     .nullable(),
   difficulty: z.enum(communityDifficulties).nullable(),
+  /** Nota de promoción, only with PROMO; `null` when undeclared. */
+  promotionGrade: z.number().int().min(1).max(10).nullable().optional(),
   recommendation: z.number(),
   professor: z.object({ id: z.string(), name: z.string() }).nullable(),
   professorName: z.string().nullable(),
@@ -71,8 +73,12 @@ export const discoveryExamExperienceSchema = z.object({
   professor: z.object({ id: z.string(), name: z.string() }).optional(),
   examinerName: z.string().optional(),
   difficulty: z.enum(communityDifficulties).optional(),
+  difficultyTheory: z.number().int().min(1).max(5).optional(),
+  difficultyPractice: z.number().int().min(1).max(5).optional(),
   outcome: z.enum(examOutcomes).optional(),
   grade: z.number().min(0).max(10).optional(),
+  boardSize: z.number().int().min(1).max(10).optional(),
+  durationMinutes: z.number().int().min(10).max(480).optional(),
   excerpt: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -86,6 +92,10 @@ export const experiencesOverviewQuerySchema = z
     kind: z.enum(experiencesOverviewKinds).optional(),
   })
   .strict();
+
+const averageSchema = z.object({ average: z.number().nullable(), count: z.number() });
+const medianSchema = z.object({ median: z.number().nullable(), count: z.number() });
+const examTopicSchema = z.object({ topic: z.string(), count: z.number() });
 
 const percentageSummarySchema = z.object({
   percent: z.number().nullable(),
@@ -123,7 +133,11 @@ export const experiencesOverviewSchema = z.object({
         latestAt: z.string().nullable(),
         promotion: percentageSummarySchema,
         approval: percentageSummarySchema,
-        topDifficulty: z.enum(communityDifficulties).nullable(),
+        /** Reseñas' most chosen dificultad; absent with `kind=exams`. */
+        topDifficulty: z.enum(communityDifficulties).nullable().optional(),
+        /** Only with `kind=exams`: theory and practice averages, null below 3. */
+        theory: averageSchema.optional(),
+        practice: averageSchema.optional(),
       }),
     ),
   }),
@@ -137,8 +151,6 @@ export const experiencesOverviewSchema = z.object({
 
 const countByEnum = <T extends readonly [string, ...string[]]>(values: T) =>
   z.record(z.enum(values), z.number());
-
-const averageSchema = z.object({ average: z.number().nullable(), count: z.number() });
 
 /** Mirrors `GET /discovery/subjects/:code/experiences-summary`. */
 export const subjectExperiencesSummarySchema = z.object({
@@ -164,6 +176,12 @@ export const subjectExperiencesSummarySchema = z.object({
       counts: countByEnum(communityDifficulties),
       top: z.enum(communityDifficulties).nullable(),
     }),
+    /** `average` is null below 5 grades; `promoted` counts reseñas with PROMO. */
+    promotionGrade: z.object({
+      average: z.number().nullable(),
+      informed: z.number(),
+      promoted: z.number(),
+    }),
   }),
   exams: z.object({
     count: z.number(),
@@ -180,10 +198,25 @@ export const subjectExperiencesSummarySchema = z.object({
     }),
     theory: averageSchema,
     practice: averageSchema,
-    topSession: z.object({ session: z.enum(examSessions), count: z.number() }).nullable(),
+    /** The mesa más comentada with its medians (board size, minutes), null below 3. */
+    topSession: z
+      .object({
+        session: z.enum(examSessions),
+        count: z.number(),
+        boardSize: medianSchema,
+        duration: medianSchema,
+      })
+      .nullable(),
     grade: averageSchema,
+    /** Medians of the lead time (days) and the time per day (minutes), null below 3. */
+    preparation: z.object({ leadDays: medianSchema, dailyMinutes: medianSchema }),
+    /** «Temas que más toman»: at most 5, each in at least two public finales. */
+    topics: z.array(examTopicSchema),
   }),
 });
+
+/** Mirrors `GET /discovery/subjects/:code/exam-topics`. */
+export const subjectExamTopicsSchema = z.object({ topics: z.array(examTopicSchema) });
 
 export const courseReviewRelatedSchema = z.object({
   sharedContext: z
@@ -207,6 +240,7 @@ export type ExperiencesOverviewQuery = z.input<typeof experiencesOverviewQuerySc
 export type ExperiencesOverview = z.infer<typeof experiencesOverviewSchema>;
 export type ExperienceRecentEntry = ExperiencesOverview['recent'][number];
 export type SubjectExperiencesSummary = z.infer<typeof subjectExperiencesSummarySchema>;
+export type SubjectExamTopics = z.infer<typeof subjectExamTopicsSchema>;
 export type CourseReviewRelated = z.infer<typeof courseReviewRelatedSchema>;
 export type ExamExperienceRelated = z.infer<typeof examExperienceRelatedSchema>;
 
@@ -251,6 +285,14 @@ export async function getSubjectExperiencesSummary(
     { skipAuthRedirect: true },
   );
   return subjectExperiencesSummarySchema.parse(getData(response));
+}
+
+/** Topics of a materia found in at least two public finales, for «Temas que tomaron». */
+export async function getSubjectExamTopics(code: string): Promise<SubjectExamTopics> {
+  const response = await api.get(`/discovery/subjects/${encodeURIComponent(code)}/exam-topics`, {
+    skipAuthRedirect: true,
+  });
+  return subjectExamTopicsSchema.parse(getData(response));
 }
 
 export async function getCourseReviewRelated(id: string): Promise<CourseReviewRelated> {

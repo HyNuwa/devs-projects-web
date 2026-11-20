@@ -22,7 +22,9 @@ type OverviewItem = {
   latestAt: string;
   promotion: { percent: number | null; promoted: number; answered: number };
   approval: { percent: number | null; approved: number; answered: number };
-  topDifficulty: string | null;
+  topDifficulty?: string | null;
+  theory?: { average: number | null; count: number };
+  practice?: { average: number | null; count: number };
 };
 
 type Overview = {
@@ -339,6 +341,9 @@ describe('Experiencias: overview (e2e)', () => {
       difficulty: 'ALTA',
     });
     await review(s.s2, { createdAt: ago(80), condition: 'PROMO' });
+    // s3's finales: four declared teoría (4, 4, 3, 5 → 4) and two práctica.
+    const theories = [4, 4, 3, 5, null];
+    const practices = [3, null, 4, null, null];
     for (const [i, outcome] of (
       ['APROBADO', 'APROBADO', 'APROBADO', 'APROBADO', 'DESAPROBADO'] as const
     ).entries()) {
@@ -346,6 +351,8 @@ describe('Experiencias: overview (e2e)', () => {
         createdAt: ago(100 + i * 10),
         outcome,
         format: 'ORAL',
+        difficultyTheory: theories[i],
+        difficultyPractice: practices[i],
       });
     }
     await review(s.s4, { createdAt: ago(90), condition: 'PROMO' });
@@ -507,16 +514,39 @@ describe('Experiencias: overview (e2e)', () => {
       body.mostCommented.items.find((item) => item.subject.id === s.s2)
         ?.topDifficulty,
     ).toBeNull();
-    const exams = await overview(`?facultyId=${facultyId}&kind=exams`);
-    expect(
-      exams.mostCommented.items.find((item) => item.subject.id === s.s1)
-        ?.topDifficulty,
-    ).toBe('MEDIA');
     const reviews = await overview(`?facultyId=${facultyId}&kind=reviews`);
     expect(
       reviews.mostCommented.items.find((item) => item.subject.id === s.s1)
         ?.topDifficulty,
     ).toBe('ALTA');
+    for (const item of [
+      ...body.mostCommented.items,
+      ...reviews.mostCommented.items,
+    ]) {
+      expect(item).toHaveProperty('topDifficulty');
+      expect(item).not.toHaveProperty('theory');
+      expect(item).not.toHaveProperty('practice');
+    }
+  });
+
+  it('shows teoría and práctica averages instead of the verbal dificultad with kind=exams', async () => {
+    const body = await overview(`?facultyId=${facultyId}&kind=exams`);
+    const byId = new Map(
+      body.mostCommented.items.map((item) => [item.subject.id, item]),
+    );
+    // Four teoría answers average 4; two práctica answers stay under 3.
+    expect(byId.get(s.s3)).toMatchObject({
+      theory: { average: 4, count: 4 },
+      practice: { average: null, count: 2 },
+    });
+    // s1's finales only carry the older verbal dificultad, never shown here.
+    expect(byId.get(s.s1)).toMatchObject({
+      theory: { average: null, count: 0 },
+      practice: { average: null, count: 0 },
+    });
+    for (const item of body.mostCommented.items) {
+      expect(item).not.toHaveProperty('topDifficulty');
+    }
   });
 
   it('drops reseñas from every figure with kind=exams', async () => {

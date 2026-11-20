@@ -476,12 +476,16 @@ function PlanReader({
   careerId,
   hasText,
   onRead,
+  reading,
+  setReading,
 }: {
   careerId: string;
   hasText: boolean;
   onRead: (text: string) => void;
+  /** Owned by the carga masiva, which locks its box while the lectura runs. */
+  reading: boolean;
+  setReading: (reading: boolean) => void;
 }) {
-  const [reading, setReading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<PlanReading | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -588,6 +592,7 @@ function BulkLoad({
   const id = useId();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
+  const [reading, setReading] = useState(false);
   const [rows, setRows] = useState<BulkPreviewRow[] | null>(null);
   const [original, setOriginal] = useState<Map<number, string | null>>(new Map());
   const [error, setError] = useState<string | null>(null);
@@ -681,6 +686,8 @@ function BulkLoad({
             setText(read);
             setRows(null);
           }}
+          reading={reading}
+          setReading={setReading}
         />
       ) : plan === null ? (
         <p className="text-sm text-muted-foreground">
@@ -693,10 +700,12 @@ function BulkLoad({
           O;;nombre para una optativa)
         </FieldLabel>
         <textarea
-          className="min-h-40 rounded-md border-[1.5px] border-input bg-card p-3 font-mono text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+          aria-busy={reading}
+          className="min-h-40 rounded-md border-[1.5px] border-input bg-card p-3 font-mono text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring read-only:opacity-60"
           id={`${id}-text`}
           onChange={(event) => setText(event.target.value)}
           placeholder={'1;1;Análisis Matemático I;8\n1;A;Física General\nO;;Robótica;6'}
+          readOnly={reading}
           value={text}
         />
       </Field>

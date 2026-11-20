@@ -84,6 +84,7 @@ describe('points on publication (e2e)', () => {
           year: 2025,
           session: 'DICIEMBRE',
           format: 'ESCRITO',
+          outcome: 'PREFIERO_NO_DECIR',
           comment: COMMENT,
           ...body,
         }),

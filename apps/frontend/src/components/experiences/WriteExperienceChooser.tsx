@@ -2,16 +2,21 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useState, useSyncExternalStore } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 
 import { SubjectSearch } from '@/components/experiences/SubjectSearch';
+import { readExperienceDraft } from '@/components/experiences/forms/experience-draft';
 import { Button } from '@/components/ui/shadcn';
 import { cn } from '@/components/ui/shadcn/utils';
 import { useUbicacionStore } from '@/stores/ubicacionStore';
-import type { DiscoverySubjectSuggestion } from '@/types/discovery';
 
 type ExperienceKind = 'resenar' | 'final';
+type ChosenSubject = { code: string | null; name: string | null };
+
+/** The draft slot is read once per render; nothing else writes it while the chooser is open. */
+const subscribeToNothing = () => () => {};
 
 const KINDS: ReadonlyArray<{ id: ExperienceKind; copy: string; label: string }> = [
   { id: 'resenar', copy: 'Contá cómo fue cursarla', label: 'Reseña de cursada' },
@@ -24,12 +29,36 @@ const KINDS: ReadonlyArray<{ id: ExperienceKind; copy: string; label: string }> 
  * No sign-in gate here — each form owns its own auth return path.
  */
 export function WriteExperienceChooser() {
-  const [kind, setKind] = useState<ExperienceKind | null>(null);
-  const [subject, setSubject] = useState<DiscoverySubjectSuggestion | null>(null);
+  const searchParams = useSearchParams();
+  const fromForm = searchParams.get('desde') === 'formulario';
+  const preselectedCode = searchParams.get('materia');
+  const [kind, setKind] = useState<ExperienceKind | null>(() => {
+    const tipo = searchParams.get('tipo');
+    return KINDS.find((option) => option.id === tipo)?.id ?? null;
+  });
+  const [subject, setSubject] = useState<ChosenSubject | null>(() =>
+    preselectedCode ? { code: preselectedCode, name: null } : null,
+  );
   const facultyId = useUbicacionStore((store) => store.ubicacion?.facultyId);
 
+  // Back from a form's «Cambiar»: name the materia the draft was typed for.
+  const draftSubjectName = useSyncExternalStore(
+    subscribeToNothing,
+    () => {
+      if (!fromForm || !preselectedCode) return null;
+      const draft = readExperienceDraft();
+      return draft?.subjectCode === preselectedCode ? draft.subjectName : null;
+    },
+    () => null,
+  );
+  const subjectName =
+    subject?.name ?? (subject?.code === preselectedCode ? draftSubjectName : null);
+
   const encoded = subject?.code ? encodeURIComponent(subject.code) : null;
-  const href = kind && encoded ? `/materias/${encoded}/${kind}` : null;
+  // From this round trip the form continues any draft; opened any other way, it
+  // restores only a draft of its own type and materia, once.
+  const href =
+    kind && encoded ? `/materias/${encoded}/${kind}${fromForm ? '?desde=formulario' : ''}` : null;
 
   return (
     <section className="mx-auto grid w-full max-w-[720px] gap-8 px-3 py-10 sm:px-6 sm:py-14">
@@ -88,8 +117,8 @@ export function WriteExperienceChooser() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-[1.5px] border-primary bg-card px-4 py-3">
             <p className="inline-flex min-w-0 max-w-full items-center gap-2 break-words font-sans text-sm font-bold text-foreground">
               <CheckCircle2 aria-hidden="true" className="size-4 text-primary" strokeWidth={2} />
-              {subject.name}
-              {subject.code ? (
+              {subjectName ?? <span>{subject.code}</span>}
+              {subject.code && subjectName ? (
                 <span className="font-mono text-xs font-bold text-muted-foreground">
                   ({subject.code})
                 </span>
@@ -100,7 +129,10 @@ export function WriteExperienceChooser() {
             </Button>
           </div>
         ) : (
-          <SubjectSearch facultyId={facultyId} onSelect={setSubject} />
+          <SubjectSearch
+            facultyId={facultyId}
+            onSelect={(choice) => setSubject({ code: choice.code, name: choice.name })}
+          />
         )}
       </div>
 

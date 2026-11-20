@@ -7,6 +7,7 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
   createE2eApp,
+  createStudent,
   createUser,
   type E2eUser,
 } from './support/e2e-app';
@@ -86,8 +87,36 @@ describe('Catálogo: history (e2e)', () => {
   });
 
   it('never shows them to a moderator', async () => {
+    // The moderator covers FI-UNJU and sees the admin's events about its
+    // students. A catálogo event about one of them would be in that scope,
+    // so only the admin-only rule keeps it out.
+    const student = await createStudent(prisma);
+    await prisma.moderationEvent.createMany({
+      data: [
+        {
+          actorId: admin.id,
+          action: 'WARNED',
+          targetUserId: student.id,
+          reason: 'Visible para el moderador',
+        },
+        {
+          actorId: admin.id,
+          action: 'CATALOG_UPDATED',
+          targetUserId: student.id,
+          metadata: {
+            kind: 'FACULTY',
+            id: facultyId,
+            label: 'Exactas',
+            before: { shortName: 'FCE' },
+            after: { shortName: 'FCEN' },
+          },
+        },
+      ],
+    });
+
     expect(await history(moderator, { action: 'CATALOG_UPDATED' })).toEqual([]);
     const all = await history(moderator, { actorId: admin.id });
+    expect(all.map((item) => item.action)).toContain('WARNED');
     expect(all.filter((item) => item.catalog !== null)).toEqual([]);
     expect(all.filter((item) => item.action.startsWith('CATALOG_'))).toEqual(
       [],

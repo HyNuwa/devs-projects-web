@@ -1,6 +1,6 @@
 # Workflow
 
-Claude Code runs this workflow. Work state lives in the repo (OpenSpec changes, `CONTEXT.md`, ADRs), so any session or agent can pick up any phase from the files alone.
+Claude Code orchestrates this workflow and Devin CLI does the delegated work (`devin-orchestration` skill). Work state lives in the repo (OpenSpec changes, `CONTEXT.md`, ADRs), so any session or agent can pick up any phase from the files alone.
 
 ## Planning layer: OpenSpec
 
@@ -17,7 +17,7 @@ OpenSpec owns the proposal, design, specs, and task list of every planned change
 1. **`/grill-with-docs`**: sharpen the idea. Done when every open question has a decision and new domain terms are recorded in `CONTEXT.md`.
 2. **`openspec-propose`**: in the same session as the grilling, with no `/clear` or `/compact` between them, so the proposal is built on the interview.
 3. **`openspec-apply-change`**: one task at a time, test-first with `/tdd`. Check the task's box in `tasks.md` when its tests pass.
-4. **`/code-review`**: run by a fresh Claude subagent that did not implement the change. The implementing session spawns it with the change's proposal, specs and design as context, verifies its findings, fixes the confirmed ones, and re-runs the checks before archiving.
+4. **`/code-review`**: run by Devin CLI on Claude Fable 5.2, which did not implement the change, following the `devin-orchestration` skill. The orchestrating session gives it the change's proposal, specs and design as context, verifies its findings, has a worker fix the confirmed ones, and re-runs the checks before archiving.
 5. **`openspec-archive-change`**: once every box in `tasks.md` is checked, so the change's delta specs land in `openspec/specs/`.
 
 ## Side paths
@@ -31,5 +31,5 @@ OpenSpec owns the proposal, design, specs, and task list of every planned change
 ## Splitting work between agents
 
 - Parallelise across changes: each agent owns one OpenSpec change on its own branch. `tasks.md` is a single file, so two agents applying the same change collide.
-- Within one change, one session implements and a separate Claude subagent runs `/code-review`.
+- Within one change, Claude Code orchestrates, Devin CLI workers implement, and Devin CLI on Claude Fable 5.2 runs `/code-review` (see the `devin-orchestration` skill).
 - Switching agent mid-phase → `/handoff`. At a phase boundary, the OpenSpec change itself is the handoff.

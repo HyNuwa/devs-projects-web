@@ -3,9 +3,9 @@
 import Link from 'next/link';
 
 import { AuthorLink } from '@/components/public-profile/AuthorLink';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { ArrowLeft, CalendarDays, GraduationCap, LoaderCircle, Share2 } from 'lucide-react';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, GraduationCap, LoaderCircle, Share2 } from 'lucide-react';
 
 import { AnonymousMark } from '@/components/experiences/AnonymousMark';
 import {
@@ -15,6 +15,9 @@ import {
 import { WriteExperienceMenu } from '@/components/experiences/WriteExperienceMenu';
 import {
   CommunityFactList,
+  courseReviewFacts,
+  examExperienceFacts,
+  ExamTopicChips,
   formatCommunityDate,
   StarRecommendation,
 } from '@/components/experiences/facts';
@@ -23,15 +26,6 @@ import { CommunityEntryManagement } from '@/components/community/CommunityEntryM
 import { ReportDialog } from '@/components/moderation/ReportDialog';
 import { Button, Chip } from '@/components/ui/shadcn';
 import { getCourseReviewDetail, getExamExperienceDetail } from '@/lib/discovery-client';
-import {
-  courseAttemptLabel,
-  courseConditionLabel,
-  difficultyLabel,
-  examFormatLabel,
-  examOutcomeLabel,
-  examPeriodLabel,
-  shiftLabel,
-} from '@/lib/presentation-labels';
 import type { DiscoveryCourseReviewDetail, DiscoveryExamExperienceDetail } from '@/types/discovery';
 
 type CommunityDetailKind = 'course-review' | 'exam-experience';
@@ -60,51 +54,51 @@ function editedDate(createdAt: string, updatedAt: string) {
 function DetailFacts({ detail, kind }: { detail: CommunityDetail; kind: CommunityDetailKind }) {
   if (kind === 'course-review') {
     const review = detail as DiscoveryCourseReviewDetail;
-    const professor = review.professor?.name ?? review.professorName;
-
     return (
       <CommunityFactList
-        facts={[
-          ['Año de cursada', review.academicYear ? `Cursada ${review.academicYear}` : null],
-          ['Resultado de cursada', courseConditionLabel(review.condition)],
-          ['Situación de cursada', review.attempt ? courseAttemptLabel(review.attempt) : null],
-          ['Franja horaria', shiftLabel(review.shift)],
-          [
-            'Dificultad',
-            review.difficulty === null || review.difficulty === undefined
-              ? null
-              : difficultyLabel(review.difficulty),
-          ],
-          ['Profesor', professor ? `Profesor: ${professor}` : null],
-        ]}
+        facts={courseReviewFacts({
+          ...review,
+          professorName: review.professor?.name ?? review.professorName,
+        })}
       />
     );
   }
 
   const experience = detail as DiscoveryExamExperienceDetail;
-  const examiner = experience.professor?.name ?? experience.examinerName;
-  const examDate = experience.examDate ? formatCommunityDate(experience.examDate) : null;
-
   return (
-    <CommunityFactList
-      facts={[
-        ['Año de final', `Final ${experience.year}`],
-        ['Período', examPeriodLabel(experience.session)],
-        ['Formato', examFormatLabel(experience.format)],
-        ['Fecha exacta', examDate ? `Fecha: ${examDate}` : null],
-        ['Franja horaria', experience.shift ? shiftLabel(experience.shift) : null],
-        ['Profesor o examinador', examiner ? `Tomó: ${examiner}` : null],
-        ['Dificultad', experience.difficulty ? difficultyLabel(experience.difficulty) : null],
-        ['Resultado', experience.outcome ? examOutcomeLabel(experience.outcome) : null],
-        [
-          'Nota',
-          experience.grade !== null && experience.grade !== undefined
-            ? `Nota: ${experience.grade}`
-            : null,
-        ],
-      ]}
-    />
+    <>
+      <CommunityFactList
+        facts={examExperienceFacts({
+          ...experience,
+          examinerName: experience.professor?.name ?? experience.examinerName,
+        })}
+      />
+      <ExamTopicChips id="exam-topics" topics={experience.topics} />
+    </>
   );
+}
+
+/**
+ * «Publicada» after a form publishes (`?publicada=1`): read once on mount,
+ * then the param leaves the URL so a reload or a shared link never repeats it.
+ */
+function usePublishedNotice() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [published] = useState(() => searchParams.get('publicada') === '1');
+  const stripped = useRef(false);
+
+  useEffect(() => {
+    if (stripped.current || searchParams.get('publicada') !== '1') return;
+    stripped.current = true;
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete('publicada');
+    const query = rest.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  return published;
 }
 
 function DetailActions({
@@ -205,10 +199,12 @@ function CommunityDetailContent({
   detail,
   id,
   kind,
+  published,
 }: {
   detail: CommunityDetail;
   id: string;
   kind: CommunityDetailKind;
+  published: boolean;
 }) {
   const isReview = kind === 'course-review';
   const sharedKind = isReview ? 'review' : 'exam';
@@ -239,6 +235,16 @@ function CommunityDetailContent({
 
       <div className="grid gap-6 min-[820px]:grid-cols-[minmax(0,1fr)_16rem] min-[820px]:items-start">
         <article className="min-w-0 border border-border bg-card p-5 sm:p-8">
+          {published ? (
+            <div
+              aria-label="Publicada"
+              className="mb-5 inline-flex items-center gap-2 rounded-md border-[1.5px] border-foreground bg-secondary px-3 py-1.5 font-sans text-sm font-bold text-secondary-foreground"
+              role="status"
+            >
+              <Check aria-hidden="true" className="size-4 text-primary" strokeWidth={2.4} />
+              Publicada
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="min-w-0">
               <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
@@ -336,6 +342,7 @@ export function CommunityDetailPage({
   const [state, setState] = useState<DetailState>(() =>
     id ? { status: 'loading' } : { status: 'unavailable' },
   );
+  const published = usePublishedNotice();
 
   useEffect(() => {
     if (!id) return;
@@ -398,7 +405,14 @@ export function CommunityDetailPage({
     );
   }
 
-  return <CommunityDetailContent detail={state.detail} id={id ?? state.detail.id} kind={kind} />;
+  return (
+    <CommunityDetailContent
+      detail={state.detail}
+      id={id ?? state.detail.id}
+      kind={kind}
+      published={published}
+    />
+  );
 }
 
 export function CourseReviewDetailRoute() {

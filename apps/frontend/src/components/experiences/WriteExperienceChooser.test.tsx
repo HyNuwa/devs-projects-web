@@ -7,7 +7,12 @@ import type { DiscoverySubjectSuggestion } from '@/types/discovery';
 
 import { WriteExperienceChooser } from './WriteExperienceChooser';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const navigation = vi.hoisted(() => ({ searchParams: new URLSearchParams() }));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => navigation.searchParams,
+}));
 vi.mock('@/lib/api', () => ({ api: { post: vi.fn() } }));
 vi.mock('@/lib/discovery-client', () => ({ getGroupedSuggestions: vi.fn() }));
 vi.mock('@/stores/ubicacionStore', () => ({
@@ -144,5 +149,75 @@ describe('WriteExperienceChooser', () => {
     expect(screen.getByRole('button', { name: /continuar/i })).toBeDisabled();
     await user.click(screen.getByRole('radio', { name: /reseña de cursada/i }));
     expect(screen.getByRole('link', { name: /continuar/i })).toBeInTheDocument();
+  });
+});
+
+describe('WriteExperienceChooser reached from a form’s «Cambiar»', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.mocked(getGroupedSuggestions).mockReset();
+    vi.mocked(getGroupedSuggestions).mockResolvedValue({ materials: [], subjects: [suggestion] });
+  });
+
+  afterEach(() => {
+    cleanup();
+    sessionStorage.clear();
+    navigation.searchParams = new URLSearchParams();
+  });
+
+  it('starts with the form’s type and materia and hands the draft back to the next form', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem(
+      'experience-draft',
+      JSON.stringify({
+        subjectCode: '06',
+        subjectName: 'Análisis Matemático II',
+        type: 'resenar',
+        values: { comment: 'Medio relato' },
+      }),
+    );
+    navigation.searchParams = new URLSearchParams('tipo=resenar&materia=06&desde=formulario');
+    render(<WriteExperienceChooser />);
+
+    expect(screen.getByRole('radio', { name: /reseña de cursada/i })).toBeChecked();
+    expect(await screen.findByText('Análisis Matemático II')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /continuar/i })).toHaveAttribute(
+      'href',
+      '/materias/06/resenar?desde=formulario',
+    );
+
+    await user.click(screen.getByRole('radio', { name: /experiencia de final/i }));
+    expect(screen.getByRole('link', { name: /continuar/i })).toHaveAttribute(
+      'href',
+      '/materias/06/final?desde=formulario',
+    );
+
+    await user.click(screen.getByRole('button', { name: /cambiar materia/i }));
+    await user.type(screen.getByRole('combobox', { name: /materia/i }), 'anali');
+    await user.click(await screen.findByRole('option', { name: /Análisis Matemático II/ }));
+    expect(screen.getByRole('link', { name: /continuar/i })).toHaveAttribute(
+      'href',
+      '/materias/06/final?desde=formulario',
+    );
+  });
+
+  it('shows the materia code when the draft is gone', () => {
+    navigation.searchParams = new URLSearchParams('tipo=final&materia=AM2&desde=formulario');
+    render(<WriteExperienceChooser />);
+
+    expect(screen.getByRole('radio', { name: /experiencia de final/i })).toBeChecked();
+    expect(screen.getByText('AM2')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /continuar/i })).toHaveAttribute(
+      'href',
+      '/materias/AM2/final?desde=formulario',
+    );
+  });
+
+  it('ignores an unknown type', () => {
+    navigation.searchParams = new URLSearchParams('tipo=otro');
+    render(<WriteExperienceChooser />);
+
+    expect(screen.getByRole('radio', { name: /reseña de cursada/i })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: /experiencia de final/i })).not.toBeChecked();
   });
 });

@@ -24,6 +24,65 @@ export class ExperienceAverageDto {
   count: number;
 }
 
+export class ExperienceMedianDto {
+  @ApiPropertyOptional({
+    nullable: true,
+    example: 3,
+    description:
+      'Mediana (el valor del medio inferior si la cantidad es par); null por debajo de 3 respuestas.',
+  })
+  median: number | null;
+
+  @ApiProperty({ description: 'Respuestas que declararon el dato.' })
+  count: number;
+}
+
+export class ReviewPromotionGradeDto {
+  @ApiPropertyOptional({
+    nullable: true,
+    example: 8.2,
+    description: 'Nota de promoción promedio; null por debajo de 5 notas.',
+  })
+  average: number | null;
+
+  @ApiProperty({ description: 'Reseñas con Promoción que informaron la nota.' })
+  informed: number;
+
+  @ApiProperty({ description: 'Reseñas con resultado Promoción.' })
+  promoted: number;
+}
+
+export class ExamTopicDto {
+  @ApiProperty({ example: 'Integrales dobles' })
+  topic: string;
+
+  @ApiProperty({ description: 'Finales públicos distintos que lo mencionan.' })
+  count: number;
+}
+
+export class SubjectExamTopicsDto {
+  @ApiProperty({
+    type: [ExamTopicDto],
+    description:
+      'Temas de al menos 2 finales públicos, por cantidad y luego por nombre (máximo 20).',
+  })
+  topics: ExamTopicDto[];
+}
+
+export class ExamPreparationSummaryDto {
+  @ApiProperty({
+    type: ExperienceMedianDto,
+    description: 'Mediana de cuánto antes empezaron a estudiar, en días.',
+  })
+  leadDays: ExperienceMedianDto;
+
+  @ApiProperty({
+    type: ExperienceMedianDto,
+    description: 'Mediana del tiempo de estudio por día, en minutos.',
+  })
+  dailyMinutes: ExperienceMedianDto;
+}
+
 export class ReviewResultsPercentsDto {
   @ApiProperty({ example: 60 })
   promo: number;
@@ -88,6 +147,9 @@ export class ReviewsSectionSummaryDto {
 
   @ApiProperty({ type: ReviewDifficultySummaryDto })
   difficulty: ReviewDifficultySummaryDto;
+
+  @ApiProperty({ type: ReviewPromotionGradeDto })
+  promotionGrade: ReviewPromotionGradeDto;
 }
 
 export class ExamOutcomesSummaryDto {
@@ -126,6 +188,18 @@ export class ExamTopSessionDto {
 
   @ApiProperty()
   count: number;
+
+  @ApiProperty({
+    type: ExperienceMedianDto,
+    description: 'Profesores en la mesa de los finales de esta mesa.',
+  })
+  boardSize: ExperienceMedianDto;
+
+  @ApiProperty({
+    type: ExperienceMedianDto,
+    description: 'Tiempo del examen, en minutos, de los finales de esta mesa.',
+  })
+  duration: ExperienceMedianDto;
 }
 
 export class ExamsSectionSummaryDto {
@@ -149,6 +223,16 @@ export class ExamsSectionSummaryDto {
 
   @ApiProperty({ type: ExperienceAverageDto })
   grade: ExperienceAverageDto;
+
+  @ApiProperty({ type: ExamPreparationSummaryDto })
+  preparation: ExamPreparationSummaryDto;
+
+  @ApiProperty({
+    type: [ExamTopicDto],
+    description:
+      'Temas que más toman: hasta 5, de al menos 2 finales públicos.',
+  })
+  topics: ExamTopicDto[];
 }
 
 export class SubjectExperiencesSummaryDto {

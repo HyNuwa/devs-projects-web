@@ -4,7 +4,10 @@ import { IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 import { CommunityDifficulty } from '../../../generated/prisma';
 import { DiscoveryCourseReviewDto } from './discovery-course-reviews.dto';
 import { DiscoveryExamExperienceDto } from './discovery-exam-experiences.dto';
-import { ExperiencesSubjectDto } from './discovery-experiences-summary.dto';
+import {
+  ExperienceAverageDto,
+  ExperiencesSubjectDto,
+} from './discovery-experiences-summary.dto';
 
 export const EXPERIENCES_OVERVIEW_KINDS = ['reviews', 'exams'] as const;
 export type ExperiencesOverviewKind =
@@ -107,8 +110,27 @@ export class MostCommentedItemDto {
   @ApiProperty({ type: ApprovalFigureDto })
   approval: ApprovalFigureDto;
 
-  @ApiPropertyOptional({ enum: CommunityDifficulty, nullable: true })
-  topDifficulty: CommunityDifficulty | null;
+  @ApiPropertyOptional({
+    enum: CommunityDifficulty,
+    nullable: true,
+    description:
+      'Dificultad más elegida entre las reseñas; ausente con kind=exams.',
+  })
+  topDifficulty?: CommunityDifficulty | null;
+
+  @ApiPropertyOptional({
+    type: ExperienceAverageDto,
+    description:
+      'Solo con kind=exams: promedio de dificultad de teoría (null por debajo de 3).',
+  })
+  theory?: ExperienceAverageDto;
+
+  @ApiPropertyOptional({
+    type: ExperienceAverageDto,
+    description:
+      'Solo con kind=exams: promedio de dificultad de práctica (null por debajo de 3).',
+  })
+  practice?: ExperienceAverageDto;
 }
 
 export enum MostCommentedWindow {

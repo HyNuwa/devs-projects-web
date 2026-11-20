@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
+import { formatTheoryPracticeAverages } from '@/components/experiences/format';
 import { Button } from '@/components/ui/shadcn';
 import { difficultyLabel } from '@/lib/presentation-labels';
 import { formatRelativeTime } from '@/lib/relative-time';
@@ -48,6 +49,10 @@ function SubjectCard({
   now: Date;
 }) {
   const stats = figure(item, kind);
+  // «Solo finales» reads teoría and práctica, never the reseñas' verbal dificultad.
+  const theoryPractice =
+    kind === 'exams' ? formatTheoryPracticeAverages(item.theory, item.practice) : null;
+  const topDifficulty = kind === 'exams' ? null : item.topDifficulty;
   const href = item.subject.code
     ? `/experiencias/${encodeURIComponent(item.subject.code)}${careerId ? `?carrera=${encodeURIComponent(careerId)}` : ''}`
     : null;
@@ -96,11 +101,16 @@ function SubjectCard({
             </span>
           </span>
         ) : null}
-        {item.topDifficulty ? (
+        {topDifficulty ? (
           <span
-            className={`ml-auto self-center whitespace-nowrap rounded-md px-2 py-1 text-[0.72rem] font-extrabold ${difficultyTone[item.topDifficulty]}`}
+            className={`ml-auto self-center whitespace-nowrap rounded-md px-2 py-1 text-[0.72rem] font-extrabold ${difficultyTone[topDifficulty]}`}
           >
-            Dificultad {difficultyLabel(item.topDifficulty).toLowerCase()}
+            Dificultad {difficultyLabel(topDifficulty).toLowerCase()}
+          </span>
+        ) : null}
+        {theoryPractice ? (
+          <span className="ml-auto self-center whitespace-nowrap rounded-md bg-muted px-2 py-1 text-[0.72rem] font-extrabold text-secondary-foreground">
+            {theoryPractice}
           </span>
         ) : null}
       </span>

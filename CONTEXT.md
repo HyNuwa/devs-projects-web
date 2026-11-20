@@ -91,8 +91,32 @@ The academic exam period or mesa associated with an experiencia de final, such a
 _Avoid_: Franja horaria, turno de mañana/tarde/noche
 
 **Dificultad de experiencia**:
-An optional verbal assessment attached to one cursada or final experience: muy baja, baja, media, alta, or muy alta. It remains separate from course recommendation stars and exam outcome.
+An optional verbal assessment attached to one reseña de cursada: muy baja, baja, media, alta, or muy alta. Older experiencias de final may carry one too, but new ones declare teoría and práctica instead. It remains separate from course recommendation stars and exam outcome.
 _Avoid_: Star rating, professor score, pass probability
+
+**Dificultad de teoría y de práctica**:
+Two optional scores from 1 (fácil) to 5 (difícil) that an experiencia de final declares separately for the theory and the practice of the exam.
+_Avoid_: Dificultad general, nota
+
+**Nota de promoción**:
+The optional integer grade from 1 to 10 with which a student promoted a materia, declared only in a reseña de cursada whose resultado is Promoción.
+_Avoid_: Nota del final, nota promedio
+
+**Profesores en la mesa**:
+The optional number of professors who sat on the examining board of one experiencia de final. It counts people and never names them; the single professor who examined the student stays a separate optional fact.
+_Avoid_: Tribunal, lista de profesores
+
+**Tiempo del examen**:
+The optional length of one final: for a written exam, the time given to solve it; for an oral exam, how long the student's own exam lasted. Waiting time never counts.
+_Avoid_: Duración de la mesa, espera
+
+**Preparación**:
+Two optional, independent facts of an experiencia de final: how long before the exam the student started studying, and how much time they studied per day. Their product is shown only as an estimate («unas N horas»), never stored.
+_Avoid_: Horas de estudio exactas, plan de estudio
+
+**Temas que tomaron**:
+Up to ten short free-text topics a student says the final asked about. A topic is suggested to others, or shown among «Temas que más toman», only once at least two different public experiencias de final of the materia mention it.
+_Avoid_: Programa, unidades, temario oficial
 
 **Mismo contexto**:
 The other experiencias of the same materia that share the context facts an entry declared, in any ciclo lectivo: professor and franja horaria for a reseña de cursada, período de examen and formato for an experiencia de final. An entry that declared none of them has no mismo contexto.
@@ -103,7 +127,7 @@ The up to six materias of a facultad, optionally narrowed to one carrera, one a�
 _Avoid_: Trending, popular, best subjects, ranking de materias
 
 **Mínimo de muestra**:
-The smallest count behind a public summary figure: percentages and the average grade need five answers, most-chosen values and the theory and practice averages need three, and below that the interface shows counts. The recomendación promedio keeps showing from one review, always with its count.
+The smallest count behind a public summary figure: percentages, the average grade and the average nota de promoción need five answers; most-chosen values, the theory and practice averages and the medians of preparación, profesores en la mesa and tiempo del examen need three; below that the interface shows counts or omits the figure. The recomendación promedio keeps showing from one review, always with its count.
 _Avoid_: Statistical significance, confidence
 
 **Publicación anónima**:

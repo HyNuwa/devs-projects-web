@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { api } from '@/lib/api';
+import { summaryFixture } from '@/test/experiences';
 
 import {
   courseReviewRelatedSchema,
@@ -6,9 +9,13 @@ import {
   discoveryExamExperienceSchema,
   examExperienceRelatedSchema,
   experiencesOverviewSchema,
+  getSubjectExamTopics,
   serializeExperiencesOverviewQuery,
+  subjectExamTopicsSchema,
   subjectExperiencesSummarySchema,
 } from './experiences-client';
+
+vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }));
 
 const review = {
   id: 'review-1',
@@ -24,6 +31,7 @@ const review = {
   condition: 'PROMO',
   attempt: 'PRIMERA_CURSADA',
   difficulty: 'ALTA',
+  promotionGrade: 9,
   recommendation: 4,
   professor: null,
   professorName: 'A. Gómez',
@@ -52,6 +60,10 @@ const exam = {
   difficulty: 'ALTA',
   outcome: 'APROBADO',
   grade: 7,
+  difficultyTheory: 4,
+  difficultyPractice: 3,
+  boardSize: 3,
+  durationMinutes: 180,
   excerpt: 'Tres problemas y una pregunta de teoría.',
   createdAt: '2026-08-02T12:00:00.000Z',
   updatedAt: '2026-08-02T12:00:00.000Z',
@@ -100,6 +112,52 @@ describe('experiences-client schemas', () => {
     const parsed = experiencesOverviewSchema.parse(overview);
     expect(parsed.mostCommented.items[0].placement?.careerName).toBe('Ing. Informática');
     expect(parsed.recent[1].kind).toBe('exam');
+    const recentReview = parsed.recent[0];
+    const recentExam = parsed.recent[1];
+    expect(recentReview.kind === 'review' && recentReview.review.promotionGrade).toBe(9);
+    expect(recentExam.kind === 'exam' && recentExam.exam).toMatchObject({
+      boardSize: 3,
+      difficultyPractice: 3,
+      difficultyTheory: 4,
+      durationMinutes: 180,
+    });
+  });
+
+  it('parses a «Solo finales» overview card with theory and practice and no verbal dificultad', () => {
+    const parsed = experiencesOverviewSchema.parse({
+      scope: { facultyId: 'fac-1', careerId: null, year: null, kind: 'exams' },
+      mostCommented: {
+        window: 'LAST_120_DAYS',
+        items: [
+          {
+            subject: { id: 'subject-1', code: 'S2-14', name: 'Algoritmos' },
+            placement: null,
+            recentCount: 8,
+            total: 15,
+            latestAt: '2026-08-02T12:00:00.000Z',
+            promotion: { percent: null, promoted: 0, answered: 0 },
+            approval: { percent: 60, approved: 3, answered: 5 },
+            theory: { average: 3.4, count: 4 },
+            practice: { average: null, count: 2 },
+          },
+        ],
+      },
+      recent: [],
+    });
+
+    const item = parsed.mostCommented.items[0];
+    expect(item.theory).toEqual({ average: 3.4, count: 4 });
+    expect(item.practice).toEqual({ average: null, count: 2 });
+    expect(item.topDifficulty).toBeUndefined();
+  });
+
+  it('keeps a reseña without a declared nota de promoción valid', () => {
+    expect(
+      discoveryCourseReviewSchema.parse({ ...review, promotionGrade: null }).promotionGrade,
+    ).toBeNull();
+    expect(discoveryCourseReviewSchema.safeParse({ ...review, promotionGrade: 11 }).success).toBe(
+      false,
+    );
   });
 
   it('parses the summary fixture', () => {
@@ -122,6 +180,7 @@ describe('experiences-client schemas', () => {
           counts: { MUY_BAJA: 1, BAJA: 4, MEDIA: 9, ALTA: 13, MUY_ALTA: 4 },
           top: 'ALTA',
         },
+        promotionGrade: { average: 8.2, informed: 9, promoted: 11 },
       },
       exams: {
         count: 24,
@@ -135,14 +194,52 @@ describe('experiences-client schemas', () => {
         formats: { counts: { ESCRITO: 4, ORAL: 2, MIXTO: 1 }, top: 'ESCRITO' },
         theory: { average: 3.4, count: 9 },
         practice: { average: 2.8, count: 8 },
-        topSession: { session: 'DICIEMBRE', count: 9 },
+        topSession: {
+          session: 'DICIEMBRE',
+          count: 9,
+          boardSize: { median: 3, count: 4 },
+          duration: { median: null, count: 2 },
+        },
         grade: { average: 6.4, count: 15 },
+        preparation: {
+          leadDays: { median: 21, count: 5 },
+          dailyMinutes: { median: 60, count: 3 },
+        },
+        topics: [
+          { topic: 'Integrales dobles', count: 6 },
+          { topic: 'Teorema de Green', count: 2 },
+        ],
       },
     };
 
     const parsed = subjectExperiencesSummarySchema.parse(summary);
     expect(parsed.reviews.results.percents?.regular).toBe(45);
     expect(parsed.exams.topSession?.session).toBe('DICIEMBRE');
+    expect(parsed.reviews.promotionGrade).toEqual({ average: 8.2, informed: 9, promoted: 11 });
+    expect(parsed.exams.topSession?.boardSize).toEqual({ median: 3, count: 4 });
+    expect(parsed.exams.topSession?.duration).toEqual({ median: null, count: 2 });
+    expect(parsed.exams.preparation.leadDays.median).toBe(21);
+    expect(parsed.exams.topics.map(({ topic }) => topic)).toEqual([
+      'Integrales dobles',
+      'Teorema de Green',
+    ]);
+    expect(
+      subjectExperiencesSummarySchema.safeParse({
+        ...summary,
+        exams: { ...summary.exams, preparation: undefined },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('keeps the shared summary fixture in the API shape', () => {
+    expect(subjectExperiencesSummarySchema.parse(summaryFixture)).toEqual(summaryFixture);
+  });
+
+  it('parses the exam topics fixture', () => {
+    expect(
+      subjectExamTopicsSchema.parse({ topics: [{ topic: 'Series de Fourier', count: 2 }] }).topics,
+    ).toEqual([{ topic: 'Series de Fourier', count: 2 }]);
+    expect(subjectExamTopicsSchema.safeParse({ topics: [{ topic: 'X' }] }).success).toBe(false);
   });
 
   it('parses the related fixtures', () => {
@@ -184,5 +281,24 @@ describe('experiences-client schemas', () => {
     );
     expect(serializeExperiencesOverviewQuery({}).toString()).toBe('');
     expect(() => serializeExperiencesOverviewQuery({ kind: 'todo' } as never)).toThrow();
+  });
+});
+
+describe('getSubjectExamTopics', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset();
+  });
+
+  it('reads the public topic suggestions of a materia', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      data: { topics: [{ topic: 'Integrales dobles', count: 3 }] },
+    });
+
+    await expect(getSubjectExamTopics('AM 2')).resolves.toEqual({
+      topics: [{ topic: 'Integrales dobles', count: 3 }],
+    });
+    expect(api.get).toHaveBeenCalledWith('/discovery/subjects/AM%202/exam-topics', {
+      skipAuthRedirect: true,
+    });
   });
 });

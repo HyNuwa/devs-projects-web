@@ -57,6 +57,8 @@ export type CaseDetail = {
     subject: { id: string; code: string | null; name: string };
     isAnonymous: boolean;
     comment?: string | null;
+    /** The temas que tomaron of an experiencia de final. */
+    topics?: string[];
     description?: string | null;
     fileType?: string;
     resourceType?: string;

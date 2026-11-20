@@ -2,6 +2,7 @@ import type {
   BadgeRarity,
   BadgeTier,
   CommunityDifficulty,
+  CourseAttempt,
   CourseCondition,
   ExamSession,
   MaterialResourceType,
@@ -31,6 +32,8 @@ export type SnapshotReview = {
   hasProfessor: boolean;
   shift: Shift | null;
   condition: CourseCondition | null;
+  /** Situación de cursada: what «Contexto completo» checks. */
+  attempt: CourseAttempt | null;
   difficulty: CommunityDifficulty | null;
 };
 
@@ -334,8 +337,8 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
             r.hasProfessor &&
             r.shift !== null &&
             r.shift !== 'NO_INDICO' &&
-            r.condition !== null &&
-            r.condition !== 'PREFIERO_NO_RESPONDER' &&
+            r.attempt !== null &&
+            r.attempt !== 'PREFIERO_NO_RESPONDER' &&
             r.difficulty !== null,
         ).length,
         10,

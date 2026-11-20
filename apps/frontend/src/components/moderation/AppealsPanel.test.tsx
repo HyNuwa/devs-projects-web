@@ -100,6 +100,31 @@ describe('AppealsPanel', () => {
     expect(screen.getByText(/No ves apelaciones de decisiones tuyas/)).toBeInTheDocument();
   });
 
+  it('shows the temas of an appealed final beside its comment', async () => {
+    mocks.detail.mockResolvedValue({
+      ...detail,
+      content: {
+        caseId: 'case-2',
+        type: 'EXAM_EXPERIENCE',
+        label: 'Experiencia de final',
+        comment: 'La mesa tomó integrales dobles.',
+        topics: ['Series de Fourier', 'Truco del profe'],
+        anonymous: true,
+      },
+    });
+    render(<AppealsPanel />);
+
+    expect(await screen.findByText('La mesa tomó integrales dobles.')).toBeInTheDocument();
+    expect(screen.getByText('Temas: Series de Fourier, Truco del profe')).toBeInTheDocument();
+  });
+
+  it('shows no temas line for content without temas', async () => {
+    render(<AppealsPanel />);
+
+    expect(await screen.findByText('La cursada fue muy desordenada.')).toBeInTheDocument();
+    expect(screen.queryByText(/^Temas:/)).not.toBeInTheDocument();
+  });
+
   it('keeps the appeal open when the reviewer clicks it again', async () => {
     const user = userEvent.setup();
     render(<AppealsPanel />);

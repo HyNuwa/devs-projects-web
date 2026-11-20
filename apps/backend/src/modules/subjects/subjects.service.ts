@@ -126,6 +126,7 @@ export class SubjectsService {
       academicYear: dto.academicYear,
       shift: dto.shift ?? ('NO_INDICO' as const),
       condition: dto.condition,
+      promotionGrade: dto.promotionGrade ?? null,
       attempt: dto.attempt,
       professorId: dto.professorId,
       professorName: dto.professorName,
@@ -136,18 +137,27 @@ export class SubjectsService {
     };
   }
 
+  /**
+   * Never writes the exam date, franja or verbal dificultad, so an edit keeps the
+   * ones an older final declared. Every fact the form asks for is replaced, so an
+   * edit that no longer declares one clears it.
+   */
   private examExperienceWriteData(dto: CreateExamExperienceDto) {
     return {
-      shift: dto.shift,
       year: dto.year,
       session: dto.session,
       format: dto.format,
-      examDate: dto.examDate,
       professorId: dto.professorId,
       examinerName: dto.examinerName,
-      difficulty: dto.difficulty,
       outcome: dto.outcome,
-      grade: dto.grade,
+      grade: dto.grade ?? null,
+      difficultyTheory: dto.difficultyTheory ?? null,
+      difficultyPractice: dto.difficultyPractice ?? null,
+      boardSize: dto.boardSize ?? null,
+      durationMinutes: dto.durationMinutes ?? null,
+      prepLeadDays: dto.prepLeadDays ?? null,
+      prepDailyMinutes: dto.prepDailyMinutes ?? null,
+      topics: dto.topics ?? [],
       comment: dto.comment,
       isAnonymous: dto.isAnonymous ?? false,
     };
@@ -165,6 +175,7 @@ export class SubjectsService {
     },
   >(entry: T) {
     const publicEntry: Record<string, unknown> = { ...entry };
+    delete publicEntry.userId;
     delete publicEntry.publicationStatus;
     delete publicEntry.statusChangedAt;
     delete publicEntry.hiddenAt;
