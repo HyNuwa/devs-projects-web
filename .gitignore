@@ -61,3 +61,4 @@ nul
 # Service / Tool specific
 .vercel/
 .turbo/
+.e2e/

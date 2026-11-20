@@ -10,14 +10,25 @@
     "dev": "pnpm dev:frontend & pnpm dev:backend",
     "build:frontend": "pnpm --filter frontend build",
     "build:backend": "pnpm --filter backend build",
-    "build": "pnpm build:frontend && pnpm build:backend"
+    "build": "pnpm build:frontend && pnpm build:backend",
+    "test:e2e": "e2e run"
   },
   "devDependencies": {
+    "@ai-sdk/openai": "^4.0.0",
+    "@e2e-dev/web": "^0.16.0",
+    "ai": "^7.0.0",
+    "e2e": "^0.23.1",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.8"
+    "lint-staged": "^17.0.8",
+    "zod": "^4.1.8"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["bcrypt", "prisma", "sharp", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "bcrypt",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "lint-staged": {
     "apps/frontend/**/*.{js,jsx,ts,tsx}": [
