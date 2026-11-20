@@ -7,6 +7,8 @@ import {
   Max,
   MaxLength,
   Min,
+  IsUUID,
+  IsOptional,
 } from 'class-validator';
 
 export const DEFAULT_DISCOVERY_SUGGESTION_LIMIT = 6;
@@ -36,4 +38,13 @@ export class DiscoverySuggestionsQueryDto {
   @Min(1)
   @Max(MAX_DISCOVERY_SUGGESTION_LIMIT)
   limit?: number = DEFAULT_DISCOVERY_SUGGESTION_LIMIT;
+
+  @ApiPropertyOptional({
+    example: '3f2b1c4e-8a9d-4f6b-9c1e-2d3a4b5c6d7e',
+    description:
+      'Solo materias de esta facultad (la ubicación de quien busca).',
+  })
+  @IsOptional()
+  @IsUUID()
+  facultyId?: string;
 }

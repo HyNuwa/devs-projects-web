@@ -1,9 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
-  IsDate,
+  IsDivisibleBy,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -13,23 +16,30 @@ import {
   Min,
   MinLength,
   Validate,
+  ValidateIf,
 } from 'class-validator';
 import {
-  CommunityDifficulty,
   ExamFormat,
   ExamOutcome,
   ExamSession,
-  Shift,
 } from '../../../generated/prisma';
 import {
   MAX_ACADEMIC_YEAR,
   MIN_ACADEMIC_YEAR,
 } from '../../../common/validation/academic-year';
 import {
-  GradeRequiresExplicitOutcomeConstraint,
+  GradeMatchesOutcomeConstraint,
+  normalizeTopics,
+  outcomeRequiresGrade,
   SingleProfessorReferenceConstraint,
 } from './community-write.validators';
 
+const EXAM_OUTCOMES = Object.values(ExamOutcome);
+
+/**
+ * The exact date, the franja and the verbal dificultad are not part of the
+ * contract: older finals keep them because the service never writes them.
+ */
 export class CreateExamExperienceDto {
   @ApiProperty({
     example: 2026,
@@ -50,17 +60,6 @@ export class CreateExamExperienceDto {
   @IsEnum(ExamFormat)
   format: ExamFormat;
 
-  @ApiPropertyOptional({ type: String, format: 'date' })
-  @IsOptional()
-  @Type(() => Date)
-  @IsDate()
-  examDate?: Date;
-
-  @ApiPropertyOptional({ enum: Shift })
-  @IsOptional()
-  @IsEnum(Shift)
-  shift?: Shift;
-
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()
   @IsUUID('4')
@@ -75,24 +74,91 @@ export class CreateExamExperienceDto {
   @MaxLength(150)
   examinerName?: string;
 
-  @ApiPropertyOptional({ enum: CommunityDifficulty })
-  @IsOptional()
-  @IsEnum(CommunityDifficulty)
-  difficulty?: CommunityDifficulty;
+  @ApiProperty({ enum: EXAM_OUTCOMES })
+  @IsIn(EXAM_OUTCOMES)
+  outcome: ExamOutcome;
 
-  @ApiPropertyOptional({ enum: ExamOutcome })
-  @IsOptional()
-  @IsEnum(ExamOutcome)
-  outcome?: ExamOutcome;
-
-  @ApiPropertyOptional({ minimum: 0, maximum: 10 })
-  @IsOptional()
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 10,
+    description:
+      'Obligatoria con Aprobado o Desaprobado; no se acepta con Prefiero no decir',
+  })
+  @ValidateIf(
+    (dto: CreateExamExperienceDto) =>
+      outcomeRequiresGrade(dto.outcome) ||
+      (dto.grade !== undefined && dto.grade !== null),
+  )
+  @Validate(GradeMatchesOutcomeConstraint)
   @Type(() => Number)
   @IsInt()
   @Min(0)
   @Max(10)
-  @Validate(GradeRequiresExplicitOutcomeConstraint)
   grade?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 5 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  difficultyTheory?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 5 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  difficultyPractice?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  boardSize?: number;
+
+  @ApiPropertyOptional({ minimum: 10, maximum: 480 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(10)
+  @Max(480)
+  durationMinutes?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 365 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  prepLeadDays?: number;
+
+  @ApiPropertyOptional({ minimum: 30, maximum: 960, multipleOf: 30 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsDivisibleBy(30)
+  @Min(30)
+  @Max(960)
+  prepDailyMinutes?: number;
+
+  @ApiPropertyOptional({
+    type: [String],
+    maxItems: 10,
+    description:
+      'Se recortan, se colapsan los espacios y se quitan repetidos sin distinguir mayúsculas antes de validar 2 a 60 caracteres',
+  })
+  @IsOptional()
+  @Transform(({ value }) => normalizeTopics(value))
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MinLength(2, { each: true })
+  @MaxLength(60, { each: true })
+  topics?: string[];
 
   @ApiProperty({ minLength: 30, maxLength: 4000 })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))

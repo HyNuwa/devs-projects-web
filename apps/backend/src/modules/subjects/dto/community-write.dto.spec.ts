@@ -32,6 +32,7 @@ const validExam = {
   year: 2026,
   session: ExamSession.JULIO,
   format: ExamFormat.ORAL,
+  outcome: ExamOutcome.PREFIERO_NO_DECIR,
   comment: narrative,
 };
 
@@ -163,28 +164,20 @@ describe('CreateExamExperienceDto', () => {
     await expect(examErrors({ format })).resolves.toHaveLength(0);
   });
 
-  it.each(Object.values(Shift))('acepta la franja %s', async (shift) => {
-    await expect(examErrors({ shift })).resolves.toHaveLength(0);
+  it('acepta Prefiero no decir sin nota', async () => {
+    await expect(examErrors()).resolves.toHaveLength(0);
   });
 
-  it.each(Object.values(CommunityDifficulty))(
-    'acepta la dificultad %s',
-    async (difficulty) => {
-      await expect(examErrors({ difficulty })).resolves.toHaveLength(0);
-    },
-  );
-
-  it.each(Object.values(ExamOutcome))(
-    'acepta el resultado %s sin nota',
+  it.each([ExamOutcome.APROBADO, ExamOutcome.DESAPROBADO])(
+    'exige la nota con el resultado %s',
     async (outcome) => {
-      await expect(examErrors({ outcome })).resolves.toHaveLength(0);
+      expect(properties(await examErrors({ outcome }))).toContain('grade');
     },
   );
 
-  it('acepta fechas, anonimato y notas límite con resultado explícito', async () => {
+  it('acepta anonimato y notas límite con resultado explícito', async () => {
     await expect(
       examErrors({
-        examDate: '2026-07-15',
         isAnonymous: true,
         outcome: ExamOutcome.DESAPROBADO,
         grade: 0,
@@ -207,10 +200,17 @@ describe('CreateExamExperienceDto', () => {
       year: undefined,
       session: undefined,
       format: undefined,
+      outcome: undefined,
       comment: undefined,
     });
     expect(properties(missing)).toEqual(
-      expect.arrayContaining(['year', 'session', 'format', 'comment']),
+      expect.arrayContaining([
+        'year',
+        'session',
+        'format',
+        'outcome',
+        'comment',
+      ]),
     );
 
     for (const [field, value] of [
@@ -220,8 +220,6 @@ describe('CreateExamExperienceDto', () => {
       ['comment', 'x'.repeat(4001)],
       ['session', 'AGOSTO'],
       ['format', 'PRACTICO'],
-      ['shift', 'MEDIODIA'],
-      ['difficulty', 'IMPOSIBLE'],
       ['outcome', 'AUSENTE'],
     ] as const) {
       expect(properties(await examErrors({ [field]: value }))).toContain(field);
@@ -229,23 +227,20 @@ describe('CreateExamExperienceDto', () => {
   });
 
   it('rechaza notas fuera de rango o sin resultado publicable', async () => {
-    expect(properties(await examErrors({ grade: -1 }))).toContain('grade');
-    expect(properties(await examErrors({ grade: 11 }))).toContain('grade');
+    const aprobado = { outcome: ExamOutcome.APROBADO };
+    expect(properties(await examErrors({ ...aprobado, grade: -1 }))).toContain(
+      'grade',
+    );
+    expect(properties(await examErrors({ ...aprobado, grade: 11 }))).toContain(
+      'grade',
+    );
     expect(properties(await examErrors({ grade: 7 }))).toContain('grade');
     expect(
-      properties(
-        await examErrors({
-          outcome: ExamOutcome.PREFIERO_NO_DECIR,
-          grade: 7,
-        }),
-      ),
-    ).toContain('grade');
+      properties(await examErrors({ outcome: undefined, grade: 7 })),
+    ).toContain('outcome');
   });
 
-  it('rechaza fecha, referencia o fallback manual inválidos', async () => {
-    expect(properties(await examErrors({ examDate: 'no-es-fecha' }))).toContain(
-      'examDate',
-    );
+  it('rechaza referencia o fallback manual inválidos', async () => {
     expect(properties(await examErrors({ professorId: 'prof-1' }))).toContain(
       'professorId',
     );

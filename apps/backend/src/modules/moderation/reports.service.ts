@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { TrustService } from '../trust/trust.service';
 import type { CreateReportDto } from './dto/create-report.dto';
 import {
   type ModerationTarget,
@@ -18,12 +19,17 @@ import { isPubliclyVisible } from './visibility';
 /** Reportes on published content (openspec moderation/cases). */
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly trust: TrustService,
+  ) {}
 
   async file(reporterId: string, dto: CreateReportDto) {
     const target: ModerationTarget = { type: dto.targetType, id: dto.targetId };
     const columns = targetColumns(target);
     const now = new Date();
+    // Reportes prioritarios: decided now and stored; never changes afterwards.
+    const priority = await this.trust.isPriorityReporter(reporterId);
 
     await this.prisma.$transaction(async (tx) => {
       // Reportes on one content run one at a time: two first reportes would
@@ -65,6 +71,7 @@ export class ReportsService {
           reporterId,
           reason: dto.reason,
           explanation: dto.explanation,
+          priority,
           ...columns,
         },
       });

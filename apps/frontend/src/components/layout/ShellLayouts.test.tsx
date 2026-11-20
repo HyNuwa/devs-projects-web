@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,6 +32,9 @@ describe('shell layouts', () => {
     expect(screen.getByRole('main')).toHaveTextContent('Contenido');
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('contentinfo')).getByRole('link', { name: 'Experiencias' }),
+    ).toHaveAttribute('href', '/experiencias');
   });
 
   it('keeps the header and footer on focus screens but drops the bottom bar', () => {

@@ -20,6 +20,16 @@ export class DiscoverySubjectLinkDto {
 export class DiscoveryPublicAuthorDto {
   @ApiProperty({ example: 'luciana-g' })
   username: string;
+
+  /** Present only when the entry was published under the author's name. */
+  @ApiPropertyOptional({ format: 'uuid' })
+  id?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  avatarUrl?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  avatarCat?: string | null;
 }
 
 export class DiscoveryPaginationDto {

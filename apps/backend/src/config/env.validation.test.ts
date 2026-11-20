@@ -47,4 +47,31 @@ describe('validate (rate limiting variables)', () => {
       /TRUST_PROXY/,
     );
   });
+
+  describe('validate (insignias calendar)', () => {
+    it('leaves the Primera camada window unset by default', () => {
+      const config = validate(base);
+      expect(config.FOUNDER_WINDOW_START).toBeUndefined();
+      expect(config.FOUNDER_WINDOW_END).toBeUndefined();
+    });
+
+    it('accepts ISO dates and refuses anything else, naming the variable', () => {
+      expect(
+        validate({
+          ...base,
+          FOUNDER_WINDOW_START: '2026-03-01',
+          FOUNDER_WINDOW_END: '2026-07-31',
+        }).FOUNDER_WINDOW_END,
+      ).toBe('2026-07-31');
+      expect(() =>
+        validate({ ...base, FOUNDER_WINDOW_START: 'marzo' }),
+      ).toThrow(/FOUNDER_WINDOW_START/);
+    });
+  });
+
+  it('refuses half a Primera camada window', () => {
+    expect(() =>
+      validate({ ...base, FOUNDER_WINDOW_START: '2026-03-01' }),
+    ).toThrow(/FOUNDER_WINDOW_END/);
+  });
 });

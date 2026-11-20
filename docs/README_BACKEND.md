@@ -56,10 +56,39 @@ Prefijo global `/api/v1`. Todo requiere sesión salvo lo marcado con `@Public()`
 | `subjects` (moderación comunitaria) | `POST reviews/:id/reports`, `exams/:id/reports` · `GET community/reports` · `GET …/:id/management` · `POST …/:id/moderation/remove` y `restore` | Reportes y retiro reversible de reseñas y experiencias |
 | `materials` | `GET/POST /` · `GET mine` · `GET pending` · `GET/PATCH/DELETE :id` · `POST :id/approve`, `reject` · `GET :id/download` · `POST :id/rate` · `GET :id/ratings`, `viewer-state` · `PUT :id/helpfulness`, `saved` | Recursos académicos: subida, vista previa, descarga, «Me sirvió», guardado, valoraciones |
 | `discovery` | `GET suggestions` · `GET course-reviews[/:id]`, `exam-experiences[/:id]` · `GET hierarchy/careers`, `careers/:id/years`, `subjects/:id/resource-categories` | Búsqueda, navegación Universidad → Carrera → Año → Materia |
+| `discovery` (Experiencias) | `GET experiences/overview?facultyId&careerId&year&kind` · `GET subjects/:code/experiences-summary` · `GET subjects/:code/exam-topics` · `GET course-reviews/:id/related`, `exam-experiences/:id/related` | Lecturas públicas de Experiencias: materias más comentadas y recién publicadas, resumen por materia, temas sugeridos para el formulario de final y otras experiencias con el mismo contexto. `GET course-reviews` también filtra por `shift` y `condition` |
 | `ranking` | `GET /`, `me`, `levels`, `top` | Puntos y niveles |
 | `admin` | `GET users`, `users/:id`, `stats` · `PATCH users/:id/role` | Administración (ADMIN, SUPERADMIN) |
 | `mail` | — | Servicio interno de envío |
 | `guides`, `professors` | CRUD | **Heredados.** El producto ya no incluye guías ni profesores; no construir sobre ellos. |
+
+### Reseñas y experiencias de final: contrato de escritura
+
+`POST :code/reviews` y `PUT reviews/:id` usan el mismo DTO (`CreateCourseReviewDto`); `POST :code/exams` y `PUT exams/:id`, también (`CreateExamExperienceDto`). Por eso una edición pide los mismos campos obligatorios que una publicación nueva. Los rangos viven en los DTOs y los validadores en `subjects/dto/community-write.validators.ts`.
+
+| Entrada | Obligatorio | Opcional |
+|---|---|---|
+| Reseña | ciclo lectivo, recomendación 1–5, resultado (`PROMO`, `REGULAR`, `LIBRE`), situación de cursada, relato de 30 a 4.000 caracteres | profesor (del catálogo o nombre manual, no ambos), franja, dificultad, `promotionGrade` 1–10 |
+| Final | año, período, formato, `outcome` (`APROBADO`, `DESAPROBADO`, `PREFIERO_NO_DECIR`), relato de 30 a 4.000 caracteres | examinador, `difficultyTheory` y `difficultyPractice` 1–5, `boardSize` 1–10, `durationMinutes` 10–480, `prepLeadDays` 1–365, `prepDailyMinutes` 30–960 en pasos de 30, `topics` |
+
+- `promotionGrade` solo se acepta con resultado `PROMO`; con `REGULAR` o `LIBRE` da 400. Si no se manda, se guarda vacío, también al editar.
+- `grade` (entero 0–10) es obligatoria con `APROBADO` o `DESAPROBADO` y se rechaza con `PREFIERO_NO_DECIR`. La nota nunca infiere el resultado.
+- `topics`: hasta 10. Se recortan, se colapsan los espacios y se quitan los repetidos sin distinguir mayúsculas ni espacios, conservando la primera escritura; después se valida que cada tema tenga de 2 a 60 caracteres.
+- `examDate`, `shift` y `difficulty` ya no forman parte del DTO de final: con `whitelist` + `forbidNonWhitelisted`, mandarlos da 400. El servicio nunca los escribe, así que un final viejo los conserva al editarlo.
+- Al editar un final, cada dato nuevo que no se declara se guarda vacío (`null`, o `[]` para los temas): la edición borra lo que el autor sacó.
+
+### Lecturas de Experiencias
+
+- **Detalle y listados.** Las reseñas traen `promotionGrade` (o `null`). Los finales traen `difficultyTheory`, `difficultyPractice`, `boardSize` y `durationMinutes` cuando se declararon, y la fecha, la franja y la dificultad verbal heredadas si las tienen. El detalle de un final suma `prepLeadDays`, `prepDailyMinutes`, `estimatedStudyHours` (`round(días × minutos / 60)`, solo con ambos datos) y `topics`.
+- **Resumen** (`GET subjects/:code/experiences-summary`). Además de los conteos, los promedios y la mesa más comentada, trae:
+  - `reviews.promotionGrade`: `average` (desde 5 notas), `informed` y `promoted` (reseñas con `PROMO`).
+  - `exams.topSession.boardSize` y `exams.topSession.duration`: medianas de profesores y minutos de la mesa más comentada, desde 3 respuestas.
+  - `exams.preparation.leadDays` y `exams.preparation.dailyMinutes`: medianas desde 3 respuestas.
+  - `exams.topics`: hasta 5 temas que aparecen en al menos 2 finales públicos.
+
+  Debajo del mínimo, la mediana o el promedio vienen en `null` con su `count`. La mediana de una cantidad par toma el valor del medio inferior.
+- **Temas sugeridos** (`GET subjects/:code/exam-topics`, público). Hasta 20 temas de al menos 2 finales públicos distintos de la materia, ordenados por cantidad y después por nombre, comparando sin mayúsculas. Un código desconocido da 404.
+- **Portada** (`GET experiences/overview`). Con `kind=exams`, cada materia más comentada trae `theory` y `practice` (promedio en `null` por debajo de 3) y no trae `topDifficulty`. Los otros tipos mantienen `topDifficulty`, calculado sobre las reseñas.
 
 ### Almacenamiento de archivos
 

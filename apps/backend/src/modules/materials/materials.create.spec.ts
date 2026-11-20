@@ -9,7 +9,9 @@ import { Test } from '@nestjs/testing';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { HelpfulPoints } from '../ranking/helpful-points';
+import { PioneerBonus } from '../ranking/pioneer-bonus';
 import { MaterialsService } from './materials.service';
 
 describe('MaterialsService.create (publicación inmediata)', () => {
@@ -22,7 +24,7 @@ describe('MaterialsService.create (publicación inmediata)', () => {
     $transaction: jest.fn(),
   };
   const storage = { stage: jest.fn(), publish: jest.fn(), discard: jest.fn() };
-  const pointService = { awardFor: jest.fn() };
+  const pointService = { published: jest.fn() };
   const policy = { priorReviewFor: jest.fn(), openPriorReview: jest.fn() };
 
   const content = Buffer.from('%PDF parcial resuelto');
@@ -72,7 +74,15 @@ describe('MaterialsService.create (publicación inmediata)', () => {
         MaterialsService,
         { provide: PrismaService, useValue: prisma },
         { provide: 'FILE_STORAGE', useValue: storage },
-        { provide: PointService, useValue: pointService },
+        { provide: ContributionPoints, useValue: pointService },
+        {
+          provide: HelpfulPoints,
+          useValue: { marked: jest.fn(), unmarked: jest.fn() },
+        },
+        {
+          provide: PioneerBonus,
+          useValue: { evaluate: jest.fn(), revoke: jest.fn() },
+        },
         { provide: PublicationPolicy, useValue: policy },
       ],
     }).compile();
@@ -97,12 +107,14 @@ describe('MaterialsService.create (publicación inmediata)', () => {
         }),
       }),
     );
-    expect(pointService.awardFor).toHaveBeenCalledWith(prisma, {
-      userId: 'user-1',
-      amount: 10,
-      reason: 'MATERIAL_PUBLISHED',
-      referenceId: 'mat-1',
-    });
+    expect(pointService.published).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({
+        type: 'MATERIAL',
+        id: 'mat-1',
+        authorId: 'user-1',
+      }),
+    );
     expect(prisma.subject.update).toHaveBeenCalledWith({
       where: { id: 'sub-1' },
       data: { materialCount: { increment: 1 } },
@@ -137,7 +149,7 @@ describe('MaterialsService.create (publicación inmediata)', () => {
       'NEW_ACCOUNT',
       'Parcial 1 resuelto',
     );
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('refuses an exact duplicate in the same materia and points to the existing material', async () => {
@@ -246,6 +258,6 @@ describe('MaterialsService.create (publicación inmediata)', () => {
     await expect(service.create(dto, file, 'user-1')).rejects.toThrow();
     expect(storage.discard).toHaveBeenCalledWith('/staging/p.pdf');
     expect(prisma.material.create).not.toHaveBeenCalled();
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 });

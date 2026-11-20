@@ -6,8 +6,8 @@ describe('primary destinations', () => {
   it('lists only the destinations that exist today, in menu order', () => {
     expect(primaryDestinations.map(({ label, href }) => [label, href])).toEqual([
       ['Inicio', '/'],
-      ['Materias', '/materias'],
-      ['Experiencias', '/resenas'],
+      ['Materias', '/universidades'],
+      ['Experiencias', '/experiencias'],
     ]);
   });
 
@@ -19,11 +19,14 @@ describe('primary destinations', () => {
 describe('currentDestination', () => {
   it.each([
     ['/', 'inicio'],
-    ['/materias', 'materias'],
+    ['/universidades', 'materias'],
+    ['/universidades/unju', 'materias'],
+    ['/universidades/unju/fi/ii', 'materias'],
     ['/materias/IP-101', 'materias'],
-    ['/materiales', 'materias'],
-    ['/materiales/ingenieria-informatica/1/ip-101', 'materias'],
     ['/materiales/abc123', 'materias'],
+    ['/experiencias', 'experiencias'],
+    ['/experiencias/06', 'experiencias'],
+    ['/experiencias/escribir', 'experiencias'],
     ['/resenas', 'experiencias'],
     ['/resenas/r-1', 'experiencias'],
     ['/finales', 'experiencias'],
@@ -39,6 +42,7 @@ describe('currentDestination', () => {
     ['/profesores/p-1', null],
     ['/ranking', null],
     ['/materiasx', null],
+    ['/experienciasx', null],
   ])('%s → %s', (pathname, expected) => {
     expect(currentDestination(pathname)).toBe(expected);
   });

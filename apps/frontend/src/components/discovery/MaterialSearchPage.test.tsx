@@ -1,3 +1,4 @@
+import { fiUnju } from '@/test/institutions';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -103,13 +104,16 @@ describe('MaterialSearchPage', () => {
   it('promotes only an exact materia match and scopes its resource request', async () => {
     navigation.searchParams = new URLSearchParams(`q=%C3%81lgebra%20I&subjectId=${subjectId}`);
     vi.mocked(getGroupedSuggestions).mockResolvedValue(
-      suggestions([{ kind: 'SUBJECT', id: subjectId, name: 'Álgebra I', code: 'ALG-01' }]),
+      suggestions([
+        { kind: 'SUBJECT', id: subjectId, name: 'Álgebra I', code: 'ALG-01', faculty: fiUnju },
+      ]),
     );
     vi.mocked(getMaterialDiscovery).mockResolvedValue(materialPage([material()]));
 
     render(<MaterialSearchPage />);
 
     expect(await screen.findByRole('heading', { name: 'Álgebra I' })).toBeInTheDocument();
+    expect(screen.getByText(/FI \(UNJU\) · Código ALG-01/)).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /resultados para/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /buscar en todas las materias/i })).toHaveAttribute(
       'href',

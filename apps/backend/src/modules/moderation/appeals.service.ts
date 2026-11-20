@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { assertAppealInScope } from './scope';
 
 import { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -103,6 +104,7 @@ export class AppealsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await assertAppealInScope(tx, reviewer, appealId);
       const appeal = await tx.appeal.findUnique({
         where: { id: appealId },
         select: {

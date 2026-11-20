@@ -15,9 +15,13 @@ import {
   X,
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { avatarSrc } from '@/components/layout/account';
 import { useAuthStore } from '@/stores/authStore';
 import { api } from '@/lib/api';
 import { Button, Input, useToast } from '@/components/ui';
+import { MyCareerRequests } from './MyCareerRequests';
+import { MyCareers } from './MyCareers';
+import { PublicProfileEditor } from './PublicProfileEditor';
 import { MySubmissions } from './MySubmissions';
 import styles from './ProfilePage.module.css';
 
@@ -166,18 +170,12 @@ export function ProfilePage() {
               {/* Avatar card */}
               <section className={`${styles.card} ${styles.avatarCard}`}>
                 <div className={styles.avatarFrame}>
-                  {user.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={user.avatarUrl}
-                      alt={`Avatar de ${user.username}`}
-                      className={styles.avatarImage}
-                    />
-                  ) : (
-                    <span className={styles.avatarFallback}>
-                      {(user.displayName || user.username).charAt(0).toUpperCase()}
-                    </span>
-                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- avatar from an arbitrary host or /avatars */}
+                  <img
+                    src={avatarSrc(user)}
+                    alt={`Avatar de ${user.username}`}
+                    className={styles.avatarImage}
+                  />
                   <button
                     type="button"
                     className={styles.avatarEditBtn}
@@ -338,6 +336,11 @@ export function ProfilePage() {
               </section>
             </div>
           )}
+
+          {user && <PublicProfileEditor onSaved={() => void checkAuth()} user={user} />}
+
+          {user && <MyCareers />}
+          {user && <MyCareerRequests />}
 
           {user && <MySubmissions />}
         </div>

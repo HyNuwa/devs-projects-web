@@ -6,6 +6,8 @@
 
 - Report only the command, exit status, duration, suite summary, warnings, and relevant failure excerpt.
 
+- Run test suites through a Devin CLI worker, as the `devin-orchestration` skill describes: give it the exact commands, the log paths and the environment to load, and have it return only the summary above. Read the failing log yourself when a fix depends on it.
+
 - On failure, inspect the smallest useful log section first and expand only when needed.
 
 - Preserve full logs locally when they are required as evidence.
@@ -48,3 +50,7 @@ Use the default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-
 ### Domain docs
 
 This is a single-context repository with root-level domain documentation. See `docs/agents/domain.md`.
+
+### End-to-end tests
+
+UI tests use `e2e` in `tests/*.e2e.ts` against `devs_project_e2e`; backend tests stay on Vitest. Read `docs/agents/e2e.md` before writing or running them.

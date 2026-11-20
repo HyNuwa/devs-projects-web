@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { AuthState, LoginPayload, RegisterPayload } from '@/types/auth';
 import { api } from '@/lib/api';
+import { clearExperienceDraft } from '@/components/experiences/forms/experience-draft';
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -31,6 +32,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // ignore logout errors
     }
+    clearExperienceDraft();
     set({ user: null });
   },
 

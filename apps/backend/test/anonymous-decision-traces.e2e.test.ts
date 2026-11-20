@@ -66,6 +66,8 @@ describe('decisions on anonymous content leave no trace of the author (e2e)', ()
         amount: 5,
         reason: 'COURSE_REVIEWED',
         referenceId: review.id,
+        // Points an anonymous reseña earned before the ledger stopped awarding them.
+        idempotencyKey: `legacy:${review.id}`,
       },
     });
     await prisma.user.update({
@@ -93,10 +95,10 @@ describe('decisions on anonymous content leave no trace of the author (e2e)', ()
     const author = await createUser(prisma);
     const { review, moderationCase } = await anonymousReview(author);
     const before = await account(author);
-    const ranking = async () =>
-      (await request(app.getHttpServer()).get('/api/v1/ranking').expect(200))
-        .body as unknown;
-    const rankingBefore = await ranking();
+    // Every ranking is computed from the movimientos, so none moves without one.
+    const movements = () =>
+      prisma.pointTransaction.count({ where: { userId: author.id } });
+    const movementsBefore = await movements();
 
     await as(moderator)
       .post(`/moderation/cases/${moderationCase.id}/decision`, {
@@ -106,7 +108,7 @@ describe('decisions on anonymous content leave no trace of the author (e2e)', ()
       })
       .expect(201);
     expect(await account(author)).toEqual(before);
-    expect(await ranking()).toEqual(rankingBefore);
+    expect(await movements()).toBe(movementsBefore);
 
     await as(otherModerator)
       .post(`/moderation/cases/${moderationCase.id}/decision`, {

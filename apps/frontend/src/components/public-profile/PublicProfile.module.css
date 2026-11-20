@@ -1,0 +1,133 @@
+/*
+ * Perfil público cosmetics (README_PUNTOS_E_INSIGNIAS §4): backgrounds, frames,
+ * the nivel-8 theme and the nivel-9 animated cat. Only the perfil público uses
+ * them; contribution cards never do.
+ */
+
+.page {
+  --profile-accent: var(--primary);
+  --profile-lavanda: #6d4fd1;
+  --profile-surface: var(--card);
+  background-color: var(--background);
+}
+
+/* Backgrounds (nivel 4) */
+.bg-cuadriculado {
+  background-image:
+    linear-gradient(var(--dp-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--dp-grid-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.bg-hoja {
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 47px,
+      rgba(253, 79, 141, 0.28) 47px,
+      rgba(253, 79, 141, 0.28) 49px,
+      transparent 49px
+    ),
+    repeating-linear-gradient(transparent 0 31px, rgba(2, 97, 254, 0.14) 31px 32px);
+}
+
+.bg-pixel {
+  background-image:
+    linear-gradient(
+      45deg,
+      rgba(2, 18, 56, 0.045) 25%,
+      transparent 25%,
+      transparent 75%,
+      rgba(2, 18, 56, 0.045) 75%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(2, 18, 56, 0.045) 25%,
+      transparent 25%,
+      transparent 75%,
+      rgba(2, 18, 56, 0.045) 75%
+    );
+  background-position:
+    0 0,
+    8px 8px;
+  background-size: 16px 16px;
+}
+
+/* Exclusive theme (nivel 8): a night palette for the whole page */
+.theme-faro {
+  --profile-surface: #0c1d4a;
+  background-color: var(--dp-ink);
+  color: var(--dp-surface);
+}
+
+.theme-faro .muted {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Avatar frames (nivel 5, nivel 10 and Salvavidas) */
+.avatar {
+  border-radius: 999px;
+  display: block;
+}
+
+.frame-marco-clasico {
+  box-shadow:
+    0 0 0 4px var(--dp-surface),
+    0 0 0 7px var(--profile-accent, var(--primary));
+}
+
+.frame-marco-legendario {
+  box-shadow:
+    0 0 0 4px var(--dp-surface),
+    0 0 0 9px var(--dp-gold),
+    0 0 0 11px var(--dp-ink),
+    0 0 22px 10px rgba(233, 185, 73, 0.45);
+}
+
+.frame-marco-salvavidas {
+  box-shadow:
+    0 0 0 4px var(--dp-surface),
+    0 0 0 10px var(--dp-red);
+  outline: 3px dashed var(--dp-surface);
+  outline-offset: -8px;
+}
+
+/* Animated cat (nivel 9): a slow blink-and-tilt; still under reduced motion */
+.catAnimated {
+  animation: cat-idle 4.8s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@keyframes cat-idle {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg) scaleY(1);
+  }
+
+  76% {
+    transform: rotate(-4deg) scaleY(0.97);
+  }
+
+  84% {
+    transform: rotate(3deg) scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catAnimated {
+    animation: none;
+  }
+}
+
+.accentRule {
+  background: var(--profile-accent);
+}
+
+.accentText {
+  color: var(--profile-accent);
+}
+
+.surface {
+  background: var(--profile-surface);
+}

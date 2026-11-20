@@ -9,15 +9,17 @@ import {
   Inject,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { Prisma } from '../../generated/prisma/index';
+import { Prisma, type Material } from '../../generated/prisma/index';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FileStorageService, StagedFile } from './file-storage.service';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { RateMaterialDto } from './dto/rate-material.dto';
 import { MaterialsQueryDto } from './dto/materials-query.dto';
-import { Role } from '../auth/dto/auth-response.dto';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { HelpfulPoints } from '../ranking/helpful-points';
+import { PioneerBonus } from '../ranking/pioneer-bonus';
+import { closeObsolete } from '../corrections/close-obsolete';
 import { normalizeSearchKey } from '../../common/search/search-key';
 import {
   buildMaterialRankingQuery,
@@ -27,8 +29,6 @@ import { toMaterialPreview } from './material-preview.mapper';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
 import type { PriorReviewReason } from '../moderation/rules';
 import { isPubliclyVisible, publicVisibility } from '../moderation/visibility';
-
-const MODERATOR_ROLES = [Role.ADMIN, Role.MODERATOR, Role.SUPERADMIN];
 
 const authorSelect = {
   select: {
@@ -42,7 +42,6 @@ const authorSelect = {
 // docs/README_MODERACION.md §3.2
 const DAILY_UPLOAD_LIMIT = 10;
 const UPLOAD_WINDOW_MS = 24 * 60 * 60 * 1000;
-const MATERIAL_POINTS = 10;
 
 export type MaterialSubmissionOutcome =
   | { outcome: 'PUBLISHED'; reason: null }
@@ -126,7 +125,9 @@ export class MaterialsService {
   constructor(
     private prisma: PrismaService,
     @Inject('FILE_STORAGE') private storage: FileStorageService,
-    private pointService: PointService,
+    private contributionPoints: ContributionPoints,
+    private helpfulPoints: HelpfulPoints,
+    private pioneerBonus: PioneerBonus,
     private publicationPolicy: PublicationPolicy,
   ) {}
 
@@ -249,11 +250,11 @@ export class MaterialsService {
         where: { id: dto.subjectId },
         data: { materialCount: { increment: 1 } },
       });
-      await this.pointService.awardFor(tx, {
-        userId,
-        amount: MATERIAL_POINTS,
-        reason: 'MATERIAL_PUBLISHED',
-        referenceId: created.id,
+      await this.contributionPoints.published(tx, {
+        type: 'MATERIAL',
+        id: created.id,
+        authorId: userId,
+        isAnonymous: false,
       });
       return created;
     });
@@ -423,6 +424,7 @@ export class MaterialsService {
       isDeleted: false,
       ...publicVisibility(now),
       ...(query.subjectId ? { subjectId: query.subjectId } : {}),
+      ...(query.facultyId ? { subject: { facultyId: query.facultyId } } : {}),
       ...(searchKey ? { searchKey: { contains: searchKey } } : {}),
       ...(query.resourceType ? { resourceType: query.resourceType } : {}),
       ...(query.academicYear ? { academicYear: query.academicYear } : {}),
@@ -435,6 +437,7 @@ export class MaterialsService {
           transaction.$queryRaw<RankedMaterialId[]>(
             buildMaterialRankingQuery({
               academicYear: query.academicYear,
+              facultyId: query.facultyId,
               limit,
               now,
               offset,
@@ -510,21 +513,8 @@ export class MaterialsService {
       );
     }
 
-    const nextSubjectId = dto.subjectId ?? material.subjectId;
-    const nextProfessorId =
-      dto.professorId === undefined ? material.professorId : dto.professorId;
-    await this.assertAcademicContext(nextSubjectId, nextProfessorId);
-
-    return this.prisma.material.update({
-      where: { id },
-      data: {
-        ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.title !== undefined
-          ? { searchKey: normalizeSearchKey(dto.title) }
-          : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description }
-          : {}),
+    return this.prisma.$transaction(async (tx) => {
+      await this.applyClassification(tx, material, {
         ...(dto.subjectId !== undefined ? { subjectId: dto.subjectId } : {}),
         ...(dto.resourceType !== undefined
           ? { resourceType: dto.resourceType }
@@ -535,16 +525,84 @@ export class MaterialsService {
         ...(dto.professorId !== undefined
           ? { professorId: dto.professorId }
           : {}),
-        ...(dto.shift !== undefined ? { shift: dto.shift } : {}),
-      },
-      include: {
-        author: authorSelect,
-        subject: true,
-      },
+      });
+      return tx.material.update({
+        where: { id },
+        data: {
+          ...(dto.title !== undefined ? { title: dto.title } : {}),
+          ...(dto.title !== undefined
+            ? { searchKey: normalizeSearchKey(dto.title) }
+            : {}),
+          ...(dto.description !== undefined
+            ? { description: dto.description }
+            : {}),
+          ...(dto.shift !== undefined ? { shift: dto.shift } : {}),
+        },
+        include: {
+          author: authorSelect,
+          subject: true,
+        },
+      });
     });
   }
 
-  async remove(id: string, userId: string, role: Role) {
+  /**
+   * Changes a material's classification (materia, tipo, ciclo, profesor) with
+   * the author's validation, inside the caller's transaction. Shared by the
+   * author's edit and by accepted corrections (openspec
+   * academic-resources/corrections). The pioneer bonus belongs to a materia and
+   * type: changing either reverts it and evaluates it again with the new values.
+   * Open suggestions the change made obsolete are closed.
+   */
+  async applyClassification(
+    tx: Prisma.TransactionClient,
+    target: Pick<Material, 'id'>,
+    changes: Partial<
+      Pick<
+        Material,
+        'subjectId' | 'resourceType' | 'academicYear' | 'professorId'
+      >
+    >,
+  ) {
+    // Lock and read it fresh: concurrent edits and accepted corrections must
+    // validate and move the pioneer bonus against the same values.
+    await tx.$queryRaw`SELECT 1 FROM "materials" WHERE "id" = ${target.id}::uuid FOR UPDATE`;
+    const material = await tx.material.findUniqueOrThrow({
+      where: { id: target.id },
+      select: {
+        id: true,
+        subjectId: true,
+        resourceType: true,
+        professorId: true,
+        authorId: true,
+      },
+    });
+    const nextSubjectId = changes.subjectId ?? material.subjectId;
+    const nextProfessorId =
+      changes.professorId === undefined
+        ? material.professorId
+        : changes.professorId;
+    await this.assertAcademicContext(nextSubjectId, nextProfessorId);
+
+    const pioneerChanges =
+      (changes.subjectId !== undefined &&
+        changes.subjectId !== material.subjectId) ||
+      (changes.resourceType !== undefined &&
+        changes.resourceType !== material.resourceType);
+
+    if (pioneerChanges) await this.pioneerBonus.revoke(tx, material);
+    if (Object.keys(changes).length > 0) {
+      await tx.material.update({ where: { id: material.id }, data: changes });
+    }
+    if (pioneerChanges) await this.pioneerBonus.evaluate(tx, material.id);
+    await closeObsolete(tx, material.id);
+  }
+
+  /**
+   * Only the author deletes directly. Staff take content down with a retiro,
+   * which follows the alcance de moderación and stays in the history.
+   */
+  async remove(id: string, userId: string) {
     const material = await this.prisma.material.findUnique({
       where: { id },
     });
@@ -553,16 +611,25 @@ export class MaterialsService {
       throw new NotFoundException('Material no encontrado');
     }
 
-    const isModerator = MODERATOR_ROLES.includes(role);
-    if (material.authorId !== userId && !isModerator) {
+    if (material.authorId !== userId) {
       throw new ForbiddenException(
         'No tienes permisos para eliminar este material',
       );
     }
 
-    return this.prisma.material.update({
-      where: { id },
-      data: { isDeleted: true },
+    return this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.material.update({
+        where: { id },
+        data: { isDeleted: true },
+      });
+      // Deleting a material takes back its points, as a retiro does.
+      await this.contributionPoints.withdrawn(tx, {
+        type: 'MATERIAL',
+        id,
+        isAnonymous: false,
+      });
+      await closeObsolete(tx, id);
+      return deleted;
     });
   }
 
@@ -634,16 +701,19 @@ export class MaterialsService {
         throw new NotFoundException('Material no encontrado');
       }
 
+      const mark = { materialId: id, giverId: userId };
       if (isHelpful) {
         await transaction.materialHelpfulness.upsert({
           where: { userId_materialId: { userId, materialId: id } },
           create: { userId, materialId: id },
           update: {},
         });
+        await this.helpfulPoints.marked(transaction, mark);
       } else {
         await transaction.materialHelpfulness.deleteMany({
           where: { userId, materialId: id },
         });
+        await this.helpfulPoints.unmarked(transaction, mark);
       }
 
       const helpfulCount = await transaction.materialHelpfulness.count({

@@ -17,6 +17,7 @@ import { UserResponseDto } from './dto/auth-response.dto';
 import { accountNotices } from '../moderation/account-notices';
 import { isSuspended } from '../moderation/sanctions.service';
 import { assertNotSuspended } from '../moderation/suspension-notice';
+import { effectiveAvatarCat } from '../users/profile-options';
 
 const REFRESH_TOKEN_BYTES = 64;
 const EMAIL_VERIFICATION_TOKEN_BYTES = 32;
@@ -176,16 +177,23 @@ export class AuthService {
   }
 
   async getProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    const found = await this.prisma.user.findUnique({
       where: { id: userId },
+      include: { profileCustomization: { select: { avatarCat: true } } },
     });
 
-    if (!user) {
+    if (!found) {
       throw new UnauthorizedException('Usuario no encontrado');
     }
 
+    // The chosen cat lets the shell show the chosen avatar.
+    const { profileCustomization, ...user } = found;
     return {
       ...excludePassword(user),
+      avatarCat: effectiveAvatarCat(
+        profileCustomization?.avatarCat ?? null,
+        user.maxLevel,
+      ),
       ...(await accountNotices(this.prisma, user)),
     };
   }

@@ -2,22 +2,35 @@ import { describe, expect, it } from 'vitest';
 
 import type { Role } from '@/types/auth';
 
-import { accountMenuItems, defaultAvatarFor, defaultAvatars } from './account';
+import {
+  accountMenuItems,
+  avatarSrc,
+  defaultAvatarFor,
+  defaultAvatars,
+  isAnimatedCat,
+} from './account';
 
 const labelsFor = (role: Role) => accountMenuItems({ role }).map(({ label }) => label);
 
 describe('accountMenuItems', () => {
-  it('gives students their profile, submissions and sign-out', () => {
-    expect(labelsFor('USER')).toEqual(['Mi perfil', 'Mis envíos', 'Cerrar sesión']);
+  it('gives students their profile, progress, submissions and sign-out', () => {
+    expect(labelsFor('USER')).toEqual(['Mi perfil', 'Tu progreso', 'Mis envíos', 'Cerrar sesión']);
   });
 
   it.each(['MODERATOR', 'ADMIN', 'SUPERADMIN'] as const)('adds Moderación for %s', (role) => {
-    expect(labelsFor(role)).toEqual(['Mi perfil', 'Mis envíos', 'Moderación', 'Cerrar sesión']);
+    expect(labelsFor(role)).toEqual([
+      'Mi perfil',
+      'Tu progreso',
+      'Mis envíos',
+      'Moderación',
+      'Cerrar sesión',
+    ]);
   });
 
   it('links each entry to its page and marks sign-out as an action', () => {
     expect(accountMenuItems({ role: 'ADMIN' })).toEqual([
       expect.objectContaining({ label: 'Mi perfil', href: '/profile/me' }),
+      expect.objectContaining({ label: 'Tu progreso', href: '/mi-espacio/progreso' }),
       expect.objectContaining({ label: 'Mis envíos', href: '/profile/me#mis-envios' }),
       expect.objectContaining({ label: 'Moderación', href: '/admin' }),
       expect.objectContaining({ label: 'Cerrar sesión', action: 'logout' }),
@@ -45,5 +58,26 @@ describe('defaultAvatarFor', () => {
       '/avatars/guino.webp',
       '/avatars/max.webp',
     ]);
+  });
+});
+
+describe('avatarSrc (reputation/profile-customization)', () => {
+  it('shows the chosen cat over the photo', () => {
+    expect(avatarSrc({ id: 'u1', avatarUrl: '/foto.webp', avatarCat: 'gato-lentes' })).toBe(
+      '/avatars/gato-lentes.webp',
+    );
+  });
+
+  it('draws the animated cat with the crema art', () => {
+    expect(avatarSrc({ id: 'u1', avatarUrl: null, avatarCat: 'gato-animado' })).toBe(
+      '/avatars/crema.webp',
+    );
+    expect(isAnimatedCat('gato-animado')).toBe(true);
+    expect(isAnimatedCat('crema')).toBe(false);
+  });
+
+  it('falls back to the photo, then to the cat assigned by id', () => {
+    expect(avatarSrc({ id: 'u1', avatarUrl: '/foto.webp', avatarCat: null })).toBe('/foto.webp');
+    expect(avatarSrc({ id: 'u1', avatarUrl: null })).toBe(defaultAvatarFor('u1'));
   });
 });

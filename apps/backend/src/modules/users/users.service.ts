@@ -2,47 +2,40 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { excludePassword } from '../auth/exclude-password';
+import { PublicProfileService } from './public-profile.service';
+import { effectiveAvatarCat } from './profile-options';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private profiles: PublicProfileService,
+  ) {}
 
-  /**
-   * Another account's profile: only what is public. Email, sanción state and
-   * activity timestamps stay with the account and moderation.
-   */
-  async publicProfile(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        bio: true,
-        points: true,
-        level: true,
-        createdAt: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-
-    return user;
+  /** Another account's profile: the same projection as the perfil público. */
+  publicProfile(id: string) {
+    return this.profiles.byId(id);
   }
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: { profileCustomization: { select: { avatarCat: true } } },
     });
 
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    return excludePassword(user);
+    // The chosen cat lets the account menu show the chosen avatar.
+    const { profileCustomization, ...account } = user;
+    return {
+      ...excludePassword(account),
+      avatarCat: effectiveAvatarCat(
+        profileCustomization?.avatarCat ?? null,
+        account.maxLevel,
+      ),
+    };
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {

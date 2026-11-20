@@ -1,3 +1,4 @@
+import type { FacultyRef as DiscoveryHierarchyFaculty } from './institution';
 import type { MaterialResourceType } from './material';
 
 export interface DiscoverySubjectSuggestion {
@@ -5,6 +6,7 @@ export interface DiscoverySubjectSuggestion {
   id: string;
   name: string;
   code: string | null;
+  faculty: DiscoveryHierarchyFaculty;
 }
 
 export interface DiscoveryMaterialSuggestion {
@@ -34,6 +36,10 @@ export interface DiscoverySubjectLink {
 
 export interface DiscoveryPublicAuthor {
   username: string;
+  /** Present only for named authors; anonymous entries carry just `username`. */
+  id?: string;
+  avatarUrl?: string | null;
+  avatarCat?: string | null;
 }
 
 export interface DiscoveryCourseReview {
@@ -50,6 +56,8 @@ export interface DiscoveryCourseReview {
     | 'PREFIERO_NO_RESPONDER'
     | null;
   difficulty: 'MUY_BAJA' | 'BAJA' | 'MEDIA' | 'ALTA' | 'MUY_ALTA' | null;
+  /** Nota de promoción (1–10), only with PROMO; `null` when undeclared. */
+  promotionGrade?: number | null;
   recommendation: number;
   professor: { id: string; name: string } | null;
   professorName: string | null;
@@ -88,8 +96,17 @@ export interface DiscoveryExamExperience {
   shift?: 'MANANA' | 'TARDE' | 'NOCHE' | 'NO_INDICO';
   professor?: { id: string; name: string };
   examinerName?: string;
+  /** Verbal dificultad of older finales, before teoría and práctica. */
   difficulty?: 'MUY_BAJA' | 'BAJA' | 'MEDIA' | 'ALTA' | 'MUY_ALTA';
+  difficultyTheory?: number;
+  difficultyPractice?: number;
   outcome?: 'APROBADO' | 'DESAPROBADO' | 'PREFIERO_NO_DECIR';
+  /** Nota declared by the author; absent when none was shared. */
+  grade?: number;
+  /** Profesores en la mesa. */
+  boardSize?: number;
+  /** Tiempo del examen, in minutes. */
+  durationMinutes?: number;
   excerpt?: string;
   createdAt: string;
   updatedAt: string;
@@ -107,5 +124,13 @@ export interface DiscoveryExamExperienceList {
 
 /** Full public projection for a shareable final-experience detail route. */
 export interface DiscoveryExamExperienceDetail extends Omit<DiscoveryExamExperience, 'excerpt'> {
+  /** How many days before the exam the author started studying. */
+  prepLeadDays?: number;
+  /** Study time per day, in minutes. */
+  prepDailyMinutes?: number;
+  /** round(prepLeadDays × prepDailyMinutes / 60), only when both exist. */
+  estimatedStudyHours?: number;
+  /** Temas que tomaron (up to ten). */
+  topics: string[];
   comment: string | null;
 }

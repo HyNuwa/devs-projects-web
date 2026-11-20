@@ -10,6 +10,7 @@ import {
   createSubject,
   createUser,
   type E2eUser,
+  createStudent,
 } from './support/e2e-app';
 
 const PASSWORD = 'ClaveE2e123!';
@@ -70,7 +71,7 @@ describe('filing appeals (e2e)', () => {
       .send(body);
 
   it('lets the author appeal a retiro once, within 14 days', async () => {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
     const moderationCase = await retired(author);
 
     await appeal(author, {
@@ -86,7 +87,7 @@ describe('filing appeals (e2e)', () => {
   });
 
   it('refuses an appeal after 14 days and of a revisión previa rejection', async () => {
-    const author = await createUser(prisma);
+    const author = await createStudent(prisma);
 
     await appeal(author, {
       kind: 'RETIRO',
@@ -101,7 +102,7 @@ describe('filing appeals (e2e)', () => {
   });
 
   it('lets a silenced account appeal its silenciamiento', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     await request(app.getHttpServer())
       .post(`/api/v1/moderation/users/${student.id}/mute`)
       .set('Authorization', bearer(app, moderator))
@@ -125,7 +126,7 @@ describe('filing appeals (e2e)', () => {
         .send({ email, password, explanation: 'No publiqué ese spam.' });
 
     it('files the appeal with correct credentials and never signs in', async () => {
-      const student = await createUser(prisma, 'USER', { passwordHash });
+      const student = await createStudent(prisma, { passwordHash });
       await request(app.getHttpServer())
         .post(`/api/v1/moderation/users/${student.id}/suspend`)
         .set('Authorization', bearer(app, admin))
@@ -146,7 +147,7 @@ describe('filing appeals (e2e)', () => {
     });
 
     it('refuses wrong credentials without saying whether the account exists', async () => {
-      const student = await createUser(prisma, 'USER', {
+      const student = await createStudent(prisma, {
         passwordHash,
         isBanned: true,
         bannedUntil: null,

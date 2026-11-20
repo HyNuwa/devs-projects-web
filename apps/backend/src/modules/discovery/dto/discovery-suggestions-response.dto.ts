@@ -1,3 +1,4 @@
+import { DiscoveryFacultyDto } from './discovery-faculty.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MaterialResourceType } from '../../../generated/prisma';
 
@@ -13,6 +14,9 @@ export class DiscoverySubjectSuggestionDto {
 
   @ApiPropertyOptional({ nullable: true })
   code: string | null;
+
+  @ApiProperty({ type: DiscoveryFacultyDto })
+  faculty: DiscoveryFacultyDto;
 }
 
 export class DiscoveryMaterialSubjectDto {

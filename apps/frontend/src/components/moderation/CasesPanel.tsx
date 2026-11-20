@@ -33,8 +33,10 @@ import {
 } from '@/lib/moderation-client';
 import { reportReasonLabels } from '@/lib/report-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
+import { TopicsLine } from './TopicsLine';
 
 const MODERATOR_ROLES = new Set(['MODERATOR', 'ADMIN', 'SUPERADMIN']);
 const HIDDEN_TARGET_HOURS = 48;
@@ -301,9 +303,12 @@ function TargetPreview({ detail }: { detail: CaseDetail }) {
     );
   }
   return (
-    <blockquote className="rounded-xl border-[1.5px] border-line bg-card p-4 text-sm leading-relaxed">
-      {detail.target.comment ?? 'Sin comentario escrito.'}
-    </blockquote>
+    <div className="grid gap-2">
+      <blockquote className="rounded-xl border-[1.5px] border-line bg-card p-4 text-sm leading-relaxed">
+        {detail.target.comment ?? 'Sin comentario escrito.'}
+      </blockquote>
+      <TopicsLine topics={detail.target.topics} />
+    </div>
   );
 }
 
@@ -578,6 +583,7 @@ type QueueState =
 export function CasesPanel() {
   const user = useAuthStore((state) => state.user);
   const searchParams = useSearchParams();
+  const facultyId = useModerationFaculty();
   const router = useRouter();
   const pathname = usePathname();
   const requestedCase = searchParams.get('caso');
@@ -604,7 +610,7 @@ export function CasesPanel() {
   useEffect(() => {
     if (!isModerator) return;
     let active = true;
-    getModerationQueue()
+    getModerationQueue(facultyId)
       .then((queue) => {
         if (!active) return;
         setQueueState({ status: 'ready', queue });
@@ -630,7 +636,7 @@ export function CasesPanel() {
     return () => {
       active = false;
     };
-  }, [isModerator, queueKey, requestedCase]);
+  }, [isModerator, queueKey, requestedCase, facultyId]);
 
   useEffect(() => {
     if (!selectedId) return;

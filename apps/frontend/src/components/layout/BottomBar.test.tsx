@@ -25,9 +25,9 @@ describe('BottomBar', () => {
         .map((link) => [link.textContent, link.getAttribute('href')]),
     ).toEqual([
       ['Inicio', '/'],
-      ['Materias', '/materias'],
+      ['Materias', '/universidades'],
       ['Subir', '/materiales/nuevo'],
-      ['Experiencias', '/resenas'],
+      ['Experiencias', '/experiencias'],
     ]);
   });
 

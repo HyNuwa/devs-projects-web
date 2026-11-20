@@ -10,6 +10,8 @@ export interface User {
   displayName: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  /** The chosen cat avatar, from GET /users/me (reputation/profile-customization). */
+  avatarCat?: string | null;
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;

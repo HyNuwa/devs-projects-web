@@ -15,9 +15,17 @@ const mocks = vi.hoisted(() => ({
   lift: vi.fn(),
   confirm: vi.fn(),
   reject: vi.fn(),
+  promote: vi.fn(),
+  setFaculties: vi.fn(),
+  institutions: vi.fn((): Promise<unknown[]> => Promise.resolve([])),
   user: { id: 'mod-1', role: 'MODERATOR' } as { id: string; role: string } | null,
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/lib/moderation-users-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/moderation-users-client')>()),
   getModerationUsers: mocks.list,
@@ -30,6 +38,15 @@ vi.mock('@/lib/moderation-users-client', async (importOriginal) => ({
   liftSuspension: mocks.lift,
   confirmProposal: mocks.confirm,
   rejectProposal: mocks.reject,
+}));
+vi.mock('@/lib/trust-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/trust-client')>()),
+  promoteToModerator: mocks.promote,
+  setModeratorFaculties: mocks.setFaculties,
+}));
+vi.mock('@/lib/study-plans-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/study-plans-client')>()),
+  getInstitutions: mocks.institutions,
 }));
 vi.mock('@/lib/moderation-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/moderation-client')>()),
@@ -104,6 +121,18 @@ describe('UsersPanel', () => {
 
     expect(screen.getByText('Esta sección es solo para moderación.')).toBeInTheDocument();
     expect(mocks.list).not.toHaveBeenCalled();
+  });
+
+  it('shows the carrera with its facultad as the API labels it', async () => {
+    mocks.list.mockResolvedValueOnce({
+      users: [{ ...listItem, career: 'Ingeniería Informática · FI (UNJU)' }],
+      proposals: null,
+    });
+    render(<UsersPanel />);
+
+    expect(await screen.findByRole('button', { name: /@juan\.p/ })).toHaveTextContent(
+      'Ingeniería Informática · FI (UNJU)',
+    );
   });
 
   it('lists accounts with suggestions and filters or searches them', async () => {
@@ -232,5 +261,100 @@ describe('UsersPanel', () => {
         retireContributions: true,
       }),
     );
+  });
+});
+
+describe('UsersPanel: eligibility to moderate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.promote.mockResolvedValue(undefined);
+    mocks.setFaculties.mockResolvedValue(undefined);
+    mocks.institutions.mockResolvedValue([
+      {
+        id: 'u-unju',
+        name: 'Universidad Nacional de Jujuy',
+        shortName: 'UNJU',
+        faculties: [
+          { id: 'f-fi', name: 'Facultad de Ingeniería', shortName: 'FI', careers: [] },
+          { id: 'f-fce', name: 'Facultad de Ciencias Económicas', shortName: 'FCE', careers: [] },
+        ],
+      },
+    ]);
+  });
+
+  it('offers «Elegibles», the mark and «Hacer moderador» to an admin', async () => {
+    const user = userEvent.setup();
+    mocks.user = { id: 'admin-1', role: 'ADMIN' };
+    mocks.list.mockResolvedValue({
+      users: [{ ...listItem, suggestedStep: 'NONE', eligible: true }],
+      proposals: [],
+    });
+    mocks.file.mockResolvedValue(
+      file({
+        eligible: true,
+        canPromote: true,
+        careerFacultyIds: ['f-fi'],
+        moderatorFaculties: null,
+      }),
+    );
+    render(<UsersPanel />);
+
+    await user.click(await screen.findByRole('button', { name: 'Elegibles' }));
+    expect(mocks.list).toHaveBeenLastCalledWith({ filter: 'eligible' });
+    const row = await screen.findByRole('button', { name: /@juan\.p/ });
+    expect(row).toHaveTextContent('Elegible');
+    await user.click(row);
+    expect(await screen.findByText('Elegible para moderar')).toBeInTheDocument();
+    // The facultades of the account's carreras come preselected.
+    const promote = screen.getByRole('group', { name: 'Facultades que va a cubrir' });
+    expect(await within(promote).findByRole('checkbox', { name: 'FI · UNJU' })).toBeChecked();
+    expect(within(promote).getByRole('checkbox', { name: 'FCE · UNJU' })).not.toBeChecked();
+    await user.click(within(promote).getByRole('checkbox', { name: 'FI · UNJU' }));
+    expect(screen.getByRole('button', { name: 'Hacer moderador' })).toBeDisabled();
+    await user.click(within(promote).getByRole('checkbox', { name: 'FCE · UNJU' }));
+    await user.click(screen.getByRole('button', { name: 'Hacer moderador' }));
+
+    expect(mocks.promote).toHaveBeenCalledWith('user-1', ['f-fce']);
+  });
+
+  it('lets an admin change the facultades a moderator covers', async () => {
+    const user = userEvent.setup();
+    mocks.user = { id: 'admin-1', role: 'ADMIN' };
+    mocks.list.mockResolvedValue(list);
+    mocks.file.mockResolvedValue(
+      file({
+        eligible: false,
+        canPromote: false,
+        careerFacultyIds: [],
+        moderatorFaculties: [
+          {
+            id: 'f-fi',
+            name: 'Facultad de Ingeniería',
+            shortName: 'FI',
+            university: { shortName: 'UNJU' },
+          },
+        ],
+      }),
+    );
+    render(<UsersPanel />);
+    await user.click(await screen.findByRole('button', { name: /@juan\.p/ }));
+
+    const editor = await screen.findByRole('group', { name: 'Facultades que cubre' });
+    expect(await within(editor).findByRole('checkbox', { name: 'FI · UNJU' })).toBeChecked();
+    await user.click(within(editor).getByRole('checkbox', { name: 'FCE · UNJU' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar facultades' }));
+    expect(mocks.setFaculties).toHaveBeenCalledWith('user-1', ['f-fi', 'f-fce']);
+  });
+
+  it('shows no eligibility to a moderator', async () => {
+    mocks.user = { id: 'mod-1', role: 'MODERATOR' };
+    mocks.list.mockResolvedValue(list);
+    mocks.file.mockResolvedValue(file());
+    render(<UsersPanel />);
+
+    await screen.findByRole('button', { name: /@juan\.p/ });
+    expect(screen.queryByRole('button', { name: 'Elegibles' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Elegible/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Facultades que cubre' })).toBeNull();
   });
 });

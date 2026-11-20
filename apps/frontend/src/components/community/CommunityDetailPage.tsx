@@ -1,35 +1,31 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import {
-  ArrowLeft,
-  CalendarDays,
-  GraduationCap,
-  LoaderCircle,
-  Share2,
-  UserRound,
-} from 'lucide-react';
 
+import { AuthorLink } from '@/components/public-profile/AuthorLink';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, GraduationCap, LoaderCircle, Share2 } from 'lucide-react';
+
+import { AnonymousMark } from '@/components/experiences/AnonymousMark';
+import {
+  SameContextSection,
+  SubjectAccordingSection,
+} from '@/components/experiences/DetailExperiencePanels';
+import { WriteExperienceMenu } from '@/components/experiences/WriteExperienceMenu';
 import {
   CommunityFactList,
+  courseReviewFacts,
+  examExperienceFacts,
+  ExamTopicChips,
   formatCommunityDate,
   StarRecommendation,
-} from '@/components/community/CommunitySummaryCards';
+} from '@/components/experiences/facts';
+import { avatarSrc } from '@/components/layout/account';
 import { CommunityEntryManagement } from '@/components/community/CommunityEntryManagement';
 import { ReportDialog } from '@/components/moderation/ReportDialog';
 import { Button, Chip } from '@/components/ui/shadcn';
 import { getCourseReviewDetail, getExamExperienceDetail } from '@/lib/discovery-client';
-import {
-  courseAttemptLabel,
-  courseConditionLabel,
-  difficultyLabel,
-  examFormatLabel,
-  examOutcomeLabel,
-  examPeriodLabel,
-  shiftLabel,
-} from '@/lib/presentation-labels';
 import type { DiscoveryCourseReviewDetail, DiscoveryExamExperienceDetail } from '@/types/discovery';
 
 type CommunityDetailKind = 'course-review' | 'exam-experience';
@@ -58,52 +54,60 @@ function editedDate(createdAt: string, updatedAt: string) {
 function DetailFacts({ detail, kind }: { detail: CommunityDetail; kind: CommunityDetailKind }) {
   if (kind === 'course-review') {
     const review = detail as DiscoveryCourseReviewDetail;
-    const professor = review.professor?.name ?? review.professorName;
-
     return (
       <CommunityFactList
-        facts={[
-          ['Año de cursada', review.academicYear ? `Cursada ${review.academicYear}` : null],
-          ['Resultado de cursada', courseConditionLabel(review.condition)],
-          ['Situación de cursada', review.attempt ? courseAttemptLabel(review.attempt) : null],
-          ['Franja horaria', shiftLabel(review.shift)],
-          [
-            'Dificultad',
-            review.difficulty === null || review.difficulty === undefined
-              ? null
-              : difficultyLabel(review.difficulty),
-          ],
-          ['Profesor', professor ? `Profesor: ${professor}` : null],
-        ]}
+        facts={courseReviewFacts({
+          ...review,
+          professorName: review.professor?.name ?? review.professorName,
+        })}
       />
     );
   }
 
   const experience = detail as DiscoveryExamExperienceDetail;
-  const examiner = experience.professor?.name ?? experience.examinerName;
-  const examDate = experience.examDate ? formatCommunityDate(experience.examDate) : null;
-
   return (
-    <CommunityFactList
-      facts={[
-        ['Año de final', `Final ${experience.year}`],
-        ['Período', examPeriodLabel(experience.session)],
-        ['Formato', examFormatLabel(experience.format)],
-        ['Fecha exacta', examDate ? `Fecha: ${examDate}` : null],
-        ['Franja horaria', experience.shift ? shiftLabel(experience.shift) : null],
-        ['Profesor o examinador', examiner ? `Tomó: ${examiner}` : null],
-        ['Dificultad', experience.difficulty ? difficultyLabel(experience.difficulty) : null],
-        ['Resultado', experience.outcome ? examOutcomeLabel(experience.outcome) : null],
-      ]}
-    />
+    <>
+      <CommunityFactList
+        facts={examExperienceFacts({
+          ...experience,
+          examinerName: experience.professor?.name ?? experience.examinerName,
+        })}
+      />
+      <ExamTopicChips id="exam-topics" topics={experience.topics} />
+    </>
   );
 }
 
+/**
+ * «Publicada» after a form publishes (`?publicada=1`): read once on mount,
+ * then the param leaves the URL so a reload or a shared link never repeats it.
+ */
+function usePublishedNotice() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [published] = useState(() => searchParams.get('publicada') === '1');
+  const stripped = useRef(false);
+
+  useEffect(() => {
+    if (stripped.current || searchParams.get('publicada') !== '1') return;
+    stripped.current = true;
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete('publicada');
+    const query = rest.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  return published;
+}
+
 function DetailActions({
+  code,
   id,
   kind,
   title,
 }: {
+  code: string | null;
   id: string;
   kind: CommunityDetailKind;
   title: string;
@@ -152,6 +156,13 @@ function DetailActions({
         targetId={id}
         targetType={kind === 'course-review' ? 'COURSE_REVIEW' : 'EXAM_EXPERIENCE'}
       />
+      {code ? (
+        <WriteExperienceMenu code={code} />
+      ) : (
+        <Button asChild variant="outline">
+          <Link href="/experiencias/escribir">Escribir experiencia</Link>
+        </Button>
+      )}
       <p aria-live="polite" className="min-h-5 font-sans text-sm text-muted-foreground">
         {shareFeedback ?? reportFeedback}
       </p>
@@ -188,12 +199,15 @@ function CommunityDetailContent({
   detail,
   id,
   kind,
+  published,
 }: {
   detail: CommunityDetail;
   id: string;
   kind: CommunityDetailKind;
+  published: boolean;
 }) {
   const isReview = kind === 'course-review';
+  const sharedKind = isReview ? 'review' : 'exam';
   const review = isReview ? (detail as DiscoveryCourseReviewDetail) : null;
   const listPath = isReview ? '/resenas' : '/finales';
   const sectionLabel = isReview ? 'Reseña de cursada' : 'Experiencia de final';
@@ -221,6 +235,16 @@ function CommunityDetailContent({
 
       <div className="grid gap-6 min-[820px]:grid-cols-[minmax(0,1fr)_16rem] min-[820px]:items-start">
         <article className="min-w-0 border border-border bg-card p-5 sm:p-8">
+          {published ? (
+            <div
+              aria-label="Publicada"
+              className="mb-5 inline-flex items-center gap-2 rounded-md border-[1.5px] border-foreground bg-secondary px-3 py-1.5 font-sans text-sm font-bold text-secondary-foreground"
+              role="status"
+            >
+              <Check aria-hidden="true" className="size-4 text-primary" strokeWidth={2.4} />
+              Publicada
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="min-w-0">
               <p className="font-mono text-[0.7rem] font-bold uppercase tracking-[0.08em] text-primary">
@@ -242,8 +266,23 @@ function CommunityDetailContent({
 
           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border py-4 font-sans text-sm text-secondary-foreground">
             <span className="inline-flex items-center gap-2">
-              <UserRound aria-hidden="true" className="size-4 text-primary" strokeWidth={1.7} />
-              {detail.author.username || 'Anónimo'}
+              {detail.author.id ? (
+                // eslint-disable-next-line @next/next/no-img-element -- 32px avatar from an arbitrary host or /avatars
+                <img
+                  alt=""
+                  className="size-8 shrink-0 rounded-full border-[1.5px] border-foreground object-cover"
+                  height={32}
+                  src={avatarSrc({
+                    id: detail.author.id,
+                    avatarUrl: detail.author.avatarUrl ?? null,
+                    avatarCat: detail.author.avatarCat,
+                  })}
+                  width={32}
+                />
+              ) : (
+                <AnonymousMark className="size-8 [&_svg]:size-4" />
+              )}
+              <AuthorLink author={detail.author} />
             </span>
             {createdDate ? (
               <span className="inline-flex items-center gap-2">
@@ -279,8 +318,14 @@ function CommunityDetailContent({
           </section>
         </article>
 
-        <DetailActions id={id} kind={kind} title={title} />
+        <div className="grid content-start gap-4">
+          <DetailActions code={detail.subject.code} id={id} kind={kind} title={title} />
+          {detail.subject.code ? (
+            <SubjectAccordingSection code={detail.subject.code} kind={sharedKind} />
+          ) : null}
+        </div>
       </div>
+      <SameContextSection code={detail.subject.code} id={id} kind={sharedKind} />
       <CommunityEntryManagement id={id} kind={kind} subjectHref={detail.subject.href} />
     </section>
   );
@@ -297,6 +342,7 @@ export function CommunityDetailPage({
   const [state, setState] = useState<DetailState>(() =>
     id ? { status: 'loading' } : { status: 'unavailable' },
   );
+  const published = usePublishedNotice();
 
   useEffect(() => {
     if (!id) return;
@@ -359,7 +405,14 @@ export function CommunityDetailPage({
     );
   }
 
-  return <CommunityDetailContent detail={state.detail} id={id ?? state.detail.id} kind={kind} />;
+  return (
+    <CommunityDetailContent
+      detail={state.detail}
+      id={id ?? state.detail.id}
+      kind={kind}
+      published={published}
+    />
+  );
 }
 
 export function CourseReviewDetailRoute() {

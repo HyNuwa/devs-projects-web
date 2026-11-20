@@ -5,11 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { SubjectsService } from './subjects.service';
 
 describe('authors cannot delete content under moderation', () => {
   const prisma = {
+    $transaction: vi.fn(),
     courseReview: { findUnique: vi.fn(), delete: vi.fn() },
     examExperience: { findUnique: vi.fn(), delete: vi.fn() },
   };
@@ -17,11 +18,14 @@ describe('authors cannot delete content under moderation', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    prisma.$transaction.mockImplementation(
+      async (work: (tx: typeof prisma) => unknown) => work(prisma),
+    );
     const moduleRef = await Test.createTestingModule({
       providers: [
         SubjectsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: {} },
+        { provide: ContributionPoints, useValue: { withdrawn: vi.fn() } },
         { provide: ConfigService, useValue: { get: vi.fn() } },
         { provide: PublicationPolicy, useValue: {} },
       ],

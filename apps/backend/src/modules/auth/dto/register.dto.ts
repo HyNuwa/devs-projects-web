@@ -6,12 +6,14 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { NotReservedName } from '../../../common/validators/reserved-name';
 
 export class RegisterDto {
   @ApiProperty({ example: 'john_doe', description: 'Username único' })
   @IsString()
   @MinLength(3)
   @MaxLength(30)
+  @NotReservedName()
   username: string;
 
   @ApiProperty({ example: 'john@example.com' })

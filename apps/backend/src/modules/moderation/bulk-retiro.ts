@@ -1,7 +1,8 @@
 import type { Prisma } from '../../generated/prisma';
-import type { PointService } from '../ranking/point.service';
+import type { ContributionPoints } from '../ranking/contribution-points';
 import type { ModerationTarget } from './publication-policy.service';
 import { targetWhere, updateTargetStatusFrom } from './targets';
+import { closeObsolete } from '../corrections/close-obsolete';
 
 type Tx = Prisma.TransactionClient;
 
@@ -12,7 +13,7 @@ type Tx = Prisma.TransactionClient;
  */
 export async function retireAllPublished(
   tx: Tx,
-  points: Pick<PointService, 'revertFor'>,
+  points: Pick<ContributionPoints, 'withdrawn'>,
   input: { authorId: string; actorId: string; reason: string; now: Date },
 ) {
   const { authorId, actorId, reason, now } = input;
@@ -23,11 +24,11 @@ export async function retireAllPublished(
     }),
     tx.courseReview.findMany({
       where: { userId: authorId, publicationStatus: 'PUBLISHED' },
-      select: { id: true, subjectId: true },
+      select: { id: true, subjectId: true, isAnonymous: true },
     }),
     tx.examExperience.findMany({
       where: { userId: authorId, publicationStatus: 'PUBLISHED' },
-      select: { id: true, subjectId: true },
+      select: { id: true, subjectId: true, isAnonymous: true },
     }),
   ]);
 
@@ -35,26 +36,30 @@ export async function retireAllPublished(
     target: ModerationTarget;
     label: string;
     subjectId: string;
+    isAnonymous: boolean;
   }> = [
     ...materials.map((m) => ({
       target: { type: 'MATERIAL' as const, id: m.id },
       label: m.title,
       subjectId: m.subjectId,
+      isAnonymous: false,
     })),
     ...reviews.map((r) => ({
       target: { type: 'COURSE_REVIEW' as const, id: r.id },
       label: 'Reseña de cursada',
       subjectId: r.subjectId,
+      isAnonymous: r.isAnonymous,
     })),
     ...exams.map((e) => ({
       target: { type: 'EXAM_EXPERIENCE' as const, id: e.id },
       label: 'Experiencia de final',
       subjectId: e.subjectId,
+      isAnonymous: e.isAnonymous,
     })),
   ];
 
   let retired = 0;
-  for (const { target, label, subjectId } of items) {
+  for (const { target, label, subjectId, isAnonymous } of items) {
     const changed = await updateTargetStatusFrom(tx, target, 'PUBLISHED', {
       publicationStatus: 'REMOVED',
       statusChangedAt: now,
@@ -76,7 +81,8 @@ export async function retireAllPublished(
         decisionReason: reason,
       },
     });
-    await points.revertFor(tx, target.id);
+    await points.withdrawn(tx, { ...target, isAnonymous });
+    if (target.type === 'MATERIAL') await closeObsolete(tx, target.id);
     if (target.type === 'MATERIAL') {
       await tx.subject.update({
         where: { id: subjectId },

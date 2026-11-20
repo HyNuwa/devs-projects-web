@@ -28,8 +28,10 @@ import {
   warnUser,
 } from '@/lib/moderation-users-client';
 import { reportReasonLabels, type ReportReason } from '@/lib/report-client';
+import { promoteToModerator, setModeratorFaculties } from '@/lib/trust-client';
 import { useAuthStore } from '@/stores/authStore';
 
+import { FacultyChecklist } from './FacultyChecklist';
 import { ModerationHeader } from './ModerationHeader';
 
 const MODERATOR_ROLES = new Set(['MODERATOR', 'ADMIN', 'SUPERADMIN']);
@@ -40,6 +42,12 @@ const FILTERS: Array<{ id: UsersFilter; label: string }> = [
   { id: 'sanctioned', label: 'Sancionados' },
   { id: 'prior-review', label: 'Revisión previa' },
 ];
+
+/** Eligibility counts retiros of anonymous content: admins only. */
+const ADMIN_FILTERS: Array<{ id: UsersFilter; label: string }> = [
+  { id: 'eligible', label: 'Elegibles' },
+];
+const ADMIN_ROLES = new Set(['ADMIN', 'SUPERADMIN']);
 
 const STEP_LABEL: Record<SuggestedStep, string> = {
   NONE: 'ninguno',
@@ -110,6 +118,7 @@ type FileState =
 export function UsersPanel() {
   const user = useAuthStore((state) => state.user);
   const isModerator = Boolean(user && MODERATOR_ROLES.has(user.role));
+  const filters = user && ADMIN_ROLES.has(user.role) ? [...FILTERS, ...ADMIN_FILTERS] : FILTERS;
   const [filter, setFilter] = useState<UsersFilter>('suggested');
   const [query, setQuery] = useState('');
   const [list, setList] = useState<ListState>({ status: 'loading' });
@@ -191,7 +200,7 @@ export function UsersPanel() {
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            {FILTERS.map(({ id, label }) => (
+            {filters.map(({ id, label }) => (
               <button
                 aria-pressed={filter === id && !query.trim()}
                 className={cn(
@@ -261,8 +270,15 @@ export function UsersPanel() {
                       >
                         <span className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-extrabold">@{entry.username}</span>
-                          <span className="rounded-sm bg-muted px-2 py-0.5 text-xs font-bold">
-                            {statusLabel(entry.status)}
+                          <span className="flex gap-1">
+                            {entry.eligible ? (
+                              <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs font-bold text-link">
+                                Elegible
+                              </span>
+                            ) : null}
+                            <span className="rounded-sm bg-muted px-2 py-0.5 text-xs font-bold">
+                              {statusLabel(entry.status)}
+                            </span>
                           </span>
                         </span>
                         <span className="text-muted-foreground">
@@ -355,6 +371,11 @@ function UserFileView({ file, onChanged }: { file: UserFile; onChanged: () => vo
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Promotion starts from the facultades of the account's carreras.
+  const [promoteFaculties, setPromoteFaculties] = useState<string[]>(file.careerFacultyIds ?? []);
+  const [covered, setCovered] = useState<string[]>(
+    (file.moderatorFaculties ?? []).map((faculty) => faculty.id),
+  );
   const can = (action: SanctionAction) => file.actions.includes(action);
 
   const run = async (action: SanctionAction) => {
@@ -468,6 +489,78 @@ function UserFileView({ file, onChanged }: { file: UserFile; onChanged: () => vo
             Hay una propuesta de suspensión pendiente: la decide un admin.
           </p>
         )
+      ) : null}
+
+      {file.moderatorFaculties ? (
+        <div className="grid gap-3 rounded-xl border-[1.5px] border-border p-3 text-sm">
+          <FacultyChecklist
+            disabled={busy}
+            legend="Facultades que cubre"
+            onChange={setCovered}
+            selected={covered}
+          />
+          <Button
+            className="w-fit"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                await setModeratorFaculties(file.id, covered);
+                setNotice('Guardamos sus facultades.');
+                onChanged();
+              } catch (caught) {
+                setError(getApiError(caught));
+              } finally {
+                setBusy(false);
+              }
+            }}
+            size="sm"
+            variant="outline"
+          >
+            Guardar facultades
+          </Button>
+        </div>
+      ) : null}
+
+      {file.eligible ? (
+        <div className="grid gap-2 rounded-xl border-[1.5px] border-primary bg-secondary p-3 text-sm">
+          <p className="font-extrabold text-link">Elegible para moderar</p>
+          <p className="text-secondary-foreground">
+            Cumple nivel, antigüedad, aportes a moderación y 90 días sin sanciones. La invitación es
+            manual: escribile antes de cambiar su rol.
+          </p>
+          {file.canPromote ? (
+            <div className="grid gap-3">
+              <FacultyChecklist
+                disabled={busy}
+                legend="Facultades que va a cubrir"
+                onChange={setPromoteFaculties}
+                selected={promoteFaculties}
+              />
+              <Button
+                className="w-fit"
+                disabled={busy || promoteFaculties.length === 0}
+                onClick={async () => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    await promoteToModerator(file.id, promoteFaculties);
+                    setNotice('Ahora es parte de moderación.');
+                    onChanged();
+                  } catch (caught) {
+                    setError(getApiError(caught));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                size="sm"
+              >
+                Hacer moderador
+              </Button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {file.actions.some((action) => action !== 'DECIDE_PROPOSAL') ? (

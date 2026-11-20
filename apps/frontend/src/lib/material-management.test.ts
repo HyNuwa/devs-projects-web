@@ -26,15 +26,16 @@ describe('material management capabilities', () => {
     });
   });
 
-  it('allows a moderator to delete but not edit another author’s material', () => {
-    expect(getMaterialManagementCapabilities(material, { ...baseUser, role: 'MODERATOR' })).toEqual(
-      {
-        canDelete: true,
+  it.each(['MODERATOR', 'ADMIN', 'SUPERADMIN'] as const)(
+    'gives a %s no direct delete of another author’s material: staff retire it from a caso',
+    (role) => {
+      expect(getMaterialManagementCapabilities(material, { ...baseUser, role })).toEqual({
+        canDelete: false,
         canEdit: false,
-        canManage: true,
-      },
-    );
-  });
+        canManage: false,
+      });
+    },
+  );
 
   it('does not expose management to an ordinary viewer', () => {
     expect(getMaterialManagementCapabilities(material, baseUser)).toEqual({

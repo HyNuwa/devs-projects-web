@@ -45,7 +45,6 @@ import {
   SetSavedMaterialDto,
 } from './dto/set-material-viewer-state.dto';
 import { Public } from '../../common/decorators/public.decorator';
-import { Role } from '../auth/dto/auth-response.dto';
 import { RequiresActiveAccount } from '../moderation/active-account.guard';
 
 @ApiTags('Materials')
@@ -135,7 +134,7 @@ export class MaterialsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar material (soft delete)' })
+  @ApiOperation({ summary: 'Eliminar material (soft delete, solo autor)' })
   @ApiResponse({ status: 200, description: 'Material eliminado' })
   @ApiResponse({ status: 403, description: 'Sin permisos' })
   @ApiResponse({ status: 404, description: 'Material no encontrado' })
@@ -143,7 +142,7 @@ export class MaterialsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: { user: { id: string; role: string } },
   ) {
-    return this.materialsService.remove(id, req.user.id, req.user.role as Role);
+    return this.materialsService.remove(id, req.user.id);
   }
 
   @Get(':id/download')

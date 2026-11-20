@@ -9,6 +9,7 @@ import {
   Request,
   ParseUUIDPipe,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -38,6 +39,20 @@ export class SubjectsController {
   }
 
   @Public()
+  @Get(':code/current')
+  @ApiOperation({
+    summary: 'Si el código es viejo, la dirección actual de la materia',
+  })
+  async current(@Param('code') code: string) {
+    // Cheap check for the materia page: an old code of a renamed materia
+    // redirects; a current or unknown one renders as usual.
+    const current = await this.subjectsService.renamedCode(code);
+    return {
+      redirect: current ? `/materias/${encodeURIComponent(current)}` : null,
+    };
+  }
+
+  @Public()
   @Get(':code')
   @ApiOperation({ summary: 'Obtener hub de una materia por código' })
   @ApiResponse({
@@ -45,8 +60,16 @@ export class SubjectsController {
     description: 'Ficha de la materia con estadísticas',
   })
   @ApiResponse({ status: 404, description: 'Materia no encontrada' })
-  findByCode(@Param('code') code: string) {
-    return this.subjectsService.findByCode(code);
+  async findByCode(@Param('code') code: string) {
+    try {
+      return await this.subjectsService.findByCode(code);
+    } catch (error) {
+      // An old code of a renamed materia answers with its current address.
+      if (!(error instanceof NotFoundException)) throw error;
+      const current = await this.subjectsService.renamedCode(code);
+      if (!current) throw error;
+      return { redirect: `/materias/${encodeURIComponent(current)}` };
+    }
   }
 
   @Public()

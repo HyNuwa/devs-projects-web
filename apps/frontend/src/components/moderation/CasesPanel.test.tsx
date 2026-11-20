@@ -266,6 +266,31 @@ describe('CasesPanel', () => {
     expect(mocks.reveal).toHaveBeenCalledWith('case-review', 'Evaluar reincidencia');
   });
 
+  it.each([
+    [['Series de Fourier', 'Truco del profe'], 'Temas: Series de Fourier, Truco del profe'],
+    [[], null],
+  ])('shows the temas %j of a final beside its comment', async (topics, shown) => {
+    mocks.detail.mockResolvedValue(
+      detail({
+        target: {
+          type: 'EXAM_EXPERIENCE',
+          id: 'exam-1',
+          status: 'HIDDEN',
+          label: 'Experiencia de final',
+          subject,
+          isAnonymous: false,
+          comment: 'La mesa tomó integrales dobles.',
+          topics,
+        },
+      }),
+    );
+    render(<CasesPanel />);
+
+    expect(await screen.findByText('La mesa tomó integrales dobles.')).toBeInTheDocument();
+    if (shown) expect(screen.getByText(shown)).toBeInTheDocument();
+    else expect(screen.queryByText(/^Temas:/)).not.toBeInTheDocument();
+  });
+
   it('approves or rejects a revisión previa', async () => {
     const user = userEvent.setup();
     mocks.detail.mockResolvedValue(

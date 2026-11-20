@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ReviewForm } from '@/components/subjects/ReviewForm';
+import { ReviewForm } from '@/components/experiences/forms/ReviewForm';
 
 export const metadata: Metadata = {
   title: 'Reseñar cursada - DevsProject',

@@ -12,6 +12,7 @@ export type MaterialRankingQueryInput = {
   searchKey?: string;
   sort?: MaterialSort;
   subjectId?: string;
+  facultyId?: string;
 };
 
 export type RankedMaterialId = { id: string };
@@ -39,6 +40,11 @@ export function buildMaterialRankingQuery(
   }
   if (input.subjectId) {
     filters.push(Prisma.sql`m.subject_id = ${input.subjectId}`);
+  }
+  if (input.facultyId) {
+    filters.push(
+      Prisma.sql`m.subject_id IN (SELECT s.id FROM subjects s WHERE s.faculty_id = ${input.facultyId}::uuid)`,
+    );
   }
   if (input.resourceType) {
     filters.push(

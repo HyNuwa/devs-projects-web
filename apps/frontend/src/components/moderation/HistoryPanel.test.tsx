@@ -9,6 +9,11 @@ const mocks = vi.hoisted(() => ({
   user: { id: 'mod-1', role: 'MODERATOR' } as { id: string; role: string } | null,
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('@/lib/moderation-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/moderation-client')>()),
   getModerationHistory: mocks.history,
@@ -98,6 +103,74 @@ describe('HistoryPanel', () => {
     const table = await screen.findByRole('table', { name: 'Historial de moderación' });
     expect(within(table).getAllByRole('row')[1]).toHaveTextContent('Autor oculto');
     expect(table).not.toHaveTextContent('@desconocido');
+  });
+
+  it('names a role change and its roles', async () => {
+    mocks.history.mockResolvedValue({
+      items: [
+        {
+          ...items[1],
+          id: 'ev-role',
+          action: 'ROLE_CHANGED',
+          target: null,
+          targetUser: { username: 'lucia.p' },
+          reason: null,
+          roleChange: { from: 'USER', to: 'MODERATOR' },
+        },
+      ],
+      nextCursor: null,
+    });
+    render(<HistoryPanel />);
+
+    const table = await screen.findByRole('table', { name: 'Historial de moderación' });
+    const row = within(table).getAllByRole('row')[1];
+    expect(row).toHaveTextContent('Cambio de rol');
+    expect(row).toHaveTextContent('@lucia.p');
+    expect(row).toHaveTextContent('De Estudiante a Moderación');
+    expect(row).not.toHaveTextContent('ROLE_CHANGED');
+  });
+
+  it('summarizes a lectura del plan, with its result or its error', async () => {
+    mocks.user = { id: 'admin-1', role: 'ADMIN' };
+    const reading = (id: string, after: Record<string, unknown>): HistoryItem => ({
+      ...items[0],
+      id,
+      action: 'CATALOG_PLAN_READ',
+      target: null,
+      targetUser: null,
+      caseId: null,
+      reason: null,
+      catalog: { kind: 'CAREER', id: 'c-lf', label: 'Licenciatura en Física', before: null, after },
+    });
+    mocks.history.mockResolvedValue({
+      items: [
+        reading('ev-ok', {
+          url: 'https://exactas.unsa.edu.ar/lf',
+          linked: 'https://exactas.unsa.edu.ar/plan.pdf',
+          lines: 42,
+          notices: 2,
+          error: null,
+        }),
+        reading('ev-fail', {
+          url: 'https://exactas.unsa.edu.ar/lq',
+          linked: null,
+          lines: 0,
+          notices: 0,
+          error: 'PLAN_NOT_FOUND',
+        }),
+      ],
+      nextCursor: null,
+    });
+    render(<HistoryPanel />);
+
+    const table = await screen.findByRole('table', { name: 'Historial de moderación' });
+    const [ok, fail] = within(table).getAllByRole('row').slice(1);
+    expect(ok).toHaveTextContent('Lectura del plan');
+    expect(ok).toHaveTextContent(
+      'Carrera Licenciatura en Física · https://exactas.unsa.edu.ar/lf → https://exactas.unsa.edu.ar/plan.pdf · 42 materias, 2 avisos',
+    );
+    expect(fail).toHaveTextContent('No encontró el plan');
+    expect(ok).not.toHaveTextContent('CATALOG_PLAN_READ');
   });
 
   it('is read-only: there are no edit or delete controls', async () => {

@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { accountWhere, assertAccountInScope, scopeOf } from './scope';
+import { requireFaculties, setModeratorFaculties } from './scope-assignment';
 
 import type { Prisma, Role } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -14,13 +21,16 @@ import {
 } from './escalera-history';
 import { canSanction, type SanctionAction } from './sanction-rules';
 import { type Actor, isSuspended } from './sanctions.service';
+import { TrustService } from '../trust/trust.service';
+import { MODERATE_LEVEL, MODERATE_MIN_MONTHS } from '../trust/privileges';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LIST_LIMIT = 50;
 const MIN_RESOLVED_REPORTS = 5;
 const ADMIN_ROLES: ReadonlySet<Role> = new Set(['ADMIN', 'SUPERADMIN']);
 
-export type UsersFilter = 'suggested' | 'sanctioned' | 'prior-review';
+export type UsersFilter =
+  'suggested' | 'sanctioned' | 'prior-review' | 'eligible';
 
 /**
  * Casos whose content is not anonymous. Casos about anonymous entries never appear
@@ -38,10 +48,28 @@ const accountSelect = {
   isBanned: true,
   bannedUntil: true,
   mutedUntil: true,
+  // An active plan first, then a finished one (enum order: ACTIVE, COMPLETED).
   studyPlans: {
-    where: { status: 'ACTIVE' },
+    where: { status: { in: ['ACTIVE', 'COMPLETED'] } },
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     take: 1,
-    select: { studyPlan: { select: { career: { select: { name: true } } } } },
+    select: {
+      studyPlan: {
+        select: {
+          career: {
+            select: {
+              name: true,
+              faculty: {
+                select: {
+                  shortName: true,
+                  university: { select: { shortName: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 } satisfies Prisma.UserSelect;
 
@@ -50,7 +78,10 @@ type Account = Prisma.UserGetPayload<{ select: typeof accountSelect }>;
 /** The Usuarios tab (openspec moderation/sanctions, «Usuarios tab»). */
 @Injectable()
 export class ModerationUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly trust: TrustService,
+  ) {}
 
   /**
    * For a MODERATOR nothing here depends on retiros of anonymous content or on
@@ -58,12 +89,30 @@ export class ModerationUsersService {
    * status, the paso sugerido nor the timeline. ADMIN and SUPERADMIN see them.
    */
   async list(viewer: Actor, input: { filter?: UsersFilter; q?: string }) {
+    const isAdmin = ADMIN_ROLES.has(viewer.role);
+    // Eligibility counts retiros of anonymous content: admins only.
+    if (input.filter === 'eligible' && !isAdmin) {
+      throw new ForbiddenException('Solo un administrador ve la elegibilidad.');
+    }
     const now = new Date();
     const anonymous = anonymousHistoryFor(viewer.role);
     const q = input.q?.trim();
+    // A moderator's accounts narrow every query before its limit, so accounts of
+    // other facultades never crowd out the ones they can see.
+    const scope = await scopeOf(this.prisma, viewer);
+    const visible = await accountWhere(this.prisma, scope);
+    const visibleIds =
+      scope === 'ALL'
+        ? undefined
+        : (
+            await this.prisma.user.findMany({
+              where: visible,
+              select: { id: true },
+            })
+          ).map((user) => user.id);
     // A search looks at every account first, then the filter applies within it,
     // so no match is lost to the candidate limit.
-    const within = q ? await this.searchIds(q) : undefined;
+    const within = q ? await this.searchIds(q, visibleIds) : visibleIds;
     const ids =
       q && !input.filter
         ? (within ?? [])
@@ -72,8 +121,13 @@ export class ModerationUsersService {
     // author of an anonymous entry just retired.
     const accounts = await this.prisma.user.findMany({
       where: {
-        id: { in: ids },
-        ...(q ? { username: { contains: q, mode: 'insensitive' } } : {}),
+        AND: [
+          {
+            id: { in: ids },
+            ...(q ? { username: { contains: q, mode: 'insensitive' } } : {}),
+          },
+          visible,
+        ],
       },
       orderBy: { username: 'asc' },
       select: accountSelect,
@@ -83,7 +137,7 @@ export class ModerationUsersService {
       accounts.map((account) => account.id),
       { anonymous },
     );
-    const users = accounts
+    const listed = accounts
       .map((account) => {
         const history = histories.get(account.id) ?? emptyHistory();
         return {
@@ -96,9 +150,22 @@ export class ModerationUsersService {
         (user) =>
           (input.filter ?? (q ? undefined : 'suggested')) !== 'suggested' ||
           user.suggestedStep !== 'NONE',
-      )
-      .slice(0, LIST_LIMIT);
-
+      );
+    // Eligibility costs a few queries per account: only for the page shown,
+    // and one account at a time so the pool is never flooded.
+    const eligibleFilter = input.filter === 'eligible';
+    const page = eligibleFilter ? listed : listed.slice(0, LIST_LIMIT);
+    const eligibility = isAdmin
+      ? await this.eligibility(page.map((user) => user.id))
+      : null;
+    const users = page
+      .filter((user) => !eligibleFilter || eligibility?.get(user.id))
+      .slice(0, LIST_LIMIT)
+      .map((user) =>
+        eligibility
+          ? { ...user, eligible: eligibility.get(user.id) ?? false }
+          : user,
+      );
     return {
       users,
       proposals: ADMIN_ROLES.has(viewer.role) ? await this.proposals() : null,
@@ -106,6 +173,7 @@ export class ModerationUsersService {
   }
 
   async file(viewer: Actor, userId: string) {
+    await assertAccountInScope(this.prisma, viewer, userId);
     const now = new Date();
     const since = new Date(now.getTime() - ESCALERA_WINDOW_DAYS * DAY_MS);
     const account = await this.prisma.user.findUnique({
@@ -268,12 +336,126 @@ export class ModerationUsersService {
       pendingProposal: proposal,
       timeline,
       actions: allowedActions(viewer, account, proposal !== null, now),
+      // Eligibility counts retiros of anonymous content: admins only.
+      ...(ADMIN_ROLES.has(viewer.role)
+        ? {
+            eligible: await this.trust.isEligibleToModerate(account.id),
+            canPromote: account.role === 'USER' && account.id !== viewer.id,
+            ...(await this.facultiesForAdmin(account.id, account.role)),
+          }
+        : {}),
     };
   }
 
-  private async searchIds(q: string): Promise<string[]> {
+  /**
+   * For admins only (openspec moderation/scope): the facultades a moderator
+   * covers, and those of the account's carreras to preselect when promoting.
+   */
+  private async facultiesForAdmin(userId: string, role: string) {
+    const [plans, scopes] = await Promise.all([
+      this.prisma.userStudyPlan.findMany({
+        where: { userId },
+        select: {
+          studyPlan: { select: { career: { select: { facultyId: true } } } },
+        },
+      }),
+      role === 'MODERATOR'
+        ? this.prisma.moderatorScope.findMany({
+            where: { userId },
+            orderBy: { faculty: { name: 'asc' } },
+            select: {
+              faculty: {
+                select: {
+                  id: true,
+                  name: true,
+                  shortName: true,
+                  university: { select: { shortName: true } },
+                },
+              },
+            },
+          })
+        : null,
+    ]);
+    return {
+      careerFacultyIds: [
+        ...new Set(plans.map((plan) => plan.studyPlan.career.facultyId)),
+      ],
+      moderatorFaculties: scopes ? scopes.map((scope) => scope.faculty) : null,
+    };
+  }
+
+  /**
+   * «Hacer moderador»: an admin makes a USER account a MODERATOR. Only that
+   * change, recorded in the moderation history.
+   */
+  async promote(viewer: Actor, userId: string, facultyIds?: string[]) {
+    const faculties = requireFaculties(facultyIds);
+    return this.prisma.$transaction(async (tx) => {
+      const [account] = await tx.$queryRaw<{ role: string }[]>`
+        SELECT "role"::text AS "role" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+      if (!account) throw new NotFoundException('Cuenta no encontrada');
+      if (account.role !== 'USER') {
+        throw new ConflictException(
+          'Solo se puede hacer moderadora a una cuenta de estudiante.',
+        );
+      }
+      await tx.user.update({
+        where: { id: userId },
+        data: { role: 'MODERATOR' },
+      });
+      await tx.moderationEvent.create({
+        data: {
+          actorId: viewer.id,
+          action: 'ROLE_CHANGED',
+          targetUserId: userId,
+          metadata: { from: 'USER', to: 'MODERATOR' },
+        },
+      });
+      const covered = await setModeratorFaculties(tx, {
+        actorId: viewer.id,
+        userId,
+        facultyIds: faculties,
+      });
+      return { role: 'MODERATOR' as const, facultyIds: covered };
+    });
+  }
+
+  /** Replaces the facultades of a MODERATOR (admins only, from the account file). */
+  async setFaculties(viewer: Actor, userId: string, facultyIds: string[]) {
+    return this.prisma.$transaction(async (tx) => {
+      const [account] = await tx.$queryRaw<{ role: string }[]>`
+        SELECT "role"::text AS "role" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+      if (!account) throw new NotFoundException('Cuenta no encontrada');
+      if (account.role !== 'MODERATOR') {
+        throw new ConflictException(
+          'Solo una cuenta moderadora tiene facultades asignadas.',
+        );
+      }
+      return {
+        facultyIds: await setModeratorFaculties(tx, {
+          actorId: viewer.id,
+          userId,
+          facultyIds,
+        }),
+      };
+    });
+  }
+
+  /** Eligibility of each account, for admins (openspec reputation/trust-privileges). */
+  private async eligibility(ids: string[]) {
+    const eligible = new Map<string, boolean>();
+    for (const id of ids) {
+      eligible.set(id, await this.trust.isEligibleToModerate(id));
+    }
+    return eligible;
+  }
+
+  private async searchIds(q: string, among?: string[]): Promise<string[]> {
     const found = await this.prisma.user.findMany({
-      where: { username: { contains: q, mode: 'insensitive' } },
+      where: {
+        username: { contains: q, mode: 'insensitive' },
+        ...(among ? { id: { in: among } } : {}),
+      },
       orderBy: { username: 'asc' },
       take: LIST_LIMIT,
       select: { id: true },
@@ -318,6 +500,24 @@ export class ModerationUsersService {
           ...restricted.map((user) => user.id),
         ]),
       ];
+    }
+    if (filter === 'eligible') {
+      // Only students with the nivel and age can qualify; the rest is checked per account.
+      const oldEnough = new Date(now);
+      oldEnough.setUTCMonth(oldEnough.getUTCMonth() - MODERATE_MIN_MONTHS);
+      const candidates = await this.prisma.user.findMany({
+        where: {
+          id: users,
+          role: 'USER',
+          maxLevel: { gte: MODERATE_LEVEL },
+          createdAt: { lte: oldEnough },
+        },
+        // Newest first, so the cap keeps a stable, recent slice.
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        select: { id: true },
+      });
+      return candidates.map((user) => user.id);
     }
     if (filter === 'prior-review') {
       const cases = await this.prisma.moderationCase.findMany({
@@ -411,11 +611,19 @@ function caseLabel(c: {
     : 'Experiencia de final';
 }
 
+/** «Ingeniería Informática · FI (UNJU)», from the plan `accountSelect` picked. */
+function careerLabel(account: Account) {
+  const career = account.studyPlans[0]?.studyPlan.career;
+  if (!career) return null;
+  const { faculty } = career;
+  return `${career.name} · ${faculty.shortName} (${faculty.university.shortName})`;
+}
+
 function basics(account: Account, now: Date) {
   return {
     id: account.id,
     username: account.username,
-    career: account.studyPlans[0]?.studyPlan.career.name ?? null,
+    career: careerLabel(account),
     createdAt: account.createdAt,
     accountAgeDays: Math.floor(
       (now.getTime() - account.createdAt.getTime()) / DAY_MS,

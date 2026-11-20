@@ -6,6 +6,9 @@ import {
   ParseUUIDPipe,
   UseGuards,
   Body,
+  ForbiddenException,
+  NotFoundException,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +20,13 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role, UserResponseDto } from '../auth/dto/auth-response.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import {
+  requireFaculties,
+  setModeratorFaculties,
+} from '../moderation/scope-assignment';
+
+const ADMIN_ROLES: Role[] = [Role.ADMIN, Role.SUPERADMIN];
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -73,25 +83,70 @@ export class AdminController {
   @Patch('users/:id/role')
   @ApiOperation({ summary: 'Cambiar rol de un usuario' })
   @ApiResponse({ status: 200, type: UserResponseDto })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Solo un SUPERADMIN otorga o quita ADMIN y SUPERADMIN; nadie cambia su propio rol',
+  })
   async updateUserRole(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body('role') role: Role,
+    @Body() body: UpdateRoleDto,
+    @Request() req: { user: { id: string; role: Role } },
   ) {
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: { role },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        displayName: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    if (req.user.id === id) {
+      throw new ForbiddenException('No podés cambiar tu propio rol.');
+    }
+    const select = {
+      id: true,
+      username: true,
+      email: true,
+      role: true,
+      displayName: true,
+      createdAt: true,
+      updatedAt: true,
+    } as const;
 
-    return user;
+    return this.prisma.$transaction(async (tx) => {
+      // Locked, so the role checked is the role changed.
+      const [target] = await tx.$queryRaw<{ role: Role }[]>`
+        SELECT "role"::text AS "role" FROM "users" WHERE "id" = ${id}::uuid FOR UPDATE`;
+      if (!target) throw new NotFoundException('Usuario no encontrado');
+      const touchesAdmins = [body.role, target.role].some((role) =>
+        ADMIN_ROLES.includes(role),
+      );
+      if (touchesAdmins && req.user.role !== Role.SUPERADMIN) {
+        throw new ForbiddenException(
+          'Solo un SUPERADMIN puede otorgar o quitar los roles ADMIN y SUPERADMIN.',
+        );
+      }
+      if (target.role === body.role) {
+        return tx.user.findUniqueOrThrow({ where: { id }, select });
+      }
+      const faculties =
+        body.role === Role.MODERATOR ? requireFaculties(body.facultyIds) : [];
+      const user = await tx.user.update({
+        where: { id },
+        data: { role: body.role },
+        select,
+      });
+      await tx.moderationEvent.create({
+        data: {
+          actorId: req.user.id,
+          action: 'ROLE_CHANGED',
+          targetUserId: id,
+          metadata: { from: target.role, to: body.role },
+        },
+      });
+      // Becoming MODERATOR sets its facultades; leaving it removes them.
+      if (body.role === Role.MODERATOR || target.role === Role.MODERATOR) {
+        await setModeratorFaculties(tx, {
+          actorId: req.user.id,
+          userId: id,
+          facultyIds: faculties,
+        });
+      }
+      return user;
+    });
   }
 
   @Get('stats')

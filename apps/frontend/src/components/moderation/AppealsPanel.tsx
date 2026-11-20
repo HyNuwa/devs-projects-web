@@ -14,8 +14,10 @@ import {
 } from '@/lib/appeals-client';
 import { getApiError } from '@/lib/apiHelpers';
 import { useAuthStore } from '@/stores/authStore';
+import { useModerationFaculty } from './useModerationFaculty';
 
 import { ModerationHeader } from './ModerationHeader';
+import { TopicsLine } from './TopicsLine';
 
 const MODERATOR_ROLES = new Set(['MODERATOR', 'ADMIN', 'SUPERADMIN']);
 const ANSWER_MAX = 1000;
@@ -57,11 +59,12 @@ export function AppealsPanel() {
   const [detail, setDetail] = useState<AppealDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const facultyId = useModerationFaculty();
 
   useEffect(() => {
     if (!isModerator) return;
     let active = true;
-    getAppeals()
+    getAppeals(facultyId)
       .then((appeals) => {
         if (!active) return;
         setList({ status: 'ready', appeals });
@@ -77,7 +80,7 @@ export function AppealsPanel() {
     return () => {
       active = false;
     };
-  }, [isModerator, reloadKey]);
+  }, [isModerator, reloadKey, facultyId]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -274,6 +277,7 @@ function AppealView({ appeal, onAnswered }: { appeal: AppealDetail; onAnswered: 
               {appeal.content.comment}
             </blockquote>
           ) : null}
+          <TopicsLine topics={appeal.content.topics} />
           <Link
             className="font-bold text-link underline underline-offset-4"
             href={`/admin?caso=${encodeURIComponent(appeal.content.caseId)}`}

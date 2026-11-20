@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import { ExamFormat } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { SubjectsService } from './subjects.service';
 
 describe('SubjectsService publication of reseñas and experiencias', () => {
@@ -16,7 +16,7 @@ describe('SubjectsService publication of reseñas and experiencias', () => {
     examExperience: { create: jest.fn() },
     $transaction: jest.fn(),
   };
-  const pointService = { awardFor: jest.fn() };
+  const pointService = { published: jest.fn() };
   const policy = { priorReviewFor: jest.fn(), openPriorReview: jest.fn() };
 
   const reviewDto = {
@@ -40,7 +40,7 @@ describe('SubjectsService publication of reseñas and experiencias', () => {
       providers: [
         SubjectsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: pointService },
+        { provide: ContributionPoints, useValue: pointService },
         { provide: PublicationPolicy, useValue: policy },
         {
           provide: ConfigService,
@@ -71,12 +71,14 @@ describe('SubjectsService publication of reseñas and experiencias', () => {
         data: expect.objectContaining({ publicationStatus: 'PUBLISHED' }),
       }),
     );
-    expect(pointService.awardFor).toHaveBeenCalledWith(prisma, {
-      userId: 'user-1',
-      amount: 5,
-      reason: 'COURSE_REVIEWED',
-      referenceId: 'review-1',
-    });
+    expect(pointService.published).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({
+        type: 'COURSE_REVIEW',
+        id: 'review-1',
+        authorId: 'user-1',
+      }),
+    );
   });
 
   it('holds a reseña from an unverified account for revisión previa without points', async () => {
@@ -105,7 +107,7 @@ describe('SubjectsService publication of reseñas and experiencias', () => {
       'UNVERIFIED_EMAIL',
       'Reseña de cursada',
     );
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('publishes an experiencia de final immediately with its 5 points', async () => {
@@ -120,12 +122,14 @@ describe('SubjectsService publication of reseñas and experiencias', () => {
       outcome: 'PUBLISHED',
       reason: null,
     });
-    expect(pointService.awardFor).toHaveBeenCalledWith(prisma, {
-      userId: 'user-1',
-      amount: 5,
-      reason: 'EXAM_EXPERIENCE_SHARED',
-      referenceId: 'exam-1',
-    });
+    expect(pointService.published).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({
+        type: 'EXAM_EXPERIENCE',
+        id: 'exam-1',
+        authorId: 'user-1',
+      }),
+    );
   });
 
   it('holds an experiencia from a new account for revisión previa', async () => {
@@ -145,6 +149,6 @@ describe('SubjectsService publication of reseñas and experiencias', () => {
       'NEW_ACCOUNT',
       'Experiencia de final',
     );
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 });

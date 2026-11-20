@@ -22,7 +22,7 @@ import type { Paginated } from '@/types/material';
 import type { Professor } from '@/types/professor';
 import type { ExamFormat, ExamOutcome, ExamSession, Subject } from '@/types/subject';
 
-import { FinalExperienceSummaryCard } from './CommunitySummaryCards';
+import { ExperienceCard } from '@/components/experiences/ExperienceCard';
 
 const pageSize = 10;
 const sessions: ExamSession[] = [
@@ -305,12 +305,20 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
     (professor) => professor.id === state.professorId,
   )?.name;
   const results = requestState.status === 'ready' ? requestState.results : null;
+  const [now] = useState(() => new Date());
 
   return (
     <div className="min-h-[calc(100dvh-4.5rem)] pb-16">
       <section className="relative isolate overflow-hidden border-b border-foreground bg-foreground text-background">
         <div className="relative mx-auto grid max-w-[1180px] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="px-3 py-12 sm:px-6 sm:py-16 lg:py-20">
+            <Link
+              className="inline-flex min-h-11 items-center gap-1.5 font-sans text-sm font-bold text-background/85 underline-offset-4 outline-none transition-colors hover:text-background hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
+              href="/experiencias"
+            >
+              <ArrowLeft aria-hidden="true" className="size-4" />
+              Experiencias
+            </Link>
             <p className="font-mono text-[0.68rem] font-extrabold uppercase tracking-[0.08em] text-background/70">
               Faro cobalto
             </p>
@@ -513,25 +521,10 @@ function FinalExperienceListContent({ state }: { state: ExamExperienceDiscoveryS
           {results?.data.length ? (
             <div className="mt-7 grid gap-5 lg:grid-cols-2">
               {results.data.map((experience) => (
-                <FinalExperienceSummaryCard
+                <ExperienceCard
+                  entry={{ exam: experience, kind: 'exam' }}
                   key={experience.id}
-                  summary={{
-                    author: { username: experience.author.username },
-                    createdAt: experience.createdAt,
-                    difficulty: experience.difficulty,
-                    examDate: experience.examDate,
-                    examinerName: experience.examinerName,
-                    excerpt: experience.excerpt,
-                    format: experience.format,
-                    id: experience.id,
-                    outcome: experience.outcome,
-                    professorName: experience.professor?.name,
-                    session: experience.session,
-                    shift: experience.shift,
-                    subject: experience.subject,
-                    updatedAt: experience.updatedAt,
-                    year: experience.year,
-                  }}
+                  now={now}
                 />
               ))}
             </div>

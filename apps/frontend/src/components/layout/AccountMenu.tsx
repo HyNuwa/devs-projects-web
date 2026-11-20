@@ -16,7 +16,7 @@ import { cn } from '@/components/ui/shadcn/utils';
 import { useAuthStore } from '@/stores/authStore';
 import type { User } from '@/types/auth';
 
-import { accountMenuItems, defaultAvatarFor } from './account';
+import { accountMenuItems, avatarSrc } from './account';
 
 type AccountMenuProps = {
   user: User;
@@ -49,7 +49,7 @@ const AvatarPill = forwardRef<HTMLButtonElement, AvatarPillProps>(function Avata
         alt=""
         className="size-[34px] rounded-full border-[1.5px] border-foreground object-cover"
         height={34}
-        src={user.avatarUrl ?? defaultAvatarFor(user.id)}
+        src={avatarSrc(user)}
         width={34}
       />
       {variant === 'desktop' ? <span className="max-w-28 truncate">{name}</span> : null}

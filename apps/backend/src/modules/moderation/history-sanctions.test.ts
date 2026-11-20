@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CasesService } from './cases.service';
 import { HistoryService } from './history.service';
@@ -26,7 +27,14 @@ const event = (overrides: Record<string, unknown>) => ({
 describe('sanciones, proposals and appeals in the history', () => {
   let service: HistoryService;
   const prisma = {
+    moderationCase: { findMany: vi.fn().mockResolvedValue([]) },
+    moderatorScope: {
+      findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
+    material: { findMany: vi.fn().mockResolvedValue([]) },
     moderationEvent: { findMany: vi.fn() },
+    // A moderator's page of ids comes from SQL; the events then from Prisma.
+    $queryRaw: vi.fn().mockResolvedValue([{ id: 'page' }]),
     courseReview: {
       findMany: vi.fn().mockResolvedValue([{ id: 'rev-1', isAnonymous: true }]),
     },
@@ -55,7 +63,7 @@ describe('sanciones, proposals and appeals in the history', () => {
       event({ action: 'MUTED', reason: 'Segundo retiro' }),
     ]);
 
-    const page = await service.list({ role: 'MODERATOR' }, {});
+    const page = await service.list({ id: 'viewer-1', role: 'MODERATOR' }, {});
 
     expect(page.items[0]).toEqual(
       expect.objectContaining({
@@ -77,12 +85,13 @@ describe('sanciones, proposals and appeals in the history', () => {
       }),
     ]);
 
-    const page = await service.list({ role: 'MODERATOR' }, {});
+    const page = await service.list({ id: 'viewer-1', role: 'MODERATOR' }, {});
 
     // Staff authors are skipped silently, so the row's existence would tell.
     expect(page.items).toEqual([]);
     expect(
-      (await service.list({ role: 'ADMIN' }, {})).items[0].targetUser,
+      (await service.list({ id: 'viewer-1', role: 'ADMIN' }, {})).items[0]
+        .targetUser,
     ).toEqual({ username: 'juan.p' });
   });
 
@@ -98,7 +107,7 @@ describe('sanciones, proposals and appeals in the history', () => {
       }),
     ]);
 
-    const page = await service.list({ role: 'MODERATOR' }, {});
+    const page = await service.list({ id: 'viewer-1', role: 'MODERATOR' }, {});
 
     expect(page.items[0].actor).toEqual({
       system: false,
@@ -119,7 +128,7 @@ describe('sanciones, proposals and appeals in the history', () => {
       }),
     ]);
 
-    const page = await service.list({ role: 'ADMIN' }, {});
+    const page = await service.list({ id: 'viewer-1', role: 'ADMIN' }, {});
 
     expect(page.items[0].actor).toEqual({ system: false, username: 'juan.p' });
   });
@@ -128,14 +137,14 @@ describe('sanciones, proposals and appeals in the history', () => {
     prisma.moderationEvent.findMany.mockResolvedValue([]);
 
     await service.list(
-      { role: 'MODERATOR' },
+      { id: 'viewer-1', role: 'MODERATOR' },
       { action: 'SUSPENSION_PROPOSED' },
     );
 
-    expect(prisma.moderationEvent.findMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ action: 'SUSPENSION_PROPOSED' }),
-      }),
-    );
+    const [, where] = prisma.$queryRaw.mock.lastCall as [
+      TemplateStringsArray,
+      Prisma.Sql,
+    ];
+    expect(where.values).toContain('SUSPENSION_PROPOSED');
   });
 });

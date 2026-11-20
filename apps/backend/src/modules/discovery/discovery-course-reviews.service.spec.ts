@@ -35,7 +35,13 @@ describe('DiscoveryService course-review discovery', () => {
       name: 'Algoritmos y Estructuras de Datos',
     },
     professor: { id: 'professor-1', name: 'Laura Quiroga' },
-    user: { username: 'luciana-g' },
+    user: {
+      id: 'user-1',
+      username: 'luciana-g',
+      avatarUrl: 'https://cdn.example.com/luciana.png',
+      maxLevel: 1,
+      profileCustomization: { avatarCat: 'crema' },
+    },
   };
 
   beforeEach(async () => {
@@ -81,7 +87,12 @@ describe('DiscoveryService course-review discovery', () => {
       data: [
         expect.objectContaining({
           id: 'review-1',
-          author: { username: 'luciana-g' },
+          author: {
+            id: 'user-1',
+            username: 'luciana-g',
+            avatarUrl: 'https://cdn.example.com/luciana.png',
+            avatarCat: 'crema',
+          },
           subject: expect.objectContaining({ href: '/materias/S2-14' }),
         }),
         expect.objectContaining({

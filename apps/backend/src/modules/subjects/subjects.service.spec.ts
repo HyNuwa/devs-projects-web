@@ -2,7 +2,6 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  CommunityDifficulty,
   CourseAttempt,
   CourseCondition,
   ExamFormat,
@@ -11,7 +10,7 @@ import {
 } from '../../generated/prisma';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PublicationPolicy } from '../moderation/publication-policy.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
 import { SubjectsService } from './subjects.service';
 
 // Public reads go through publicVisibility: published, or hidden and overdue.
@@ -50,7 +49,7 @@ describe('SubjectsService community writes', () => {
     $transaction: jest.fn(),
   };
   const policy = { priorReviewFor: jest.fn(), openPriorReview: jest.fn() };
-  const pointService = { awardFor: jest.fn() };
+  const pointService = { published: jest.fn(), withdrawn: jest.fn() };
   const configService = {
     get: jest.fn((_key: string, fallback: unknown) => fallback),
   };
@@ -68,7 +67,7 @@ describe('SubjectsService community writes', () => {
       providers: [
         SubjectsService,
         { provide: PrismaService, useValue: prisma },
-        { provide: PointService, useValue: pointService },
+        { provide: ContributionPoints, useValue: pointService },
         { provide: ConfigService, useValue: configService },
         { provide: PublicationPolicy, useValue: policy },
       ],
@@ -110,12 +109,15 @@ describe('SubjectsService community writes', () => {
         comment: dto.comment,
       }),
     });
-    expect(pointService.awardFor).toHaveBeenNthCalledWith(1, prisma, {
-      userId: 'user-1',
-      amount: 5,
-      reason: 'COURSE_REVIEWED',
-      referenceId: 'review-1',
-    });
+    expect(pointService.published).toHaveBeenNthCalledWith(
+      1,
+      prisma,
+      expect.objectContaining({
+        type: 'COURSE_REVIEW',
+        id: 'review-1',
+        authorId: 'user-1',
+      }),
+    );
   });
 
   it('advierte sobre un duplicado probable sin sobrescribir ni publicar', async () => {
@@ -141,7 +143,7 @@ describe('SubjectsService community writes', () => {
     });
 
     expect(prisma.courseReview.create).not.toHaveBeenCalled();
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('publica una cursada independiente cuando el autor confirma el aviso', async () => {
@@ -203,10 +205,13 @@ describe('SubjectsService community writes', () => {
       where: { id: 'review-1' },
       data: expect.objectContaining({
         condition: CourseCondition.PROMO,
-        isAnonymous: true,
       }),
     });
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    // Anonymity is chosen when publishing and an edit never changes it.
+    expect(prisma.courseReview.update.mock.calls[0][0].data).not.toHaveProperty(
+      'isAnonymous',
+    );
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('impide editar o eliminar una reseña ajena', async () => {
@@ -250,14 +255,15 @@ describe('SubjectsService community writes', () => {
     });
   });
 
-  it('crea finales con dificultad general y sin escribir dificultad legacy', async () => {
+  it('crea finales con teoría y práctica sin escribir fecha, franja ni dificultad general', async () => {
     prisma.examExperience.create.mockResolvedValue({ id: 'exam-1' });
 
     await service.createExam('ED-01', 'user-1', {
       year: 2026,
       session: ExamSession.JULIO,
       format: ExamFormat.ORAL,
-      difficulty: CommunityDifficulty.ALTA,
+      difficultyTheory: 4,
+      difficultyPractice: 3,
       outcome: ExamOutcome.APROBADO,
       grade: 8,
       isAnonymous: true,
@@ -265,21 +271,18 @@ describe('SubjectsService community writes', () => {
         'La mesa evaluó conceptos centrales y permitió justificar cada decisión.',
     });
 
-    expect(prisma.examExperience.create).toHaveBeenCalledWith({
-      data: expect.not.objectContaining({
-        difficultyTheory: expect.anything(),
-        difficultyPractice: expect.anything(),
-      }),
+    const { data } = prisma.examExperience.create.mock.calls[0][0];
+    expect(data).toMatchObject({
+      subjectId: 'sub-1',
+      difficultyTheory: 4,
+      difficultyPractice: 3,
+      outcome: ExamOutcome.APROBADO,
+      grade: 8,
+      isAnonymous: true,
     });
-    expect(prisma.examExperience.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        subjectId: 'sub-1',
-        difficulty: CommunityDifficulty.ALTA,
-        outcome: ExamOutcome.APROBADO,
-        grade: 8,
-        isAnonymous: true,
-      }),
-    });
+    for (const legacy of ['examDate', 'shift', 'difficulty']) {
+      expect(data).not.toHaveProperty(legacy);
+    }
   });
 
   it('crea intentos de final independientes sin deduplicarlos', async () => {
@@ -290,6 +293,7 @@ describe('SubjectsService community writes', () => {
       year: 2026,
       session: ExamSession.JULIO,
       format: ExamFormat.ESCRITO,
+      outcome: ExamOutcome.PREFIERO_NO_DECIR,
       comment:
         'La mesa tomó los mismos temas, pero este fue un intento independiente.',
     };
@@ -298,12 +302,15 @@ describe('SubjectsService community writes', () => {
     await service.createExam('ED-01', 'user-1', dto);
 
     expect(prisma.examExperience.create).toHaveBeenCalledTimes(2);
-    expect(pointService.awardFor).toHaveBeenNthCalledWith(2, prisma, {
-      userId: 'user-1',
-      amount: 5,
-      reason: 'EXAM_EXPERIENCE_SHARED',
-      referenceId: 'exam-2',
-    });
+    expect(pointService.published).toHaveBeenNthCalledWith(
+      2,
+      prisma,
+      expect.objectContaining({
+        type: 'EXAM_EXPERIENCE',
+        id: 'exam-2',
+        authorId: 'user-1',
+      }),
+    );
   });
 
   it('permite al autor editar el mismo intento con el contrato completo', async () => {
@@ -321,9 +328,9 @@ describe('SubjectsService community writes', () => {
       year: 2026,
       session: ExamSession.DICIEMBRE,
       format: ExamFormat.ORAL,
-      difficulty: CommunityDifficulty.MEDIA,
       outcome: ExamOutcome.DESAPROBADO,
       grade: 4,
+      boardSize: 3,
       comment:
         'Actualicé la experiencia con el resultado y el contexto completo.',
       isAnonymous: true,
@@ -334,19 +341,17 @@ describe('SubjectsService community writes', () => {
       where: { id: 'exam-1' },
       data: expect.objectContaining({
         session: ExamSession.DICIEMBRE,
-        difficulty: CommunityDifficulty.MEDIA,
         outcome: ExamOutcome.DESAPROBADO,
         grade: 4,
-        isAnonymous: true,
+        boardSize: 3,
       }),
     });
-    expect(
-      prisma.examExperience.update.mock.calls[0][0].data,
-    ).not.toHaveProperty('difficultyTheory');
-    expect(
-      prisma.examExperience.update.mock.calls[0][0].data,
-    ).not.toHaveProperty('difficultyPractice');
-    expect(pointService.awardFor).not.toHaveBeenCalled();
+    for (const kept of ['isAnonymous', 'examDate', 'shift', 'difficulty']) {
+      expect(
+        prisma.examExperience.update.mock.calls[0][0].data,
+      ).not.toHaveProperty(kept);
+    }
+    expect(pointService.published).not.toHaveBeenCalled();
   });
 
   it('impide editar o eliminar una experiencia de final ajena', async () => {
@@ -359,6 +364,7 @@ describe('SubjectsService community writes', () => {
       year: 2026,
       session: ExamSession.JULIO,
       format: ExamFormat.ORAL,
+      outcome: ExamOutcome.PREFIERO_NO_DECIR,
       comment:
         'La mesa evaluó conceptos centrales y permitió justificar cada decisión.',
     };
@@ -444,6 +450,7 @@ describe('SubjectsService community writes', () => {
       {
         id: 'review-1',
         subjectId: 'sub-1',
+        userId: 'user-1',
         isAnonymous: true,
         publicationStatus: 'PUBLISHED',
         statusChangedAt: new Date('2026-09-01T00:00:00.000Z'),
@@ -480,6 +487,7 @@ describe('SubjectsService community writes', () => {
         user: { username: 'Anónimo' },
       }),
     );
+    expect(result.reviews[0]).not.toHaveProperty('userId');
     expect(result.reviews[0]).not.toHaveProperty('authorFacingReason');
     expect(result.reviews[0]).not.toHaveProperty('hiddenAt');
     expect(result.reviews[0]).not.toHaveProperty('statusChangedAt');
@@ -491,6 +499,7 @@ describe('SubjectsService community writes', () => {
       {
         id: 'exam-1',
         subjectId: 'sub-1',
+        userId: 'user-1',
         isAnonymous: true,
         publicationStatus: 'PUBLISHED',
         statusChangedAt: new Date('2026-09-01T00:00:00.000Z'),
@@ -520,6 +529,7 @@ describe('SubjectsService community writes', () => {
         user: { username: 'Anónimo' },
       }),
     );
+    expect(result[0]).not.toHaveProperty('userId');
     expect(result[0]).not.toHaveProperty('authorFacingReason');
     expect(result[0]).not.toHaveProperty('hiddenAt');
     expect(result[0]).not.toHaveProperty('statusChangedAt');

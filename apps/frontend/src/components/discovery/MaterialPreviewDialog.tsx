@@ -29,6 +29,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import type { Material, MaterialRating, MaterialViewerState, Paginated } from '@/types/material';
 import { ReportDialog } from '@/components/moderation/ReportDialog';
+import { SuggestCorrectionDialog } from '@/components/corrections/SuggestCorrectionDialog';
 import { useAccountRestriction } from '@/hooks/useAccountRestriction';
 
 export type MaterialPreviewDialogFile = {
@@ -719,6 +720,13 @@ export function MaterialPreviewDialog({
                   targetId={file.id}
                   targetType="MATERIAL"
                 />
+                {materialState.status === 'ready' ? (
+                  <SuggestCorrectionDialog
+                    authorId={materialState.material.authorId}
+                    materialId={file.id}
+                    onSuggested={setReportFeedback}
+                  />
+                ) : null}
               </div>
               <p
                 aria-live="polite"

@@ -8,6 +8,7 @@ import {
   createE2eApp,
   createUser,
   type E2eUser,
+  createStudent,
 } from './support/e2e-app';
 
 describe('what an account is told about its sanciones (e2e)', () => {
@@ -38,7 +39,7 @@ describe('what an account is told about its sanciones (e2e)', () => {
       .expect(201);
 
   it('has no restriction for an account in good standing', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
 
     const { body } = await me(student);
 
@@ -48,7 +49,7 @@ describe('what an account is told about its sanciones (e2e)', () => {
   });
 
   it('describes an active silenciamiento: reason, end date and appeal', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     await sanction(student, 'mute', 'Segundo retiro en 90 días.');
 
     const { body } = await me(student);
@@ -66,7 +67,7 @@ describe('what an account is told about its sanciones (e2e)', () => {
   });
 
   it('shows an advertencia once, until the account marks it seen', async () => {
-    const student = await createUser(prisma);
+    const student = await createStudent(prisma);
     await sanction(student, 'warn', 'Insultos en una reseña.');
 
     const first = await me(student);
@@ -87,8 +88,8 @@ describe('what an account is told about its sanciones (e2e)', () => {
   });
 
   it('does not let an account mark someone else’s advertencia', async () => {
-    const student = await createUser(prisma);
-    const other = await createUser(prisma);
+    const student = await createStudent(prisma);
+    const other = await createStudent(prisma);
     await sanction(student, 'warn', 'Spam.');
     const { body } = await me(student);
 

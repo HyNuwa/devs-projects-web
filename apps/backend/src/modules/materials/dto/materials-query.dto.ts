@@ -26,6 +26,15 @@ export class MaterialsQueryDto {
   @IsUUID()
   subjectId?: string;
 
+  @ApiPropertyOptional({
+    example: '3f2b1c4e-8a9d-4f6b-9c1e-2d3a4b5c6d7e',
+    description:
+      'Solo materias de esta facultad (la ubicación de quien busca).',
+  })
+  @IsOptional()
+  @IsUUID()
+  facultyId?: string;
+
   @ApiPropertyOptional({ example: 'cálculo' })
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>

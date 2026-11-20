@@ -4,8 +4,9 @@ import {
   Get,
   NotFoundException,
   Param,
-  Post,
   ParseUUIDPipe,
+  Post,
+  Query,
   Request,
   Res,
   UseGuards,
@@ -20,6 +21,7 @@ import { Role } from '../auth/dto/auth-response.dto';
 import { CasesService } from './cases.service';
 import { DecisionsService } from './decisions.service';
 import type { Actor } from './sanctions.service';
+import { ScopeFilterQueryDto } from './dto/scope-filter.dto';
 import { CaseDecisionDto } from './dto/case-decision.dto';
 import { RevealAuthorDto } from './dto/reveal-author.dto';
 import { HistoryService } from './history.service';
@@ -38,8 +40,11 @@ export class CasesController {
 
   @Get()
   @ApiOperation({ summary: 'Cola de casos abiertos, agrupada y ordenada' })
-  queue() {
-    return this.cases.queue();
+  queue(@Request() req: { user: Actor }, @Query() query: ScopeFilterQueryDto) {
+    return this.cases.queue(
+      { id: req.user.id, role: req.user.role },
+      query.facultyId,
+    );
   }
 
   @Get(':id')
@@ -56,8 +61,15 @@ export class CasesController {
     summary:
       'Archivo del material del caso, incluido el que espera revisión previa',
   })
-  async file(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
-    const file = await this.cases.materialFile(id);
+  async file(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: Actor },
+    @Res() res: Response,
+  ) {
+    const file = await this.cases.materialFile(id, {
+      id: req.user.id,
+      role: req.user.role,
+    });
     if (file.redirectUrl) return res.redirect(file.redirectUrl);
     if (!file.localPath || !fs.existsSync(file.localPath)) {
       throw new NotFoundException('Archivo no encontrado en el servidor');
@@ -88,9 +100,13 @@ export class CasesController {
   })
   revealAuthor(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: { user: { id: string } },
+    @Request() req: { user: Actor },
     @Body() dto: RevealAuthorDto,
   ) {
-    return this.history.revealAuthor(id, req.user.id, dto.reason);
+    return this.history.revealAuthor(
+      id,
+      { id: req.user.id, role: req.user.role },
+      dto.reason,
+    );
   }
 }

@@ -24,7 +24,10 @@ import {
   MAX_ACADEMIC_YEAR,
   MIN_ACADEMIC_YEAR,
 } from '../../../common/validation/academic-year';
-import { SingleProfessorReferenceConstraint } from './community-write.validators';
+import {
+  PromotionGradeRequiresPromoConstraint,
+  SingleProfessorReferenceConstraint,
+} from './community-write.validators';
 
 const COURSE_REVIEW_CONDITIONS = [
   CourseCondition.PROMO,
@@ -52,6 +55,19 @@ export class CreateCourseReviewDto {
   @ApiProperty({ enum: COURSE_REVIEW_CONDITIONS })
   @IsIn(COURSE_REVIEW_CONDITIONS)
   condition: CourseCondition;
+
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 10,
+    description: 'Solo con resultado Promoción',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  @Validate(PromotionGradeRequiresPromoConstraint)
+  promotionGrade?: number;
 
   @ApiProperty({ enum: CourseAttempt })
   @IsEnum(CourseAttempt)

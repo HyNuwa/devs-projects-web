@@ -7,15 +7,19 @@ Provide distinct, trustworthy discovery and publication flows for course reviews
 ## Requirements
 
 ### Requirement: Reviews and final experiences remain distinct
-The system SHALL treat a `Reseña de cursada` as evidence about one completed cursada and an `Experiencia de final` as evidence about one final-exam attempt. It SHALL expose them through the separate public entrances `/resenas` and `/finales` and SHALL preserve the materia hub as their canonical academic context.
+The system SHALL treat a `Reseña de cursada` as evidence about one completed cursada and an `Experiencia de final` as evidence about one final-exam attempt. The Experiencias section SHALL open at `/experiencias` and show a materia's experiencias at `/experiencias/<código>` (see academic-community/experiences), and SHALL keep the separate public entrances `/resenas` and `/finales` as the full lists of each type, preserving the materia hub as their canonical academic context. Records and filters SHALL stay separate per type. The landing MAY interleave both types by publication date when every card carries its type; a materia summary MAY present the figures of both types side by side when every figure names its type, and the only figure that adds both SHALL be the headline count of experiencias.
 
 #### Scenario: User enters community discovery
-- **WHEN** a user opens the primary community navigation
-- **THEN** the interface labels the destinations `Reseñas` and `Finales` and does not merge their records, filters, or summaries
+- **WHEN** a user opens Experiencias from the primary navigation
+- **THEN** they land on `/experiencias`, whose «Ver todas» links lead to `/resenas` and `/finales`, labelled `Reseñas` and `Finales`, and no list applies the filters of one type to the other
 
 #### Scenario: Entry appears in aggregate and materia contexts
-- **WHEN** the same entry is visible in aggregate discovery, its detail route, and its materia hub
+- **WHEN** the same entry is visible on the landing, in aggregate discovery, its detail route, and its materia page
 - **THEN** every view derives from the same source record and presents consistent academic facts and labels
+
+#### Scenario: Mixed feed keeps the types apart
+- **WHEN** «Recién publicadas» shows a reseña next to a final
+- **THEN** each card states «Reseña de cursada» or «Experiencia de final», and no figure other than the «N experiencias» headline adds both types
 
 ### Requirement: Community publication requires only authentication
 The system SHALL require an authenticated account to publish, edit, or delete a course review or final experience, but SHALL NOT require verified email, verified enrollment, or an attestation checkbox as a condition for accepting a submission. Accepted submissions from accounts that meet a revisión previa condition (see `moderation/publication`) SHALL wait for moderator approval before becoming public.
@@ -44,7 +48,7 @@ The system SHALL store each submitted course review as an independent cursada re
 - **THEN** the system warns about the probable duplicate but allows the author to confirm and publish it as a distinct cursada
 
 ### Requirement: Course-review evidence is explicit
-A newly published course review SHALL declare materia, ciclo lectivo, a one-to-five-star recommendation, one result from `Promoción`, `Regular`, or `Libre`, one cursada situation, and a narrative between 30 and 4,000 characters. It MAY declare one principal professor, a franja horaria, and one difficulty from `Muy baja`, `Baja`, `Media`, `Alta`, or `Muy alta`; it SHALL NOT collect cuatrimestre.
+A newly published course review SHALL declare materia, ciclo lectivo, a one-to-five-star recommendation, one result from `Promoción`, `Regular`, or `Libre`, one cursada situation, and a narrative between 30 and 4,000 characters. It MAY declare one principal professor, a franja horaria, one difficulty from `Muy baja`, `Baja`, `Media`, `Alta`, or `Muy alta`, and, only when the result is `Promoción`, a nota de promoción as an integer from 1 to 10; it SHALL NOT collect cuatrimestre. A nota de promoción sent with any other result SHALL be refused, and changing the result away from `Promoción` in the form SHALL clear it.
 
 #### Scenario: Student submits a complete review
 - **WHEN** an authenticated student submits every required field within its allowed range
@@ -58,12 +62,20 @@ A newly published course review SHALL declare materia, ciclo lectivo, a one-to-f
 - **WHEN** an author wants to identify a principal professor who is not selectable from the catalog
 - **THEN** the system accepts one manually entered professor name instead of blocking publication
 
+#### Scenario: Student declares a nota de promoción
+- **WHEN** an author chooses `Promoción` and enters 8 in «¿Con qué nota promocionaste?»
+- **THEN** the review stores the grade and presents its result as «Promoción · 8»
+
+#### Scenario: Nota de promoción without Promoción
+- **WHEN** a request declares a nota de promoción with the result `Regular` or `Libre`, or a nota outside 1 to 10
+- **THEN** the system rejects it with field-specific guidance and preserves the entered values
+
 #### Scenario: Review input is invalid
 - **WHEN** the result is absent, the recommendation is outside one to five, the year is invalid, or the narrative is outside 30 to 4,000 characters
 - **THEN** the system rejects publication with field-specific guidance and preserves the entered values
 
 ### Requirement: Final experiences represent independent attempts
-The system SHALL allow an author to publish multiple final experiences for the same materia. A newly published experience SHALL declare materia, year, exam period, format, and one narrative between 30 and 4,000 characters; preparation, topics, and advice SHALL remain within that single narrative rather than becoming mandatory subsections.
+The system SHALL allow an author to publish multiple final experiences for the same materia. A newly published experience SHALL declare materia, year, exam period, format, an outcome from `Aprobado`, `Desaprobado`, or `Prefiero no decir`, and one narrative between 30 and 4,000 characters. Preparation and topics MAY also be declared as the structured facts of the next requirement; advice stays in the narrative.
 
 #### Scenario: Student publishes another attempt
 - **WHEN** an author submits a valid experience for a later or repeated attempt at the same final
@@ -73,23 +85,55 @@ The system SHALL allow an author to publish multiple final experiences for the s
 - **WHEN** the submitted narrative is shorter than 30 or longer than 4,000 characters
 - **THEN** the system rejects publication with field-specific guidance and preserves the entered values
 
+#### Scenario: Outcome is missing
+- **WHEN** a new experience is submitted without an outcome
+- **THEN** the system rejects it with field-specific guidance and preserves the entered values
+
 ### Requirement: Optional final context remains semantically bounded
-A final experience MAY declare an exact exam date, franja horaria, one examiner or professor, one general difficulty from the shared verbal scale, an outcome from `Aprobado`, `Desaprobado`, or `Prefiero no decir`, and an integer grade from zero to ten. A grade SHALL be accepted only with an explicit `Aprobado` or `Desaprobado` outcome and SHALL NOT be used to infer or correct the outcome.
+A new final experience SHALL declare an integer grade from zero to ten when its outcome is `Aprobado` or `Desaprobado`, and SHALL NOT accept a grade with `Prefiero no decir`; the grade SHALL NOT be used to infer or correct the outcome. It MAY declare:
+- the examiner, one professor from the catalog or one manually written name;
+- a dificultad de teoría and a dificultad de práctica, each an integer from 1 to 5, independent of each other;
+- the profesores en la mesa as a count from 1 to 10;
+- the tiempo del examen from 10 to 480 minutes, meaning the time given to solve a written exam or the length of the student's own oral exam, never the waiting time;
+- the preparación as a lead time from 1 to 365 days and a time per day from 30 to 960 minutes, independent of each other;
+- up to ten temas que tomaron, each 2 to 60 characters after collapsing whitespace, with duplicates that differ only in case or spacing kept once.
+
+The form SHALL NOT ask for an exact exam date, a franja horaria or a verbal difficulty. Older experiences that carry those facts SHALL keep and present them, and editing SHALL NOT clear them.
 
 #### Scenario: Student supplies outcome and grade
 - **WHEN** an author declares `Aprobado` or `Desaprobado` with a grade from zero to ten
 - **THEN** the system stores and presents both facts exactly as declared
 
 #### Scenario: Grade lacks an explicit outcome
-- **WHEN** an author supplies a grade while omitting the outcome or choosing `Prefiero no decir`
-- **THEN** the system requests an explicit publishable outcome or removal of the grade without inferring one
+- **WHEN** an author declares `Aprobado` or `Desaprobado` without a grade, or sends a grade with `Prefiero no decir`
+- **THEN** the system rejects it with field-specific guidance, without inferring an outcome or a grade
+
+#### Scenario: Student declares the mesa and the preparation
+- **WHEN** an author declares 3 profesores en la mesa, 180 minutes, a lead time of 21 days and 60 minutes per day
+- **THEN** the experience presents «Mesa de 3 profesores · 3 horas» and «Preparación: 3 semanas, 1 h por día», with «Unas 21 horas de estudio en total» as an estimate
+
+#### Scenario: Only one preparation fact
+- **WHEN** an author declares the lead time but not the time per day
+- **THEN** the experience presents the lead time alone and no total
+
+#### Scenario: Repeated topics
+- **WHEN** an author enters «Integrales dobles», «integrales  dobles» and «Teorema de Green»
+- **THEN** the experience keeps «Integrales dobles» and «Teorema de Green»
+
+#### Scenario: Out-of-range context
+- **WHEN** a request declares eleven topics, a topic of one character, 0 profesores, 5 minutes, a dificultad of 6 or a lead time of 400 days
+- **THEN** the system rejects it with field-specific guidance and preserves the entered values
 
 #### Scenario: Student omits optional final context
-- **WHEN** an experience has no exact date, professor, outcome, grade, franja horaria, or difficulty
+- **WHEN** an experience has no examiner, dificultad, mesa, tiempo, preparación or temas
 - **THEN** the system accepts the experience and omits those facts from its public presentation
 
+#### Scenario: Older final with a date and a verbal difficulty
+- **WHEN** an author edits an older experience that declared an exam date, a franja and a verbal difficulty
+- **THEN** the form does not ask for them, saving keeps them, and the detail still presents them
+
 ### Requirement: Public identity is selected per entry
-Every course review and final experience SHALL retain its authenticated author internally and SHALL allow that author to publish the individual entry either under their username or as `Anónimo`.
+Every course review and final experience SHALL retain its authenticated author internally and SHALL allow that author to publish the individual entry either under their username or as `Anónimo`. The choice SHALL be made when publishing and SHALL NOT change by editing. Changing it later would move the author's points at that moment and point at them; to change it, the author deletes the entry and publishes it again. When anonymous publication is selected, the form SHALL say «Las publicaciones anónimas no suman puntos».
 
 #### Scenario: Author publishes under username
 - **WHEN** an author does not enable anonymous publication
@@ -97,7 +141,15 @@ Every course review and final experience SHALL retain its authenticated author i
 
 #### Scenario: Author publishes anonymously
 - **WHEN** an author enables anonymous publication for an entry
-- **THEN** public responses display `Anónimo` without avatar, profile link, or stable anonymous alias while the author and authorized moderators retain access to the real ownership record
+- **THEN** public responses display `Anónimo` with the marca de anónimo, the same mark for every anonymous entry and never a user avatar, without profile link or stable anonymous alias, while the author and authorized moderators retain access to the real ownership record
+
+#### Scenario: Author edits an anonymous entry
+- **WHEN** the author edits an anonymous reseña and the request asks to publish it under their username
+- **THEN** the content changes are saved and the reseña stays anonymous
+
+#### Scenario: Anonymous choice in the form
+- **WHEN** an author selects anonymous publication in the reseña or experiencia form
+- **THEN** the form shows «Las publicaciones anónimas no suman puntos», and the edit form shows the choice without letting it change
 
 ### Requirement: Aggregate course recommendation is transparent
 The system SHALL calculate the displayed course recommendation from every distinct, publicly visible course review, including anonymous and multiple legitimate reviews by the same author, and SHALL show both the average and contributing review count.
@@ -133,26 +185,34 @@ The `/finales` entrance SHALL order by exact exam date descending when known and
 - **THEN** the system applies the documented date fallback deterministically and preserves stable pagination
 
 ### Requirement: Community summaries lead to shareable details
-Aggregate lists and materia hubs SHALL present a bounded three-to-four-line narrative excerpt, compact academic facts, and one explicit `Leer más` action. Full entries SHALL be available at `/resenas/:id` and `/finales/:id`, with a visible link back to their materia context.
+Aggregate lists, the Experiencias landing and the materia page SHALL present every entry with the experiencia card of academic-community/experiences: a bounded narrative excerpt, compact academic facts, and one explicit `Leer completa` action. Full entries SHALL be available at `/resenas/:id` and `/finales/:id`, with a visible link back to their materia context. A final's detail SHALL present every declared fact, including the mesa, tiempo, preparación and temas que tomaron; the card SHALL NOT list the temas.
 
 #### Scenario: Course-review card is rendered
 - **WHEN** a visible course review is summarized
-- **THEN** the card shows its stars without a long visible rating label, exposes an accessible recommendation name, presents known year/result/difficulty/cursada/professor context, and bounds the narrative preview
+- **THEN** the card shows its stars without a long visible rating label, exposes an accessible recommendation name, presents known year/result/nota de promoción/difficulty/cursada/professor context, and bounds the narrative preview
 
 #### Scenario: Final-experience card is rendered
 - **WHEN** a visible final experience is summarized
 - **THEN** the card presents known exam facts and a bounded narrative excerpt without fabricating missing examiner, outcome, grade, date, or difficulty data
 
 #### Scenario: User opens full community content
-- **WHEN** a user activates `Leer más`
+- **WHEN** a user activates `Leer completa`
 - **THEN** the corresponding shareable detail route presents the complete source record and its canonical materia link
 
+#### Scenario: Final detail with every fact
+- **WHEN** a user opens a final that declared mesa, tiempo, preparación and three temas
+- **THEN** the detail shows «Mesa de 3 profesores · 3 horas», the preparación with its estimated total, «Teoría 4/5 · Práctica 3/5» and the three temas as chips
+
 ### Requirement: Authors control their published entries
-An author SHALL be able to edit or permanently delete their own review or final experience. An entry whose authored content has changed after publication SHALL display `Editada · <fecha>` using its last edit date.
+An author SHALL be able to edit or permanently delete their own review or final experience. An entry whose authored content has changed after publication SHALL display `Editada · <fecha>` using its last edit date. Saving an edit SHALL require the fields a new entry requires; when an older entry lacks one, the edit form SHALL say which fact is missing and ask for it, and the stored entry SHALL NOT receive invented values.
 
 #### Scenario: Author edits an entry
 - **WHEN** the authenticated owner submits a valid edit
 - **THEN** the system updates that entry, preserves its identity and creation date, and publicly displays its last edit date
+
+#### Scenario: Author edits an older final without outcome
+- **WHEN** the owner opens the edit form of a final that never declared an outcome
+- **THEN** the form marks the outcome as missing and does not save until an outcome, and a grade when required, are declared
 
 #### Scenario: Author deletes an entry
 - **WHEN** the authenticated owner confirms permanent deletion

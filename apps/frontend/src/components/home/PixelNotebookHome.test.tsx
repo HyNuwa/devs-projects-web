@@ -1,3 +1,4 @@
+import { fiUnju } from '@/test/institutions';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,7 +41,9 @@ describe('PixelNotebookHome', () => {
   it('renders real grouped suggestions with materias before recursos', async () => {
     const user = userEvent.setup();
     vi.mocked(getGroupedSuggestions).mockResolvedValue({
-      subjects: [{ kind: 'SUBJECT', id: 'subject-1', name: 'Álgebra I', code: 'ALG-1' }],
+      subjects: [
+        { kind: 'SUBJECT', id: 'subject-1', name: 'Álgebra I', code: 'ALG-1', faculty: fiUnju },
+      ],
       materials: [
         {
           kind: 'MATERIAL',
@@ -103,7 +106,9 @@ describe('PixelNotebookHome', () => {
   it('removes outdated suggestions immediately when the query changes and closes on Escape', async () => {
     const user = userEvent.setup();
     vi.mocked(getGroupedSuggestions).mockResolvedValue({
-      subjects: [{ kind: 'SUBJECT', id: 'subject-1', name: 'Álgebra I', code: 'ALG-1' }],
+      subjects: [
+        { kind: 'SUBJECT', id: 'subject-1', name: 'Álgebra I', code: 'ALG-1', faculty: fiUnju },
+      ],
       materials: [],
     });
     render(<PixelNotebookHome />);

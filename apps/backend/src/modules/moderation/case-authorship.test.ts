@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PointService } from '../ranking/point.service';
+import { ContributionPoints } from '../ranking/contribution-points';
+import { ReportPoints } from '../ranking/report-points';
 import { DecisionsService } from './decisions.service';
 import { PublicationPolicy } from './publication-policy.service';
 import { ReportsService } from './reports.service';
+import { TrustService } from '../trust/trust.service';
 import { SanctionsService } from './sanctions.service';
 
 const NOW = new Date('2026-09-30T12:00:00.000Z');
@@ -14,6 +16,9 @@ const NOW = new Date('2026-09-30T12:00:00.000Z');
 /** A Prisma double whose writes report one affected row. */
 function prismaDouble() {
   const prisma = {
+    moderatorScope: {
+      findMany: vi.fn().mockResolvedValue([{ facultyId: 'fac-1' }]),
+    },
     $executeRaw: vi.fn(),
     $transaction: vi.fn(),
     material: {
@@ -32,6 +37,7 @@ function prismaDouble() {
       updateMany: vi.fn(),
     },
     moderationCase: {
+      count: vi.fn().mockResolvedValue(1),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn().mockResolvedValue({ id: 'case-1', highPriority: false }),
@@ -65,7 +71,14 @@ describe('casos remember the author of their target', () => {
     });
     prisma.moderationCase.findFirst.mockResolvedValue(null);
     const moduleRef = await Test.createTestingModule({
-      providers: [ReportsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ReportsService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: TrustService,
+          useValue: { isPriorityReporter: vi.fn().mockResolvedValue(false) },
+        },
+      ],
     }).compile();
 
     await moduleRef.get(ReportsService).file('reporter-1', {
@@ -140,8 +153,16 @@ describe('a restore marks the retiro as reverted', () => {
         DecisionsService,
         { provide: PrismaService, useValue: prisma },
         {
-          provide: PointService,
-          useValue: { awardFor: vi.fn(), revertFor: vi.fn() },
+          provide: ReportPoints,
+          useValue: {
+            confirmed: vi.fn(),
+            unconfirmed: vi.fn(),
+            lockParticipants: vi.fn(),
+          },
+        },
+        {
+          provide: ContributionPoints,
+          useValue: { published: vi.fn(), withdrawn: vi.fn() },
         },
         { provide: MaterialsService, useValue: {} },
         { provide: SanctionsService, useValue: { warn: vi.fn() } },

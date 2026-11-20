@@ -54,6 +54,7 @@ export const groupedSuggestionsQuerySchema = z
   .object({
     q: nonEmptySearchText.max(120),
     limit: z.number().int().min(1).max(10).optional(),
+    facultyId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -61,6 +62,7 @@ export const groupedSuggestionsQuerySchema = z
 export const materialDiscoveryQuerySchema = z
   .object({
     subjectId: z.string().uuid().optional(),
+    facultyId: z.string().uuid().optional(),
     search: nonEmptySearchText.optional(),
     resourceType: z.enum(materialResourceTypes).optional(),
     academicYear: z.number().int().min(minimumAcademicYear).max(maximumAcademicYear).optional(),
@@ -71,6 +73,9 @@ export const materialDiscoveryQuerySchema = z
   })
   .strict();
 
+export const courseShifts = ['MANANA', 'TARDE', 'NOCHE', 'NO_INDICO'] as const;
+export const courseConditions = ['PROMO', 'REGULAR', 'LIBRE', 'PREFIERO_NO_RESPONDER'] as const;
+
 export const courseReviewDiscoveryQuerySchema = z
   .object({
     subjectId: z.string().uuid().optional(),
@@ -78,6 +83,8 @@ export const courseReviewDiscoveryQuerySchema = z
     professorId: z.string().uuid().optional(),
     difficulty: z.enum(communityDifficulties).optional(),
     attempt: z.enum(courseAttempts).optional(),
+    condition: z.enum(courseConditions).optional(),
+    shift: z.enum(courseShifts).optional(),
     sort: z.enum(courseReviewDiscoverySorts).optional(),
     page: z.number().int().min(1).optional(),
     limit: z.number().int().min(1).max(100).optional(),
@@ -122,6 +129,7 @@ export function serializeGroupedSuggestionsQuery(input: GroupedSuggestionsQuery)
   return toSearchParams([
     ['q', query.q],
     ['limit', query.limit],
+    ['facultyId', query.facultyId],
   ]);
 }
 
@@ -151,6 +159,8 @@ export function serializeCourseReviewDiscoveryQuery(
     ['professorId', query.professorId],
     ['difficulty', query.difficulty],
     ['attempt', query.attempt],
+    ['condition', query.condition],
+    ['shift', query.shift],
     ['sort', query.sort],
     ['page', query.page],
     ['limit', query.limit],

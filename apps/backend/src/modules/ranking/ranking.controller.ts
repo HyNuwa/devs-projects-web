@@ -1,4 +1,11 @@
-import { Controller, Get, Query, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  Request,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -14,39 +21,46 @@ import { Public } from '../../common/decorators/public.decorator';
 export class RankingController {
   constructor(private rankingService: RankingService) {}
 
-  @Get()
+  @Get('monthly')
   @Public()
-  @ApiOperation({ summary: 'Obtener ranking de usuarios' })
-  @ApiResponse({ status: 200, description: 'Leaderboard de usuarios' })
-  async getLeaderboard(
-    @Query('period') period: string = 'global',
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+  @ApiOperation({ summary: 'Ranking de este mes en una carrera' })
+  @ApiResponse({ status: 200, description: 'Top 10 del mes en la carrera' })
+  @ApiResponse({ status: 404, description: 'Carrera no encontrada' })
+  monthly(
+    @Query('careerId', new ParseUUIDPipe({ optional: true }))
+    careerId?: string,
   ) {
-    const p = page ? Number(page) : 1;
-    const l = limit ? Number(limit) : 10;
-
-    switch (period) {
-      case 'weekly':
-        return this.rankingService.getWeeklyLeaderboard(p, l);
-      case 'monthly':
-        return this.rankingService.getMonthlyLeaderboard(p, l);
-      default:
-        return this.rankingService.getGlobalLeaderboard(p, l);
-    }
+    return this.rankingService.monthly(careerId);
   }
 
-  @Get('me')
-  @ApiOperation({ summary: 'Obtener rango y nivel del usuario autenticado' })
-  @ApiResponse({ status: 200, description: 'Rango y nivel del usuario' })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  async getMe(@Request() req: { user: { id: string } }) {
-    const [rank, levelInfo] = await Promise.all([
-      this.rankingService.getUserRank(req.user.id),
-      this.rankingService.getLevelInfo(req.user.id),
-    ]);
+  @Get('monthly/me')
+  @ApiOperation({ summary: 'Mi posición en el ranking de este mes' })
+  @ApiResponse({ status: 200, description: 'Posición y carrera por defecto' })
+  monthlyMe(
+    @Request() req: { user: { id: string } },
+    @Query('careerId', new ParseUUIDPipe({ optional: true }))
+    careerId?: string,
+  ) {
+    return this.rankingService.monthlyMe(req.user.id, careerId);
+  }
 
-    return { ...rank, ...levelInfo };
+  @Get('legends')
+  @Public()
+  @ApiOperation({ summary: 'Leyendas de una facultad' })
+  @ApiResponse({ status: 200, description: 'Leyendas, en orden alfabético' })
+  @ApiResponse({ status: 404, description: 'Facultad no encontrada' })
+  legends(
+    @Query('facultyId', new ParseUUIDPipe({ optional: true }))
+    facultyId?: string,
+  ) {
+    return this.rankingService.legends(facultyId);
+  }
+
+  @Get('legends/me')
+  @ApiOperation({ summary: 'Mi facultad por defecto para Leyendas' })
+  @ApiResponse({ status: 200, description: 'Facultad por defecto' })
+  legendsMe(@Request() req: { user: { id: string } }) {
+    return this.rankingService.legendsMe(req.user.id);
   }
 
   @Get('levels')
@@ -56,12 +70,22 @@ export class RankingController {
   async getLevels() {
     return this.rankingService.getLevelThresholds();
   }
+}
 
-  @Get('top')
+/** «Más útiles este cuatrimestre» on the materia page (openspec reputation/rankings). */
+@ApiTags('Ranking')
+@Controller('subjects')
+export class SubjectTopMaterialsController {
+  constructor(private rankingService: RankingService) {}
+
+  @Get(':code/top-materials')
   @Public()
-  @ApiOperation({ summary: 'Obtener top 10 del ranking' })
-  @ApiResponse({ status: 200, description: 'Top 10 usuarios' })
-  async getTop() {
-    return this.rankingService.getGlobalLeaderboard(1, 10);
+  @ApiOperation({
+    summary: 'Materiales más útiles de la materia este cuatrimestre',
+  })
+  @ApiResponse({ status: 200, description: 'Top 10 por «Me sirvió» válidos' })
+  @ApiResponse({ status: 404, description: 'Materia no encontrada' })
+  topMaterials(@Param('code') code: string) {
+    return this.rankingService.topMaterials(code);
   }
 }
