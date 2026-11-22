@@ -1,12 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsEnum,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 import { ModerationDecision } from '../../../generated/prisma';
 
 export class CaseDecisionDto {
@@ -29,6 +24,6 @@ export class CaseDecisionDto {
       'Solo al retirar: advierte también al autor con la misma razón («Advertir también»).',
   })
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   warn?: boolean;
 }

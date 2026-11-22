@@ -5,7 +5,6 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   IsArray,
-  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -20,6 +19,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 import { CODE_MAX, SLUG_PATTERN } from '../catalog-codes';
 import { CREDITS_MAX, YEAR_MAX } from '../bulk-parser';
 
@@ -185,7 +185,7 @@ export class PlacementDto {
   /** An optativa has no año or cuatrimestre. */
   @ApiPropertyOptional()
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   optativa?: boolean;
 
   /** Required unless optativa; `placementValue` refuses it on an optativa. */

@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsBoolean,
   IsEmail,
   IsIn,
   IsString,
@@ -8,6 +7,8 @@ import {
   MaxLength,
   ValidateIf,
 } from 'class-validator';
+
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 
 export class FileAppealDto {
   @ApiProperty({ enum: ['RETIRO', 'SANCTION'] })
@@ -32,7 +33,7 @@ export class FileAppealDto {
 
 export class AnswerAppealDto {
   @ApiProperty({ description: 'true acepta la apelación; false la rechaza' })
-  @IsBoolean()
+  @StrictBoolean()
   accept: boolean;
 
   @ApiProperty({

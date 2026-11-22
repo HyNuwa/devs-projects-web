@@ -261,6 +261,21 @@ describe('experiencia write API (e2e)', () => {
       expect(JSON.stringify(body)).toContain(field);
     });
 
+    it('refuses a string isAnonymous and creates no experiencia', async () => {
+      const author = await createUser(prisma);
+
+      const { body } = await request(app.getHttpServer())
+        .post(`/api/v1/subjects/${code}/exams`)
+        .set('Authorization', bearer(app, author))
+        .send({ ...validExam, isAnonymous: 'false' })
+        .expect(400);
+
+      expect(JSON.stringify(body)).toContain('isAnonymous');
+      expect(
+        await prisma.examExperience.count({ where: { userId: author.id } }),
+      ).toBe(0);
+    });
+
     it('applies the same contract when editing', async () => {
       const author = await createUser(prisma);
       const { id } = await legacyExam(author);
@@ -393,6 +408,22 @@ describe('experiencia write API (e2e)', () => {
         }).expect(400);
 
         expect(JSON.stringify(body)).toMatch(/promotionGrade|promoción/);
+      },
+    );
+
+    it.each(['isAnonymous', 'confirmProbableDuplicate'])(
+      'refuses a string %s and creates no reseña',
+      async (field) => {
+        const author = await createUser(prisma);
+
+        const { body } = await postReview(author, { [field]: 'false' }).expect(
+          400,
+        );
+
+        expect(JSON.stringify(body)).toContain(field);
+        expect(
+          await prisma.courseReview.count({ where: { userId: author.id } }),
+        ).toBe(0);
       },
     );
 

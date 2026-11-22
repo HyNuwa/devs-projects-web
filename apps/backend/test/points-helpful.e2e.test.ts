@@ -149,6 +149,32 @@ describe('points from «Me sirvió» (e2e)', () => {
     expect(await helpfulPoints(author)).toBe(20);
   });
 
+  it.each([
+    ['helpfulness', 'isHelpful'],
+    ['saved', 'isSaved'],
+  ])(
+    'refuses a string %s flag and leaves the viewer state as it was',
+    async (path, field) => {
+      const author = await createUser(prisma);
+      const viewer = await createUser(prisma);
+      const { id } = await material(author);
+
+      const { body } = await request(app.getHttpServer())
+        .put(`/api/v1/materials/${id}/${path}`)
+        .set('Authorization', bearer(app, viewer))
+        .send({ [field]: 'false' })
+        .expect(400);
+
+      expect(JSON.stringify(body)).toContain(field);
+      const { body: state } = await request(app.getHttpServer())
+        .get(`/api/v1/materials/${id}/viewer-state`)
+        .set('Authorization', bearer(app, viewer))
+        .expect(200);
+      expect(state).toMatchObject({ isHelpful: false, isSaved: false });
+      expect(await helpfulPoints(author)).toBe(0);
+    },
+  );
+
   it('holds the caps when many «Me sirvió» arrive at once', async () => {
     const author = await createUser(prisma);
     const { id } = await material(author);

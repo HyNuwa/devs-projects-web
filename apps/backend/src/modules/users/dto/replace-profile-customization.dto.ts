@@ -3,7 +3,6 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
-  IsBoolean,
   IsIn,
   IsOptional,
   IsString,
@@ -11,6 +10,8 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 
 export const PIN_TYPES = [
   'MATERIAL',
@@ -89,6 +90,6 @@ export class ReplaceProfileCustomizationDto {
   pinned: ProfilePinDto[];
 
   @ApiProperty()
-  @IsBoolean()
+  @StrictBoolean()
   showLevelAndBadges: boolean;
 }

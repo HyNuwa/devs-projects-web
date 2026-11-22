@@ -3,7 +3,6 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
-  IsBoolean,
   IsDivisibleBy,
   IsEnum,
   IsIn,
@@ -27,6 +26,7 @@ import {
   MAX_ACADEMIC_YEAR,
   MIN_ACADEMIC_YEAR,
 } from '../../../common/validation/academic-year';
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 import {
   GradeMatchesOutcomeConstraint,
   normalizeTopics,
@@ -169,6 +169,6 @@ export class CreateExamExperienceDto {
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   isAnonymous?: boolean;
 }

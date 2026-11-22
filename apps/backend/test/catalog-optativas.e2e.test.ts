@@ -115,6 +115,21 @@ describe('Catálogo: optativas (e2e)', () => {
     await place(robotics, { semester: 1 }).expect(400);
   });
 
+  it('refuses a string optativa and leaves the materia unplaced', async () => {
+    const { id: physics } = await post('subjects', {
+      facultyId,
+      name: 'Física',
+    });
+
+    const response = await place(physics, { optativa: 'false' });
+
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(response.body)).toContain('optativa');
+    expect(
+      await prisma.studyPlanSubject.count({ where: { subjectId: physics } }),
+    ).toBe(0);
+  });
+
   it('lists optativas last, by name', async () => {
     await place(ai, { optativa: true }).expect(200);
     const { placements } = await detail();
@@ -173,6 +188,33 @@ describe('Catálogo: optativas (e2e)', () => {
       ['Visión por Computadora', null],
     ]);
     expect(await duration()).toBe(2);
+  });
+
+  it('refuses a string optativa in a carga masiva row and applies nothing', async () => {
+    const name = 'Mecatrónica';
+
+    const response = await http()
+      .post(`/api/v1/admin/catalog/careers/${careerId}/bulk/apply`)
+      .set(auth)
+      .send({
+        rows: [
+          {
+            action: 'new',
+            name,
+            code: `mecatronica-${tag}`,
+            optativa: 'false',
+          },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(response.body)).toContain('rows.0.optativa');
+    expect(await prisma.subject.count({ where: { facultyId, name } })).toBe(0);
+    expect(
+      await prisma.studyPlanSubject.count({
+        where: { studyPlan: { careerId }, subject: { name } },
+      }),
+    ).toBe(0);
   });
 
   describe('public pages', () => {

@@ -213,6 +213,18 @@ describe('profile customization API (e2e)', () => {
     expect((await mine(user)).choices).toEqual(before);
   });
 
+  it('rejects a string showLevelAndBadges and keeps the previous setting', async () => {
+    const user = await student(3);
+    await save(user, { showLevelAndBadges: false }).expect(200);
+
+    const { body } = await save(user, {
+      showLevelAndBadges: 'false' as unknown as boolean,
+    }).expect(400);
+
+    expect(JSON.stringify(body)).toContain('showLevelAndBadges');
+    expect((await mine(user)).choices.showLevelAndBadges).toBe(false);
+  });
+
   it('rejects the Salvavidas frame without the insignia, at any nivel', async () => {
     const user = await student(10);
 
