@@ -190,6 +190,33 @@ describe('Catálogo: optativas (e2e)', () => {
     expect(await duration()).toBe(2);
   });
 
+  it('refuses a string optativa in a carga masiva row and applies nothing', async () => {
+    const name = 'Mecatrónica';
+
+    const response = await http()
+      .post(`/api/v1/admin/catalog/careers/${careerId}/bulk/apply`)
+      .set(auth)
+      .send({
+        rows: [
+          {
+            action: 'new',
+            name,
+            code: `mecatronica-${tag}`,
+            optativa: 'false',
+          },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(response.body)).toContain('rows.0.optativa');
+    expect(await prisma.subject.count({ where: { facultyId, name } })).toBe(0);
+    expect(
+      await prisma.studyPlanSubject.count({
+        where: { studyPlan: { careerId }, subject: { name } },
+      }),
+    ).toBe(0);
+  });
+
   describe('public pages', () => {
     beforeAll(async () => {
       await place(algebra, { year: 2, semester: 1, credits: 8 }).expect(200);
