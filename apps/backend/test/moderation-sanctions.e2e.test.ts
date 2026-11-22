@@ -6,6 +6,7 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 import {
   bearer,
   createE2eApp,
+  createSubject,
   createUser,
   type E2eUser,
   createStudent,
@@ -162,6 +163,76 @@ describe('sanction endpoints (e2e)', () => {
     await post(`/users/${student.id}/lift-suspension`, admin, {
       reason: 'Era una cuenta real.',
     }).expect(201);
+  });
+
+  /** A student with one published material, to see whether it gets retired. */
+  async function studentWithMaterial() {
+    const student = await createStudent(prisma);
+    const { id: subjectId } = await createSubject(prisma);
+    const material = await prisma.material.create({
+      data: {
+        title: 'Resumen e2e',
+        fileUrl: 'https://drive.example.com/e2e',
+        fileType: 'pdf',
+        fileSize: BigInt(1000),
+        authorId: student.id,
+        subjectId,
+      },
+    });
+    return { student, material };
+  }
+
+  async function expectUntouched(studentId: string, materialId: string) {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: studentId },
+    });
+    expect(user.isBanned).toBe(false);
+    expect(await prisma.sanction.count({ where: { userId: studentId } })).toBe(
+      0,
+    );
+    expect(
+      (await prisma.material.findUniqueOrThrow({ where: { id: materialId } }))
+        .publicationStatus,
+    ).toBe('PUBLISHED');
+  }
+
+  it('refuses a string retireContributions when suspending and does nothing', async () => {
+    const { student, material } = await studentWithMaterial();
+
+    const { body } = await post(`/users/${student.id}/suspend`, admin, {
+      reason: 'Spam.',
+      duration: '7_DAYS',
+      retireContributions: 'false',
+    }).expect(400);
+
+    expect(JSON.stringify(body)).toContain('retireContributions');
+    await expectUntouched(student.id, material.id);
+  });
+
+  it('refuses a string retireContributions when confirming and keeps the proposal pending', async () => {
+    const { student, material } = await studentWithMaterial();
+    const proposed = await post(
+      `/users/${student.id}/suspension-proposals`,
+      moderator,
+      { reason: 'Spam.', duration: '7_DAYS' },
+    ).expect(201);
+    const proposalId = (proposed.body as { id: string }).id;
+
+    const { body } = await post(
+      `/suspension-proposals/${proposalId}/confirm`,
+      admin,
+      { reason: 'Reincidencia confirmada.', retireContributions: 'false' },
+    ).expect(400);
+
+    expect(JSON.stringify(body)).toContain('retireContributions');
+    await expectUntouched(student.id, material.id);
+    expect(
+      (
+        await prisma.suspensionProposal.findUniqueOrThrow({
+          where: { id: proposalId },
+        })
+      ).status,
+    ).toBe('PENDING');
   });
 
   it('refuses an unknown duration', async () => {

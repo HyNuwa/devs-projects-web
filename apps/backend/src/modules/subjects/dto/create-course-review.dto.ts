@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
-  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -24,6 +23,7 @@ import {
   MAX_ACADEMIC_YEAR,
   MIN_ACADEMIC_YEAR,
 } from '../../../common/validation/academic-year';
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 import {
   PromotionGradeRequiresPromoConstraint,
   SingleProfessorReferenceConstraint,
@@ -108,7 +108,7 @@ export class CreateCourseReviewDto {
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   isAnonymous?: boolean;
 
   @ApiPropertyOptional({
@@ -117,6 +117,6 @@ export class CreateCourseReviewDto {
       'Confirma que una reseña parecida reciente representa otra cursada real',
   })
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   confirmProbableDuplicate?: boolean;
 }

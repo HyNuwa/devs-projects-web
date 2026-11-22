@@ -398,6 +398,30 @@ describe('reviewing appeals (e2e)', () => {
       .expect(409);
   });
 
+  it('refuses a string accept and leaves the appeal undecided', async () => {
+    const author = await createStudent(prisma);
+    const { review, appeal } = await appealedRetiro(author, { signed: true });
+
+    const { body } = await as(reviewer)
+      .post(`/moderation/appeals/${appeal.id}/answer`, {
+        accept: 'false',
+        answer: 'Hay insultos a la docente.',
+      })
+      .expect(400);
+
+    expect(JSON.stringify(body)).toContain('accept');
+    expect(
+      await prisma.appeal.findUniqueOrThrow({ where: { id: appeal.id } }),
+    ).toMatchObject({ status: 'PENDING', answer: null, answeredAt: null });
+    expect(
+      (
+        await prisma.courseReview.findUniqueOrThrow({
+          where: { id: review.id },
+        })
+      ).publicationStatus,
+    ).toBe('REMOVED');
+  });
+
   it('tells the author the appeal status and answer, never who reviewed it', async () => {
     const author = await createStudent(prisma);
     const { review, appeal } = await appealedRetiro(author);

@@ -1,14 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean } from 'class-validator';
+
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 
 export class SetMaterialHelpfulnessDto {
   @ApiProperty()
-  @IsBoolean()
+  @StrictBoolean()
   isHelpful: boolean;
 }
 
 export class SetSavedMaterialDto {
   @ApiProperty()
-  @IsBoolean()
+  @StrictBoolean()
   isSaved: boolean;
 }

@@ -1,11 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsIn,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+
+import { StrictBoolean } from '../../../common/validation/strict-boolean';
 
 export const SUSPENSION_DURATIONS = ['7_DAYS', '30_DAYS', 'PERMANENT'] as const;
 export type SuspensionDuration = (typeof SUSPENSION_DURATIONS)[number];
@@ -49,7 +45,7 @@ export class SuspendDto {
     description: 'Retirar también sus aportes publicados (pensado para spam)',
   })
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   retireContributions?: boolean;
 }
 
@@ -69,7 +65,7 @@ export class ConfirmProposalDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   retireContributions?: boolean;
 }
 

@@ -102,4 +102,30 @@ describe('POST /moderation/cases/:id/decision with «Advertir también» (e2e)',
       await prisma.sanction.count({ where: { caseId: moderationCase.id } }),
     ).toBe(0);
   });
+
+  it('refuses a string warn and neither retires nor warns', async () => {
+    const { material, moderationCase } = await reportedMaterial();
+
+    const { body } = await request(app.getHttpServer())
+      .post(`/api/v1/moderation/cases/${moderationCase.id}/decision`)
+      .set('Authorization', bearer(app, moderator))
+      .send({ decision: 'REMOVE', reason: 'Fuera de tema.', warn: 'false' })
+      .expect(400);
+
+    expect(JSON.stringify(body)).toContain('warn');
+    expect(
+      await prisma.sanction.count({ where: { caseId: moderationCase.id } }),
+    ).toBe(0);
+    expect(
+      (await prisma.material.findUniqueOrThrow({ where: { id: material.id } }))
+        .publicationStatus,
+    ).toBe('PUBLISHED');
+    expect(
+      (
+        await prisma.moderationCase.findUniqueOrThrow({
+          where: { id: moderationCase.id },
+        })
+      ).status,
+    ).toBe('OPEN');
+  });
 });
